@@ -1,0 +1,16 @@
+node_modules/
+dist/
+local-dist/
+local-media/
+local-components/
+local-projects/
+local-state.json
+outputs/
+design-qa.md
+shortcut-entry-implementation.png
+shortcut-settings-implementation.png
+timeline-*-implementation*.png
+*.mp4
+*.mov
+*.webm
+*.zip

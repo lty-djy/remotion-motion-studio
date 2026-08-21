@@ -1,0 +1,25 @@
+{
+  "name": "motion-component-studio-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config local-vite.config.ts",
+    "build": "vite build --config local-vite.config.ts",
+    "start": "vite --config local-vite.config.ts --host 127.0.0.1 --port 41735"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@remotion/bundler": "4.0.499",
+    "@remotion/player": "4.0.499",
+    "@remotion/renderer": "4.0.499",
+    "@vitejs/plugin-react": "latest",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.499",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

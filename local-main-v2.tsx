@@ -1,0 +1,2746 @@
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createRoot } from "react-dom/client";
+import { Player, type PlayerRef } from "@remotion/player";
+import { AbsoluteFill, OffthreadVideo, Sequence } from "remotion";
+import {
+  ArrowCounterClockwise,
+  ArrowRight,
+  ArrowsInLineVertical,
+  CaretDown,
+  DownloadSimple,
+  FilmSlate,
+  FloppyDisk,
+  FrameCorners,
+  Keyboard,
+  MagnifyingGlass,
+  Minus,
+  MoonStars,
+  Pause,
+  Play,
+  Plus,
+  SelectionForeground,
+  SlidersHorizontal,
+  SpeakerHigh,
+  Sun,
+  TextAa,
+  Trash,
+  UploadSimple,
+  User,
+  VideoCamera,
+  X,
+} from "@phosphor-icons/react";
+import {
+  getMotionComponents,
+  getMotionTimeline,
+  getNumberExport,
+  type MotionComponentDefinition,
+  type MotionInstance,
+  type MotionModule,
+  type MotionPropSchema,
+} from "./local-protocol";
+import {
+  BUILT_IN_CATALOG,
+  BUILT_IN_COMPONENT_COUNT,
+  BUILT_IN_COMPONENT_IDS,
+  isBuiltInDefinition,
+  mergeWithBuiltInDefinitions,
+} from "./local-builtins";
+import "./local-styles.css";
+
+type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
+
+type ShortcutAction =
+  | "playPause"
+  | "goStart"
+  | "previousFrame"
+  | "nextFrame"
+  | "duplicate"
+  | "delete";
+
+type ShortcutMap = Record<ShortcutAction, string>;
+
+const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
+const DEFAULT_SHORTCUTS: ShortcutMap = {
+  playPause: "Space",
+  goStart: "Home",
+  previousFrame: "ArrowLeft",
+  nextFrame: "ArrowRight",
+  duplicate: "Control+D",
+  delete: "Delete",
+};
+
+const SHORTCUT_DEFINITIONS: Array<{
+  action: ShortcutAction;
+  label: string;
+  description: string;
+}> = [
+  { action: "playPause", label: "播放 / 暂停", description: "切换时间轴播放状态" },
+  { action: "goStart", label: "回到开头", description: "播放头归零" },
+  { action: "previousFrame", label: "上一帧", description: "向左移动一帧" },
+  { action: "nextFrame", label: "下一帧", description: "向右移动一帧" },
+  { action: "duplicate", label: "复制所选卡片", description: "复制当前选中的轨道卡片" },
+  { action: "delete", label: "删除所选卡片", description: "删除当前选中的轨道卡片" },
+];
+
+const loadShortcuts = (): ShortcutMap => {
+  try {
+    const saved = window.localStorage.getItem(SHORTCUT_STORAGE_KEY);
+    if (!saved) return { ...DEFAULT_SHORTCUTS };
+    return { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) };
+  } catch {
+    return { ...DEFAULT_SHORTCUTS };
+  }
+};
+
+const shortcutFromEvent = (event: KeyboardEvent | React.KeyboardEvent) => {
+  const modifierKeys = new Set(["Control", "Shift", "Alt", "Meta"]);
+  if (modifierKeys.has(event.key)) return "";
+  const parts: string[] = [];
+  if (event.ctrlKey) parts.push("Control");
+  if (event.metaKey) parts.push("Meta");
+  if (event.altKey) parts.push("Alt");
+  if (event.shiftKey) parts.push("Shift");
+  const key =
+    event.code === "Space"
+      ? "Space"
+      : event.key.length === 1
+        ? event.key.toUpperCase()
+        : event.key;
+  parts.push(key);
+  return parts.join("+");
+};
+
+const formatShortcut = (shortcut: string) => {
+  if (!shortcut) return "未设置";
+  const labels: Record<string, string> = {
+    Control: "Ctrl",
+    Meta: "Cmd",
+    Space: "空格",
+    ArrowLeft: "←",
+    ArrowRight: "→",
+    ArrowUp: "↑",
+    ArrowDown: "↓",
+    Delete: "Delete",
+    Home: "Home",
+  };
+  return shortcut
+    .split("+")
+    .map((part) => labels[part] ?? part)
+    .join(" + ");
+};
+
+// The reference-UI phase is intentionally visual-only. Keeping the Player
+// unmounted prevents restored MOV sources from being intercepted as downloads
+// by third-party browser download extensions when the page opens.
+const STATIC_REFERENCE_PREVIEW = true;
+
+type ComponentHistoryItem = {
+  id: string;
+  name: string;
+  importedAt: string;
+  sourceIncludesVideo: boolean;
+};
+
+type ProjectHistoryItem = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  videoName: string;
+  componentName: string;
+  instanceCount: number;
+};
+
+type ProjectSnapshot = {
+  version: 1;
+  name: string;
+  activeComponentId?: string;
+  componentName?: string;
+  sourceIncludesVideo?: boolean;
+  videoName?: string;
+  videoUrl?: string;
+  videoDuration?: number;
+  instances: MotionInstance[];
+  currentFrame?: number;
+  theme?: "dark" | "light";
+  timelineHeight?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type RenderProgressState = {
+  jobId: string;
+  status:
+    | "queued"
+    | "bundling"
+    | "preparing"
+    | "rendering"
+    | "completed"
+    | "failed";
+  stage: string;
+  progress: number;
+  renderedFrames: number;
+  encodedFrames: number;
+  totalFrames: number;
+  estimatedRemainingMs: number | null;
+};
+
+type ContextMenuState = {
+  x: number;
+  y: number;
+  source: "preview" | "timeline";
+  instanceIds: string[];
+};
+
+type MarqueeRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+let instanceSequence = 0;
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${(seconds % 60).toFixed(1).padStart(4, "0")}`;
+};
+
+const formatRenderRemaining = (milliseconds: number | null) => {
+  if (!milliseconds || milliseconds <= 0) return "正在估算剩余时间";
+  const totalSeconds = Math.max(1, Math.round(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0
+    ? `预计还需 ${minutes} 分 ${seconds} 秒`
+    : `预计还需 ${seconds} 秒`;
+};
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+const createInstanceId = (componentId: string) => {
+  instanceSequence += 1;
+  return `${componentId}-${Date.now()}-${instanceSequence}`;
+};
+
+const defaultsFromDefinition = (definition: MotionComponentDefinition) => {
+  const schemaDefaults = Object.fromEntries(
+    Object.entries(definition.propsSchema).map(([key, schema]) => [
+      key,
+      schema.default,
+    ]),
+  );
+  return { ...schemaDefaults, ...definition.defaultProps };
+};
+
+const createInstance = (
+  definition: MotionComponentDefinition,
+  startFrame: number,
+  totalFrames: number,
+  overrides: Partial<MotionInstance> = {},
+): MotionInstance => {
+  const safeStart = clamp(
+    Math.round(startFrame),
+    0,
+    Math.max(0, totalFrames - 1),
+  );
+  const maxDuration = Math.max(3, totalFrames - safeStart);
+  return {
+    id: createInstanceId(definition.id),
+    componentId: definition.id,
+    startFrame: safeStart,
+    durationInFrames: clamp(
+      Math.round(overrides.durationInFrames ?? definition.durationInFrames),
+      3,
+      maxDuration,
+    ),
+    position: {
+      ...definition.defaultPosition,
+      ...(overrides.position ?? {}),
+    },
+    backgroundOpacity: clamp(overrides.backgroundOpacity ?? 0, 0, 1),
+    props: {
+      ...defaultsFromDefinition(definition),
+      ...(overrides.props ?? {}),
+    },
+  };
+};
+
+type StudioPreviewProps = {
+  videoUrl: string;
+  sourceIncludesVideo: boolean;
+  definitions: MotionComponentDefinition[];
+  instances: MotionInstance[];
+};
+
+const StudioPreviewComposition = ({
+  videoUrl,
+  sourceIncludesVideo,
+  definitions,
+  instances,
+}: StudioPreviewProps) => {
+  const previewDefinitionMap = useMemo(
+    () => new Map(definitions.map((definition) => [definition.id, definition])),
+    [definitions],
+  );
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#05070a" }}>
+      {videoUrl ? <OffthreadVideo src={videoUrl} volume={1} /> : null}
+      {sourceIncludesVideo && !videoUrl ? (
+        <AbsoluteFill
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#91a0b2",
+            fontFamily: "Inter, PingFang SC, sans-serif",
+            fontSize: 48,
+          }}
+        >
+          请先导入这个组件包使用的原视频
+        </AbsoluteFill>
+      ) : (
+        instances.map((instance) => {
+          const definition = previewDefinitionMap.get(instance.componentId);
+          if (!definition) return null;
+          const Comp = definition.component;
+          return (
+            <Sequence
+              key={instance.id}
+              from={instance.startFrame}
+              durationInFrames={Math.max(3, instance.durationInFrames)}
+            >
+              <AbsoluteFill
+                style={{
+                  transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale})`,
+                  transformOrigin: "0 0",
+                }}
+              >
+                <Comp
+                  {...instance.props}
+                  videoSrc={videoUrl}
+                  hideVideo={sourceIncludesVideo}
+                  backgroundOpacity={instance.backgroundOpacity}
+                />
+              </AbsoluteFill>
+            </Sequence>
+          );
+        })
+      )}
+    </AbsoluteFill>
+  );
+};
+
+const App = () => {
+  const playerRef = useRef<PlayerRef>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const playheadDragCleanupRef = useRef<(() => void) | null>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
+  const componentInput = useRef<HTMLInputElement>(null);
+  const activeComponentIdRef = useRef("");
+  const workspaceReadyRef = useRef(false);
+  const [motionModule, setMotionModule] = useState<MotionModule | null>(null);
+  const [definitions, setDefinitions] = useState<MotionComponentDefinition[]>(
+    [],
+  );
+  const [instances, setInstances] = useState<MotionInstance[]>([]);
+  const [selectedInstanceId, setSelectedInstanceId] = useState("");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [componentName, setComponentName] = useState("本地示例动效");
+  const [componentHistory, setComponentHistory] = useState<
+    ComponentHistoryItem[]
+  >([]);
+  const [activeComponentId, setActiveComponentIdState] = useState("");
+  const [projects, setProjects] = useState<ProjectHistoryItem[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState("");
+  const [projectName, setProjectName] = useState("未命名项目");
+  const [draftStatus, setDraftStatus] = useState<
+    "loading" | "saving" | "saved" | "error"
+  >("loading");
+  const [savingProject, setSavingProject] = useState(false);
+  const [videoName, setVideoName] = useState("尚未导入视频");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoDuration, setVideoDuration] = useState(6);
+  const [notice, setNotice] = useState<Notice>(null);
+  const [rendering, setRendering] = useState(false);
+  const [renderProgress, setRenderProgress] =
+    useState<RenderProgressState | null>(null);
+  const [renderResult, setRenderResult] = useState<{
+    fileName: string;
+    downloadUrl: string;
+    outputLocation: string;
+  } | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [sourceIncludesVideo, setSourceIncludesVideo] = useState(false);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [shortcutPanelOpen, setShortcutPanelOpen] = useState(false);
+  const [recordingShortcut, setRecordingShortcut] =
+    useState<ShortcutAction | null>(null);
+  const [shortcuts, setShortcuts] = useState<ShortcutMap>(loadShortcuts);
+  const [shortcutDraft, setShortcutDraft] = useState<ShortcutMap>(loadShortcuts);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
+  const [timelineMarquee, setTimelineMarquee] =
+    useState<MarqueeRect | null>(null);
+  const [timelineHeight, setTimelineHeight] = useState(230);
+  const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
+    "metric",
+  ]);
+
+  useEffect(
+    () => () => {
+      playheadDragCleanupRef.current?.();
+    },
+    [],
+  );
+
+  const setActiveComponentId = useCallback((id: string) => {
+    activeComponentIdRef.current = id;
+    setActiveComponentIdState(id);
+  }, []);
+
+  const fps = motionModule
+    ? getNumberExport(
+        motionModule,
+        ["WECHAT_VIDEO_FPS", "LOCAL_COMPONENT_FPS", "FPS"],
+        30,
+      )
+    : 30;
+  const sourceFrames = motionModule
+    ? getNumberExport(
+        motionModule,
+        [
+          "WECHAT_VIDEO_DURATION_IN_FRAMES",
+          "LOCAL_COMPONENT_DURATION_IN_FRAMES",
+          "DURATION_IN_FRAMES",
+        ],
+        Math.round(videoDuration * fps),
+      )
+    : Math.round(videoDuration * fps);
+  const durationInFrames = Math.max(
+    1,
+    videoUrl ? Math.round(videoDuration * fps) : sourceFrames,
+  );
+  const timelineSeconds = durationInFrames / fps;
+  const playheadPercent =
+    (currentFrame / Math.max(1, durationInFrames - 1)) * 100;
+
+  const definitionMap = useMemo(
+    () => new Map(definitions.map((definition) => [definition.id, definition])),
+    [definitions],
+  );
+  const selectedInstance =
+    instances.find((instance) => instance.id === selectedInstanceId) ?? null;
+  const selectedDefinition = selectedInstance
+    ? definitionMap.get(selectedInstance.componentId) ?? null
+    : null;
+  const selectedInstanceIdSet = useMemo(
+    () => new Set(selectedInstanceIds),
+    [selectedInstanceIds],
+  );
+  const customDefinitions = useMemo(
+    () =>
+      definitions.filter(
+        (definition) =>
+          !BUILT_IN_COMPONENT_IDS.has(definition.id) &&
+          !isBuiltInDefinition(definition),
+      ),
+    [definitions],
+  );
+  const catalogDefinitionMap = useMemo(() => {
+    const resolved = new Map<string, MotionComponentDefinition>();
+    for (const category of BUILT_IN_CATALOG) {
+      for (const item of category.items) {
+        const candidates = item.ids.flatMap((id) => {
+          const definition = definitionMap.get(id);
+          return definition ? [definition] : [];
+        });
+        const definition =
+          candidates.find((candidate) => !isBuiltInDefinition(candidate)) ??
+          candidates[0];
+        if (definition) resolved.set(item.ids[0], definition);
+      }
+    }
+    return resolved;
+  }, [definitionMap]);
+  const selectOnlyInstance = useCallback((instanceId: string) => {
+    setSelectedInstanceId(instanceId);
+    setSelectedInstanceIds(instanceId ? [instanceId] : []);
+  }, []);
+
+  const refreshHistory = useCallback(async () => {
+    const response = await fetch("/api/component-history");
+    const data = await response.json();
+    if (response.ok) setComponentHistory(data.history ?? []);
+  }, []);
+
+  const applyModule = useCallback(
+    (
+      loaded: MotionModule,
+      options: {
+        sourceIncludesVideo: boolean;
+        componentName: string;
+        totalFrames: number;
+        restoredInstances?: MotionInstance[];
+        restoredFrame?: number;
+      },
+    ) => {
+      const loadedFps = getNumberExport(
+        loaded,
+        ["WECHAT_VIDEO_FPS", "LOCAL_COMPONENT_FPS", "FPS"],
+        30,
+      );
+      const loadedFrames = getNumberExport(
+        loaded,
+        [
+          "WECHAT_VIDEO_DURATION_IN_FRAMES",
+          "LOCAL_COMPONENT_DURATION_IN_FRAMES",
+          "DURATION_IN_FRAMES",
+        ],
+        options.totalFrames,
+      );
+      const totalFrames = Math.max(1, options.totalFrames || loadedFrames);
+      const importedDefinitions = getMotionComponents(loaded, loadedFrames);
+      const nextDefinitions =
+        mergeWithBuiltInDefinitions(importedDefinitions);
+      const hasRestoredInstances = Array.isArray(options.restoredInstances);
+      const restoredInstances = (options.restoredInstances ?? []).flatMap(
+        (savedInstance) => {
+          const definition = nextDefinitions.find(
+            (candidate) => candidate.id === savedInstance.componentId,
+          );
+          if (!definition) return [];
+          const restored = createInstance(
+            definition,
+            savedInstance.startFrame,
+            totalFrames,
+            {
+              durationInFrames: savedInstance.durationInFrames,
+              position: savedInstance.position,
+              backgroundOpacity: savedInstance.backgroundOpacity,
+              props: savedInstance.props,
+            },
+          );
+          return [
+            {
+              ...restored,
+              id:
+                typeof savedInstance.id === "string" && savedInstance.id
+                  ? savedInstance.id
+                  : restored.id,
+            },
+          ];
+        },
+      );
+      const presets = getMotionTimeline(loaded);
+      const presetInstances = presets.flatMap((preset) => {
+        const definition = nextDefinitions.find(
+          (candidate) => candidate.id === preset.componentId,
+        );
+        if (!definition) return [];
+        return [
+          createInstance(definition, preset.startFrame ?? 0, totalFrames, {
+            durationInFrames:
+              preset.durationInFrames && preset.durationInFrames > 0
+                ? preset.durationInFrames
+                : definition.durationInFrames,
+            position: {
+              ...definition.defaultPosition,
+              ...(preset.position ?? {}),
+            },
+            backgroundOpacity: preset.backgroundOpacity,
+            props: preset.props,
+          }),
+        ];
+      });
+      const nextInstances =
+        hasRestoredInstances ? restoredInstances : presetInstances;
+      if (
+        !hasRestoredInstances &&
+        nextInstances.length === 0 &&
+        nextDefinitions[0]
+      ) {
+        nextInstances.push(
+          createInstance(nextDefinitions[0], 0, totalFrames, {
+            durationInFrames: Math.min(
+              nextDefinitions[0].durationInFrames,
+              totalFrames,
+            ),
+          }),
+        );
+      }
+      setMotionModule(loaded);
+      setDefinitions(nextDefinitions);
+      setInstances(nextInstances);
+      setSelectedInstanceId(nextInstances[0]?.id ?? "");
+      setSelectedInstanceIds(
+        nextInstances[0]?.id ? [nextInstances[0].id] : [],
+      );
+      setSourceIncludesVideo(options.sourceIncludesVideo);
+      setComponentName(options.componentName);
+      setCurrentFrame((frame) =>
+        clamp(options.restoredFrame ?? frame, 0, totalFrames - 1),
+      );
+      if (loadedFps !== fps) playerRef.current?.seekTo(0);
+    },
+    [fps],
+  );
+
+  const loadModuleUrl = useCallback(
+    async (
+      url: string,
+      options: {
+        sourceIncludesVideo: boolean;
+        componentName: string;
+        totalFrames: number;
+        restoredInstances?: MotionInstance[];
+        restoredFrame?: number;
+      },
+    ) => {
+      const loaded = (await import(/* @vite-ignore */ url)) as MotionModule;
+      applyModule(loaded, options);
+      return loaded;
+    },
+    [applyModule],
+  );
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/component").then((response) => response.json()),
+      fetch("/api/state").then((response) => response.json()),
+      fetch("/api/component-history").then((response) => response.json()),
+    ])
+      .then(async ([component, state, history]) => {
+        const draft = state.workspaceDraft as ProjectSnapshot | undefined;
+        const canRestoreDraft = Boolean(
+          draft &&
+            (!draft.activeComponentId ||
+              draft.activeComponentId === state.activeComponentId),
+        );
+        const storedDuration =
+          Number(canRestoreDraft ? draft?.videoDuration : state.videoDuration) >
+          0
+            ? Number(
+                canRestoreDraft ? draft?.videoDuration : state.videoDuration,
+              )
+            : 6;
+        const storedVideoName = canRestoreDraft
+          ? draft?.videoName
+          : state.videoName;
+        const storedVideoUrl = canRestoreDraft
+          ? draft?.videoUrl
+          : state.videoUrl;
+        if (storedVideoName) setVideoName(storedVideoName);
+        if (storedVideoUrl) {
+          setVideoUrl(`${String(storedVideoUrl).split("?")[0]}?t=${Date.now()}`);
+        }
+        setVideoDuration(storedDuration);
+        setComponentHistory(history.history ?? []);
+        setProjects(state.projectHistory ?? []);
+        setActiveProjectId(state.activeProjectId ?? "");
+        setProjectName(
+          draft?.name ??
+            (state.projectHistory ?? []).find(
+              (item: ProjectHistoryItem) =>
+                item.id === state.activeProjectId,
+            )?.name ??
+            "未命名项目",
+        );
+        if (draft?.theme === "light") setTheme("light");
+        if (Number(draft?.timelineHeight) >= 180) {
+          setTimelineHeight(Number(draft?.timelineHeight));
+        }
+        setActiveComponentId(state.activeComponentId ?? "");
+        await loadModuleUrl(component.moduleUrl, {
+          sourceIncludesVideo: Boolean(
+            (canRestoreDraft
+              ? draft?.sourceIncludesVideo
+              : state.sourceIncludesVideo) ?? component.sourceIncludesVideo,
+          ),
+          componentName:
+            (canRestoreDraft ? draft?.componentName : state.componentName) ??
+            "本地示例动效",
+          totalFrames: Math.round(storedDuration * 30),
+          restoredInstances: canRestoreDraft ? draft?.instances : undefined,
+          restoredFrame: canRestoreDraft ? draft?.currentFrame : undefined,
+        });
+        workspaceReadyRef.current = true;
+        setDraftStatus("saved");
+      })
+      .catch((error) =>
+        setNotice({ tone: "error", text: `加载组件失败：${error.message}` }),
+      );
+  }, [loadModuleUrl, setActiveComponentId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        const state = await fetch("/api/state").then((response) =>
+          response.json(),
+        );
+        if (
+          state.activeComponentId &&
+          state.activeComponentId !== activeComponentIdRef.current
+        ) {
+          setActiveComponentId(state.activeComponentId);
+          const component = await fetch("/api/component").then((response) =>
+            response.json(),
+          );
+          await loadModuleUrl(component.moduleUrl, {
+            sourceIncludesVideo: Boolean(component.sourceIncludesVideo),
+            componentName: state.componentName ?? "自动导入组件",
+            totalFrames: durationInFrames,
+          });
+          await refreshHistory();
+          setNotice({
+            tone: "ok",
+            text: `已自动导入 ${state.componentName ?? "Remotion 组件包"}。`,
+          });
+        }
+      } catch {
+        // The local service may be restarting; the next poll will retry.
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [
+    durationInFrames,
+    loadModuleUrl,
+    refreshHistory,
+    setActiveComponentId,
+  ]);
+
+  useEffect(() => {
+    setInstances((current) =>
+      current.map((instance) => {
+        const startFrame = clamp(
+          instance.startFrame,
+          0,
+          Math.max(0, durationInFrames - 1),
+        );
+        return {
+          ...instance,
+          startFrame,
+          durationInFrames: clamp(
+            instance.durationInFrames,
+            3,
+            Math.max(3, durationInFrames - startFrame),
+          ),
+        };
+      }),
+    );
+    setCurrentFrame((frame) =>
+      clamp(frame, 0, Math.max(0, durationInFrames - 1)),
+    );
+  }, [durationInFrames]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const updateFrame = (event: { detail: { frame: number } }) => {
+      setCurrentFrame(event.detail.frame);
+    };
+    player.addEventListener("frameupdate", updateFrame);
+    return () => player.removeEventListener("frameupdate", updateFrame);
+  }, [motionModule]);
+
+  useEffect(() => {
+    if (!isPlaying || playerRef.current) return;
+    const timer = window.setInterval(() => {
+      setCurrentFrame((frame) => {
+        if (frame >= durationInFrames - 1) {
+          setIsPlaying(false);
+          return durationInFrames - 1;
+        }
+        return frame + 1;
+      });
+    }, Math.max(16, 1000 / fps));
+    return () => window.clearInterval(timer);
+  }, [durationInFrames, fps, isPlaying]);
+
+  const previewInputProps = useMemo<StudioPreviewProps>(
+    () => ({
+      videoUrl,
+      sourceIncludesVideo,
+      definitions,
+      instances,
+    }),
+    [definitions, instances, sourceIncludesVideo, videoUrl],
+  );
+
+  const workspaceSnapshot = useMemo<ProjectSnapshot>(
+    () => ({
+      version: 1,
+      name: projectName.trim() || "未命名项目",
+      activeComponentId,
+      componentName,
+      sourceIncludesVideo,
+      videoName,
+      videoUrl: videoUrl ? videoUrl.split("?")[0] : "",
+      videoDuration,
+      instances,
+      currentFrame,
+      theme,
+      timelineHeight,
+    }),
+    [
+      activeComponentId,
+      componentName,
+      currentFrame,
+      instances,
+      projectName,
+      sourceIncludesVideo,
+      theme,
+      timelineHeight,
+      videoDuration,
+      videoName,
+      videoUrl,
+    ],
+  );
+
+  useEffect(() => {
+    if (!workspaceReadyRef.current || !motionModule) return;
+    setDraftStatus("saving");
+    const timer = window.setTimeout(async () => {
+      if (!workspaceReadyRef.current) return;
+      try {
+        const response = await fetch("/api/workspace-draft", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(workspaceSnapshot),
+        });
+        if (!response.ok) throw new Error("自动草稿保存失败");
+        setDraftStatus("saved");
+      } catch {
+        setDraftStatus("error");
+      }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [motionModule, workspaceSnapshot]);
+
+  const saveProject = async (saveAsNew = false) => {
+    const name = projectName.trim();
+    if (!name) {
+      setNotice({tone: "error", text: "请先填写项目名称。"});
+      return;
+    }
+    setSavingProject(true);
+    setNotice({tone: "info", text: "正在保存本地项目…"});
+    try {
+      const response = await fetch("/api/save-project", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          id: saveAsNew ? undefined : activeProjectId || undefined,
+          name,
+          snapshot: {...workspaceSnapshot, name},
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "项目保存失败");
+      setProjects(data.projects ?? []);
+      setActiveProjectId(data.project.id);
+      setProjectName(data.project.name);
+      setDraftStatus("saved");
+      setNotice({
+        tone: "ok",
+        text: saveAsNew ? `已另存为 ${data.project.name}` : `已保存 ${data.project.name}`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "项目保存失败",
+      });
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
+  const openProject = async (project: ProjectHistoryItem) => {
+    workspaceReadyRef.current = false;
+    setDraftStatus("loading");
+    setNotice({tone: "info", text: `正在打开 ${project.name}…`});
+    try {
+      const response = await fetch("/api/open-project", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({id: project.id}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "项目打开失败");
+      const snapshot = data.snapshot as ProjectSnapshot;
+      const restoredDuration =
+        Number(snapshot.videoDuration) > 0
+          ? Number(snapshot.videoDuration)
+          : 6;
+      const restoredVideoUrl = snapshot.videoUrl
+        ? `${snapshot.videoUrl.split("?")[0]}?t=${Date.now()}`
+        : "";
+      setActiveProjectId(project.id);
+      setProjectName(snapshot.name || project.name);
+      setActiveComponentId(data.activeComponentId ?? "");
+      setVideoName(snapshot.videoName ?? "尚未导入视频");
+      setVideoUrl(restoredVideoUrl);
+      setVideoDuration(restoredDuration);
+      setTheme(snapshot.theme === "light" ? "light" : "dark");
+      setTimelineHeight(
+        Number(snapshot.timelineHeight) >= 180
+          ? Number(snapshot.timelineHeight)
+          : 230,
+      );
+      await loadModuleUrl(data.moduleUrl, {
+        sourceIncludesVideo: Boolean(
+          data.sourceIncludesVideo ?? snapshot.sourceIncludesVideo,
+        ),
+        componentName: snapshot.componentName ?? project.componentName,
+        totalFrames: Math.round(restoredDuration * 30),
+        restoredInstances: snapshot.instances ?? [],
+        restoredFrame: snapshot.currentFrame ?? 0,
+      });
+      const restoredFrame = Math.max(0, Number(snapshot.currentFrame) || 0);
+      window.requestAnimationFrame(() =>
+        playerRef.current?.seekTo(restoredFrame),
+      );
+      workspaceReadyRef.current = true;
+      setDraftStatus("saved");
+      setNotice({tone: "ok", text: `已打开项目 ${snapshot.name}。`});
+    } catch (error) {
+      workspaceReadyRef.current = true;
+      setDraftStatus("error");
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "项目打开失败",
+      });
+    }
+  };
+
+  const updateInstance = useCallback(
+    (
+      instanceId: string,
+      updater: (instance: MotionInstance) => MotionInstance,
+    ) => {
+      setInstances((current) =>
+        current.map((instance) =>
+          instance.id === instanceId ? updater(instance) : instance,
+        ),
+      );
+    },
+    [],
+  );
+
+  const addInstance = (componentId: string) => {
+    const definition = definitionMap.get(componentId);
+    if (!definition) return;
+    const instance = createInstance(
+      definition,
+      currentFrame,
+      durationInFrames,
+    );
+    setInstances((current) => [...current, instance]);
+    selectOnlyInstance(instance.id);
+    setNotice({ tone: "ok", text: `已添加 ${definition.name} 到时间轴。` });
+  };
+
+  const importVideo = async (file: File) => {
+    setNotice({ tone: "info", text: "正在复制视频到本地工作区…" });
+    const metadataUrl = URL.createObjectURL(file);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.src = metadataUrl;
+    await new Promise<void>((resolve, reject) => {
+      probe.onloadedmetadata = () => resolve();
+      probe.onerror = () => reject(new Error("浏览器无法读取该视频"));
+    });
+    const duration = Number.isFinite(probe.duration) ? probe.duration : 6;
+    URL.revokeObjectURL(metadataUrl);
+    const response = await fetch("/api/upload-video", {
+      method: "POST",
+      headers: {
+        "X-File-Name": encodeURIComponent(file.name),
+        "X-Video-Duration": String(duration),
+      },
+      body: file,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "视频导入失败");
+    setVideoUrl(data.videoUrl);
+    setVideoName(file.name);
+    setVideoDuration(duration);
+    setNotice({
+      tone: "ok",
+      text: `已导入 ${file.name}，时长 ${duration.toFixed(2)} 秒，原声音量 100%。`,
+    });
+  };
+
+  const importComponent = async (file: File) => {
+    const code = await file.text();
+    setNotice({ tone: "info", text: "正在进行安全校验并编译组件清单…" });
+    const response = await fetch("/api/import-component", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, code }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "组件导入失败");
+    setActiveComponentId(data.activeComponentId ?? "");
+    await loadModuleUrl(data.moduleUrl, {
+      sourceIncludesVideo: Boolean(data.sourceIncludesVideo),
+      componentName: file.name,
+      totalFrames: durationInFrames,
+    });
+    await refreshHistory();
+    setNotice({
+      tone: "ok",
+      text: `已加载 ${file.name}，识别到组件清单和预设时间轴。`,
+    });
+  };
+
+  const activateHistoryItem = async (item: ComponentHistoryItem) => {
+    const response = await fetch("/api/activate-component", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.id }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "历史组件加载失败");
+    setActiveComponentId(item.id);
+    await loadModuleUrl(data.moduleUrl, {
+      sourceIncludesVideo: Boolean(data.sourceIncludesVideo),
+      componentName: item.name,
+      totalFrames: durationInFrames,
+    });
+    setNotice({ tone: "ok", text: `已从历史记录加载 ${item.name}。` });
+  };
+
+  const renderVideo = async () => {
+    setRendering(true);
+    setRenderProgress(null);
+    setRenderResult(null);
+    setNotice({
+      tone: "info",
+      text: "正在本机渲染多组件时间轴，首次渲染会准备 Chromium…",
+    });
+    try {
+      const response = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoSrc: videoUrl,
+          sourceIncludesVideo,
+          instances,
+          timelineDurationInFrames: durationInFrames,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "渲染失败");
+      const jobId = String(data.jobId ?? "");
+      if (!jobId) throw new Error("本地服务没有返回渲染任务编号");
+
+      while (true) {
+        const statusResponse = await fetch(
+          `/api/render-status?jobId=${encodeURIComponent(jobId)}`,
+          { cache: "no-store" },
+        );
+        const statusData = await statusResponse.json();
+        if (!statusResponse.ok) {
+          throw new Error(statusData.error ?? "读取渲染进度失败");
+        }
+        const nextProgress: RenderProgressState = {
+          jobId,
+          status: statusData.status,
+          stage: statusData.stage ?? "正在渲染",
+          progress: clamp(Number(statusData.progress) || 0, 0, 1),
+          renderedFrames: Math.max(0, Number(statusData.renderedFrames) || 0),
+          encodedFrames: Math.max(0, Number(statusData.encodedFrames) || 0),
+          totalFrames: Math.max(1, Number(statusData.totalFrames) || 1),
+          estimatedRemainingMs:
+            Number.isFinite(Number(statusData.estimatedRemainingMs)) &&
+            Number(statusData.estimatedRemainingMs) > 0
+              ? Number(statusData.estimatedRemainingMs)
+              : null,
+        };
+        setRenderProgress(nextProgress);
+
+        if (nextProgress.status === "completed") {
+          if (!statusData.result) {
+            throw new Error("渲染完成，但本地服务没有返回输出文件");
+          }
+          setRenderResult(statusData.result);
+          setNotice({
+            tone: "ok",
+            text: `渲染完成：${statusData.result.fileName}`,
+          });
+          break;
+        }
+        if (nextProgress.status === "failed") {
+          throw new Error(statusData.error ?? "本机渲染失败");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 750));
+      }
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "渲染失败",
+      });
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  const seekFromPointer = (
+    event: React.MouseEvent<HTMLElement>,
+    element: HTMLElement,
+  ) => {
+    const bounds = element.getBoundingClientRect();
+    const ratio = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    const frame = clamp(
+      Math.round(ratio * (durationInFrames - 1)),
+      0,
+      durationInFrames - 1,
+    );
+    playerRef.current?.seekTo(frame);
+    setCurrentFrame(frame);
+  };
+
+  const seekTimelineFromClientX = useCallback(
+    (clientX: number) => {
+      const timeline = timelineRef.current;
+      if (!timeline) return;
+      const bounds = timeline.getBoundingClientRect();
+      const trackLeft = bounds.left + 84;
+      const trackWidth = Math.max(1, bounds.width - 98);
+      const ratio = clamp((clientX - trackLeft) / trackWidth, 0, 1);
+      const frame = clamp(
+        Math.round(ratio * (durationInFrames - 1)),
+        0,
+        durationInFrames - 1,
+      );
+      playerRef.current?.seekTo(frame);
+      setCurrentFrame(frame);
+    },
+    [durationInFrames],
+  );
+
+  const beginPlayheadDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    seekTimelineFromClientX(event.clientX);
+    playheadDragCleanupRef.current?.();
+
+    const pointerId = event.pointerId;
+    const handleMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      moveEvent.preventDefault();
+      seekTimelineFromClientX(moveEvent.clientX);
+    };
+    const cleanup = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleEnd);
+      window.removeEventListener("pointercancel", handleEnd);
+      playheadDragCleanupRef.current = null;
+    };
+    const handleEnd = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId !== pointerId) return;
+      seekTimelineFromClientX(endEvent.clientX);
+      cleanup();
+    };
+
+    playheadDragCleanupRef.current = cleanup;
+    window.addEventListener("pointermove", handleMove, { passive: false });
+    window.addEventListener("pointerup", handleEnd);
+    window.addEventListener("pointercancel", handleEnd);
+  };
+
+  const timelineDragState = useRef<{
+    mode: "move" | "left" | "right";
+    instanceId: string;
+    pointerX: number;
+    startFrame: number;
+    durationInFrames: number;
+    width: number;
+    members: Array<{
+      id: string;
+      startFrame: number;
+      durationInFrames: number;
+    }>;
+    minStartFrame: number;
+    maxEndFrame: number;
+    moved: boolean;
+  } | null>(null);
+
+  const beginTimelineDrag = (
+    event: React.PointerEvent,
+    instance: MotionInstance,
+    mode: "move" | "left" | "right",
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const keepGroup =
+      mode === "move" &&
+      selectedInstanceIds.length > 1 &&
+      selectedInstanceIdSet.has(instance.id);
+    const memberIds = keepGroup ? selectedInstanceIds : [instance.id];
+    if (keepGroup) {
+      setSelectedInstanceId(instance.id);
+    } else {
+      selectOnlyInstance(instance.id);
+    }
+    const memberIdSet = new Set(memberIds);
+    const members = instances
+      .filter((candidate) => memberIdSet.has(candidate.id))
+      .map((candidate) => ({
+        id: candidate.id,
+        startFrame: candidate.startFrame,
+        durationInFrames: candidate.durationInFrames,
+      }));
+    const width =
+      event.currentTarget.closest(".track-body")?.clientWidth ?? 1;
+    timelineDragState.current = {
+      mode,
+      instanceId: instance.id,
+      pointerX: event.clientX,
+      startFrame: instance.startFrame,
+      durationInFrames: instance.durationInFrames,
+      width,
+      members,
+      minStartFrame: Math.min(...members.map((member) => member.startFrame)),
+      maxEndFrame: Math.max(
+        ...members.map(
+          (member) => member.startFrame + member.durationInFrames,
+        ),
+      ),
+      moved: false,
+    };
+  };
+
+  useEffect(() => {
+    const moveTimeline = (event: PointerEvent) => {
+      const state = timelineDragState.current;
+      if (!state) return;
+      event.preventDefault();
+      const deltaFrames = Math.round(
+        ((event.clientX - state.pointerX) / state.width) * durationInFrames,
+      );
+      if (Math.abs(event.clientX - state.pointerX) > 2) {
+        state.moved = true;
+      }
+      const minFrames = Math.max(3, Math.round(fps * 0.1));
+      if (state.mode === "move") {
+        const safeDeltaFrames = clamp(
+          deltaFrames,
+          -state.minStartFrame,
+          durationInFrames - state.maxEndFrame,
+        );
+        const memberMap = new Map<
+          string,
+          {
+            id: string;
+            startFrame: number;
+            durationInFrames: number;
+          }
+        >(
+          state.members.map((member) => [member.id, member]),
+        );
+        setInstances((current) =>
+          current.map((instance) => {
+            const member = memberMap.get(instance.id);
+            return member
+              ? {
+                  ...instance,
+                  startFrame: member.startFrame + safeDeltaFrames,
+                }
+              : instance;
+          }),
+        );
+        return;
+      }
+      updateInstance(state.instanceId, (instance) => {
+        if (state.mode === "left") {
+          const right = state.startFrame + state.durationInFrames;
+          const startFrame = clamp(
+            state.startFrame + deltaFrames,
+            0,
+            right - minFrames,
+          );
+          return {
+            ...instance,
+            startFrame,
+            durationInFrames: right - startFrame,
+          };
+        }
+        return {
+          ...instance,
+          durationInFrames: clamp(
+            state.durationInFrames + deltaFrames,
+            minFrames,
+            durationInFrames - state.startFrame,
+          ),
+        };
+      });
+    };
+    const finishTimeline = () => {
+      const state = timelineDragState.current;
+      if (state && state.members.length > 1 && !state.moved) {
+        selectOnlyInstance(state.instanceId);
+      }
+      timelineDragState.current = null;
+    };
+    window.addEventListener("pointermove", moveTimeline, { passive: false });
+    window.addEventListener("pointerup", finishTimeline);
+    window.addEventListener("pointercancel", finishTimeline);
+    return () => {
+      window.removeEventListener("pointermove", moveTimeline);
+      window.removeEventListener("pointerup", finishTimeline);
+      window.removeEventListener("pointercancel", finishTimeline);
+    };
+  }, [durationInFrames, fps, selectOnlyInstance, updateInstance]);
+
+  const timelineResizeState = useRef<{
+    pointerY: number;
+    height: number;
+  } | null>(null);
+
+  const beginTimelineResize = (event: React.PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    timelineResizeState.current = {
+      pointerY: event.clientY,
+      height: timelineHeight,
+    };
+  };
+
+  useEffect(() => {
+    const resizeTimeline = (event: PointerEvent) => {
+      const state = timelineResizeState.current;
+      if (!state) return;
+      event.preventDefault();
+      setTimelineHeight(
+        clamp(
+          state.height + state.pointerY - event.clientY,
+          180,
+          Math.max(260, window.innerHeight - 210),
+        ),
+      );
+    };
+    const finishTimelineResize = () => {
+      timelineResizeState.current = null;
+    };
+    window.addEventListener("pointermove", resizeTimeline, { passive: false });
+    window.addEventListener("pointerup", finishTimelineResize);
+    window.addEventListener("pointercancel", finishTimelineResize);
+    return () => {
+      window.removeEventListener("pointermove", resizeTimeline);
+      window.removeEventListener("pointerup", finishTimelineResize);
+      window.removeEventListener("pointercancel", finishTimelineResize);
+    };
+  }, []);
+
+  const timelineMarqueeState = useRef<{
+    startX: number;
+    startY: number;
+    containerLeft: number;
+    containerTop: number;
+    containerWidth: number;
+    containerHeight: number;
+    candidates: Array<{
+      id: string;
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    }>;
+  } | null>(null);
+
+  const beginTimelineMarquee = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest(".clip, button")) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const startX = clamp(event.clientX - bounds.left, 0, bounds.width);
+    const startY = clamp(event.clientY - bounds.top, 0, bounds.height);
+    const clips = event.currentTarget.querySelectorAll<HTMLElement>(
+      ".clip[data-instance-id]",
+    );
+    const candidates = Array.from(clips as NodeListOf<HTMLElement>).map(
+      (clip: HTMLElement) => {
+      const clipBounds = clip.getBoundingClientRect();
+      return {
+        id: clip.dataset.instanceId ?? "",
+        left: clipBounds.left,
+        top: clipBounds.top,
+        right: clipBounds.right,
+        bottom: clipBounds.bottom,
+      };
+      },
+    );
+    event.preventDefault();
+    setContextMenu(null);
+    selectOnlyInstance("");
+    timelineMarqueeState.current = {
+      startX,
+      startY,
+      containerLeft: bounds.left,
+      containerTop: bounds.top,
+      containerWidth: bounds.width,
+      containerHeight: bounds.height,
+      candidates,
+    };
+    setTimelineMarquee({
+      left: (startX / bounds.width) * 100,
+      top: (startY / bounds.height) * 100,
+      width: 0,
+      height: 0,
+    });
+  };
+
+  useEffect(() => {
+    const moveTimelineMarquee = (event: PointerEvent) => {
+      const state = timelineMarqueeState.current;
+      if (!state) return;
+      event.preventDefault();
+      const currentX = clamp(
+        event.clientX - state.containerLeft,
+        0,
+        state.containerWidth,
+      );
+      const currentY = clamp(
+        event.clientY - state.containerTop,
+        0,
+        state.containerHeight,
+      );
+      setTimelineMarquee({
+        left:
+          (Math.min(state.startX, currentX) / state.containerWidth) * 100,
+        top:
+          (Math.min(state.startY, currentY) / state.containerHeight) * 100,
+        width:
+          (Math.abs(currentX - state.startX) / state.containerWidth) * 100,
+        height:
+          (Math.abs(currentY - state.startY) / state.containerHeight) * 100,
+      });
+    };
+    const finishTimelineMarquee = (event: PointerEvent) => {
+      const state = timelineMarqueeState.current;
+      if (!state) return;
+      const currentX = clamp(
+        event.clientX - state.containerLeft,
+        0,
+        state.containerWidth,
+      );
+      const currentY = clamp(
+        event.clientY - state.containerTop,
+        0,
+        state.containerHeight,
+      );
+      const left =
+        state.containerLeft + Math.min(state.startX, currentX);
+      const top = state.containerTop + Math.min(state.startY, currentY);
+      const right =
+        state.containerLeft + Math.max(state.startX, currentX);
+      const bottom =
+        state.containerTop + Math.max(state.startY, currentY);
+      const selectedIds = state.candidates
+        .filter(
+          (candidate) =>
+            candidate.id &&
+            candidate.right >= left &&
+            candidate.left <= right &&
+            candidate.bottom >= top &&
+            candidate.top <= bottom,
+        )
+        .map((candidate) => candidate.id);
+      setSelectedInstanceIds(selectedIds);
+      setSelectedInstanceId(selectedIds.at(-1) ?? "");
+      timelineMarqueeState.current = null;
+      setTimelineMarquee(null);
+    };
+    const cancelTimelineMarquee = () => {
+      timelineMarqueeState.current = null;
+      setTimelineMarquee(null);
+    };
+    window.addEventListener("pointermove", moveTimelineMarquee, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", finishTimelineMarquee);
+    window.addEventListener("pointercancel", cancelTimelineMarquee);
+    return () => {
+      window.removeEventListener("pointermove", moveTimelineMarquee);
+      window.removeEventListener("pointerup", finishTimelineMarquee);
+      window.removeEventListener("pointercancel", cancelTimelineMarquee);
+    };
+  }, []);
+
+  const canvasDragState = useRef<{
+    mode: "move" | "scale";
+    instanceId: string;
+    memberIds: string[];
+    pointerX: number;
+    pointerY: number;
+    positions: Record<string, { x: number; y: number }>;
+    scale: number;
+    playerWidth: number;
+    playerHeight: number;
+    moved: boolean;
+  } | null>(null);
+
+  const beginCanvasTransform = (
+    event: React.PointerEvent<HTMLElement>,
+    mode: "move" | "scale",
+    instance: MotionInstance,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const player = event.currentTarget.closest(".player-wrap");
+    const bounds = player?.getBoundingClientRect();
+    if (!bounds) return;
+    const keepGroup =
+      mode === "move" &&
+      selectedInstanceIds.length > 1 &&
+      selectedInstanceIdSet.has(instance.id);
+    const memberIds = keepGroup ? selectedInstanceIds : [instance.id];
+    if (keepGroup) {
+      setSelectedInstanceId(instance.id);
+    } else {
+      selectOnlyInstance(instance.id);
+    }
+    const memberIdSet = new Set(memberIds);
+    const positions = Object.fromEntries(
+      instances
+        .filter((candidate) => memberIdSet.has(candidate.id))
+        .map((candidate) => [
+          candidate.id,
+          {
+            x: candidate.position.x,
+            y: candidate.position.y,
+          },
+        ]),
+    );
+    canvasDragState.current = {
+      mode,
+      instanceId: instance.id,
+      memberIds,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      positions,
+      scale: instance.position.scale,
+      playerWidth: bounds.width,
+      playerHeight: bounds.height,
+      moved: false,
+    };
+  };
+
+  useEffect(() => {
+    const moveCanvasTransform = (event: PointerEvent) => {
+      const state = canvasDragState.current;
+      if (!state) return;
+      event.preventDefault();
+      const deltaX = event.clientX - state.pointerX;
+      const deltaY = event.clientY - state.pointerY;
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        state.moved = true;
+      }
+      if (state.mode === "move") {
+        const designDeltaX = (deltaX / state.playerWidth) * 1920;
+        const designDeltaY = (deltaY / state.playerHeight) * 1080;
+        setInstances((current) =>
+          current.map((instance) => {
+            const start = state.positions[instance.id];
+            if (!start) return instance;
+            return {
+              ...instance,
+              position: {
+                ...instance.position,
+                x: Math.round(start.x + designDeltaX),
+                y: Math.round(start.y + designDeltaY),
+              },
+            };
+          }),
+        );
+        return;
+      }
+      updateInstance(state.instanceId, (instance) => ({
+        ...instance,
+        position: {
+          ...instance.position,
+          scale: clamp(
+            state.scale + (deltaX / state.playerWidth) * 2,
+            0.1,
+            3,
+          ),
+        },
+      }));
+    };
+    const finishCanvasTransform = () => {
+      const state = canvasDragState.current;
+      if (
+        state &&
+        state.mode === "move" &&
+        state.memberIds.length > 1 &&
+        !state.moved
+      ) {
+        selectOnlyInstance(state.instanceId);
+      }
+      canvasDragState.current = null;
+    };
+    window.addEventListener("pointermove", moveCanvasTransform, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", finishCanvasTransform);
+    window.addEventListener("pointercancel", finishCanvasTransform);
+    return () => {
+      window.removeEventListener("pointermove", moveCanvasTransform);
+      window.removeEventListener("pointerup", finishCanvasTransform);
+      window.removeEventListener("pointercancel", finishCanvasTransform);
+    };
+  }, [selectOnlyInstance, updateInstance]);
+
+  const marqueeDragState = useRef<{
+    startX: number;
+    startY: number;
+    playerLeft: number;
+    playerTop: number;
+    playerWidth: number;
+    playerHeight: number;
+    candidates: Array<{
+      id: string;
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    }>;
+  } | null>(null);
+
+  const beginMarqueeSelection = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (
+      target.closest(
+        ".canvas-selection, button, input, select, [role='slider']",
+      )
+    ) {
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const startX = clamp(event.clientX - bounds.left, 0, bounds.width);
+    const startY = clamp(event.clientY - bounds.top, 0, bounds.height);
+    const candidates = instances.flatMap((instance) => {
+      const definition = definitionMap.get(instance.componentId);
+      const isVisible =
+        currentFrame >= instance.startFrame &&
+        currentFrame < instance.startFrame + instance.durationInFrames;
+      if (!definition || !isVisible) return [];
+      const left =
+        instance.position.x +
+        definition.bounds.x * instance.position.scale;
+      const top =
+        instance.position.y +
+        definition.bounds.y * instance.position.scale;
+      return [
+        {
+          id: instance.id,
+          left,
+          top,
+          right:
+            left + definition.bounds.width * instance.position.scale,
+          bottom:
+            top + definition.bounds.height * instance.position.scale,
+        },
+      ];
+    });
+    event.preventDefault();
+    setContextMenu(null);
+    selectOnlyInstance("");
+    marqueeDragState.current = {
+      startX,
+      startY,
+      playerLeft: bounds.left,
+      playerTop: bounds.top,
+      playerWidth: bounds.width,
+      playerHeight: bounds.height,
+      candidates,
+    };
+    setMarquee({
+      left: (startX / bounds.width) * 100,
+      top: (startY / bounds.height) * 100,
+      width: 0,
+      height: 0,
+    });
+  };
+
+  useEffect(() => {
+    const moveMarquee = (event: PointerEvent) => {
+      const state = marqueeDragState.current;
+      if (!state) return;
+      event.preventDefault();
+      const currentX = clamp(
+        event.clientX - state.playerLeft,
+        0,
+        state.playerWidth,
+      );
+      const currentY = clamp(
+        event.clientY - state.playerTop,
+        0,
+        state.playerHeight,
+      );
+      const left = Math.min(state.startX, currentX);
+      const top = Math.min(state.startY, currentY);
+      setMarquee({
+        left: (left / state.playerWidth) * 100,
+        top: (top / state.playerHeight) * 100,
+        width:
+          (Math.abs(currentX - state.startX) / state.playerWidth) * 100,
+        height:
+          (Math.abs(currentY - state.startY) / state.playerHeight) * 100,
+      });
+    };
+    const finishMarquee = (event: PointerEvent) => {
+      const state = marqueeDragState.current;
+      if (!state) return;
+      const currentX = clamp(
+        event.clientX - state.playerLeft,
+        0,
+        state.playerWidth,
+      );
+      const currentY = clamp(
+        event.clientY - state.playerTop,
+        0,
+        state.playerHeight,
+      );
+      const left =
+        (Math.min(state.startX, currentX) / state.playerWidth) * 1920;
+      const top =
+        (Math.min(state.startY, currentY) / state.playerHeight) * 1080;
+      const right =
+        (Math.max(state.startX, currentX) / state.playerWidth) * 1920;
+      const bottom =
+        (Math.max(state.startY, currentY) / state.playerHeight) * 1080;
+      const selectedIds = state.candidates
+        .filter(
+          (candidate) =>
+            candidate.right >= left &&
+            candidate.left <= right &&
+            candidate.bottom >= top &&
+            candidate.top <= bottom,
+        )
+        .map((candidate) => candidate.id);
+      setSelectedInstanceIds(selectedIds);
+      setSelectedInstanceId(selectedIds.at(-1) ?? "");
+      marqueeDragState.current = null;
+      setMarquee(null);
+    };
+    const cancelMarquee = () => {
+      marqueeDragState.current = null;
+      setMarquee(null);
+    };
+    window.addEventListener("pointermove", moveMarquee, { passive: false });
+    window.addEventListener("pointerup", finishMarquee);
+    window.addEventListener("pointercancel", cancelMarquee);
+    return () => {
+      window.removeEventListener("pointermove", moveMarquee);
+      window.removeEventListener("pointerup", finishMarquee);
+      window.removeEventListener("pointercancel", cancelMarquee);
+    };
+  }, []);
+
+  const showComponentMenu = (
+    event: React.MouseEvent,
+    source: "preview" | "timeline",
+    instanceId: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const keepGroup =
+      selectedInstanceIds.length > 1 &&
+      selectedInstanceIdSet.has(instanceId);
+    const instanceIds = keepGroup ? selectedInstanceIds : [instanceId];
+    if (keepGroup) {
+      setSelectedInstanceId(instanceId);
+    } else {
+      selectOnlyInstance(instanceId);
+    }
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 174),
+      y: Math.min(event.clientY, window.innerHeight - 118),
+      source,
+      instanceIds,
+    });
+  };
+
+  const duplicateInstances = (instanceIds: string[]) => {
+    const idSet = new Set(instanceIds);
+    const frameOffset = Math.max(1, Math.round(fps * 0.15));
+    const duplicates = instances
+      .filter((instance) => idSet.has(instance.id))
+      .map((instance, index) => ({
+        ...instance,
+        id: createInstanceId(instance.componentId),
+        startFrame: clamp(
+          instance.startFrame + frameOffset,
+          0,
+          Math.max(0, durationInFrames - instance.durationInFrames),
+        ),
+        position: {
+          ...instance.position,
+          x: instance.position.x + 24 + index * 4,
+          y: instance.position.y + 24 + index * 4,
+        },
+        props: { ...instance.props },
+      }));
+    if (duplicates.length === 0) return;
+    setInstances((current) => [...current, ...duplicates]);
+    const duplicateIds = duplicates.map((instance) => instance.id);
+    setSelectedInstanceIds(duplicateIds);
+    setSelectedInstanceId(duplicateIds.at(-1) ?? "");
+    setContextMenu(null);
+    setNotice({
+      tone: "ok",
+      text: `已复制 ${duplicates.length} 个组件。`,
+    });
+  };
+
+  const deleteInstances = (instanceIds: string[]) => {
+    const idSet = new Set(instanceIds);
+    setInstances((current) => {
+      const next = current.filter((instance) => !idSet.has(instance.id));
+      setSelectedInstanceIds((selectedIds) => {
+        const remainingSelected = selectedIds.filter((id) => !idSet.has(id));
+        const fallbackIds =
+          remainingSelected.length > 0
+            ? remainingSelected
+            : next[0]?.id
+              ? [next[0].id]
+              : [];
+        setSelectedInstanceId((selected) =>
+          idSet.has(selected)
+            ? (fallbackIds.at(-1) ?? "")
+            : selected,
+        );
+        return fallbackIds;
+      });
+      return next;
+    });
+    setContextMenu(null);
+  };
+
+  const seekEditorFrame = (frame: number) => {
+    const nextFrame = clamp(frame, 0, Math.max(0, durationInFrames - 1));
+    playerRef.current?.seekTo(nextFrame);
+    setCurrentFrame(nextFrame);
+  };
+
+  const togglePlayback = () => {
+    if (isPlaying) {
+      playerRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+    if (currentFrame >= durationInFrames - 1) seekEditorFrame(0);
+    playerRef.current?.play();
+    setIsPlaying(true);
+  };
+
+  const goToTimelineStart = () => {
+    playerRef.current?.pause();
+    setIsPlaying(false);
+    seekEditorFrame(0);
+  };
+
+  const stepTimeline = (offset: number) => {
+    playerRef.current?.pause();
+    setIsPlaying(false);
+    seekEditorFrame(currentFrame + offset);
+  };
+
+  const openShortcutSettings = () => {
+    setShortcutDraft({ ...shortcuts });
+    setRecordingShortcut(null);
+    setShortcutPanelOpen(true);
+  };
+
+  const saveShortcutSettings = () => {
+    setShortcuts(shortcutDraft);
+    window.localStorage.setItem(
+      SHORTCUT_STORAGE_KEY,
+      JSON.stringify(shortcutDraft),
+    );
+    setRecordingShortcut(null);
+    setShortcutPanelOpen(false);
+    setNotice({ tone: "ok", text: "剪辑台快捷键已保存到本机。" });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shortcutPanelOpen) {
+        if (recordingShortcut) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setRecordingShortcut(null);
+            return;
+          }
+          const nextShortcut = shortcutFromEvent(event);
+          if (!nextShortcut) return;
+          event.preventDefault();
+          setShortcutDraft((current) => {
+            const next = { ...current };
+            for (const definition of SHORTCUT_DEFINITIONS) {
+              if (
+                definition.action !== recordingShortcut &&
+                next[definition.action] === nextShortcut
+              ) {
+                next[definition.action] = "";
+              }
+            }
+            next[recordingShortcut] = nextShortcut;
+            return next;
+          });
+          setRecordingShortcut(null);
+          return;
+        }
+        if (event.key === "Escape") {
+          setShortcutPanelOpen(false);
+        }
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.matches("input, textarea, select") ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      const pressedShortcut = shortcutFromEvent(event);
+      const action = SHORTCUT_DEFINITIONS.find(
+        (definition) => shortcuts[definition.action] === pressedShortcut,
+      )?.action;
+      if (!action) return;
+      event.preventDefault();
+
+      const selectionIds =
+        selectedInstanceIds.length > 0
+          ? selectedInstanceIds
+          : selectedInstanceId
+            ? [selectedInstanceId]
+            : [];
+      if (action === "playPause") togglePlayback();
+      if (action === "goStart") goToTimelineStart();
+      if (action === "previousFrame") stepTimeline(-1);
+      if (action === "nextFrame") stepTimeline(1);
+      if (action === "duplicate") duplicateInstances(selectionIds);
+      if (action === "delete") deleteInstances(selectionIds);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    currentFrame,
+    durationInFrames,
+    isPlaying,
+    recordingShortcut,
+    selectedInstanceId,
+    selectedInstanceIds,
+    shortcutPanelOpen,
+    shortcuts,
+  ]);
+
+  const updateSelectedProp = (key: string, value: unknown) => {
+    if (!selectedInstance) return;
+    updateInstance(selectedInstance.id, (instance) => ({
+      ...instance,
+      props: { ...instance.props, [key]: value },
+    }));
+  };
+
+  const renderPropControl = (
+    key: string,
+    schema: MotionPropSchema,
+    value: unknown,
+  ) => {
+    const label = schema.label ?? key;
+    if (schema.type === "boolean") {
+      return (
+        <label className="toggle-row" key={key}>
+          <span>{label}</span>
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => updateSelectedProp(key, event.target.checked)}
+          />
+        </label>
+      );
+    }
+    if (schema.type === "select") {
+      const options = Array.isArray(schema.options) ? schema.options : [];
+      return (
+        <label key={key}>
+          <span>{label}</span>
+          <select
+            value={String(value ?? "")}
+            onChange={(event) => updateSelectedProp(key, event.target.value)}
+          >
+            {options.map((option) => {
+              const optionValue =
+                typeof option === "string" ? option : option.value;
+              const optionLabel =
+                typeof option === "string" ? option : option.label;
+              return (
+                <option value={optionValue} key={optionValue}>
+                  {optionLabel}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      );
+    }
+    if (schema.type === "color") {
+      return (
+        <label key={key}>
+          <span>{label}</span>
+          <input
+            type="color"
+            value={String(value ?? schema.default ?? "#65dff7")}
+            onChange={(event) => updateSelectedProp(key, event.target.value)}
+          />
+        </label>
+      );
+    }
+    if (
+      schema.type === "number" &&
+      typeof schema.min === "number" &&
+      typeof schema.max === "number"
+    ) {
+      const numericValue = Number(value ?? schema.default ?? schema.min);
+      return (
+        <label key={key}>
+          <span>
+            {label}
+            <output>
+              {numericValue.toFixed(schema.step && schema.step < 1 ? 2 : 0)}
+            </output>
+          </span>
+          <input
+            type="range"
+            min={schema.min}
+            max={schema.max}
+            step={schema.step ?? 1}
+            value={numericValue}
+            onInput={(event) =>
+              updateSelectedProp(
+                key,
+                Number((event.target as HTMLInputElement).value),
+              )
+            }
+          />
+        </label>
+      );
+    }
+    return (
+      <label key={key}>
+        <span>{label}</span>
+        <input
+          type={schema.type === "number" ? "number" : "text"}
+          value={String(value ?? "")}
+          onChange={(event) =>
+            updateSelectedProp(
+              key,
+              schema.type === "number"
+                ? Number(event.target.value)
+                : event.target.value,
+            )
+          }
+        />
+      </label>
+    );
+  };
+
+  const visibleCanvasItems = useMemo(
+    () =>
+      instances.flatMap((instance, index) => {
+        const definition = definitionMap.get(instance.componentId);
+        const isVisible =
+          currentFrame >= instance.startFrame &&
+          currentFrame < instance.startFrame + instance.durationInFrames;
+        return definition && isVisible
+          ? [{ instance, definition, stackIndex: index }]
+          : [];
+      }),
+    [currentFrame, definitionMap, instances],
+  );
+
+  return (
+    <div className="app" data-theme={theme}>
+      <div className="capture-strip" aria-hidden="true">
+        <span />
+      </div>
+      <header className="studio-topbar">
+        <div className="studio-brand" aria-label="Overlay Studio">
+          <strong>OVERLAY<span>/</span>STUDIO</strong>
+          <small>v7.15</small>
+        </div>
+
+        <nav className="studio-nav" aria-label="主导航">
+          <button className="active">编辑台</button>
+          <button>效果库</button>
+        </nav>
+
+        <div className="studio-stats" aria-label="编辑状态">
+          <div><small>TIME</small><b>0:00.0 <i>/ 2:42.0</i></b></div>
+          <div><small>CARDS</small><b>4<i>/50</i></b></div>
+          <div><small>DENSITY</small><b className="accent">18.5<i>/min</i></b></div>
+          <div><small>PEAK</small><b>6</b></div>
+          <div><small>SEL</small><b className="accent">card-1</b></div>
+        </div>
+
+        <div className="studio-actions" aria-label="编辑操作">
+          <button
+            className={shortcutPanelOpen ? "shortcut-entry active" : "shortcut-entry"}
+            onClick={openShortcutSettings}
+            title="设置剪辑台快捷键"
+          >
+            <Keyboard weight="fill" />快捷键
+          </button>
+          <button onClick={togglePlayback}>
+            {isPlaying ? <Pause weight="fill" /> : <Play weight="fill" />}
+            {isPlaying ? "暂停" : "播放"}
+          </button>
+          <button onClick={goToTimelineStart}><ArrowCounterClockwise />归零</button>
+          <button><SpeakerHigh />声音</button>
+          <button><UploadSimple />导入 JSON</button>
+          <button><FilmSlate />示例</button>
+          <button><UploadSimple />导入视频</button>
+          <button className="export-action" onClick={renderVideo}>
+            <DownloadSimple weight="bold" />导出透明 MOV
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <aside className="left-panel reference-left-panel">
+          <div className="reference-left-tabs">
+            <button className="active">卡片 <b>50</b></button>
+            <button>字幕稿 <b>109</b></button>
+            <button className="clear-button"><Trash />清空</button>
+          </div>
+
+          <div className="reference-progress" aria-label="卡片进度">
+            <span />
+          </div>
+
+          <div className="reference-kicker">全局 <i>·</i> 影响所有卡片</div>
+
+          <section className="reference-control-group">
+            <label>全局底色(所有卡片)</label>
+            <div className="reference-segmented">
+              <button className="active"><MoonStars weight="fill" />暗底</button>
+              <button><Sun weight="fill" />亮底</button>
+            </div>
+          </section>
+
+          <section className="reference-control-group">
+            <label>皮肤(所有卡片)</label>
+            <button className="reference-select"><SelectionForeground />晨雾象牙<span><CaretDown /></span></button>
+          </section>
+
+          <section className="reference-control-group">
+            <label>风格(所有卡片)</label>
+            <button className="reference-select">HUD · 现状<span><CaretDown /></span></button>
+          </section>
+
+          <button className="reference-wide-button"><VideoCamera />导入视频</button>
+
+          <div className="reference-split-actions">
+            <button><UploadSimple />导入 JSON</button>
+            <button disabled><DownloadSimple />导出</button>
+          </div>
+
+          <label className="reference-checkline">
+            <input type="checkbox" />
+            <span>循环视频 · 运镜卡共用(需 H264)</span>
+          </label>
+
+          <div className="reference-split-actions reference-loop-actions">
+            <button><FilmSlate />换全局口播</button>
+            <button disabled><Trash />清除</button>
+          </div>
+
+          <div className="reference-path">/demo/8月14日.mp4</div>
+
+          <button className="reference-wide-button reference-export-track">
+            <DownloadSimple weight="bold" />导出整条时间轴(透明)
+          </button>
+
+          <section className="reference-range-group">
+            <div className="reference-range-head"><label>特效整体大小</label><b>100%</b></div>
+            <input type="range" min="0" max="100" defaultValue="48" />
+          </section>
+
+          <section className="reference-range-group">
+            <div className="reference-range-head"><label>动画速度</label><b>1.00×</b></div>
+            <input type="range" min="0" max="100" defaultValue="35" />
+          </section>
+
+          <section className="reference-control-group">
+            <label>全局字体</label>
+            <button className="reference-select"><TextAa />思源黑体<span><CaretDown /></span></button>
+          </section>
+
+          <div className="reference-switch-row">
+            <span>文字光晕(发虚就关)</span>
+            <button className="reference-switch" aria-label="文字光晕"><i /></button>
+          </div>
+          <div className="reference-switch-row">
+            <span>安全区参考线</span>
+            <button className="reference-switch active" aria-label="安全区参考线"><i /></button>
+          </div>
+          <div className="reference-switch-row">
+            <span>人物占位</span>
+            <button className="reference-switch active" aria-label="人物占位"><User /><i /></button>
+          </div>
+          <div className="reference-switch-row">
+            <span>运镜分屏(缩到左)</span>
+            <button className="reference-switch" aria-label="运镜分屏"><FrameCorners /><i /></button>
+          </div>
+        </aside>
+
+
+        <section className="workspace">
+          <div className="workspace-toolbar">
+            <span>
+              1920 × 1080 · {fps} FPS · {instances.length} 个实例
+            </span>
+            <span>{formatTime(timelineSeconds)}</span>
+          </div>
+          <div className="stage-shell reference-stage-shell">
+            <div className="reference-preview-frame">
+              <nav className="reference-chapter-tabs" aria-label="章节导航">
+                <button className="active">开场</button>
+                <button>抽盲盒</button>
+                <button>编辑台</button>
+                <button>怎么用</button>
+                <button>四大好处</button>
+                <button>收尾</button>
+              </nav>
+              <div
+                className="player-wrap reference-player-wrap"
+                onPointerDown={beginMarqueeSelection}
+              >
+              {STATIC_REFERENCE_PREVIEW ? (
+                <div className="reference-preview-placeholder" aria-hidden="true" />
+              ) : motionModule ? (
+                <Player
+                  ref={playerRef}
+                  component={StudioPreviewComposition}
+                  inputProps={previewInputProps}
+                  durationInFrames={durationInFrames}
+                  fps={fps}
+                  compositionWidth={1920}
+                  compositionHeight={1080}
+                  controls
+                  loop={false}
+                  clickToPlay={false}
+                  acknowledgeRemotionLicense
+                  style={{ width: "100%", aspectRatio: "16 / 9" }}
+                />
+              ) : (
+                <div className="loading">正在启动 Remotion Player…</div>
+              )}
+              {visibleCanvasItems.map(
+                ({ instance, definition, stackIndex }) => {
+                  const isSelected = selectedInstanceIdSet.has(instance.id);
+                  const isPrimary = selectedInstanceId === instance.id;
+                  return (
+                    <div
+                      className={`canvas-selection ${
+                        isSelected ? "selected" : ""
+                      } ${isPrimary ? "primary" : ""}`}
+                      key={instance.id}
+                      role="button"
+                      aria-label={`选择预览组件 ${definition.name}`}
+                      aria-pressed={isSelected}
+                      style={{
+                        left: `${
+                          ((instance.position.x +
+                            definition.bounds.x * instance.position.scale) /
+                            1920) *
+                          100
+                        }%`,
+                        top: `${
+                          ((instance.position.y +
+                            definition.bounds.y * instance.position.scale) /
+                            1080) *
+                          100
+                        }%`,
+                        width: `${(definition.bounds.width / 1920) * 100}%`,
+                        height: `${(definition.bounds.height / 1080) * 100}%`,
+                        transform: `scale(${instance.position.scale})`,
+                        zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
+                      }}
+                      onPointerDown={(event) =>
+                        beginCanvasTransform(event, "move", instance)
+                      }
+                      onContextMenu={(event) =>
+                        showComponentMenu(event, "preview", instance.id)
+                      }
+                      title={
+                        isSelected && selectedInstanceIds.length > 1
+                          ? `已选 ${selectedInstanceIds.length} 个组件，拖动可整体移动`
+                          : "点击选中；拖动移动；右键复制或删除"
+                      }
+                    >
+                      {isSelected ? (
+                        <span className="canvas-selection-label">
+                          {isPrimary && selectedInstanceIds.length > 1
+                            ? `${definition.name} · ${selectedInstanceIds.length} 个已选`
+                            : definition.name}
+                        </span>
+                      ) : null}
+                      {isPrimary && selectedInstanceIds.length === 1 ? (
+                        <span
+                          className="canvas-scale-handle"
+                          aria-hidden="true"
+                          onPointerDown={(event) =>
+                            beginCanvasTransform(event, "scale", instance)
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  );
+                },
+              )}
+              {marquee ? (
+                <div
+                  className="canvas-marquee"
+                  style={{
+                    left: `${marquee.left}%`,
+                    top: `${marquee.top}%`,
+                    width: `${marquee.width}%`,
+                    height: `${marquee.height}%`,
+                  }}
+                  aria-hidden="true"
+                />
+              ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div
+            ref={timelineRef}
+            className="timeline"
+            style={{
+              height: timelineHeight,
+              flexBasis: timelineHeight,
+            }}
+          >
+            <button
+              className="timeline-resize-handle"
+              onPointerDown={beginTimelineResize}
+              aria-label="拖动调整时间轴高度"
+              title="向上拖动扩大时间轴"
+            >
+              <span />
+            </button>
+            <button
+              type="button"
+              className="playhead timeline-playhead"
+              style={{
+                left: `calc(84px + (100% - 98px) * ${playheadPercent / 100})`,
+              }}
+              aria-label={`拖动播放指针，当前 ${formatTime(currentFrame / fps)}`}
+              title="按住拖动播放指针"
+              onPointerDown={beginPlayheadDrag}
+            />
+            <div className="timeline-head">
+              <div className="timeline-status">
+                <span>
+                  当前 <b>{formatTime(currentFrame / fps)}</b>
+                </span>
+                <span>
+                  总时长 <b>{formatTime(timelineSeconds)}</b>
+                </span>
+                <span className="timeline-card-count">
+                  <b>{instances.length}</b>/50
+                </span>
+              </div>
+              <div className="timeline-height-controls" aria-label="时间轴显示大小">
+                <button
+                  type="button"
+                  aria-label="缩小时间轴"
+                  title="缩小时间轴"
+                  onClick={() => setTimelineHeight((height) => clamp(height - 24, 180, 520))}
+                >
+                  <Minus weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="恢复时间轴默认大小"
+                  title="恢复默认大小"
+                  onClick={() => setTimelineHeight(230)}
+                >
+                  <ArrowsInLineVertical weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="放大时间轴"
+                  title="放大时间轴"
+                  onClick={() => setTimelineHeight((height) => clamp(height + 24, 180, 520))}
+                >
+                  <Plus weight="bold" />
+                </button>
+              </div>
+            </div>
+            <div
+              className="ruler"
+              onClick={(event) => seekFromPointer(event, event.currentTarget)}
+              title="点击跳转到此时刻"
+            >
+              {Array.from({ length: 6 }, (_, index) => (
+                <span key={index} style={{ left: `${index * 20}%` }}>
+                  {formatTime((timelineSeconds * index) / 5)}
+                </span>
+              ))}
+            </div>
+            <div
+              className="timeline-tracks"
+              onPointerDown={beginTimelineMarquee}
+            >
+              {instances.length > 0 ? (
+                instances.map((instance, index) => {
+                  const definition = definitionMap.get(instance.componentId);
+                  if (!definition) return null;
+                  const leftPercent =
+                    (instance.startFrame / durationInFrames) * 100;
+                  const widthPercent =
+                    (instance.durationInFrames / durationInFrames) * 100;
+                  return (
+                    <div className="timeline-track-row" key={instance.id}>
+                      <button
+                        className={`track-label-button ${
+                          selectedInstanceIdSet.has(instance.id) ? "active" : ""
+                        }`}
+                        onClick={() => selectOnlyInstance(instance.id)}
+                        title={definition.name}
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </button>
+                      <div
+                        className="track-body"
+                        onClick={(event) => {
+                          if (event.target === event.currentTarget) {
+                            seekFromPointer(event, event.currentTarget);
+                          }
+                        }}
+                      >
+                        <div
+                          className={`clip ${
+                            selectedInstanceIdSet.has(instance.id)
+                              ? "selected"
+                              : ""
+                          }`}
+                          data-instance-id={instance.id}
+                          style={{
+                            left: `${leftPercent}%`,
+                            width: `${widthPercent}%`,
+                          }}
+                          onPointerDown={(event) =>
+                            beginTimelineDrag(event, instance, "move")
+                          }
+                          onContextMenu={(event) =>
+                            showComponentMenu(event, "timeline", instance.id)
+                          }
+                          title="拖动移动；拖动两侧调整长度；右键复制或删除"
+                        >
+                          <button
+                            className="clip-handle left"
+                            onPointerDown={(event) =>
+                              beginTimelineDrag(event, instance, "left")
+                            }
+                            aria-label={`调整 ${definition.name} 开始时间`}
+                          />
+                          <span>{definition.name}</span>
+                          <button
+                            className="clip-handle right"
+                            onPointerDown={(event) =>
+                              beginTimelineDrag(event, instance, "right")
+                            }
+                            aria-label={`调整 ${definition.name} 结束时间`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="empty-timeline">
+                  从左侧组件清单点击添加一个组件
+                </div>
+              )}
+              {timelineMarquee ? (
+                <div
+                  className="timeline-marquee"
+                  style={{
+                    left: `${timelineMarquee.left}%`,
+                    top: `${timelineMarquee.top}%`,
+                    width: `${timelineMarquee.width}%`,
+                    height: `${timelineMarquee.height}%`,
+                  }}
+                  aria-hidden="true"
+                />
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <aside className="right-panel reference-right-panel">
+          <header className="reference-inspector-head">
+            <small>单卡参数 <i>·</i> CARD-1</small>
+            <div>
+              <SlidersHorizontal weight="fill" />
+              <strong>ChapterBar</strong>
+              <span>常驻章节导航</span>
+            </div>
+          </header>
+
+          <div className="reference-inspector-body">
+            <section className="reference-inspector-group">
+              <label>更换特效(内容/时间/位置保留)</label>
+              <div className="reference-search-field">
+                <MagnifyingGlass />
+                <input aria-label="搜索特效" placeholder="先搜再换·名字 / 用途" />
+              </div>
+              <button className="reference-inspector-select">
+                <span>ChapterBar · 常驻章节导航 · 顶部全程</span>
+                <CaretDown />
+              </button>
+            </section>
+
+            <section className="reference-inspector-group">
+              <div className="reference-inspector-label-row">
+                <label>出现 <ArrowRight /> 消失(秒)</label>
+                <b>162.0s</b>
+              </div>
+              <div className="reference-time-inputs">
+                <input aria-label="出现时间" defaultValue="0" />
+                <ArrowRight />
+                <input aria-label="消失时间" defaultValue="162" />
+              </div>
+            </section>
+
+            <section className="reference-inspector-group">
+              <label>讲过变浅时刻(秒,空 = 不变浅)</label>
+              <input className="reference-text-input muted" placeholder="到这秒后压暗让位,但不退场" />
+            </section>
+
+            <section className="reference-inspector-group">
+              <label>预设(这张卡的常用参数组合)</label>
+              <div className="reference-preset-row">
+                <button className="reference-inspector-select">
+                  <span>还没有预设,调好后存一套</span>
+                  <CaretDown />
+                </button>
+                <button className="reference-save-button" aria-label="保存预设"><FloppyDisk /></button>
+              </div>
+            </section>
+
+            <section className="reference-inspector-section">
+              <div className="reference-section-title"><strong>内容</strong><small>CONTENT</small></div>
+              <label>章节表(名称 起始秒, 分隔)</label>
+              <input className="reference-text-input" defaultValue="开场 0 | 抽盲盒 11.6 | 编辑台 31.2 | 怎么用" />
+              <div className="reference-range-field">
+                <div><label>进度色透明度</label><b>0.25</b></div>
+                <input type="range" min="0" max="100" defaultValue="22" />
+              </div>
+            </section>
+
+            <section className="reference-inspector-section">
+              <div className="reference-section-title"><strong>节奏</strong><small>TIMING</small></div>
+              <div className="reference-range-field">
+                <div><label>动画速度(此卡)</label><b>1×</b></div>
+                <input type="range" min="0" max="100" defaultValue="28" />
+              </div>
+              <label>音效(出现时响,导出自动混入)</label>
+              <button className="reference-inspector-select">
+                <span>自动(按特效类型)</span>
+                <CaretDown />
+              </button>
+            </section>
+
+            <section className="reference-inspector-section">
+              <div className="reference-section-title"><strong>样式</strong><small>STYLE</small></div>
+              <label>底色(此卡独立生效)</label>
+              <div className="reference-segmented reference-inspector-theme">
+                <button><Sun weight="fill" />亮底</button>
+                <button className="active"><MoonStars weight="fill" />暗底</button>
+              </div>
+              <label>强调色</label>
+              <button className="reference-color-field" aria-label="强调色"><span /></button>
+            </section>
+          </div>
+        </aside>
+
+      </main>
+
+      {shortcutPanelOpen ? (
+        <div
+          className="shortcut-dialog-backdrop"
+          onPointerDown={() => {
+            setRecordingShortcut(null);
+            setShortcutPanelOpen(false);
+          }}
+        >
+          <section
+            className="shortcut-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="shortcut-dialog-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <Keyboard weight="fill" />
+                <span>
+                  <strong id="shortcut-dialog-title">剪辑台快捷键</strong>
+                  <small>点击按键框，然后按下新的组合键</small>
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭快捷键设置"
+                onClick={() => {
+                  setRecordingShortcut(null);
+                  setShortcutPanelOpen(false);
+                }}
+              >
+                <X />
+              </button>
+            </header>
+
+            <div className="shortcut-list">
+              {SHORTCUT_DEFINITIONS.map((definition) => (
+                <div className="shortcut-row" key={definition.action}>
+                  <span>
+                    <strong>{definition.label}</strong>
+                    <small>{definition.description}</small>
+                  </span>
+                  <button
+                    type="button"
+                    className={
+                      recordingShortcut === definition.action ? "recording" : ""
+                    }
+                    onClick={() => setRecordingShortcut(definition.action)}
+                  >
+                    <kbd>
+                      {recordingShortcut === definition.action
+                        ? "请按键…"
+                        : formatShortcut(shortcutDraft[definition.action])}
+                    </kbd>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <footer>
+              <button
+                type="button"
+                className="shortcut-reset"
+                onClick={() => {
+                  setShortcutDraft({ ...DEFAULT_SHORTCUTS });
+                  setRecordingShortcut(null);
+                }}
+              >
+                <ArrowCounterClockwise />恢复默认
+              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecordingShortcut(null);
+                    setShortcutPanelOpen(false);
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="shortcut-save"
+                  onClick={saveShortcutSettings}
+                >
+                  <FloppyDisk weight="fill" />保存设置
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {notice ? (
+        <button
+          className={`toast ${notice.tone}`}
+          onClick={() => setNotice(null)}
+        >
+          {notice.text}
+        </button>
+      ) : null}
+      {contextMenu ? (
+        <>
+          <div
+            className="context-dismiss-layer"
+            onPointerDown={() => setContextMenu(null)}
+          />
+          <div
+            className="component-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <small>
+              {contextMenu.source === "preview" ? "预览组件" : "时间轴组件"}
+              {contextMenu.instanceIds.length > 1
+                ? ` · 已选 ${contextMenu.instanceIds.length} 个`
+                : ""}
+            </small>
+            <button
+              className="copy-action"
+              onClick={() => duplicateInstances(contextMenu.instanceIds)}
+            >
+              复制组件
+            </button>
+            <button
+              className="delete-action"
+              onClick={() => deleteInstances(contextMenu.instanceIds)}
+            >
+              删除组件
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
+
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Missing #root element");
+}
+
+const globalWithStudioRoot = globalThis as typeof globalThis & {
+  __motionStudioRoot?: ReturnType<typeof createRoot>;
+};
+const studioRoot =
+  globalWithStudioRoot.__motionStudioRoot ?? createRoot(rootElement);
+globalWithStudioRoot.__motionStudioRoot = studioRoot;
+
+studioRoot.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
