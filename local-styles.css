@@ -242,7 +242,8 @@ main.is-resizing-sidebar * {
 }
 
 .studio-actions button.shortcut-entry:hover,
-.studio-actions button.shortcut-entry.active {
+.studio-actions button.shortcut-entry.active,
+.studio-actions button.format-entry.active {
   color: #ffffff;
   background: #191b1f;
   box-shadow: inset 0 -2px #ff4b25;

@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ArrowsInLineVertical,
   CaretDown,
+  DeviceMobile,
   DownloadSimple,
   FilmSlate,
   FloppyDisk,
@@ -196,6 +197,7 @@ type ProjectSnapshot = {
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
+  canvasOrientation?: "landscape" | "portrait";
   createdAt?: string;
   updatedAt?: string;
 };
@@ -319,7 +321,13 @@ const StudioPreviewComposition = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#05070a" }}>
-      {videoUrl ? <OffthreadVideo src={videoUrl} volume={1} /> : null}
+      {videoUrl ? (
+        <OffthreadVideo
+          src={videoUrl}
+          volume={1}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      ) : null}
       {sourceIncludesVideo && !videoUrl ? (
         <AbsoluteFill
           style={{
@@ -407,6 +415,9 @@ const App = () => {
     outputLocation: string;
   } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [canvasOrientation, setCanvasOrientation] = useState<
+    "landscape" | "portrait"
+  >("landscape");
   const [initialPanelWidths] = useState(readStoredPanelWidths);
   const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
   const [rightPanelWidth, setRightPanelWidth] = useState(initialPanelWidths.right);
@@ -465,6 +476,8 @@ const App = () => {
     1,
     videoUrl ? Math.round(videoDuration * fps) : sourceFrames,
   );
+  const canvasWidth = canvasOrientation === "portrait" ? 1080 : 1920;
+  const canvasHeight = canvasOrientation === "portrait" ? 1920 : 1080;
   const timelineSeconds = durationInFrames / fps;
   const playheadPercent =
     (currentFrame / Math.max(1, durationInFrames - 1)) * 100;
@@ -703,6 +716,9 @@ const App = () => {
             "未命名项目",
         );
         if (draft?.theme === "light") setTheme("light");
+        setCanvasOrientation(
+          draft?.canvasOrientation === "portrait" ? "portrait" : "landscape",
+        );
         if (Number(draft?.timelineHeight) >= 180) {
           setTimelineHeight(Number(draft?.timelineHeight));
         }
@@ -857,9 +873,11 @@ const App = () => {
       currentFrame,
       theme,
       timelineHeight,
+      canvasOrientation,
     }),
     [
       activeComponentId,
+      canvasOrientation,
       componentName,
       currentFrame,
       instances,
@@ -959,6 +977,9 @@ const App = () => {
       setVideoUrl(restoredVideoUrl);
       setVideoDuration(restoredDuration);
       setTheme(snapshot.theme === "light" ? "light" : "dark");
+      setCanvasOrientation(
+        snapshot.canvasOrientation === "portrait" ? "portrait" : "landscape",
+      );
       setTimelineHeight(
         Number(snapshot.timelineHeight) >= 180
           ? Number(snapshot.timelineHeight)
@@ -1106,6 +1127,8 @@ const App = () => {
           sourceIncludesVideo,
           instances,
           timelineDurationInFrames: durationInFrames,
+          canvasWidth,
+          canvasHeight,
         }),
       });
       const data = await response.json();
@@ -1684,8 +1707,8 @@ const App = () => {
         state.moved = true;
       }
       if (state.mode === "move") {
-        const designDeltaX = (deltaX / state.playerWidth) * 1920;
-        const designDeltaY = (deltaY / state.playerHeight) * 1080;
+        const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
+        const designDeltaY = (deltaY / state.playerHeight) * canvasHeight;
         setInstances((current) =>
           current.map((instance) => {
             const start = state.positions[instance.id];
@@ -1736,7 +1759,7 @@ const App = () => {
       window.removeEventListener("pointerup", finishCanvasTransform);
       window.removeEventListener("pointercancel", finishCanvasTransform);
     };
-  }, [selectOnlyInstance, updateInstance]);
+  }, [canvasHeight, canvasWidth, selectOnlyInstance, updateInstance]);
 
   const marqueeDragState = useRef<{
     startX: number;
@@ -1853,13 +1876,13 @@ const App = () => {
         state.playerHeight,
       );
       const left =
-        (Math.min(state.startX, currentX) / state.playerWidth) * 1920;
+        (Math.min(state.startX, currentX) / state.playerWidth) * canvasWidth;
       const top =
-        (Math.min(state.startY, currentY) / state.playerHeight) * 1080;
+        (Math.min(state.startY, currentY) / state.playerHeight) * canvasHeight;
       const right =
-        (Math.max(state.startX, currentX) / state.playerWidth) * 1920;
+        (Math.max(state.startX, currentX) / state.playerWidth) * canvasWidth;
       const bottom =
-        (Math.max(state.startY, currentY) / state.playerHeight) * 1080;
+        (Math.max(state.startY, currentY) / state.playerHeight) * canvasHeight;
       const selectedIds = state.candidates
         .filter(
           (candidate) =>
@@ -1886,7 +1909,7 @@ const App = () => {
       window.removeEventListener("pointerup", finishMarquee);
       window.removeEventListener("pointercancel", cancelMarquee);
     };
-  }, []);
+  }, [canvasHeight, canvasWidth]);
 
   const showComponentMenu = (
     event: React.MouseEvent,
@@ -2242,6 +2265,22 @@ const App = () => {
 
         <div className="studio-actions" aria-label="编辑操作">
           <button
+            className={canvasOrientation === "portrait" ? "format-entry active" : "format-entry"}
+            onClick={() =>
+              setCanvasOrientation((current) =>
+                current === "landscape" ? "portrait" : "landscape",
+              )
+            }
+            title={
+              canvasOrientation === "landscape"
+                ? "切换为竖屏 9:16"
+                : "切换为横屏 16:9"
+            }
+          >
+            <DeviceMobile weight="fill" />
+            {canvasOrientation === "portrait" ? "画幅 9:16" : "画幅 16:9"}
+          </button>
+          <button
             className={shortcutPanelOpen ? "shortcut-entry active" : "shortcut-entry"}
             onClick={openShortcutSettings}
             title="设置剪辑台快捷键"
@@ -2479,7 +2518,7 @@ const App = () => {
         <section className="workspace">
           <div className="workspace-toolbar">
             <span>
-              1920 × 1080 · {fps} FPS · {instances.length} 个实例
+              {canvasWidth} × {canvasHeight} · {fps} FPS · {instances.length} 个实例
             </span>
             <span>{formatTime(timelineSeconds)}</span>
           </div>
@@ -2496,8 +2535,8 @@ const App = () => {
                   inputProps={previewInputProps}
                   durationInFrames={durationInFrames}
                   fps={fps}
-                  compositionWidth={1920}
-                  compositionHeight={1080}
+                  compositionWidth={canvasWidth}
+                  compositionHeight={canvasHeight}
                   controls
                   loop={false}
                   clickToPlay={false}
@@ -2528,17 +2567,17 @@ const App = () => {
                         left: `${
                           ((instance.position.x +
                             definition.bounds.x * instance.position.scale) /
-                            1920) *
+                            canvasWidth) *
                           100
                         }%`,
                         top: `${
                           ((instance.position.y +
                             definition.bounds.y * instance.position.scale) /
-                            1080) *
+                            canvasHeight) *
                           100
                         }%`,
-                        width: `${(definition.bounds.width / 1920) * 100}%`,
-                        height: `${(definition.bounds.height / 1080) * 100}%`,
+                        width: `${(definition.bounds.width / canvasWidth) * 100}%`,
+                        height: `${(definition.bounds.height / canvasHeight) * 100}%`,
                         transform: `scale(${instance.position.scale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}

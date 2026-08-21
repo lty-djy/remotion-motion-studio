@@ -51,6 +51,7 @@ type ProjectSnapshot = {
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
+  canvasOrientation?: "landscape" | "portrait";
   createdAt?: string;
   updatedAt: string;
 };
@@ -167,6 +168,8 @@ const normalizeProjectSnapshot = (
       Number.isFinite(timelineHeight) && timelineHeight >= 180
         ? Math.round(timelineHeight)
         : 230,
+    canvasOrientation:
+      input.canvasOrientation === "portrait" ? "portrait" : "landscape",
     createdAt:
       typeof input.createdAt === "string" ? input.createdAt : undefined,
     updatedAt: now,

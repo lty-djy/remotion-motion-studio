@@ -42,6 +42,8 @@ type RenderProps = {
   sourceIncludesVideo?: boolean;
   instances?: MotionInstance[];
   timelineDurationInFrames?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
 };
 
 const MultiComponentRender = ({
@@ -50,7 +52,13 @@ const MultiComponentRender = ({
   instances = [],
 }: RenderProps) => (
   <AbsoluteFill style={{ backgroundColor: "#05070a" }}>
-    {videoSrc ? <OffthreadVideo src={videoSrc} volume={1} /> : null}
+    {videoSrc ? (
+      <OffthreadVideo
+        src={videoSrc}
+        volume={1}
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    ) : null}
     {instances.map((instance) => {
       const definition = definitionMap.get(instance.componentId);
       if (!definition) return null;
@@ -98,16 +106,24 @@ const Root = () => (
       sourceIncludesVideo: false,
       instances: [],
       timelineDurationInFrames: sourceDurationInFrames,
+      canvasWidth: 1920,
+      canvasHeight: 1080,
     }}
-    calculateMetadata={({ props }) => ({
-      durationInFrames: Math.max(
-        1,
-        Math.round(
-          Number(props.timelineDurationInFrames) || sourceDurationInFrames,
+    calculateMetadata={({ props }) => {
+      const portrait =
+        Number(props.canvasWidth) === 1080 && Number(props.canvasHeight) === 1920;
+      return {
+        width: portrait ? 1080 : 1920,
+        height: portrait ? 1920 : 1080,
+        durationInFrames: Math.max(
+          1,
+          Math.round(
+            Number(props.timelineDurationInFrames) || sourceDurationInFrames,
+          ),
         ),
-      ),
-      props,
-    })}
+        props,
+      };
+    }}
   />
 );
 
