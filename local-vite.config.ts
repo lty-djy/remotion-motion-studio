@@ -2,7 +2,7 @@ import react from "@vitejs/plugin-react";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { createReadStream, existsSync, mkdirSync, statSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, unlink, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, type Plugin } from "vite";
@@ -15,6 +15,8 @@ const projectDir = join(rootDir, "local-projects");
 const renderDir = join(rootDir, "outputs", "renders");
 const renderEntry = join(rootDir, "local-render-entry-v2.tsx");
 const statePath = join(rootDir, "local-state.json");
+const effectRegistryPath = join(rootDir, "registry.ts");
+const legacyEffectsPath = join(rootDir, "legacy-effects.tsx");
 const systemChrome = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 
 type LocalState = {
@@ -95,6 +97,168 @@ type RenderJob = {
 };
 
 const renderJobs = new Map<string, RenderJob>();
+let renderJobSequence = 0;
+
+const managedEffectFiles: Record<
+  string,
+  { file: string; importLine: string; registryLine: string }
+> = {
+  ChapterBar: {
+    file: join(rootDir, "effects", "ChapterBar.tsx"),
+    importLine: 'import { ChapterBarEffectDef } from "./effects/ChapterBar";',
+    registryLine: "  ChapterBarEffectDef,",
+  },
+  MetricFocus: {
+    file: join(rootDir, "effects", "CoreNumberRoll.tsx"),
+    importLine: 'import { CoreNumberRollEffectDef } from "./effects/CoreNumberRoll";',
+    registryLine: "  CoreNumberRollEffectDef,",
+  },
+  CompareSplit: {
+    file: join(rootDir, "effects", "CompareBars.tsx"),
+    importLine: 'import { CompareBarsEffectDef } from "./effects/CompareBars";',
+    registryLine: "  CompareBarsEffectDef,",
+  },
+  QuoteLockup: {
+    file: join(rootDir, "effects", "QuoteLineReveal.tsx"),
+    importLine: 'import { QuoteLineRevealEffectDef } from "./effects/QuoteLineReveal";',
+    registryLine: "  QuoteLineRevealEffectDef,",
+  },
+};
+
+const removeEffectInstances = (instances: unknown[], componentId: string) =>
+  instances.filter(
+    (instance) =>
+      !(
+        instance &&
+        typeof instance === "object" &&
+        "componentId" in instance &&
+        (instance as { componentId?: unknown }).componentId === componentId
+      ),
+  );
+
+const removeEffectFromSavedTimelines = async (componentId: string) => {
+  const state = await readState();
+  const workspaceDraft = state.workspaceDraft
+    ? {
+        ...state.workspaceDraft,
+        instances: removeEffectInstances(
+          state.workspaceDraft.instances ?? [],
+          componentId,
+        ),
+        updatedAt: new Date().toISOString(),
+      }
+    : undefined;
+  const projectHistory = await Promise.all(
+    (state.projectHistory ?? []).map(async (project) => {
+      const projectPath = join(projectDir, basename(project.storedFile));
+      try {
+        const snapshot = JSON.parse(
+          await readFile(projectPath, "utf8"),
+        ) as ProjectSnapshot;
+        const instances = removeEffectInstances(
+          snapshot.instances ?? [],
+          componentId,
+        );
+        if (instances.length !== snapshot.instances.length) {
+          await writeFile(
+            projectPath,
+            JSON.stringify(
+              { ...snapshot, instances, updatedAt: new Date().toISOString() },
+              null,
+              2,
+            ),
+            "utf8",
+          );
+        }
+        return { ...project, instanceCount: instances.length };
+      } catch {
+        return project;
+      }
+    }),
+  );
+  await saveState({ workspaceDraft, projectHistory });
+};
+
+const deleteRegisteredEffectSource = async (componentId: string) => {
+  const registrySource = await readFile(effectRegistryPath, "utf8");
+  const managed = managedEffectFiles[componentId];
+  if (managed) {
+    const nextRegistry = registrySource
+      .replace(managed.importLine, "")
+      .replace(managed.registryLine, "");
+    if (nextRegistry === registrySource) {
+      throw new Error("该效果不在当前注册表中");
+    }
+    await writeFile(effectRegistryPath, nextRegistry, "utf8");
+    await unlink(managed.file);
+    await removeEffectFromSavedTimelines(componentId);
+    return { source: `effects/${basename(managed.file)}` };
+  }
+
+  const legacySource = await readFile(legacyEffectsPath, "utf8");
+  const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const legacySpec = new RegExp(
+    `\\["${escapedId}"\\s*,[^\\]]*\\]\\s*,?`,
+    "g",
+  );
+  const nextLegacySource = legacySource
+    .replace(legacySpec, "")
+    .replace(/,\\s*\\]\\]/g, "]] ");
+  if (
+    nextLegacySource === legacySource ||
+    !registrySource.includes("...LEGACY_EFFECT_DEFS")
+  ) {
+    throw new Error("只能删除当前注册表中的内置效果");
+  }
+  await writeFile(legacyEffectsPath, nextLegacySource, "utf8");
+  await removeEffectFromSavedTimelines(componentId);
+  return { source: "legacy-effects.tsx" };
+};
+
+const deleteImportedEffectSource = async (componentId: string) => {
+  const source = await readFile(activeComponentPath, "utf8");
+  const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isFallbackComponent =
+    componentId === "LegacyComponent" &&
+    !source.includes("MOTION_COMPONENTS");
+  const isManifestComponent = new RegExp(
+    `id\\s*:\\s*["']${escapedId}["']`,
+  ).test(source);
+  if (!isFallbackComponent && !isManifestComponent) {
+    throw new Error("没有找到该导入效果的本地源码");
+  }
+
+  const state = await readState();
+  const activeHistoryItem = (state.componentHistory ?? []).find(
+    (item) => item.id === state.activeComponentId,
+  );
+  await writeFile(
+    activeComponentPath,
+    "export const MOTION_COMPONENTS = [];\nexport const MOTION_TIMELINE = [];\n",
+    "utf8",
+  );
+  if (activeHistoryItem) {
+    try {
+      await unlink(join(componentStoreDir, basename(activeHistoryItem.storedFile)));
+    } catch {
+      // The active pointer is already cleared even if its archived copy is gone.
+    }
+  }
+  await removeEffectFromSavedTimelines(componentId);
+  await saveState({
+    activeComponentId: "",
+    componentName: "",
+    sourceIncludesVideo: false,
+    componentHistory: (state.componentHistory ?? []).filter(
+      (item) => item.id !== state.activeComponentId,
+    ),
+  });
+  return {
+    source: activeHistoryItem
+      ? `local-components/${basename(activeHistoryItem.storedFile)}`
+      : "local-imported/active.tsx",
+  };
+};
 
 const updateRenderJob = (
   job: RenderJob,
@@ -360,6 +524,51 @@ const localApi = (): Plugin => ({
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
         if (url.pathname === "/api/health") {
           sendJson(res, 200, { ok: true, localOnly: true });
+          return;
+        }
+
+        if (url.pathname === "/api/delete-effect" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { componentId?: string; imported?: boolean };
+          if (!body.componentId || !/^[A-Za-z0-9_-]+$/.test(body.componentId)) {
+            throw new Error("效果标识无效");
+          }
+          const deleted = body.imported
+            ? await deleteImportedEffectSource(body.componentId)
+            : await deleteRegisteredEffectSource(body.componentId);
+          sendJson(res, 200, { ok: true, componentId: body.componentId, ...deleted });
+          return;
+        }
+
+        if (
+          url.pathname === "/api/delete-effect-group" &&
+          req.method === "POST"
+        ) {
+          const body = JSON.parse(
+            (await getBody(req, 128 * 1024)).toString("utf8"),
+          ) as { componentIds?: string[] };
+          const componentIds = Array.from(
+            new Set(
+              Array.isArray(body.componentIds)
+                ? body.componentIds.filter(
+                    (id): id is string =>
+                      typeof id === "string" && /^[A-Za-z0-9_-]+$/.test(id),
+                  )
+                : [],
+            ),
+          );
+          if (componentIds.length === 0 || componentIds.length > 100) {
+            throw new Error("分组内没有可删除的注册效果");
+          }
+          const deleted = [];
+          for (const componentId of componentIds) {
+            deleted.push({
+              componentId,
+              ...(await deleteRegisteredEffectSource(componentId)),
+            });
+          }
+          sendJson(res, 200, { ok: true, deleted });
           return;
         }
 
@@ -648,9 +857,8 @@ const localApi = (): Plugin => ({
                 ? `http://127.0.0.1:41735${inputProps.videoSrc}`
                 : inputProps.videoSrc,
           };
-          const jobId = `render-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`;
+          renderJobSequence += 1;
+          const jobId = `render-${Date.now()}-${renderJobSequence}`;
           const now = new Date().toISOString();
           const job: RenderJob = {
             id: jobId,

@@ -10,7 +10,6 @@ import { Player, type PlayerRef } from "@remotion/player";
 import { AbsoluteFill, OffthreadVideo, Sequence } from "remotion";
 import {
   ArrowCounterClockwise,
-  ArrowRight,
   ArrowsInLineVertical,
   CaretDown,
   DeviceMobile,
@@ -47,11 +46,11 @@ import {
 } from "./local-protocol";
 import {
   BUILT_IN_CATALOG,
-  BUILT_IN_COMPONENT_COUNT,
   BUILT_IN_COMPONENT_IDS,
   isBuiltInDefinition,
   mergeWithBuiltInDefinitions,
 } from "./local-builtins";
+import { EFFECT_REGISTRY_BY_ID } from "./registry";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -68,6 +67,8 @@ type ShortcutMap = Record<ShortcutAction, string>;
 
 const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
 const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
+const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
+const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 278;
 const MIN_LEFT_PANEL_WIDTH = 210;
@@ -127,6 +128,56 @@ const loadShortcuts = (): ShortcutMap => {
     return { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) };
   } catch {
     return { ...DEFAULT_SHORTCUTS };
+  }
+};
+
+type CustomCatalogGroup = { id: string; name: string };
+type PendingGroupDelete = {
+  groupId: string;
+  groupName: string;
+  componentIds: string[];
+};
+type EffectMoveTarget = {
+  componentId: string;
+  effectName: string;
+  currentGroupId: string;
+};
+
+const loadCustomCatalogGroups = (): CustomCatalogGroup[] => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(CUSTOM_GROUP_STORAGE_KEY) ?? "[]",
+    );
+    return Array.isArray(stored)
+      ? stored.filter(
+          (group): group is CustomCatalogGroup =>
+            Boolean(
+              group &&
+                typeof group.id === "string" &&
+                typeof group.name === "string",
+            ),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const loadEffectGroupAssignments = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(EFFECT_GROUP_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([componentId, groupId]) =>
+              Boolean(componentId) && typeof groupId === "string",
+          ),
+        )
+      : {};
+  } catch {
+    return {};
   }
 };
 
@@ -222,8 +273,17 @@ type RenderProgressState = {
 type ContextMenuState = {
   x: number;
   y: number;
-  source: "preview" | "timeline";
+  source:
+    | "preview"
+    | "timeline"
+    | "library"
+    | "libraryGroup"
+    | "libraryRoot";
   instanceIds: string[];
+  componentId?: string;
+  groupId?: string;
+  groupName?: string;
+  groupComponentIds?: string[];
 };
 
 type MarqueeRect = {
@@ -301,11 +361,41 @@ const createInstance = (
   };
 };
 
+const getRegisteredEffectPosition = (
+  definition: MotionComponentDefinition,
+  orientation: "landscape" | "portrait",
+) => {
+  const registeredEffect = EFFECT_REGISTRY_BY_ID.get(definition.id);
+  if (!registeredEffect || orientation === "landscape") {
+    return { ...definition.defaultPosition };
+  }
+  if (registeredEffect.placement === "top") {
+    return { x: 0, y: 0, scale: 1080 / definition.bounds.width };
+  }
+  const scale = 0.45;
+  const scaledWidth = definition.bounds.width * scale;
+  const y =
+    definition.id === "QuoteLockup"
+      ? 1120
+      : definition.id === "CompareSplit"
+        ? 650
+        : 430;
+  return {
+    x:
+      registeredEffect.placement === "left"
+        ? 24
+        : 1080 - scaledWidth - 24,
+    y,
+    scale,
+  };
+};
+
 type StudioPreviewProps = {
   videoUrl: string;
   sourceIncludesVideo: boolean;
   definitions: MotionComponentDefinition[];
   instances: MotionInstance[];
+  canvasOrientation: "landscape" | "portrait";
 };
 
 const StudioPreviewComposition = ({
@@ -313,6 +403,7 @@ const StudioPreviewComposition = ({
   sourceIncludesVideo,
   definitions,
   instances,
+  canvasOrientation,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -369,6 +460,69 @@ const StudioPreviewComposition = ({
           );
         })
       )}
+      <div
+        data-preview-safety-guide
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1000,
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: canvasOrientation === "portrait" ? "12%" : "10%",
+            bottom: canvasOrientation === "portrait" ? "10%" : "9%",
+            left: "50%",
+            width: canvasOrientation === "portrait" ? "38%" : "24%",
+            translate: "-50% 0",
+            border: "2px dashed rgba(255,255,255,.24)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "13%",
+              width: "24%",
+              aspectRatio: "1",
+              translate: "-50% 0",
+              borderRadius: "50%",
+              background: "rgba(255,255,255,.13)",
+              border: "1px solid rgba(255,255,255,.2)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "31%",
+              bottom: "7%",
+              width: "62%",
+              translate: "-50% 0",
+              background: "rgba(255,255,255,.105)",
+              border: "1px solid rgba(255,255,255,.16)",
+              clipPath: "polygon(23% 0,77% 0,100% 28%,84% 100%,16% 100%,0 28%)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: 16,
+              translate: "-50% 0",
+              color: "rgba(255,255,255,.34)",
+              fontSize: 16,
+              letterSpacing: ".18em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            人物安全区 · 禁止遮挡
+          </div>
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -438,8 +592,21 @@ const App = () => {
   const [activeWorkspace, setActiveWorkspace] =
     useState<"editor" | "effects">("editor");
   const [effectSearch, setEffectSearch] = useState("");
+  const [customCatalogGroups, setCustomCatalogGroups] = useState(
+    loadCustomCatalogGroups,
+  );
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [groupNameDraft, setGroupNameDraft] = useState("");
+  const [pendingGroupDelete, setPendingGroupDelete] =
+    useState<PendingGroupDelete | null>(null);
+  const [effectGroupAssignments, setEffectGroupAssignments] = useState(
+    loadEffectGroupAssignments,
+  );
+  const [effectMoveTarget, setEffectMoveTarget] =
+    useState<EffectMoveTarget | null>(null);
   const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
-    "metric",
+    "practice",
+    "navigation",
   ]);
 
   useEffect(
@@ -504,9 +671,33 @@ const App = () => {
       ),
     [definitions],
   );
+  const effectCatalog = useMemo(() => {
+    const groups = [
+      ...BUILT_IN_CATALOG.map((group) => ({ ...group, items: [] as typeof group.items })),
+      ...customCatalogGroups.map((group) => ({ ...group, items: [] })),
+    ];
+    const availableGroupIds = new Set(groups.map((group) => group.id));
+    const sourceByComponentId = new Map<string, string>();
+    const items = BUILT_IN_CATALOG.flatMap((group) =>
+      group.items.map((item) => {
+        sourceByComponentId.set(item.ids[0], group.id);
+        return item;
+      }),
+    );
+    for (const item of items) {
+      const sourceGroupId = sourceByComponentId.get(item.ids[0]) ?? "";
+      const assignedGroupId = effectGroupAssignments[item.ids[0]];
+      const targetGroupId = availableGroupIds.has(assignedGroupId)
+        ? assignedGroupId
+        : sourceGroupId;
+      const target = groups.find((group) => group.id === targetGroupId);
+      target?.items.push(item);
+    }
+    return groups;
+  }, [customCatalogGroups, effectGroupAssignments]);
   const catalogDefinitionMap = useMemo(() => {
     const resolved = new Map<string, MotionComponentDefinition>();
-    for (const category of BUILT_IN_CATALOG) {
+    for (const category of effectCatalog) {
       for (const item of category.items) {
         const candidates = item.ids.flatMap((id) => {
           const definition = definitionMap.get(id);
@@ -519,19 +710,32 @@ const App = () => {
       }
     }
     return resolved;
-  }, [definitionMap]);
+  }, [definitionMap, effectCatalog]);
   const filteredEffectCatalog = useMemo(() => {
     const query = effectSearch.trim().toLocaleLowerCase("zh-CN");
-    if (!query) return BUILT_IN_CATALOG;
-    return BUILT_IN_CATALOG.map((category) => ({
+    return effectCatalog.map((category) => ({
       ...category,
       items: category.items.filter(
         (item) =>
-          category.name.toLocaleLowerCase("zh-CN").includes(query) ||
-          item.name.toLocaleLowerCase("zh-CN").includes(query),
+          (!query ||
+            category.name.toLocaleLowerCase("zh-CN").includes(query) ||
+            item.name.toLocaleLowerCase("zh-CN").includes(query)),
       ),
-    })).filter((category) => category.items.length > 0);
-  }, [effectSearch]);
+    })).filter(
+      (category) =>
+        category.items.length > 0 ||
+        (!query && customCatalogGroups.some((group) => group.id === category.id)) ||
+        category.name.toLocaleLowerCase("zh-CN").includes(query),
+    );
+  }, [customCatalogGroups, effectCatalog, effectSearch]);
+  const visibleBuiltInEffectCount = useMemo(
+    () =>
+      filteredEffectCatalog.reduce(
+        (total, category) => total + category.items.length,
+        0,
+      ),
+    [filteredEffectCatalog],
+  );
   const selectOnlyInstance = useCallback((instanceId: string) => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceIds(instanceId ? [instanceId] : []);
@@ -759,7 +963,9 @@ const App = () => {
   );
 
   useEffect(() => {
-    const timer = window.setInterval(async () => {
+    let stopped = false;
+    let timer = 0;
+    const pollForImportedComponent = async () => {
       try {
         const state = await fetch("/api/state").then((response) =>
           response.json(),
@@ -785,9 +991,17 @@ const App = () => {
         }
       } catch {
         // The local service may be restarting; the next poll will retry.
+      } finally {
+        if (!stopped) {
+          timer = window.setTimeout(pollForImportedComponent, 2000);
+        }
       }
-    }, 2000);
-    return () => window.clearInterval(timer);
+    };
+    timer = window.setTimeout(pollForImportedComponent, 2000);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
   }, [
     durationInFrames,
     loadModuleUrl,
@@ -831,16 +1045,29 @@ const App = () => {
 
   useEffect(() => {
     if (!isPlaying || playerRef.current) return;
-    const timer = window.setInterval(() => {
+    let animationFrame = 0;
+    let previousTime = performance.now();
+    let accumulatedTime = 0;
+    const frameDuration = 1000 / fps;
+    const advancePlayback = (now: number) => {
+      accumulatedTime += now - previousTime;
+      previousTime = now;
+      const framesToAdvance = Math.floor(accumulatedTime / frameDuration);
+      if (framesToAdvance > 0) {
+        accumulatedTime -= framesToAdvance * frameDuration;
+      }
       setCurrentFrame((frame) => {
-        if (frame >= durationInFrames - 1) {
+        const nextFrame = frame + framesToAdvance;
+        if (nextFrame >= durationInFrames - 1) {
           setIsPlaying(false);
           return durationInFrames - 1;
         }
-        return frame + 1;
+        return nextFrame;
       });
-    }, Math.max(16, 1000 / fps));
-    return () => window.clearInterval(timer);
+      animationFrame = window.requestAnimationFrame(advancePlayback);
+    };
+    animationFrame = window.requestAnimationFrame(advancePlayback);
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [durationInFrames, fps, isPlaying]);
 
   const previewInputProps = useMemo<StudioPreviewProps>(
@@ -849,10 +1076,12 @@ const App = () => {
       sourceIncludesVideo: videoPreviewEnabled ? sourceIncludesVideo : false,
       definitions,
       instances,
+      canvasOrientation,
     }),
     [
       definitions,
       instances,
+      canvasOrientation,
       sourceIncludesVideo,
       videoPreviewEnabled,
       videoUrl,
@@ -1032,10 +1261,29 @@ const App = () => {
       definition,
       currentFrame,
       durationInFrames,
+      { position: getRegisteredEffectPosition(definition, canvasOrientation) },
     );
     setInstances((current) => [...current, instance]);
     selectOnlyInstance(instance.id);
     setNotice({ tone: "ok", text: `已添加 ${definition.name} 到时间轴。` });
+  };
+
+  const toggleCanvasOrientation = () => {
+    const nextOrientation =
+      canvasOrientation === "landscape" ? "portrait" : "landscape";
+    setCanvasOrientation(nextOrientation);
+    setInstances((current) =>
+      current.map((instance) => {
+        const definition = definitionMap.get(instance.componentId);
+        if (!definition || !EFFECT_REGISTRY_BY_ID.has(instance.componentId)) {
+          return instance;
+        }
+        return {
+          ...instance,
+          position: getRegisteredEffectPosition(definition, nextOrientation),
+        };
+      }),
+    );
   };
 
   const importVideo = async (file: File) => {
@@ -1935,6 +2183,207 @@ const App = () => {
     });
   };
 
+  const showLibraryMenu = (event: React.MouseEvent, componentId: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 186),
+      y: Math.min(event.clientY, window.innerHeight - 82),
+      source: "library",
+      instanceIds: [],
+      componentId,
+    });
+  };
+
+  const showLibraryGroupMenu = (
+    event: React.MouseEvent,
+    group: { id: string; name: string; items: Array<{ ids: string[] }> },
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 190),
+      y: Math.min(event.clientY, window.innerHeight - 126),
+      source: "libraryGroup",
+      instanceIds: [],
+      groupId: group.id,
+      groupName: group.name,
+      groupComponentIds: group.items.map((item) => item.ids[0]),
+    });
+  };
+
+  const showLibraryRootMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 190),
+      y: Math.min(event.clientY, window.innerHeight - 82),
+      source: "libraryRoot",
+      instanceIds: [],
+    });
+  };
+
+  const openNewGroupDialog = () => {
+    setContextMenu(null);
+    setGroupNameDraft("");
+    setGroupDialogOpen(true);
+  };
+
+  const createCatalogGroup = () => {
+    const name = groupNameDraft.trim().slice(0, 30);
+    if (!name) return;
+    const group = { id: `custom-${Date.now()}`, name };
+    setCustomCatalogGroups((current) => {
+      const next = [...current, group];
+      window.localStorage.setItem(
+        CUSTOM_GROUP_STORAGE_KEY,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+    setOpenCatalogCategories((current) => [...current, group.id]);
+    setGroupDialogOpen(false);
+    setGroupNameDraft("");
+    setNotice({ tone: "ok", text: `已新建分组“${name}”。` });
+  };
+
+  const requestDeleteCatalogGroup = (
+    groupId: string,
+    groupName: string,
+    componentIds: string[],
+  ) => {
+    setContextMenu(null);
+    setPendingGroupDelete({ groupId, groupName, componentIds });
+  };
+
+  const openMoveEffectDialog = (componentId: string) => {
+    const currentGroup = effectCatalog.find((group) =>
+      group.items.some((item) => item.ids[0] === componentId),
+    );
+    const definition = definitionMap.get(componentId);
+    setContextMenu(null);
+    if (!currentGroup || !definition) {
+      setNotice({ tone: "error", text: "未找到该效果所属的分组。" });
+      return;
+    }
+    setEffectMoveTarget({
+      componentId,
+      effectName: definition.name,
+      currentGroupId: currentGroup.id,
+    });
+  };
+
+  const moveEffectToGroup = (groupId: string, groupName: string) => {
+    if (!effectMoveTarget || groupId === effectMoveTarget.currentGroupId) return;
+    const effectName = effectMoveTarget.effectName;
+    setEffectGroupAssignments((current) => {
+      const next = { ...current, [effectMoveTarget.componentId]: groupId };
+      window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setOpenCatalogCategories((current) =>
+      current.includes(groupId) ? current : [...current, groupId],
+    );
+    setEffectMoveTarget(null);
+    setNotice({ tone: "ok", text: `已将“${effectName}”移动到“${groupName}”。` });
+  };
+
+  const deleteCatalogGroup = async ({
+    groupId,
+    groupName,
+    componentIds,
+  }: PendingGroupDelete) => {
+    const isCustomGroup = customCatalogGroups.some(
+      (group) => group.id === groupId,
+    );
+    setPendingGroupDelete(null);
+    if (isCustomGroup && componentIds.length === 0) {
+      setCustomCatalogGroups((current) => {
+        const next = current.filter((group) => group.id !== groupId);
+        window.localStorage.setItem(
+          CUSTOM_GROUP_STORAGE_KEY,
+          JSON.stringify(next),
+        );
+        return next;
+      });
+      setOpenCatalogCategories((current) =>
+        current.filter((id) => id !== groupId),
+      );
+      setNotice({ tone: "ok", text: `已删除分组“${groupName}”。` });
+      return;
+    }
+    try {
+      setNotice({ tone: "info", text: `正在删除“${groupName}”及组内源码…` });
+      const response = await fetch("/api/delete-effect-group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ componentIds }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "删除分组失败");
+      const idSet = new Set(componentIds);
+      setInstances((current) =>
+        current.filter((instance) => !idSet.has(instance.componentId)),
+      );
+      setEffectGroupAssignments((current) => {
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([componentId]) => !idSet.has(componentId)),
+        );
+        window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      if (isCustomGroup) {
+        setCustomCatalogGroups((current) => {
+          const next = current.filter((group) => group.id !== groupId);
+          window.localStorage.setItem(CUSTOM_GROUP_STORAGE_KEY, JSON.stringify(next));
+          return next;
+        });
+      }
+      setNotice({ tone: "ok", text: `已彻底删除分组“${groupName}”。` });
+      window.setTimeout(() => window.location.reload(), 250);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "删除分组失败",
+      });
+    }
+  };
+
+  const permanentlyDeleteEffect = async (componentId: string) => {
+    setContextMenu(null);
+    setNotice({ tone: "info", text: "正在彻底删除效果源码与时间轴实例…" });
+    try {
+      const response = await fetch("/api/delete-effect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          componentId,
+          imported: !EFFECT_REGISTRY_BY_ID.has(componentId),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "删除效果失败");
+      setInstances((current) =>
+        current.filter((instance) => instance.componentId !== componentId),
+      );
+      setDefinitions((current) =>
+        current.filter((definition) => definition.id !== componentId),
+      );
+      setEffectGroupAssignments((current) => {
+        const next = { ...current };
+        delete next[componentId];
+        window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setNotice({ tone: "ok", text: "已删除效果源码及全部时间轴实例。" });
+      window.setTimeout(() => window.location.reload(), 250);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "删除效果失败",
+      });
+    }
+  };
+
   const duplicateInstances = (instanceIds: string[]) => {
     const idSet = new Set(instanceIds);
     const frameOffset = Math.max(1, Math.round(fps * 0.15));
@@ -2266,11 +2715,7 @@ const App = () => {
         <div className="studio-actions" aria-label="编辑操作">
           <button
             className={canvasOrientation === "portrait" ? "format-entry active" : "format-entry"}
-            onClick={() =>
-              setCanvasOrientation((current) =>
-                current === "landscape" ? "portrait" : "landscape",
-              )
-            }
+            onClick={toggleCanvasOrientation}
             title={
               canvasOrientation === "landscape"
                 ? "切换为竖屏 9:16"
@@ -2319,7 +2764,7 @@ const App = () => {
                   <small>LIBRARY</small>
                   <strong>效果库</strong>
                 </div>
-                <b>{BUILT_IN_COMPONENT_COUNT}</b>
+                <b>{visibleBuiltInEffectCount}</b>
               </header>
 
               <label className="effect-library-search">
@@ -2337,7 +2782,11 @@ const App = () => {
                 <span>{filteredEffectCatalog.length} 个分类</span>
               </div>
 
-              <div className="effect-library-catalog">
+              <div
+                className="effect-library-catalog"
+                onContextMenu={showLibraryRootMenu}
+                title="在空白处右键可新建分组"
+              >
                 {filteredEffectCatalog.map((category) => {
                   const isOpen =
                     Boolean(effectSearch.trim()) ||
@@ -2346,6 +2795,9 @@ const App = () => {
                     <section className="effect-library-category" key={category.id}>
                       <button
                         className={isOpen ? "category-toggle open" : "category-toggle"}
+                        onContextMenu={(event) =>
+                          showLibraryGroupMenu(event, category)
+                        }
                         onClick={() =>
                           setOpenCatalogCategories((current) =>
                             current.includes(category.id)
@@ -2368,6 +2820,10 @@ const App = () => {
                                 key={item.ids[0]}
                                 disabled={!definition}
                                 onClick={() => definition && addInstance(definition.id)}
+                                onContextMenu={(event) =>
+                                  definition && showLibraryMenu(event, definition.id)
+                                }
+                                title="单击添加到时间轴；右键可移动分组或彻底删除"
                               >
                                 <i>{item.name.slice(0, 2)}</i>
                                 <span>
@@ -2397,7 +2853,12 @@ const App = () => {
                   </div>
                   <div className="effect-library-items">
                     {customDefinitions.map((definition) => (
-                      <button key={definition.id} onClick={() => addInstance(definition.id)}>
+                      <button
+                        key={definition.id}
+                        onClick={() => addInstance(definition.id)}
+                        onContextMenu={(event) => showLibraryMenu(event, definition.id)}
+                        title="单击添加到时间轴；右键彻底删除"
+                      >
                         <i>FX</i>
                         <span>
                           <strong>{definition.name}</strong>
@@ -2837,101 +3298,6 @@ const App = () => {
               <div className="reference-inspector-empty">
                 在时间轴中选择组件后，可在这里修改参数。
               </div>
-            ) : selectedDefinition.id === "ChapterBar" ? (
-              <>
-                <section className="reference-inspector-group">
-                  <label className="reference-effect-toggle">
-                    <span>
-                      <strong>显示章节进度条</strong>
-                      <small>独立控制此进度条的显示与隐藏</small>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={selectedInstance.props.enabled !== false}
-                      onChange={(event) =>
-                        updateSelectedProp("enabled", event.target.checked)
-                      }
-                    />
-                  </label>
-                  <p className="reference-inspector-note">
-                    进度会按照这张卡片在时间轴中的长度自动推进，并参与最终视频导出。
-                  </p>
-                </section>
-
-                <section className="reference-inspector-section">
-                  <div className="reference-section-title">
-                    <strong>章节名称</strong><small>CHAPTERS</small>
-                  </div>
-                  <div className="chapter-name-fields">
-                    {(
-                      [
-                        ["title", "章节一"],
-                        ["subtitle", "章节二"],
-                        ["value", "章节三"],
-                        ["item1", "章节四"],
-                        ["item2", "章节五"],
-                        ["item3", "章节六"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <label key={key}>
-                        <span>{label}</span>
-                        <input
-                          className="reference-text-input"
-                          value={String(selectedInstance.props[key] ?? "")}
-                          onChange={(event) =>
-                            updateSelectedProp(key, event.target.value)
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="reference-inspector-section">
-                  <div className="reference-section-title">
-                    <strong>进度样式</strong><small>STYLE</small>
-                  </div>
-                  <div className="chapter-color-fields">
-                    <label>
-                      <span>起始颜色</span>
-                      <input
-                        type="color"
-                        value={String(selectedInstance.props.accentColor ?? "#68e8ff")}
-                        onChange={(event) =>
-                          updateSelectedProp("accentColor", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>结束颜色</span>
-                      <input
-                        type="color"
-                        value={String(selectedInstance.props.secondaryColor ?? "#9478ff")}
-                        onChange={(event) =>
-                          updateSelectedProp("secondaryColor", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-                </section>
-
-                <section className="reference-inspector-section">
-                  <div className="reference-section-title">
-                    <strong>时间范围</strong><small>TIMING</small>
-                  </div>
-                  <div className="chapter-timing-summary">
-                    <span>{formatTime(selectedInstance.startFrame / fps)}</span>
-                    <ArrowRight />
-                    <span>
-                      {formatTime(
-                        (selectedInstance.startFrame +
-                          selectedInstance.durationInFrames) /
-                          fps,
-                      )}
-                    </span>
-                  </div>
-                </section>
-              </>
             ) : (
               <>
                 <section className="reference-inspector-group">
@@ -2953,6 +3319,59 @@ const App = () => {
                           selectedInstance.props[key] ?? schema.default,
                         ),
                     )}
+                  </div>
+                </section>
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>时间范围</strong><small>TIMING</small>
+                  </div>
+                  <div className="dynamic-prop-fields">
+                    <label className="prop-field">
+                      <span>开始时间(秒)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={Math.max(0, timelineSeconds - 0.1)}
+                        step={0.1}
+                        value={(selectedInstance.startFrame / fps).toFixed(1)}
+                        onChange={(event) => {
+                          const nextStart = clamp(
+                            Math.round(Number(event.target.value) * fps),
+                            0,
+                            Math.max(0, durationInFrames - 3),
+                          );
+                          updateInstance(selectedInstance.id, (instance) => ({
+                            ...instance,
+                            startFrame: nextStart,
+                            durationInFrames: Math.min(
+                              instance.durationInFrames,
+                              durationInFrames - nextStart,
+                            ),
+                          }));
+                        }}
+                      />
+                    </label>
+                    <label className="prop-field">
+                      <span>卡片时长(秒)</span>
+                      <input
+                        type="number"
+                        min={3 / fps}
+                        max={(durationInFrames - selectedInstance.startFrame) / fps}
+                        step={0.1}
+                        value={(selectedInstance.durationInFrames / fps).toFixed(1)}
+                        onChange={(event) => {
+                          const nextDuration = clamp(
+                            Math.round(Number(event.target.value) * fps),
+                            3,
+                            durationInFrames - selectedInstance.startFrame,
+                          );
+                          updateInstance(selectedInstance.id, (instance) => ({
+                            ...instance,
+                            durationInFrames: nextDuration,
+                          }));
+                        }}
+                      />
+                    </label>
                   </div>
                 </section>
               </>
@@ -3055,6 +3474,150 @@ const App = () => {
         </div>
       ) : null}
 
+      {groupDialogOpen ? (
+        <div
+          className="shortcut-dialog-backdrop"
+          onPointerDown={() => setGroupDialogOpen(false)}
+        >
+          <section
+            className="shortcut-dialog group-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span>
+                  <strong>新建效果分组</strong>
+                  <small>新分组会保存到当前浏览器</small>
+                </span>
+              </div>
+              <button onClick={() => setGroupDialogOpen(false)}>
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <label htmlFor="new-effect-group-name">分组名称</label>
+              <input
+                id="new-effect-group-name"
+                autoFocus
+                maxLength={30}
+                value={groupNameDraft}
+                onChange={(event) => setGroupNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") createCatalogGroup();
+                  if (event.key === "Escape") setGroupDialogOpen(false);
+                }}
+                placeholder="例如：我的常用效果"
+              />
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button onClick={() => setGroupDialogOpen(false)}>取消</button>
+                <button
+                  className="shortcut-save"
+                  disabled={!groupNameDraft.trim()}
+                  onClick={createCatalogGroup}
+                >
+                  新建分组
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingGroupDelete ? (
+        <div
+          className="shortcut-dialog-backdrop delete-confirm-backdrop"
+          onPointerDown={() => setPendingGroupDelete(null)}
+        >
+          <section
+            className="delete-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-group-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="delete-confirm-icon">
+              <Trash />
+            </div>
+            <div className="delete-confirm-copy">
+              <small>DELETE GROUP</small>
+              <h2 id="delete-group-title">删除“{pendingGroupDelete.groupName}”？</h2>
+              <p>
+                {pendingGroupDelete.componentIds.length > 0
+                  ? `该分组包含 ${pendingGroupDelete.componentIds.length} 个效果。确认后将同时删除对应源码、效果库条目和所有时间轴实例。`
+                  : "该分组当前没有效果，确认后将从效果库中移除。"}
+              </p>
+              <div className="delete-confirm-warning">
+                此操作不可撤销，请确认已保留需要的 Git 或本地备份。
+              </div>
+            </div>
+            <footer>
+              <button
+                className="delete-confirm-cancel"
+                onClick={() => setPendingGroupDelete(null)}
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirm-submit"
+                onClick={() => deleteCatalogGroup(pendingGroupDelete)}
+              >
+                <Trash />
+                确认删除
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {effectMoveTarget ? (
+        <div
+          className="shortcut-dialog-backdrop effect-move-backdrop"
+          onPointerDown={() => setEffectMoveTarget(null)}
+        >
+          <section
+            className="effect-move-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="move-effect-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <small>MOVE EFFECT</small>
+                <h2 id="move-effect-title">移动“{effectMoveTarget.effectName}”</h2>
+                <p>选择目标分组，移动结果会自动保存。</p>
+              </div>
+              <button
+                className="effect-move-close"
+                aria-label="关闭"
+                onClick={() => setEffectMoveTarget(null)}
+              >
+                <X />
+              </button>
+            </header>
+            <div className="effect-move-groups">
+              {effectCatalog
+                .filter((group) => group.id !== effectMoveTarget.currentGroupId)
+                .map((group) => (
+                  <button
+                    key={group.id}
+                    onClick={() => moveEffectToGroup(group.id, group.name)}
+                  >
+                    <span>{group.name}</span>
+                    <b>{group.items.length}</b>
+                  </button>
+                ))}
+            </div>
+            <footer>
+              <button onClick={() => setEffectMoveTarget(null)}>取消</button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {notice ? (
         <button
           className={`toast ${notice.tone}`}
@@ -3073,24 +3636,79 @@ const App = () => {
             className="component-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            <small>
-              {contextMenu.source === "preview" ? "预览组件" : "时间轴组件"}
-              {contextMenu.instanceIds.length > 1
-                ? ` · 已选 ${contextMenu.instanceIds.length} 个`
-                : ""}
-            </small>
-            <button
-              className="copy-action"
-              onClick={() => duplicateInstances(contextMenu.instanceIds)}
-            >
-              复制组件
-            </button>
-            <button
-              className="delete-action"
-              onClick={() => deleteInstances(contextMenu.instanceIds)}
-            >
-              删除组件
-            </button>
+            {contextMenu.source === "library" ? (
+              <>
+                <small>效果库</small>
+                {contextMenu.componentId &&
+                EFFECT_REGISTRY_BY_ID.has(contextMenu.componentId) ? (
+                  <button
+                    className="copy-action"
+                    onClick={() =>
+                      contextMenu.componentId &&
+                      openMoveEffectDialog(contextMenu.componentId)
+                    }
+                  >
+                    移动到其他分组
+                  </button>
+                ) : null}
+                <button
+                  className="delete-action"
+                  onClick={() =>
+                    contextMenu.componentId && permanentlyDeleteEffect(contextMenu.componentId)
+                  }
+                >
+                  彻底删除效果
+                </button>
+              </>
+            ) : contextMenu.source === "libraryGroup" ? (
+              <>
+                <small>{contextMenu.groupName ?? "效果分组"}</small>
+                <button className="copy-action" onClick={openNewGroupDialog}>
+                  新建分组
+                </button>
+                <button
+                  className="delete-action"
+                  onClick={() =>
+                    contextMenu.groupId &&
+                    requestDeleteCatalogGroup(
+                      contextMenu.groupId,
+                      contextMenu.groupName ?? "效果分组",
+                      contextMenu.groupComponentIds ?? [],
+                    )
+                  }
+                >
+                  删除分组
+                </button>
+              </>
+            ) : contextMenu.source === "libraryRoot" ? (
+              <>
+                <small>效果库分组</small>
+                <button className="copy-action" onClick={openNewGroupDialog}>
+                  新建分组
+                </button>
+              </>
+            ) : (
+              <>
+                <small>
+                  {contextMenu.source === "preview" ? "预览组件" : "时间轴组件"}
+                  {contextMenu.instanceIds.length > 1
+                    ? ` · 已选 ${contextMenu.instanceIds.length} 个`
+                    : ""}
+                </small>
+                <button
+                  className="copy-action"
+                  onClick={() => duplicateInstances(contextMenu.instanceIds)}
+                >
+                  复制组件
+                </button>
+                <button
+                  className="delete-action"
+                  onClick={() => deleteInstances(contextMenu.instanceIds)}
+                >
+                  删除组件
+                </button>
+              </>
+            )}
           </div>
         </>
       ) : null}
