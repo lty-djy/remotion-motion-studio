@@ -66,6 +66,37 @@ type ShortcutAction =
 type ShortcutMap = Record<ShortcutAction, string>;
 
 const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
+const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
+const DEFAULT_LEFT_PANEL_WIDTH = 270;
+const DEFAULT_RIGHT_PANEL_WIDTH = 278;
+const MIN_LEFT_PANEL_WIDTH = 210;
+const MIN_RIGHT_PANEL_WIDTH = 240;
+const MAX_PANEL_WIDTH = 480;
+const MIN_WORKSPACE_WIDTH = 620;
+
+const readStoredPanelWidths = () => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(PANEL_WIDTH_STORAGE_KEY) ?? "{}",
+    ) as { left?: number; right?: number };
+    return {
+      left:
+        typeof stored.left === "number"
+          ? Math.min(MAX_PANEL_WIDTH, Math.max(MIN_LEFT_PANEL_WIDTH, stored.left))
+          : DEFAULT_LEFT_PANEL_WIDTH,
+      right:
+        typeof stored.right === "number"
+          ? Math.min(MAX_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, stored.right))
+          : DEFAULT_RIGHT_PANEL_WIDTH,
+    };
+  } catch {
+    return {
+      left: DEFAULT_LEFT_PANEL_WIDTH,
+      right: DEFAULT_RIGHT_PANEL_WIDTH,
+    };
+  }
+};
+
 const DEFAULT_SHORTCUTS: ShortcutMap = {
   playPause: "Space",
   goStart: "Home",
@@ -338,6 +369,7 @@ const App = () => {
   const playerRef = useRef<PlayerRef>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const playheadDragCleanupRef = useRef<(() => void) | null>(null);
+  const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const componentInput = useRef<HTMLInputElement>(null);
   const activeComponentIdRef = useRef("");
@@ -375,6 +407,10 @@ const App = () => {
     outputLocation: string;
   } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [initialPanelWidths] = useState(readStoredPanelWidths);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
+  const [rightPanelWidth, setRightPanelWidth] = useState(initialPanelWidths.right);
+  const [resizingSidebar, setResizingSidebar] = useState<"left" | "right" | null>(null);
   const [sourceIncludesVideo, setSourceIncludesVideo] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -691,6 +727,20 @@ const App = () => {
         setNotice({ tone: "error", text: `加载组件失败：${error.message}` }),
       );
   }, [loadModuleUrl, setActiveComponentId]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      PANEL_WIDTH_STORAGE_KEY,
+      JSON.stringify({ left: leftPanelWidth, right: rightPanelWidth }),
+    );
+  }, [leftPanelWidth, rightPanelWidth]);
+
+  useEffect(
+    () => () => {
+      sidebarDragCleanupRef.current?.();
+    },
+    [],
+  );
 
   useEffect(() => {
     const timer = window.setInterval(async () => {
@@ -1147,6 +1197,71 @@ const App = () => {
     },
     [durationInFrames],
   );
+
+  const beginSidebarResize = (
+    side: "left" | "right",
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    sidebarDragCleanupRef.current?.();
+
+    const pointerId = event.pointerId;
+    const startX = event.clientX;
+    const startWidth = side === "left" ? leftPanelWidth : rightPanelWidth;
+    const oppositeWidth = side === "left" ? rightPanelWidth : leftPanelWidth;
+    const minimumWidth =
+      side === "left" ? MIN_LEFT_PANEL_WIDTH : MIN_RIGHT_PANEL_WIDTH;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    setResizingSidebar(side);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      moveEvent.preventDefault();
+      const delta = moveEvent.clientX - startX;
+      const requestedWidth =
+        side === "left" ? startWidth + delta : startWidth - delta;
+      const availableMaximum = Math.max(
+        minimumWidth,
+        window.innerWidth - oppositeWidth - MIN_WORKSPACE_WIDTH - 12,
+      );
+      const nextWidth = Math.round(
+        clamp(
+          requestedWidth,
+          minimumWidth,
+          Math.min(MAX_PANEL_WIDTH, availableMaximum),
+        ),
+      );
+      if (side === "left") setLeftPanelWidth(nextWidth);
+      else setRightPanelWidth(nextWidth);
+    };
+
+    const cleanup = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleEnd);
+      window.removeEventListener("pointercancel", handleEnd);
+      window.removeEventListener("blur", cleanup);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      setResizingSidebar(null);
+      sidebarDragCleanupRef.current = null;
+    };
+    const handleEnd = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId !== pointerId) return;
+      handleMove(endEvent);
+      cleanup();
+    };
+
+    sidebarDragCleanupRef.current = cleanup;
+    window.addEventListener("pointermove", handleMove, { passive: false });
+    window.addEventListener("pointerup", handleEnd);
+    window.addEventListener("pointercancel", handleEnd);
+    window.addEventListener("blur", cleanup);
+  };
 
   const beginPlayheadDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -2148,7 +2263,15 @@ const App = () => {
         </div>
       </header>
 
-      <main>
+      <main
+        className={resizingSidebar ? "is-resizing-sidebar" : undefined}
+        style={
+          {
+            "--left-panel-width": `${leftPanelWidth}px`,
+            "--right-panel-width": `${rightPanelWidth}px`,
+          } as React.CSSProperties
+        }
+      >
         <aside className="left-panel reference-left-panel">
           {activeWorkspace === "effects" ? (
             <div className="effect-library-panel">
@@ -2338,6 +2461,20 @@ const App = () => {
           )}
         </aside>
 
+        <div
+          className={`sidebar-resizer sidebar-resizer-left${
+            resizingSidebar === "left" ? " active" : ""
+          }`}
+          role="separator"
+          aria-label="调整左侧栏宽度"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_LEFT_PANEL_WIDTH}
+          aria-valuemax={MAX_PANEL_WIDTH}
+          aria-valuenow={leftPanelWidth}
+          title="拖动调整左侧栏宽度"
+          onPointerDown={(event) => beginSidebarResize("left", event)}
+          onDoubleClick={() => setLeftPanelWidth(DEFAULT_LEFT_PANEL_WIDTH)}
+        />
 
         <section className="workspace">
           <div className="workspace-toolbar">
@@ -2619,6 +2756,21 @@ const App = () => {
             </div>
           </div>
         </section>
+
+        <div
+          className={`sidebar-resizer sidebar-resizer-right${
+            resizingSidebar === "right" ? " active" : ""
+          }`}
+          role="separator"
+          aria-label="调整右侧栏宽度"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_RIGHT_PANEL_WIDTH}
+          aria-valuemax={MAX_PANEL_WIDTH}
+          aria-valuenow={rightPanelWidth}
+          title="拖动调整右侧栏宽度"
+          onPointerDown={(event) => beginSidebarResize("right", event)}
+          onDoubleClick={() => setRightPanelWidth(DEFAULT_RIGHT_PANEL_WIDTH)}
+        />
 
         <aside className="right-panel reference-right-panel">
           <header className="reference-inspector-head">
