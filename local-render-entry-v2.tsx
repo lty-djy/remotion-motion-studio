@@ -73,6 +73,7 @@ const MultiComponentRender = ({
           >
             <Comp
               {...instance.props}
+              instanceDurationInFrames={instance.durationInFrames}
               videoSrc={videoSrc}
               hideVideo={sourceIncludesVideo}
               backgroundOpacity={instance.backgroundOpacity}

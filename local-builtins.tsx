@@ -25,6 +25,8 @@ type BuiltInSpec = {
 
 type BuiltInProps = {
   componentType: string;
+  enabled: boolean;
+  instanceDurationInFrames: number;
   title: string;
   subtitle: string;
   value: string;
@@ -41,6 +43,27 @@ const CATALOG_SPECS: Array<{
   name: string;
   items: BuiltInSpec[];
 }> = [
+  {
+    id: "navigation",
+    name: "导航与进度",
+    items: [
+      {
+        id: "ChapterBar",
+        name: "章节进度条",
+        description: "随视频播放推进的顶部章节导航",
+        category: "navigation",
+        glyph: "CH",
+        defaults: {
+          title: "开场",
+          subtitle: "抽盲盒",
+          value: "编辑台",
+          item1: "怎么用",
+          item2: "四大好处",
+          item3: "收尾",
+        },
+      },
+    ],
+  },
   {
     id: "metric",
     name: "数字与指标",
@@ -283,6 +306,87 @@ const BuiltInCatalogComponent = (rawProps: Record<string, unknown>) => {
     fontSize: 16,
   };
   const items = [props.item1, props.item2, props.item3].filter(Boolean);
+
+  if (spec.id === "ChapterBar") {
+    if (props.enabled === false) return null;
+    const chapters = [
+      props.title,
+      props.subtitle,
+      props.value,
+      props.item1,
+      props.item2,
+      props.item3,
+    ].filter(Boolean);
+    const duration = Math.max(1, Number(props.instanceDurationInFrames) || 1);
+    const progress = Math.max(0, Math.min(1, frame / Math.max(1, duration - 1)));
+    const activeIndex = Math.min(
+      chapters.length - 1,
+      Math.floor(progress * chapters.length),
+    );
+    return (
+      <div
+        data-studio-builtin={spec.id}
+        style={{
+          ...rootStyle,
+          overflow: "hidden",
+          background: rgba("#0c1220", Math.max(0.76, backgroundOpacity)),
+          borderBottom: `1px solid ${rgba(accent, 0.28)}`,
+          boxShadow: `0 8px 28px ${rgba("#000000", 0.28)}`,
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            display: "grid",
+            gridTemplateColumns: `repeat(${Math.max(1, chapters.length)}, minmax(0, 1fr))`,
+          }}
+        >
+          {chapters.map((chapter, index) => (
+            <div
+              key={`${chapter}-${index}`}
+              style={{
+                position: "relative",
+                display: "grid",
+                placeItems: "center",
+                color:
+                  index === activeIndex
+                    ? "#ffffff"
+                    : "rgba(224,232,247,.52)",
+                fontSize: 21,
+                fontWeight: index === activeIndex ? 800 : 650,
+                letterSpacing: 0.6,
+              }}
+            >
+              {chapter}
+              {index < chapters.length - 1 ? (
+                <i
+                  style={{
+                    position: "absolute",
+                    top: 21,
+                    right: 0,
+                    width: 1,
+                    height: 28,
+                    background: rgba(accent, 0.2),
+                  }}
+                />
+              ) : null}
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            bottom: 0,
+            width: `${progress * 100}%`,
+            height: 4,
+            background: `linear-gradient(90deg, ${accent}, ${secondary})`,
+            boxShadow: `0 0 16px ${rgba(accent, 0.72)}`,
+          }}
+        />
+      </div>
+    );
+  }
 
   if (spec.category === "metric") {
     const parsedValue = Number.parseFloat(props.value) || 76;
@@ -640,6 +744,10 @@ const CATEGORY_LAYOUT: Record<
     bounds: { x: 0, y: 0, width: 520, height: 300 },
     position: { x: 110, y: 110, scale: 1 },
   },
+  navigation: {
+    bounds: { x: 0, y: 0, width: 1920, height: 72 },
+    position: { x: 0, y: 0, scale: 1 },
+  },
   chart: {
     bounds: { x: 0, y: 0, width: 640, height: 360 },
     position: { x: 110, y: 610, scale: 1 },
@@ -672,6 +780,7 @@ const CATEGORY_LAYOUT: Record<
 
 const defaultPropsFor = (spec: BuiltInSpec): Record<string, unknown> => ({
   componentType: spec.id,
+  enabled: true,
   title: spec.name,
   subtitle: "MOTION COMPONENT",
   value: "87%",
@@ -691,20 +800,34 @@ export const BUILT_IN_DEFINITIONS: MotionComponentDefinition[] = ALL_SPECS.map(
     category: spec.category,
     glyph: spec.glyph,
     component: BuiltInCatalogComponent,
-    durationInFrames: spec.category === "brand" ? 90 : 120,
+    durationInFrames:
+      spec.id === "ChapterBar" ? 18000 : spec.category === "brand" ? 90 : 120,
     bounds: CATEGORY_LAYOUT[spec.category].bounds,
     defaultPosition: CATEGORY_LAYOUT[spec.category].position,
     defaultProps: defaultPropsFor(spec),
-    propsSchema: {
-      title: { type: "text", label: "主标题" },
-      subtitle: { type: "text", label: "副标题" },
-      value: { type: "text", label: "核心数值" },
-      item1: { type: "text", label: "内容一" },
-      item2: { type: "text", label: "内容二" },
-      item3: { type: "text", label: "内容三" },
-      accentColor: { type: "color", label: "强调色" },
-      secondaryColor: { type: "color", label: "辅助色" },
-    },
+    propsSchema:
+      spec.id === "ChapterBar"
+        ? {
+            enabled: { type: "boolean", label: "显示章节进度条" },
+            title: { type: "text", label: "章节一" },
+            subtitle: { type: "text", label: "章节二" },
+            value: { type: "text", label: "章节三" },
+            item1: { type: "text", label: "章节四" },
+            item2: { type: "text", label: "章节五" },
+            item3: { type: "text", label: "章节六" },
+            accentColor: { type: "color", label: "进度颜色" },
+            secondaryColor: { type: "color", label: "渐变颜色" },
+          }
+        : {
+            title: { type: "text", label: "主标题" },
+            subtitle: { type: "text", label: "副标题" },
+            value: { type: "text", label: "核心数值" },
+            item1: { type: "text", label: "内容一" },
+            item2: { type: "text", label: "内容二" },
+            item3: { type: "text", label: "内容三" },
+            accentColor: { type: "color", label: "强调色" },
+            secondaryColor: { type: "color", label: "辅助色" },
+          },
   }),
 );
 

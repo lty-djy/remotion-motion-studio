@@ -135,11 +135,6 @@ const formatShortcut = (shortcut: string) => {
     .join(" + ");
 };
 
-// The reference-UI phase is intentionally visual-only. Keeping the Player
-// unmounted prevents restored MOV sources from being intercepted as downloads
-// by third-party browser download extensions when the page opens.
-const STATIC_REFERENCE_PREVIEW = true;
-
 type ComponentHistoryItem = {
   id: string;
   name: string;
@@ -325,6 +320,7 @@ const StudioPreviewComposition = ({
               >
                 <Comp
                   {...instance.props}
+                  instanceDurationInFrames={instance.durationInFrames}
                   videoSrc={videoUrl}
                   hideVideo={sourceIncludesVideo}
                   backgroundOpacity={instance.backgroundOpacity}
@@ -367,6 +363,7 @@ const App = () => {
   const [savingProject, setSavingProject] = useState(false);
   const [videoName, setVideoName] = useState("尚未导入视频");
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoPreviewEnabled, setVideoPreviewEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(6);
   const [notice, setNotice] = useState<Notice>(null);
   const [rendering, setRendering] = useState(false);
@@ -391,6 +388,9 @@ const App = () => {
   const [timelineMarquee, setTimelineMarquee] =
     useState<MarqueeRect | null>(null);
   const [timelineHeight, setTimelineHeight] = useState(230);
+  const [activeWorkspace, setActiveWorkspace] =
+    useState<"editor" | "effects">("editor");
+  const [effectSearch, setEffectSearch] = useState("");
   const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
     "metric",
   ]);
@@ -471,6 +471,18 @@ const App = () => {
     }
     return resolved;
   }, [definitionMap]);
+  const filteredEffectCatalog = useMemo(() => {
+    const query = effectSearch.trim().toLocaleLowerCase("zh-CN");
+    if (!query) return BUILT_IN_CATALOG;
+    return BUILT_IN_CATALOG.map((category) => ({
+      ...category,
+      items: category.items.filter(
+        (item) =>
+          category.name.toLocaleLowerCase("zh-CN").includes(query) ||
+          item.name.toLocaleLowerCase("zh-CN").includes(query),
+      ),
+    })).filter((category) => category.items.length > 0);
+  }, [effectSearch]);
   const selectOnlyInstance = useCallback((instanceId: string) => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceIds(instanceId ? [instanceId] : []);
@@ -767,12 +779,18 @@ const App = () => {
 
   const previewInputProps = useMemo<StudioPreviewProps>(
     () => ({
-      videoUrl,
-      sourceIncludesVideo,
+      videoUrl: videoPreviewEnabled ? videoUrl : "",
+      sourceIncludesVideo: videoPreviewEnabled ? sourceIncludesVideo : false,
       definitions,
       instances,
     }),
-    [definitions, instances, sourceIncludesVideo, videoUrl],
+    [
+      definitions,
+      instances,
+      sourceIncludesVideo,
+      videoPreviewEnabled,
+      videoUrl,
+    ],
   );
 
   const workspaceSnapshot = useMemo<ProjectSnapshot>(
@@ -887,6 +905,7 @@ const App = () => {
       setProjectName(snapshot.name || project.name);
       setActiveComponentId(data.activeComponentId ?? "");
       setVideoName(snapshot.videoName ?? "尚未导入视频");
+      setVideoPreviewEnabled(false);
       setVideoUrl(restoredVideoUrl);
       setVideoDuration(restoredDuration);
       setTheme(snapshot.theme === "light" ? "light" : "dark");
@@ -971,6 +990,7 @@ const App = () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "视频导入失败");
     setVideoUrl(data.videoUrl);
+    setVideoPreviewEnabled(true);
     setVideoName(file.name);
     setVideoDuration(duration);
     setNotice({
@@ -2085,23 +2105,25 @@ const App = () => {
         <span />
       </div>
       <header className="studio-topbar">
-        <div className="studio-brand" aria-label="Overlay Studio">
-          <strong>OVERLAY<span>/</span>STUDIO</strong>
-          <small>v7.15</small>
+        <div className="studio-brand" aria-label="动效编辑台 V1.0">
+          <strong>动效编辑台</strong>
+          <small>V1.0</small>
         </div>
 
         <nav className="studio-nav" aria-label="主导航">
-          <button className="active">编辑台</button>
-          <button>效果库</button>
+          <button
+            className={activeWorkspace === "editor" ? "active" : ""}
+            onClick={() => setActiveWorkspace("editor")}
+          >
+            编辑台
+          </button>
+          <button
+            className={activeWorkspace === "effects" ? "active" : ""}
+            onClick={() => setActiveWorkspace("effects")}
+          >
+            效果库
+          </button>
         </nav>
-
-        <div className="studio-stats" aria-label="编辑状态">
-          <div><small>TIME</small><b>0:00.0 <i>/ 2:42.0</i></b></div>
-          <div><small>CARDS</small><b>4<i>/50</i></b></div>
-          <div><small>DENSITY</small><b className="accent">18.5<i>/min</i></b></div>
-          <div><small>PEAK</small><b>6</b></div>
-          <div><small>SEL</small><b className="accent">card-1</b></div>
-        </div>
 
         <div className="studio-actions" aria-label="编辑操作">
           <button
@@ -2128,6 +2150,106 @@ const App = () => {
 
       <main>
         <aside className="left-panel reference-left-panel">
+          {activeWorkspace === "effects" ? (
+            <div className="effect-library-panel">
+              <header className="effect-library-header">
+                <div>
+                  <small>LIBRARY</small>
+                  <strong>效果库</strong>
+                </div>
+                <b>{BUILT_IN_COMPONENT_COUNT}</b>
+              </header>
+
+              <label className="effect-library-search">
+                <MagnifyingGlass />
+                <input
+                  type="search"
+                  value={effectSearch}
+                  onChange={(event) => setEffectSearch(event.target.value)}
+                  placeholder="搜索效果名称"
+                />
+              </label>
+
+              <div className="effect-library-meta">
+                <span>内置效果</span>
+                <span>{filteredEffectCatalog.length} 个分类</span>
+              </div>
+
+              <div className="effect-library-catalog">
+                {filteredEffectCatalog.map((category) => {
+                  const isOpen =
+                    Boolean(effectSearch.trim()) ||
+                    openCatalogCategories.includes(category.id);
+                  return (
+                    <section className="effect-library-category" key={category.id}>
+                      <button
+                        className={isOpen ? "category-toggle open" : "category-toggle"}
+                        onClick={() =>
+                          setOpenCatalogCategories((current) =>
+                            current.includes(category.id)
+                              ? current.filter((id) => id !== category.id)
+                              : [...current, category.id],
+                          )
+                        }
+                      >
+                        <span>{category.name}</span>
+                        <b>{category.items.length}</b>
+                        <CaretDown />
+                      </button>
+
+                      {isOpen ? (
+                        <div className="effect-library-items">
+                          {category.items.map((item) => {
+                            const definition = catalogDefinitionMap.get(item.ids[0]);
+                            return (
+                              <button
+                                key={item.ids[0]}
+                                disabled={!definition}
+                                onClick={() => definition && addInstance(definition.id)}
+                              >
+                                <i>{item.name.slice(0, 2)}</i>
+                                <span>
+                                  <strong>{item.name}</strong>
+                                  <small>{definition ? "单击添加到时间轴" : "暂不可用"}</small>
+                                </span>
+                                <Plus />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {filteredEffectCatalog.length === 0 ? (
+                <div className="effect-library-empty">没有匹配的效果</div>
+              ) : null}
+
+              {customDefinitions.length > 0 ? (
+                <section className="effect-library-imported">
+                  <div className="effect-library-meta">
+                    <span>已导入效果</span>
+                    <span>{customDefinitions.length}</span>
+                  </div>
+                  <div className="effect-library-items">
+                    {customDefinitions.map((definition) => (
+                      <button key={definition.id} onClick={() => addInstance(definition.id)}>
+                        <i>FX</i>
+                        <span>
+                          <strong>{definition.name}</strong>
+                          <small>单击添加到时间轴</small>
+                        </span>
+                        <Plus />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          ) : (
+            <>
           <div className="reference-left-tabs">
             <button className="active">卡片 <b>50</b></button>
             <button>字幕稿 <b>109</b></button>
@@ -2212,6 +2334,8 @@ const App = () => {
             <span>运镜分屏(缩到左)</span>
             <button className="reference-switch" aria-label="运镜分屏"><FrameCorners /><i /></button>
           </div>
+            </>
+          )}
         </aside>
 
 
@@ -2224,21 +2348,11 @@ const App = () => {
           </div>
           <div className="stage-shell reference-stage-shell">
             <div className="reference-preview-frame">
-              <nav className="reference-chapter-tabs" aria-label="章节导航">
-                <button className="active">开场</button>
-                <button>抽盲盒</button>
-                <button>编辑台</button>
-                <button>怎么用</button>
-                <button>四大好处</button>
-                <button>收尾</button>
-              </nav>
               <div
                 className="player-wrap reference-player-wrap"
                 onPointerDown={beginMarqueeSelection}
               >
-              {STATIC_REFERENCE_PREVIEW ? (
-                <div className="reference-preview-placeholder" aria-hidden="true" />
-              ) : motionModule ? (
+              {motionModule ? (
                 <Player
                   ref={playerRef}
                   component={StudioPreviewComposition}
@@ -2251,7 +2365,11 @@ const App = () => {
                   loop={false}
                   clickToPlay={false}
                   acknowledgeRemotionLicense
-                  style={{ width: "100%", aspectRatio: "16 / 9" }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "#05070a",
+                  }}
                 />
               ) : (
                 <div className="loading">正在启动 Remotion Player…</div>
@@ -2504,88 +2622,150 @@ const App = () => {
 
         <aside className="right-panel reference-right-panel">
           <header className="reference-inspector-head">
-            <small>单卡参数 <i>·</i> CARD-1</small>
+            <small>
+              单卡参数 <i>·</i>{" "}
+              {selectedInstance
+                ? `CARD-${String(
+                    instances.findIndex(
+                      (instance) => instance.id === selectedInstance.id,
+                    ) + 1,
+                  ).padStart(2, "0")}`
+                : "NO SELECTION"}
+            </small>
             <div>
               <SlidersHorizontal weight="fill" />
-              <strong>ChapterBar</strong>
-              <span>常驻章节导航</span>
+              <strong>{selectedDefinition?.name ?? "未选择效果"}</strong>
+              <span>
+                {selectedDefinition?.description ?? "从时间轴或效果库选择一个组件"}
+              </span>
             </div>
           </header>
 
           <div className="reference-inspector-body">
-            <section className="reference-inspector-group">
-              <label>更换特效(内容/时间/位置保留)</label>
-              <div className="reference-search-field">
-                <MagnifyingGlass />
-                <input aria-label="搜索特效" placeholder="先搜再换·名字 / 用途" />
+            {!selectedInstance || !selectedDefinition ? (
+              <div className="reference-inspector-empty">
+                在时间轴中选择组件后，可在这里修改参数。
               </div>
-              <button className="reference-inspector-select">
-                <span>ChapterBar · 常驻章节导航 · 顶部全程</span>
-                <CaretDown />
-              </button>
-            </section>
+            ) : selectedDefinition.id === "ChapterBar" ? (
+              <>
+                <section className="reference-inspector-group">
+                  <label className="reference-effect-toggle">
+                    <span>
+                      <strong>显示章节进度条</strong>
+                      <small>独立控制此进度条的显示与隐藏</small>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={selectedInstance.props.enabled !== false}
+                      onChange={(event) =>
+                        updateSelectedProp("enabled", event.target.checked)
+                      }
+                    />
+                  </label>
+                  <p className="reference-inspector-note">
+                    进度会按照这张卡片在时间轴中的长度自动推进，并参与最终视频导出。
+                  </p>
+                </section>
 
-            <section className="reference-inspector-group">
-              <div className="reference-inspector-label-row">
-                <label>出现 <ArrowRight /> 消失(秒)</label>
-                <b>162.0s</b>
-              </div>
-              <div className="reference-time-inputs">
-                <input aria-label="出现时间" defaultValue="0" />
-                <ArrowRight />
-                <input aria-label="消失时间" defaultValue="162" />
-              </div>
-            </section>
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>章节名称</strong><small>CHAPTERS</small>
+                  </div>
+                  <div className="chapter-name-fields">
+                    {(
+                      [
+                        ["title", "章节一"],
+                        ["subtitle", "章节二"],
+                        ["value", "章节三"],
+                        ["item1", "章节四"],
+                        ["item2", "章节五"],
+                        ["item3", "章节六"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label key={key}>
+                        <span>{label}</span>
+                        <input
+                          className="reference-text-input"
+                          value={String(selectedInstance.props[key] ?? "")}
+                          onChange={(event) =>
+                            updateSelectedProp(key, event.target.value)
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </section>
 
-            <section className="reference-inspector-group">
-              <label>讲过变浅时刻(秒,空 = 不变浅)</label>
-              <input className="reference-text-input muted" placeholder="到这秒后压暗让位,但不退场" />
-            </section>
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>进度样式</strong><small>STYLE</small>
+                  </div>
+                  <div className="chapter-color-fields">
+                    <label>
+                      <span>起始颜色</span>
+                      <input
+                        type="color"
+                        value={String(selectedInstance.props.accentColor ?? "#68e8ff")}
+                        onChange={(event) =>
+                          updateSelectedProp("accentColor", event.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>结束颜色</span>
+                      <input
+                        type="color"
+                        value={String(selectedInstance.props.secondaryColor ?? "#9478ff")}
+                        onChange={(event) =>
+                          updateSelectedProp("secondaryColor", event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                </section>
 
-            <section className="reference-inspector-group">
-              <label>预设(这张卡的常用参数组合)</label>
-              <div className="reference-preset-row">
-                <button className="reference-inspector-select">
-                  <span>还没有预设,调好后存一套</span>
-                  <CaretDown />
-                </button>
-                <button className="reference-save-button" aria-label="保存预设"><FloppyDisk /></button>
-              </div>
-            </section>
-
-            <section className="reference-inspector-section">
-              <div className="reference-section-title"><strong>内容</strong><small>CONTENT</small></div>
-              <label>章节表(名称 起始秒, 分隔)</label>
-              <input className="reference-text-input" defaultValue="开场 0 | 抽盲盒 11.6 | 编辑台 31.2 | 怎么用" />
-              <div className="reference-range-field">
-                <div><label>进度色透明度</label><b>0.25</b></div>
-                <input type="range" min="0" max="100" defaultValue="22" />
-              </div>
-            </section>
-
-            <section className="reference-inspector-section">
-              <div className="reference-section-title"><strong>节奏</strong><small>TIMING</small></div>
-              <div className="reference-range-field">
-                <div><label>动画速度(此卡)</label><b>1×</b></div>
-                <input type="range" min="0" max="100" defaultValue="28" />
-              </div>
-              <label>音效(出现时响,导出自动混入)</label>
-              <button className="reference-inspector-select">
-                <span>自动(按特效类型)</span>
-                <CaretDown />
-              </button>
-            </section>
-
-            <section className="reference-inspector-section">
-              <div className="reference-section-title"><strong>样式</strong><small>STYLE</small></div>
-              <label>底色(此卡独立生效)</label>
-              <div className="reference-segmented reference-inspector-theme">
-                <button><Sun weight="fill" />亮底</button>
-                <button className="active"><MoonStars weight="fill" />暗底</button>
-              </div>
-              <label>强调色</label>
-              <button className="reference-color-field" aria-label="强调色"><span /></button>
-            </section>
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>时间范围</strong><small>TIMING</small>
+                  </div>
+                  <div className="chapter-timing-summary">
+                    <span>{formatTime(selectedInstance.startFrame / fps)}</span>
+                    <ArrowRight />
+                    <span>
+                      {formatTime(
+                        (selectedInstance.startFrame +
+                          selectedInstance.durationInFrames) /
+                          fps,
+                      )}
+                    </span>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="reference-inspector-group">
+                  <label>当前效果</label>
+                  <button className="reference-inspector-select">
+                    <span>{selectedDefinition.name} · {selectedDefinition.description}</span>
+                  </button>
+                </section>
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>组件参数</strong><small>PROPERTIES</small>
+                  </div>
+                  <div className="dynamic-prop-fields">
+                    {Object.entries(selectedDefinition.propsSchema).map(
+                      ([key, schema]) =>
+                        renderPropControl(
+                          key,
+                          schema,
+                          selectedInstance.props[key] ?? schema.default,
+                        ),
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         </aside>
 
