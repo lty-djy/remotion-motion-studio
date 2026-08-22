@@ -124,7 +124,7 @@ const DEFAULT_SHORTCUTS: ShortcutMap = {
   trimRight: "E",
   toggleVideoTrack: "V",
   duplicate: "Control+D",
-  delete: "Delete",
+  delete: "S",
 };
 
 const SHORTCUT_DEFINITIONS: Array<{
@@ -143,14 +143,22 @@ const SHORTCUT_DEFINITIONS: Array<{
   { action: "trimRight", label: "向右裁剪", description: "删除当前轨道中播放头右侧内容" },
   { action: "toggleVideoTrack", label: "显示 / 隐藏轨道", description: "切换当前选中视频或动效轨道的实时预览" },
   { action: "duplicate", label: "复制所选卡片", description: "复制当前选中的轨道卡片" },
-  { action: "delete", label: "删除所选卡片", description: "删除当前选中的轨道卡片" },
+  { action: "delete", label: "删除所选片段", description: "删除当前选中的视频或动效片段" },
 ];
 
 const loadShortcuts = (): ShortcutMap => {
   try {
     const saved = window.localStorage.getItem(SHORTCUT_STORAGE_KEY);
     if (!saved) return { ...DEFAULT_SHORTCUTS };
-    return { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) };
+    const stored = JSON.parse(saved) as Partial<ShortcutMap>;
+    return {
+      ...DEFAULT_SHORTCUTS,
+      ...stored,
+      delete:
+        !stored.delete || stored.delete === "Delete"
+          ? DEFAULT_SHORTCUTS.delete
+          : stored.delete,
+    };
   } catch {
     return { ...DEFAULT_SHORTCUTS };
   }
@@ -327,10 +335,12 @@ type ContextMenuState = {
   source:
     | "preview"
     | "timeline"
+    | "videoTimeline"
     | "library"
     | "libraryGroup"
     | "libraryRoot";
   instanceIds: string[];
+  videoTrackId?: string;
   componentId?: string;
   groupId?: string;
   groupName?: string;
@@ -868,7 +878,7 @@ const App = () => {
   const durationInFrames = Math.max(
     1,
     videoTracks.length > 0
-      ? videoTimelineFrames
+      ? Math.max(videoTimelineFrames, Math.round(videoDuration * fps))
       : videoUrl
         ? Math.round(videoDuration * fps)
         : sourceFrames,
@@ -1799,6 +1809,7 @@ const App = () => {
       setVideoName("尚未导入视频");
       setVideoDuration(6);
     }
+    setContextMenu(null);
     setNotice({ tone: "ok", text: "已删除该视频轨道。" });
   };
 
@@ -2432,7 +2443,7 @@ const App = () => {
   };
 
   const videoTimelineDragState = useRef<{
-    mode: "left" | "right";
+    mode: "move" | "left" | "right";
     trackId: string;
     pointerX: number;
     startFrame: number;
@@ -2445,7 +2456,7 @@ const App = () => {
   const beginVideoTimelineDrag = (
     event: React.PointerEvent,
     track: VideoTrack,
-    mode: "left" | "right",
+    mode: "move" | "left" | "right",
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -2494,8 +2505,21 @@ const App = () => {
               candidate.startFrame >= originalEnd
                 ? Math.min(minimum, candidate.startFrame)
                 : minimum,
-            durationInFrames,
+            Number.POSITIVE_INFINITY,
           );
+          if (state.mode === "move") {
+            const requestedStart = state.startFrame + deltaFrames;
+            const maximumStart = Number.isFinite(nextStart)
+              ? nextStart - state.durationInFrames
+              : Math.max(
+                  durationInFrames - state.durationInFrames,
+                  requestedStart,
+                );
+            return {
+              ...track,
+              startFrame: clamp(requestedStart, previousEnd, maximumStart),
+            };
+          }
           if (state.mode === "left") {
             const rightFrame = state.startFrame + state.durationInFrames;
             const maxStartFrame = Math.min(
@@ -2529,7 +2553,8 @@ const App = () => {
               minFrames,
               Math.min(
                 state.sourceDurationInFrames - state.sourceStartFrame,
-                nextStart - state.startFrame,
+                (Number.isFinite(nextStart) ? nextStart : durationInFrames) -
+                  state.startFrame,
               ),
             ),
           };
@@ -3253,6 +3278,22 @@ const App = () => {
     });
   };
 
+  const showVideoTrackMenu = (
+    event: React.MouseEvent,
+    trackId: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    selectVideoTrack(trackId);
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 174),
+      y: Math.min(event.clientY, window.innerHeight - 92),
+      source: "videoTimeline",
+      instanceIds: [],
+      videoTrackId: trackId,
+    });
+  };
+
   const showLibraryMenu = (event: React.MouseEvent, componentId: string) => {
     event.preventDefault();
     event.stopPropagation();
@@ -3660,7 +3701,10 @@ const App = () => {
         }
       }
       if (action === "duplicate") duplicateInstances(selectionIds);
-      if (action === "delete") deleteInstances(selectionIds);
+      if (action === "delete") {
+        if (selectedVideoTrackId) removeVideoTrack(selectedVideoTrackId);
+        else deleteInstances(selectionIds);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -4465,7 +4509,13 @@ const App = () => {
                                 event.stopPropagation();
                                 selectVideoTrack(track.id);
                               }}
-                              title="选中后可用 W 分割、Q 向左裁剪、E 向右裁剪"
+                              onPointerDown={(event) =>
+                                beginVideoTimelineDrag(event, track, "move")
+                              }
+                              onContextMenu={(event) =>
+                                showVideoTrackMenu(event, track.id)
+                              }
+                              title="拖动移动；W 分割、Q/E 裁剪；右键或按 S 删除"
                             >
                               <button
                                 className="clip-handle left"
@@ -4484,17 +4534,6 @@ const App = () => {
                                 }
                                 aria-label={`调整视频 ${track.name} 结束时间`}
                               />
-                              <button
-                                type="button"
-                                className="video-clip-remove"
-                                aria-label={`删除视频片段 ${track.name}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  removeVideoTrack(track.id);
-                                }}
-                              >
-                                <X weight="bold" />
-                              </button>
                             </div>
                           ))
                         : lane.clips.map((instance) => (
@@ -5116,7 +5155,20 @@ const App = () => {
             className="component-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            {contextMenu.source === "library" ? (
+            {contextMenu.source === "videoTimeline" ? (
+              <>
+                <small>视频轨道片段</small>
+                <button
+                  className="delete-action"
+                  onClick={() =>
+                    contextMenu.videoTrackId &&
+                    removeVideoTrack(contextMenu.videoTrackId)
+                  }
+                >
+                  删除视频片段（S）
+                </button>
+              </>
+            ) : contextMenu.source === "library" ? (
               <>
                 <small>效果库</small>
                 {contextMenu.componentId &&
@@ -5185,7 +5237,7 @@ const App = () => {
                   className="delete-action"
                   onClick={() => deleteInstances(contextMenu.instanceIds)}
                 >
-                  删除组件
+                  删除组件（S）
                 </button>
               </>
             )}

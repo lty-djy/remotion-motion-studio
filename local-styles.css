@@ -1665,7 +1665,11 @@ aside {
       rgba(255, 255, 255, 0.04) 8px,
       rgba(255, 255, 255, 0.04) 9px
     );
-  cursor: default;
+  cursor: grab;
+}
+
+.video-clip:active {
+  cursor: grabbing;
 }
 
 .timeline-video-track.is-hidden .track-body,
