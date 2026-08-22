@@ -34,7 +34,10 @@ const panel: CSSProperties = {
   fontFamily: "Inter, system-ui, sans-serif",
 };
 
-const transition = "opacity 120ms linear, transform 120ms linear, width 120ms linear, height 120ms linear";
+// Remotion controls every animated value from the current frame. Browser CSS
+// interpolation would lag behind continuous preview playback and is skipped by
+// isolated frame rendering, so it must be disabled for frame-exact parity.
+const transition = "none";
 
 const Header = ({ title, subtitle, accentColor }: Required<Pick<LegacyMetricProps, "title" | "subtitle" | "accentColor">>) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 18 }}>

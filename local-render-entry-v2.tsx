@@ -126,7 +126,7 @@ const MultiComponentRender = ({
               {...instance.props}
               instanceDurationInFrames={instance.durationInFrames}
               videoSrc={transparent ? "" : videoSrc}
-              hideVideo={transparent ? true : sourceIncludesVideo}
+              hideVideo={sourceIncludesVideo}
               backgroundOpacity={instance.backgroundOpacity}
             />
           </AbsoluteFill>

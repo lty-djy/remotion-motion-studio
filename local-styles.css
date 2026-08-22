@@ -810,19 +810,26 @@ main.is-resizing-sidebar * {
 }
 
 .reference-stage-shell {
-  padding: 24px 22px 18px;
-  background: #101113;
+  padding: 10px 12px 8px;
+  background: linear-gradient(145deg, #11131b, #16121b);
 }
 
 .reference-preview-frame {
   width: 100%;
   height: 100%;
+  min-height: 0;
   max-width: none;
   display: flex;
   flex-direction: column;
-  border: 1px solid #202329;
-  background: #0c0e12;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  position: relative;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  background: #0b0c11;
+  box-shadow:
+    0 18px 55px rgba(0, 0, 0, 0.26),
+    inset 0 1px rgba(255, 255, 255, 0.025);
 }
 
 .player-wrap.reference-player-wrap {
@@ -832,12 +839,67 @@ main.is-resizing-sidebar * {
   flex: 1 1 auto;
   min-width: 0;
   border: 0;
-  border-radius: 0;
-  background-color: #0b111b;
-  background-image: url("/assets/preview-canvas-dark.png");
-  background-position: center;
-  background-size: cover;
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #101117;
   box-shadow: none;
+}
+
+.reference-preview-pills {
+  position: absolute;
+  z-index: 60;
+  top: 17px;
+  left: 18px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 14px;
+  color: #f2f3f7;
+  background: rgba(49, 49, 58, 0.78);
+  font-size: 9px;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.reference-preview-pills b,
+.reference-preview-pills span {
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.reference-preview-pills b {
+  font-weight: 700;
+}
+
+.reference-preview-pills span {
+  color: #969aa5;
+}
+
+.reference-preview-status {
+  position: absolute;
+  z-index: 60;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #b6b9c2;
+  background: rgba(30, 31, 38, 0.82);
+  font-size: 8px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.reference-preview-status svg {
+  width: 13px;
+  height: 13px;
 }
 
 .reference-player-wrap .canvas-selection,
@@ -846,7 +908,7 @@ main.is-resizing-sidebar * {
 }
 
 .workspace > .timeline {
-  margin: 16px 18px 16px;
+  margin: 8px 12px 10px;
 }
 
 /* Reference UI phase 4: right card inspector. */

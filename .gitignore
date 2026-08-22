@@ -5,6 +5,7 @@ local-media/
 local-components/
 local-projects/
 local-state.json
+.codex-qa/
 outputs/
 design-qa.md
 shortcut-entry-implementation.png

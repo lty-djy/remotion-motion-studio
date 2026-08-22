@@ -394,6 +394,7 @@ const getRegisteredEffectPosition = (
 
 type StudioPreviewProps = {
   videoUrl: string;
+  includeVideo: boolean;
   sourceIncludesVideo: boolean;
   definitions: MotionComponentDefinition[];
   instances: MotionInstance[];
@@ -402,6 +403,7 @@ type StudioPreviewProps = {
 
 const StudioPreviewComposition = ({
   videoUrl,
+  includeVideo,
   sourceIncludesVideo,
   definitions,
   instances,
@@ -413,15 +415,15 @@ const StudioPreviewComposition = ({
   );
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#05070a" }}>
-      {videoUrl ? (
+    <AbsoluteFill>
+      {includeVideo && videoUrl ? (
         <OffthreadVideo
           src={videoUrl}
           volume={1}
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       ) : null}
-      {sourceIncludesVideo && !videoUrl ? (
+      {includeVideo && sourceIncludesVideo && !videoUrl ? (
         <AbsoluteFill
           style={{
             alignItems: "center",
@@ -453,7 +455,7 @@ const StudioPreviewComposition = ({
                 <Comp
                   {...instance.props}
                   instanceDurationInFrames={instance.durationInFrames}
-                  videoSrc={videoUrl}
+                  videoSrc={includeVideo ? videoUrl : ""}
                   hideVideo={sourceIncludesVideo}
                   backgroundOpacity={instance.backgroundOpacity}
                 />
@@ -1058,8 +1060,18 @@ const App = () => {
     const updateFrame = (event: { detail: { frame: number } }) => {
       setCurrentFrame(event.detail.frame);
     };
+    const markPlaying = () => setIsPlaying(true);
+    const markPaused = () => setIsPlaying(false);
     player.addEventListener("frameupdate", updateFrame);
-    return () => player.removeEventListener("frameupdate", updateFrame);
+    player.addEventListener("play", markPlaying);
+    player.addEventListener("pause", markPaused);
+    player.addEventListener("ended", markPaused);
+    return () => {
+      player.removeEventListener("frameupdate", updateFrame);
+      player.removeEventListener("play", markPlaying);
+      player.removeEventListener("pause", markPaused);
+      player.removeEventListener("ended", markPaused);
+    };
   }, [motionModule]);
 
   useEffect(() => {
@@ -1091,8 +1103,9 @@ const App = () => {
 
   const previewInputProps = useMemo<StudioPreviewProps>(
     () => ({
-      videoUrl: videoPreviewEnabled ? videoUrl : "",
-      sourceIncludesVideo: videoPreviewEnabled ? sourceIncludesVideo : false,
+      videoUrl,
+      includeVideo: videoPreviewEnabled,
+      sourceIncludesVideo,
       definitions,
       instances,
       canvasOrientation,
@@ -3080,6 +3093,10 @@ const App = () => {
           </div>
           <div className="stage-shell reference-stage-shell">
             <div className="reference-preview-frame">
+              <div className="reference-preview-pills" aria-hidden="true">
+                <b>实时预览</b>
+                <span>{selectedDefinition?.name ?? "动效合成"}</span>
+              </div>
               <div
                 className="player-wrap reference-player-wrap"
                 onPointerDown={beginMarqueeSelection}
@@ -3094,7 +3111,8 @@ const App = () => {
                   compositionWidth={canvasWidth}
                   compositionHeight={canvasHeight}
                   controls
-                  loop={false}
+                  loop
+                  autoPlay
                   clickToPlay={false}
                   acknowledgeRemotionLicense
                   style={{
@@ -3181,6 +3199,12 @@ const App = () => {
                   aria-hidden="true"
                 />
               ) : null}
+              </div>
+              <div className="reference-preview-status" aria-hidden="true">
+                <FilmSlate weight="fill" />
+                <span>
+                  {canvasOrientation === "portrait" ? "9:16" : "16:9"} · Remotion 实时渲染
+                </span>
               </div>
             </div>
           </div>

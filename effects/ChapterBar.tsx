@@ -58,7 +58,7 @@ export const ChapterBar = ({
             fontWeight: index === activeIndex ? 620 : 460,
             letterSpacing: ".03em",
             borderRight: index < chapters.length - 1 ? "1px solid rgba(255,255,255,.1)" : "none",
-            transition: "color 180ms ease, font-weight 180ms ease",
+            transition: "none",
           }}
         >
           {chapter}
@@ -70,7 +70,7 @@ export const ChapterBar = ({
             width: `${progress * 100}%`,
             height: "100%",
             background: accentColor,
-            transition: "width 120ms linear",
+            transition: "none",
           }}
         />
       </div>
