@@ -46,8 +46,11 @@ export type MotionComponentDefinition = {
 
 export type MotionInstance = {
   id: string;
+  laneId: string;
+  trackOrder: number;
   componentId: string;
   visible: boolean;
+  sourceStartFrame: number;
   startFrame: number;
   durationInFrames: number;
   position: MotionPosition;
@@ -66,8 +69,12 @@ export type MotionTimelinePreset = {
 
 export type VideoTrack = {
   id: string;
+  laneId: string;
+  trackOrder: number;
   name: string;
   url: string;
+  sourceStartFrame: number;
+  sourceDurationInFrames: number;
   startFrame: number;
   durationInFrames: number;
   visible: boolean;

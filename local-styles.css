@@ -243,7 +243,8 @@ main.is-resizing-sidebar * {
 
 .studio-actions button.shortcut-entry:hover,
 .studio-actions button.shortcut-entry.active,
-.studio-actions button.format-entry.active {
+.studio-actions button.format-entry.active,
+.studio-actions button.sound-entry.active {
   color: #ffffff;
   background: #191b1f;
   box-shadow: inset 0 -2px #ff4b25;
@@ -1502,7 +1503,7 @@ aside {
 .ruler {
   position: relative;
   height: 34px;
-  margin: 5px 0 3px 70px;
+  margin: 5px 0 3px 78px;
   border-bottom: 1px solid var(--line);
   background-image: linear-gradient(
     90deg,
@@ -1543,7 +1544,7 @@ aside {
 
 .timeline-track-row {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: 70px minmax(0, 1fr);
   gap: 8px;
   margin-bottom: 6px;
 }
@@ -1605,7 +1606,7 @@ aside {
 .video-track-controls {
   height: 42px;
   display: grid;
-  grid-template-columns: 25px minmax(0, 1fr);
+  grid-template-columns: 18px 25px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid rgba(120, 220, 160, 0.4);
   border-radius: 8px;
@@ -1681,7 +1682,7 @@ aside {
 .motion-track-controls {
   height: 42px;
   display: grid;
-  grid-template-columns: 25px minmax(0, 1fr);
+  grid-template-columns: 18px 25px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1719,6 +1720,27 @@ aside {
 .motion-track-select:hover {
   color: #e8fbff;
   background: rgba(101, 223, 247, 0.1);
+}
+
+.lane-drag-handle {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(140, 150, 160, 0.16);
+  color: #59636d;
+  background: transparent;
+  cursor: grab;
+}
+
+.lane-drag-handle:hover {
+  color: #d8e4eb;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lane-drag-handle:active {
+  cursor: grabbing;
 }
 
 .motion-timeline-track.is-hidden .track-body,

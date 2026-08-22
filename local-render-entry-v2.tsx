@@ -15,6 +15,7 @@ import {
   getNumberExport,
   type MotionInstance,
   type MotionModule,
+  type VideoTrack,
 } from "./local-protocol";
 import { mergeWithBuiltInDefinitions } from "./local-builtins";
 
@@ -42,12 +43,14 @@ const definitionMap = new Map(
 
 type RenderProps = {
   videoSrc?: string;
+  videoTracks?: VideoTrack[];
   sourceIncludesVideo?: boolean;
   instances?: MotionInstance[];
   timelineDurationInFrames?: number;
   canvasWidth?: number;
   canvasHeight?: number;
   transparent?: boolean;
+  soundEnabled?: boolean;
 };
 
 // 页面加载时刻的真实墙钟，作为虚拟时钟的起点。
@@ -86,23 +89,57 @@ const WaitForFonts = () => {
 
 const MultiComponentRender = ({
   videoSrc = "",
+  videoTracks = [],
   sourceIncludesVideo = false,
   instances = [],
   transparent = false,
-}: RenderProps) => (
-  <AbsoluteFill
+  soundEnabled = true,
+}: RenderProps) => {
+  const visibleVideoTracks = transparent
+    ? []
+    : videoTracks.filter((track) => track.visible !== false);
+  const activeVideoSrc = visibleVideoTracks[0]?.url || videoSrc;
+  const orderedLayers = [
+    ...visibleVideoTracks.map((track) => ({
+      kind: "video" as const,
+      order: track.trackOrder,
+      id: track.id,
+      track,
+    })),
+    ...instances
+      .filter((instance) => instance.visible !== false)
+      .map((instance) => ({
+        kind: "motion" as const,
+        order: instance.trackOrder,
+        id: instance.id,
+        instance,
+      })),
+  ].sort((a, b) => a.order - b.order);
+  return <AbsoluteFill
     style={transparent ? undefined : { backgroundColor: "#05070a" }}
   >
     <WaitForFonts />
     <VirtualClock />
-    {!transparent && videoSrc ? (
-      <OffthreadVideo
-        src={videoSrc}
-        volume={1}
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
-      />
-    ) : null}
-    {instances.filter((instance) => instance.visible !== false).map((instance) => {
+    {orderedLayers.map((layer) => {
+      if (layer.kind === "video") {
+        const track = layer.track;
+        return (
+        <Sequence
+          key={track.id}
+          from={Math.max(0, Math.round(track.startFrame))}
+          durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+        >
+          <OffthreadVideo
+            src={track.url}
+            trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
+            volume={soundEnabled ? 1 : 0}
+            muted={!soundEnabled}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        </Sequence>
+        );
+      }
+      const instance = layer.instance;
       const definition = definitionMap.get(instance.componentId);
       if (!definition) return null;
       const Comp =
@@ -111,10 +148,8 @@ const MultiComponentRender = ({
         <Sequence
           key={instance.id}
           from={Math.max(0, Math.round(instance.startFrame))}
-          durationInFrames={Math.max(
-            3,
-            Math.round(instance.durationInFrames),
-          )}
+          trimBefore={Math.max(0, Math.round(instance.sourceStartFrame))}
+          durationInFrames={Math.max(3, Math.round(instance.durationInFrames))}
         >
           <AbsoluteFill
             style={{
@@ -125,16 +160,27 @@ const MultiComponentRender = ({
             <Comp
               {...instance.props}
               instanceDurationInFrames={instance.durationInFrames}
-              videoSrc={transparent ? "" : videoSrc}
+              videoSrc={transparent ? "" : activeVideoSrc}
               hideVideo={sourceIncludesVideo}
+              muted={!soundEnabled}
+              muteVideo={!soundEnabled}
+              videoVolume={soundEnabled ? 1 : 0}
               backgroundOpacity={instance.backgroundOpacity}
             />
           </AbsoluteFill>
         </Sequence>
       );
     })}
-  </AbsoluteFill>
-);
+    {visibleVideoTracks.length === 0 && !transparent && videoSrc ? (
+      <OffthreadVideo
+        src={videoSrc}
+        volume={soundEnabled ? 1 : 0}
+        muted={!soundEnabled}
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    ) : null}
+  </AbsoluteFill>;
+};
 
 const Root = () => (
   <Composition
@@ -146,12 +192,14 @@ const Root = () => (
     durationInFrames={sourceDurationInFrames}
     defaultProps={{
       videoSrc: "",
+      videoTracks: [],
       sourceIncludesVideo: false,
       instances: [],
       timelineDurationInFrames: sourceDurationInFrames,
       canvasWidth: 1920,
       canvasHeight: 1080,
       transparent: false,
+      soundEnabled: true,
     }}
     calculateMetadata={({ props }) => {
       const portrait =

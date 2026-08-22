@@ -243,8 +243,12 @@ type ProjectSnapshot = {
   videoDuration?: number;
   videoTracks?: Array<{
     id: string;
+    laneId: string;
+    trackOrder: number;
     name: string;
     url: string;
+    sourceStartFrame: number;
+    sourceDurationInFrames: number;
     startFrame: number;
     durationInFrames: number;
     visible: boolean;
@@ -255,6 +259,7 @@ type ProjectSnapshot = {
   timelineHeight?: number;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
+  soundEnabled?: boolean;
   createdAt?: string;
   updatedAt: string;
 };
@@ -536,6 +541,8 @@ const normalizeProjectSnapshot = (
           const url = typeof track.url === "string" ? track.url.split("?")[0] : "";
           if (!url.startsWith("/api/media/")) return [];
           const startFrame = Number(track.startFrame);
+          const sourceStartFrame = Number(track.sourceStartFrame);
+          const sourceDurationInFrames = Number(track.sourceDurationInFrames);
           const durationInFrames = Number(track.durationInFrames);
           return [
             {
@@ -543,11 +550,29 @@ const normalizeProjectSnapshot = (
                 typeof track.id === "string" && track.id
                   ? track.id.slice(0, 160)
                   : `video-${Date.now()}-${index + 1}`,
+              laneId:
+                typeof track.laneId === "string" && track.laneId
+                  ? track.laneId.slice(0, 160)
+                  : typeof track.id === "string" && track.id
+                    ? track.id.slice(0, 160)
+                    : `video-${Date.now()}-${index + 1}`,
+              trackOrder: Number.isFinite(Number(track.trackOrder))
+                ? Number(track.trackOrder)
+                : index,
               name:
                 typeof track.name === "string" && track.name
                   ? track.name.slice(0, 260)
                   : `视频轨道 ${index + 1}`,
               url,
+              sourceStartFrame:
+                Number.isFinite(sourceStartFrame) && sourceStartFrame >= 0
+                  ? Math.round(sourceStartFrame)
+                  : 0,
+              sourceDurationInFrames:
+                Number.isFinite(sourceDurationInFrames) &&
+                sourceDurationInFrames > 0
+                  ? Math.max(3, Math.round(sourceDurationInFrames))
+                  : Math.max(3, Math.round(durationInFrames) || 3),
               startFrame:
                 Number.isFinite(startFrame) && startFrame >= 0
                   ? Math.round(startFrame)
@@ -576,6 +601,7 @@ const normalizeProjectSnapshot = (
     canvasOrientation:
       input.canvasOrientation === "portrait" ? "portrait" : "landscape",
     safetyGuideVisible: input.safetyGuideVisible !== false,
+    soundEnabled: input.soundEnabled !== false,
     createdAt:
       typeof input.createdAt === "string" ? input.createdAt : undefined,
     updatedAt: now,
@@ -1150,6 +1176,19 @@ const localApi = (): Plugin => ({
               inputProps.videoSrc.startsWith("/")
                 ? `http://127.0.0.1:41735${inputProps.videoSrc}`
                 : inputProps.videoSrc,
+            videoTracks: Array.isArray(inputProps.videoTracks)
+              ? inputProps.videoTracks.map((track) => {
+                  if (!track || typeof track !== "object") return track;
+                  const record = track as Record<string, unknown>;
+                  return {
+                    ...record,
+                    url:
+                      typeof record.url === "string" && record.url.startsWith("/")
+                        ? `http://127.0.0.1:41735${record.url}`
+                        : record.url,
+                  };
+                })
+              : [],
           };
           renderJobSequence += 1;
           const jobId = `render-${Date.now()}-${renderJobSequence}`;
@@ -1235,18 +1274,22 @@ const localApi = (): Plugin => ({
                 .replace(/[:.]/g, "-");
               const defaultFileName = transparent
                 ? `动效透明导出-${timestamp}.mov`
-                : `动效导出-${timestamp}.mp4`;
+                : `实时预览导出-${timestamp}.mov`;
               // 用户指定的文件名需清洗掉路径分隔符与非法字符，避免越权写出。
               const sanitizeFileName = (name: string) =>
                 name
                   .replace(/[\\/:*?"<>|\x00-\x1f]/g, "")
                   .replace(/^\.+/, "")
                   .trim() || defaultFileName;
-              const fileName =
+              const sanitizedFileName =
                 typeof inputProps.fileName === "string" &&
                 inputProps.fileName.trim()
                   ? sanitizeFileName(inputProps.fileName.trim())
                   : defaultFileName;
+              const fileName =
+                extname(sanitizedFileName).toLowerCase() === ".mov"
+                  ? sanitizedFileName
+                  : `${basename(sanitizedFileName, extname(sanitizedFileName))}.mov`;
               // 用户指定的导出目录；未指定时回退到 outputs/renders。
               const requestedOutputDir =
                 typeof inputProps.outputDir === "string" &&
@@ -1408,8 +1451,11 @@ const localApi = (): Plugin => ({
               await renderMedia({
                 composition,
                 serveUrl: bundled,
-                codec: "h264",
-                audioCodec: "aac",
+                codec: "prores",
+                proResProfile: "hq",
+                pixelFormat: "yuv422p10le",
+                imageFormat: "png",
+                audioCodec: "pcm-16",
                 outputLocation,
                 inputProps: resolvedInputProps,
                 browserExecutable: existsSync(systemChrome)
@@ -1437,6 +1483,36 @@ const localApi = (): Plugin => ({
                 },
               });
 
+              const previewProbeOutput = await runBinary(ffprobeBinary(), [
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=codec_name,profile,pix_fmt,width,height,avg_frame_rate",
+                "-of",
+                "json",
+                outputLocation,
+              ]);
+              const previewProbe = JSON.parse(previewProbeOutput) as {
+                streams?: Array<{
+                  codec_name?: string;
+                  profile?: string;
+                  pix_fmt?: string;
+                  width?: number;
+                  height?: number;
+                }>;
+              };
+              const previewStream = previewProbe.streams?.[0];
+              const previewProfileLabels: Record<string, string> = {
+                "0": "Proxy",
+                "1": "LT",
+                "2": "Standard",
+                "3": "HQ",
+                "4": "4444",
+                "5": "4444 XQ",
+              };
+
               updateRenderJob(job, {
                 status: "completed",
                 stage: "渲染完成",
@@ -1448,7 +1524,17 @@ const localApi = (): Plugin => ({
                   fileName,
                   outputLocation,
                   downloadUrl,
-                  mode: "mp4",
+                  mode: "mov",
+                  codec: previewStream?.codec_name ?? "prores",
+                  profile:
+                    previewProfileLabels[String(previewStream?.profile)] ??
+                    previewStream?.profile ??
+                    "HQ",
+                  pixelFormat: previewStream?.pix_fmt ?? "yuv422p10le",
+                  width: previewStream?.width ?? composition.width,
+                  height: previewStream?.height ?? composition.height,
+                  fps: composition.fps,
+                  durationInFrames: composition.durationInFrames,
                   savedTo: outputLocation,
                   outputDir: requestedOutputDir,
                 },
