@@ -102,7 +102,7 @@ const MultiComponentRender = ({
         style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     ) : null}
-    {instances.map((instance) => {
+    {instances.filter((instance) => instance.visible !== false).map((instance) => {
       const definition = definitionMap.get(instance.componentId);
       if (!definition) return null;
       const Comp =

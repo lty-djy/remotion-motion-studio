@@ -241,11 +241,20 @@ type ProjectSnapshot = {
   videoName?: string;
   videoUrl?: string;
   videoDuration?: number;
+  videoTracks?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    startFrame: number;
+    durationInFrames: number;
+    visible: boolean;
+  }>;
   instances: unknown[];
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
   canvasOrientation?: "landscape" | "portrait";
+  safetyGuideVisible?: boolean;
   createdAt?: string;
   updatedAt: string;
 };
@@ -521,6 +530,37 @@ const normalizeProjectSnapshot = (
       Number.isFinite(videoDuration) && videoDuration > 0
         ? videoDuration
         : undefined,
+    videoTracks: Array.isArray(input.videoTracks)
+      ? input.videoTracks.slice(0, 100).flatMap((track, index) => {
+          if (!track || typeof track !== "object") return [];
+          const url = typeof track.url === "string" ? track.url.split("?")[0] : "";
+          if (!url.startsWith("/api/media/")) return [];
+          const startFrame = Number(track.startFrame);
+          const durationInFrames = Number(track.durationInFrames);
+          return [
+            {
+              id:
+                typeof track.id === "string" && track.id
+                  ? track.id.slice(0, 160)
+                  : `video-${Date.now()}-${index + 1}`,
+              name:
+                typeof track.name === "string" && track.name
+                  ? track.name.slice(0, 260)
+                  : `视频轨道 ${index + 1}`,
+              url,
+              startFrame:
+                Number.isFinite(startFrame) && startFrame >= 0
+                  ? Math.round(startFrame)
+                  : 0,
+              durationInFrames:
+                Number.isFinite(durationInFrames) && durationInFrames > 0
+                  ? Math.max(3, Math.round(durationInFrames))
+                  : 3,
+              visible: track.visible !== false,
+            },
+          ];
+        })
+      : [],
     instances: Array.isArray(input.instances)
       ? input.instances.slice(0, 500)
       : [],
@@ -535,6 +575,7 @@ const normalizeProjectSnapshot = (
         : 230,
     canvasOrientation:
       input.canvasOrientation === "portrait" ? "portrait" : "landscape",
+    safetyGuideVisible: input.safetyGuideVisible !== false,
     createdAt:
       typeof input.createdAt === "string" ? input.createdAt : undefined,
     updatedAt: now,
@@ -1018,7 +1059,9 @@ const localApi = (): Plugin => ({
         }
 
         if (url.pathname.startsWith("/api/media/")) {
-          const name = basename(url.pathname);
+          // Browsers percent-encode Chinese and other non-ASCII filenames.
+          // Decode the final path segment before matching the stored local file.
+          const name = decodeURIComponent(basename(url.pathname));
           serveFile(req, res, join(mediaDir, name));
           return;
         }

@@ -47,6 +47,7 @@ export type MotionComponentDefinition = {
 export type MotionInstance = {
   id: string;
   componentId: string;
+  visible: boolean;
   startFrame: number;
   durationInFrames: number;
   position: MotionPosition;
@@ -61,6 +62,15 @@ export type MotionTimelinePreset = {
   position?: Partial<MotionPosition>;
   backgroundOpacity?: number;
   props?: Record<string, unknown>;
+};
+
+export type VideoTrack = {
+  id: string;
+  name: string;
+  url: string;
+  startFrame: number;
+  durationInFrames: number;
+  visible: boolean;
 };
 
 export type MotionModule = Record<string, unknown> & {

@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
-import { AbsoluteFill, OffthreadVideo, Sequence } from "remotion";
+import { AbsoluteFill, Html5Video, Sequence } from "remotion";
 import {
   ArrowCounterClockwise,
   ArrowsInLineVertical,
@@ -15,6 +15,8 @@ import {
   CheckCircle,
   DeviceMobile,
   DownloadSimple,
+  Eye,
+  EyeSlash,
   FilmSlate,
   FloppyDisk,
   FolderOpen,
@@ -45,6 +47,7 @@ import {
   type MotionInstance,
   type MotionModule,
   type MotionPropSchema,
+  type VideoTrack,
 } from "./local-protocol";
 import {
   BUILT_IN_CATALOG,
@@ -62,6 +65,7 @@ type ShortcutAction =
   | "goStart"
   | "previousFrame"
   | "nextFrame"
+  | "toggleVideoTrack"
   | "duplicate"
   | "delete";
 
@@ -106,6 +110,7 @@ const DEFAULT_SHORTCUTS: ShortcutMap = {
   goStart: "Home",
   previousFrame: "ArrowLeft",
   nextFrame: "ArrowRight",
+  toggleVideoTrack: "V",
   duplicate: "Control+D",
   delete: "Delete",
 };
@@ -119,6 +124,7 @@ const SHORTCUT_DEFINITIONS: Array<{
   { action: "goStart", label: "回到开头", description: "播放头归零" },
   { action: "previousFrame", label: "上一帧", description: "向左移动一帧" },
   { action: "nextFrame", label: "下一帧", description: "向右移动一帧" },
+  { action: "toggleVideoTrack", label: "显示 / 隐藏轨道", description: "切换当前选中视频或动效轨道的实时预览" },
   { action: "duplicate", label: "复制所选卡片", description: "复制当前选中的轨道卡片" },
   { action: "delete", label: "删除所选卡片", description: "删除当前选中的轨道卡片" },
 ];
@@ -246,11 +252,13 @@ type ProjectSnapshot = {
   videoName?: string;
   videoUrl?: string;
   videoDuration?: number;
+  videoTracks?: VideoTrack[];
   instances: MotionInstance[];
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
   canvasOrientation?: "landscape" | "portrait";
+  safetyGuideVisible?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -296,6 +304,29 @@ type MarqueeRect = {
 };
 
 let instanceSequence = 0;
+let videoTrackSequence = 0;
+
+const createVideoTrackId = () => {
+  videoTrackSequence += 1;
+  return `video-${Date.now()}-${videoTrackSequence}`;
+};
+
+const restoreVideoTrack = (
+  track: Partial<VideoTrack>,
+  fallback: { name: string; url: string; durationInFrames: number },
+  cacheTimestamp: number,
+): VideoTrack => ({
+  id: typeof track.id === "string" && track.id ? track.id : createVideoTrackId(),
+  name:
+    typeof track.name === "string" && track.name ? track.name : fallback.name,
+  url: `${String(track.url || fallback.url).split("?")[0]}?t=${cacheTimestamp}`,
+  startFrame: Math.max(0, Math.round(Number(track.startFrame) || 0)),
+  durationInFrames: Math.max(
+    3,
+    Math.round(Number(track.durationInFrames) || fallback.durationInFrames),
+  ),
+  visible: track.visible !== false,
+});
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -345,6 +376,7 @@ const createInstance = (
   return {
     id: createInstanceId(definition.id),
     componentId: definition.id,
+    visible: overrides.visible !== false,
     startFrame: safeStart,
     durationInFrames: clamp(
       Math.round(overrides.durationInFrames ?? definition.durationInFrames),
@@ -396,34 +428,60 @@ type StudioPreviewProps = {
   videoUrl: string;
   includeVideo: boolean;
   sourceIncludesVideo: boolean;
+  videoTracks: VideoTrack[];
   definitions: MotionComponentDefinition[];
   instances: MotionInstance[];
   canvasOrientation: "landscape" | "portrait";
+  safetyGuideVisible: boolean;
 };
 
 const StudioPreviewComposition = ({
   videoUrl,
   includeVideo,
   sourceIncludesVideo,
+  videoTracks,
   definitions,
   instances,
   canvasOrientation,
+  safetyGuideVisible,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
     [definitions],
   );
+  const shownVideoTracks = includeVideo
+    ? videoTracks.filter((track) => track.visible !== false)
+    : [];
+  const activeVideoUrl =
+    shownVideoTracks[0]?.url || (videoTracks.length === 0 ? videoUrl : "");
+  const hasImportedVideo = videoTracks.length > 0 || Boolean(videoUrl);
 
   return (
     <AbsoluteFill>
-      {includeVideo && videoUrl ? (
-        <OffthreadVideo
+      {shownVideoTracks.length > 0 ? (
+        shownVideoTracks.map((track) => (
+          <Sequence
+            key={track.id}
+            from={Math.max(0, Math.round(track.startFrame))}
+            durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+          >
+            <Html5Video
+              src={track.url}
+              volume={1}
+              pauseWhenBuffering
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
+        ))
+      ) : includeVideo && videoTracks.length === 0 && videoUrl ? (
+        <Html5Video
           src={videoUrl}
           volume={1}
+          pauseWhenBuffering
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       ) : null}
-      {includeVideo && sourceIncludesVideo && !videoUrl ? (
+      {includeVideo && sourceIncludesVideo && !hasImportedVideo ? (
         <AbsoluteFill
           style={{
             alignItems: "center",
@@ -436,7 +494,7 @@ const StudioPreviewComposition = ({
           请先导入这个组件包使用的原视频
         </AbsoluteFill>
       ) : (
-        instances.map((instance) => {
+        instances.filter((instance) => instance.visible !== false).map((instance) => {
           const definition = previewDefinitionMap.get(instance.componentId);
           if (!definition) return null;
           const Comp = definition.component;
@@ -455,7 +513,7 @@ const StudioPreviewComposition = ({
                 <Comp
                   {...instance.props}
                   instanceDurationInFrames={instance.durationInFrames}
-                  videoSrc={includeVideo ? videoUrl : ""}
+                  videoSrc={activeVideoUrl}
                   hideVideo={sourceIncludesVideo}
                   backgroundOpacity={instance.backgroundOpacity}
                 />
@@ -464,7 +522,7 @@ const StudioPreviewComposition = ({
           );
         })
       )}
-      <div
+      {safetyGuideVisible ? <div
         data-preview-safety-guide
         aria-hidden="true"
         style={{
@@ -526,7 +584,7 @@ const StudioPreviewComposition = ({
             人物安全区 · 禁止遮挡
           </div>
         </div>
-      </div>
+      </div> : null}
     </AbsoluteFill>
   );
 };
@@ -570,6 +628,8 @@ const App = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoPreviewEnabled, setVideoPreviewEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(6);
+  const [videoTracks, setVideoTracks] = useState<VideoTrack[]>([]);
+  const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
   const [rendering, setRendering] = useState(false);
   const [renderProgress, setRenderProgress] =
@@ -593,6 +653,7 @@ const App = () => {
   const [canvasOrientation, setCanvasOrientation] = useState<
     "landscape" | "portrait"
   >("landscape");
+  const [safetyGuideVisible, setSafetyGuideVisible] = useState(true);
   const [initialPanelWidths] = useState(readStoredPanelWidths);
   const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
   const [rightPanelWidth, setRightPanelWidth] = useState(initialPanelWidths.right);
@@ -660,9 +721,18 @@ const App = () => {
         Math.round(videoDuration * fps),
       )
     : Math.round(videoDuration * fps);
+  const videoTimelineFrames = videoTracks.reduce(
+    (maximum, track) =>
+      Math.max(maximum, track.startFrame + track.durationInFrames),
+    0,
+  );
   const durationInFrames = Math.max(
     1,
-    videoUrl ? Math.round(videoDuration * fps) : sourceFrames,
+    videoTracks.length > 0
+      ? videoTimelineFrames
+      : videoUrl
+        ? Math.round(videoDuration * fps)
+        : sourceFrames,
   );
   const canvasWidth = canvasOrientation === "portrait" ? 1080 : 1920;
   const canvasHeight = canvasOrientation === "portrait" ? 1920 : 1080;
@@ -760,6 +830,13 @@ const App = () => {
   const selectOnlyInstance = useCallback((instanceId: string) => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceIds(instanceId ? [instanceId] : []);
+    if (instanceId) setSelectedVideoTrackId("");
+  }, []);
+
+  const selectVideoTrack = useCallback((trackId: string) => {
+    setSelectedVideoTrackId(trackId);
+    setSelectedInstanceId("");
+    setSelectedInstanceIds([]);
   }, []);
 
   const refreshHistory = useCallback(async () => {
@@ -810,6 +887,7 @@ const App = () => {
             totalFrames,
             {
               durationInFrames: savedInstance.durationInFrames,
+              visible: savedInstance.visible !== false,
               position: savedInstance.position,
               backgroundOpacity: savedInstance.backgroundOpacity,
               props: savedInstance.props,
@@ -870,6 +948,7 @@ const App = () => {
       setSelectedInstanceIds(
         nextInstances[0]?.id ? [nextInstances[0].id] : [],
       );
+      setSelectedVideoTrackId("");
       setSourceIncludesVideo(options.sourceIncludesVideo);
       setComponentName(options.componentName);
       setCurrentFrame((frame) =>
@@ -925,10 +1004,50 @@ const App = () => {
           ? draft?.videoUrl
           : state.videoUrl;
         if (storedVideoName) setVideoName(storedVideoName);
+        const refreshedVideoUrl = storedVideoUrl
+          ? `${String(storedVideoUrl).split("?")[0]}?t=${Date.now()}`
+          : "";
         if (storedVideoUrl) {
-          setVideoUrl(`${String(storedVideoUrl).split("?")[0]}?t=${Date.now()}`);
+          setVideoUrl(refreshedVideoUrl);
         }
         setVideoDuration(storedDuration);
+        const storedVideoTracks = canRestoreDraft
+          ? Array.isArray(draft?.videoTracks)
+            ? draft.videoTracks
+            : []
+          : [];
+        const trackTimestamp = Date.now();
+        const restoredTracks =
+          storedVideoTracks.length > 0
+            ? storedVideoTracks.map((track) =>
+                restoreVideoTrack(
+                  track,
+                  {
+                    name: String(storedVideoName || "已导入视频"),
+                    url: refreshedVideoUrl,
+                    durationInFrames: Math.round(storedDuration * 30),
+                  },
+                  trackTimestamp,
+                ),
+              )
+            : refreshedVideoUrl
+              ? [
+                  restoreVideoTrack(
+                    {},
+                    {
+                      name: String(storedVideoName || "已导入视频"),
+                      url: refreshedVideoUrl,
+                      durationInFrames: Math.round(storedDuration * 30),
+                    },
+                    trackTimestamp,
+                  ),
+                ]
+              : [];
+        if (restoredTracks.length > 0) {
+          setVideoTracks(restoredTracks);
+          setSelectedVideoTrackId(restoredTracks[0].id);
+          setVideoPreviewEnabled(true);
+        }
         setComponentHistory(history.history ?? []);
         setProjects(state.projectHistory ?? []);
         setActiveProjectId(state.activeProjectId ?? "");
@@ -944,6 +1063,7 @@ const App = () => {
         setCanvasOrientation(
           draft?.canvasOrientation === "portrait" ? "portrait" : "landscape",
         );
+        setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
         if (Number(draft?.timelineHeight) >= 180) {
           setTimelineHeight(Number(draft?.timelineHeight));
         }
@@ -1106,17 +1226,21 @@ const App = () => {
       videoUrl,
       includeVideo: videoPreviewEnabled,
       sourceIncludesVideo,
+      videoTracks,
       definitions,
       instances,
       canvasOrientation,
+      safetyGuideVisible,
     }),
     [
       definitions,
       instances,
       canvasOrientation,
+      safetyGuideVisible,
       sourceIncludesVideo,
       videoPreviewEnabled,
       videoUrl,
+      videoTracks,
     ],
   );
 
@@ -1130,11 +1254,16 @@ const App = () => {
       videoName,
       videoUrl: videoUrl ? videoUrl.split("?")[0] : "",
       videoDuration,
+      videoTracks: videoTracks.map((track) => ({
+        ...track,
+        url: track.url.split("?")[0],
+      })),
       instances,
       currentFrame,
       theme,
       timelineHeight,
       canvasOrientation,
+      safetyGuideVisible,
     }),
     [
       activeComponentId,
@@ -1143,12 +1272,14 @@ const App = () => {
       currentFrame,
       instances,
       projectName,
+      safetyGuideVisible,
       sourceIncludesVideo,
       theme,
       timelineHeight,
       videoDuration,
       videoName,
       videoUrl,
+      videoTracks,
     ],
   );
 
@@ -1234,13 +1365,52 @@ const App = () => {
       setProjectName(snapshot.name || project.name);
       setActiveComponentId(data.activeComponentId ?? "");
       setVideoName(snapshot.videoName ?? "尚未导入视频");
-      setVideoPreviewEnabled(false);
       setVideoUrl(restoredVideoUrl);
       setVideoDuration(restoredDuration);
+      const restoredVideoTracks = Array.isArray(snapshot.videoTracks)
+        ? snapshot.videoTracks
+        : [];
+      const trackTimestamp = Date.now();
+      const normalizedVideoTracks =
+        restoredVideoTracks.length > 0
+          ? restoredVideoTracks.map((track) =>
+              restoreVideoTrack(
+                track,
+                {
+                  name: snapshot.videoName ?? "已导入视频",
+                  url: restoredVideoUrl,
+                  durationInFrames: Math.round(restoredDuration * 30),
+                },
+                trackTimestamp,
+              ),
+            )
+          : restoredVideoUrl
+            ? [
+                restoreVideoTrack(
+                  {},
+                  {
+                    name: snapshot.videoName ?? "已导入视频",
+                    url: restoredVideoUrl,
+                    durationInFrames: Math.round(restoredDuration * 30),
+                  },
+                  trackTimestamp,
+                ),
+              ]
+            : [];
+      if (normalizedVideoTracks.length > 0) {
+        setVideoTracks(normalizedVideoTracks);
+        setSelectedVideoTrackId(normalizedVideoTracks[0].id);
+        setVideoPreviewEnabled(true);
+      } else {
+        setVideoTracks([]);
+        setSelectedVideoTrackId("");
+        setVideoPreviewEnabled(false);
+      }
       setTheme(snapshot.theme === "light" ? "light" : "dark");
       setCanvasOrientation(
         snapshot.canvasOrientation === "portrait" ? "portrait" : "landscape",
       );
+      setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
       setTimelineHeight(
         Number(snapshot.timelineHeight) >= 180
           ? Number(snapshot.timelineHeight)
@@ -1318,6 +1488,62 @@ const App = () => {
     );
   };
 
+  const openVideoPicker = () => videoInput.current?.click();
+
+  const handleVideoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      await importVideo(file);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "视频导入失败",
+      });
+    }
+  };
+
+  const removeVideoTrack = (trackId: string) => {
+    const removed = videoTracks.find((track) => track.id === trackId);
+    const remainingTracks = videoTracks.filter((track) => track.id !== trackId);
+    setVideoTracks(remainingTracks);
+    setSelectedVideoTrackId((selected) =>
+      selected === trackId ? (remainingTracks[0]?.id ?? "") : selected,
+    );
+    if (removed && videoTracks.length === 1) {
+      setVideoUrl("");
+      setVideoPreviewEnabled(false);
+      setVideoName("尚未导入视频");
+      setVideoDuration(6);
+    }
+    setNotice({ tone: "ok", text: "已删除该视频轨道。" });
+  };
+
+  const toggleVideoTrackVisibility = useCallback((trackId: string) => {
+    setVideoTracks((current) =>
+      current.map((track) =>
+        track.id === trackId
+          ? { ...track, visible: track.visible === false }
+          : track,
+      ),
+    );
+  }, []);
+
+  const toggleMotionTrackVisibility = useCallback((instanceIds: string[]) => {
+    if (instanceIds.length === 0) return;
+    const idSet = new Set(instanceIds);
+    setInstances((current) => {
+      const selectedTracks = current.filter((instance) => idSet.has(instance.id));
+      const shouldShow = selectedTracks.every(
+        (instance) => instance.visible === false,
+      );
+      return current.map((instance) =>
+        idSet.has(instance.id) ? { ...instance, visible: shouldShow } : instance,
+      );
+    });
+  }, []);
+
   const importVideo = async (file: File) => {
     setNotice({ tone: "info", text: "正在复制视频到本地工作区…" });
     const metadataUrl = URL.createObjectURL(file);
@@ -1340,13 +1566,25 @@ const App = () => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "视频导入失败");
-    setVideoUrl(data.videoUrl);
+    const track: VideoTrack = {
+      id: createVideoTrackId(),
+      name: file.name,
+      url: data.videoUrl,
+      startFrame: 0,
+      durationInFrames: Math.max(3, Math.round(duration * fps)),
+      visible: true,
+    };
+    setVideoTracks((current) => [...current, track]);
+    setSelectedVideoTrackId(track.id);
     setVideoPreviewEnabled(true);
+    if (videoTracks.length === 0) {
+      setVideoUrl(data.videoUrl);
+    }
+    setVideoDuration((current) => Math.max(current, duration));
     setVideoName(file.name);
-    setVideoDuration(duration);
     setNotice({
       tone: "ok",
-      text: `已导入 ${file.name}，时长 ${duration.toFixed(2)} 秒，原声音量 100%。`,
+      text: `已导入 ${file.name}，时长 ${duration.toFixed(2)} 秒，已添加为视频轨道。`,
     });
   };
 
@@ -2143,6 +2381,7 @@ const App = () => {
     const candidates = instances.flatMap((instance) => {
       const definition = definitionMap.get(instance.componentId);
       const isVisible =
+        instance.visible !== false &&
         currentFrame >= instance.startFrame &&
         currentFrame < instance.startFrame + instance.durationInFrames;
       if (!definition || !isVisible) return [];
@@ -2644,6 +2883,34 @@ const App = () => {
       if (action === "goStart") goToTimelineStart();
       if (action === "previousFrame") stepTimeline(-1);
       if (action === "nextFrame") stepTimeline(1);
+      if (action === "toggleVideoTrack") {
+        if (selectedVideoTrackId) {
+          const selectedTrack = videoTracks.find(
+            (track) => track.id === selectedVideoTrackId,
+          );
+          toggleVideoTrackVisibility(selectedVideoTrackId);
+          setNotice({
+            tone: "ok",
+            text: `${selectedTrack?.name ?? "视频轨道"}已${
+              selectedTrack?.visible === false ? "显示" : "隐藏"
+            }。`,
+          });
+        } else if (selectionIds.length > 0) {
+          const selectedTracks = instances.filter((instance) =>
+            selectionIds.includes(instance.id),
+          );
+          const shouldShow = selectedTracks.every(
+            (instance) => instance.visible === false,
+          );
+          toggleMotionTrackVisibility(selectionIds);
+          setNotice({
+            tone: "ok",
+            text: `${selectionIds.length > 1 ? `${selectionIds.length} 条动效轨道` : "动效轨道"}已${
+              shouldShow ? "显示" : "隐藏"
+            }。`,
+          });
+        }
+      }
       if (action === "duplicate") duplicateInstances(selectionIds);
       if (action === "delete") deleteInstances(selectionIds);
     };
@@ -2653,12 +2920,17 @@ const App = () => {
   }, [
     currentFrame,
     durationInFrames,
+    instances,
     isPlaying,
     recordingShortcut,
     selectedInstanceId,
     selectedInstanceIds,
+    selectedVideoTrackId,
     shortcutPanelOpen,
     shortcuts,
+    toggleMotionTrackVisibility,
+    toggleVideoTrackVisibility,
+    videoTracks,
   ]);
 
   const updateSelectedProp = (key: string, value: unknown) => {
@@ -2777,6 +3049,7 @@ const App = () => {
       instances.flatMap((instance, index) => {
         const definition = definitionMap.get(instance.componentId);
         const isVisible =
+          instance.visible !== false &&
           currentFrame >= instance.startFrame &&
           currentFrame < instance.startFrame + instance.durationInFrames;
         return definition && isVisible
@@ -2788,6 +3061,13 @@ const App = () => {
 
   return (
     <div className="app" data-theme={theme}>
+      <input
+        ref={videoInput}
+        type="file"
+        accept="video/*"
+        onChange={handleVideoFile}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -2840,7 +3120,7 @@ const App = () => {
           <button><SpeakerHigh />声音</button>
           <button><UploadSimple />导入 JSON</button>
           <button><FilmSlate />示例</button>
-          <button><UploadSimple />导入视频</button>
+          <button onClick={openVideoPicker}><UploadSimple />导入视频</button>
           <button
             className="export-action"
             disabled={rendering}
@@ -3007,7 +3287,7 @@ const App = () => {
             <button className="reference-select">HUD · 现状<span><CaretDown /></span></button>
           </section>
 
-          <button className="reference-wide-button"><VideoCamera />导入视频</button>
+          <button className="reference-wide-button" onClick={openVideoPicker}><VideoCamera />导入视频</button>
 
           <div className="reference-split-actions">
             <button><UploadSimple />导入 JSON</button>
@@ -3055,7 +3335,16 @@ const App = () => {
           </div>
           <div className="reference-switch-row">
             <span>安全区参考线</span>
-            <button className="reference-switch active" aria-label="安全区参考线"><i /></button>
+            <button
+              type="button"
+              className={`reference-switch ${safetyGuideVisible ? "active" : ""}`}
+              aria-label="人物安全区"
+              aria-pressed={safetyGuideVisible}
+              title={safetyGuideVisible ? "隐藏人物安全区" : "显示人物安全区"}
+              onClick={() => setSafetyGuideVisible((visible) => !visible)}
+            >
+              <i />
+            </button>
           </div>
           <div className="reference-switch-row">
             <span>人物占位</span>
@@ -3289,6 +3578,92 @@ const App = () => {
               className="timeline-tracks"
               onPointerDown={beginTimelineMarquee}
             >
+              {videoTracks.map((track, index) => {
+                const trackLeftPercent =
+                  (track.startFrame / durationInFrames) * 100;
+                const trackWidthPercent =
+                  (track.durationInFrames / durationInFrames) * 100;
+                return (
+                    <div
+                      className={`timeline-track-row timeline-video-track ${
+                        track.visible === false ? "is-hidden" : ""
+                      }`}
+                      key={track.id}
+                    >
+                      <div
+                        className={`video-track-controls ${
+                          selectedVideoTrackId === track.id ? "active" : ""
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className="video-track-toggle"
+                          aria-pressed={track.visible !== false}
+                          aria-label={`${track.visible === false ? "显示" : "隐藏"}视频轨道 ${track.name}`}
+                          title={`${track.visible === false ? "显示" : "隐藏"}视频轨道（V）`}
+                          onClick={() => {
+                            selectVideoTrack(track.id);
+                            toggleVideoTrackVisibility(track.id);
+                          }}
+                        >
+                          {track.visible === false ? <EyeSlash /> : <Eye />}
+                        </button>
+                        <button
+                          type="button"
+                          className="video-track-select"
+                          title={`${track.name}（选中后按 V 切换显示）`}
+                          onClick={() => {
+                            selectVideoTrack(track.id);
+                            seekEditorFrame(track.startFrame);
+                          }}
+                        >
+                          <VideoCamera weight="fill" />
+                          <span>{String(index + 1).padStart(2, "0")}</span>
+                        </button>
+                      </div>
+                      <div
+                        className="track-body"
+                        onClick={(event) => {
+                          if (event.target === event.currentTarget) {
+                            seekFromPointer(event, event.currentTarget);
+                          }
+                        }}
+                      >
+                        <div
+                          className={`clip video-clip ${
+                            selectedVideoTrackId === track.id ? "selected" : ""
+                          }`}
+                          style={{
+                            left: `${trackLeftPercent}%`,
+                            width: `${trackWidthPercent}%`,
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            selectVideoTrack(track.id);
+                          }}
+                        >
+                          <span
+                            className="video-clip-name"
+                            title={track.name}
+                          >
+                            {track.name}
+                          </span>
+                          <button
+                            type="button"
+                            className="video-clip-remove"
+                            aria-label={`删除视频轨道 ${track.name}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removeVideoTrack(track.id);
+                            }}
+                          >
+                            <X weight="bold" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               {instances.length > 0 ? (
                 instances.map((instance, index) => {
                   const definition = definitionMap.get(instance.componentId);
@@ -3298,16 +3673,39 @@ const App = () => {
                   const widthPercent =
                     (instance.durationInFrames / durationInFrames) * 100;
                   return (
-                    <div className="timeline-track-row" key={instance.id}>
-                      <button
-                        className={`track-label-button ${
+                    <div
+                      className={`timeline-track-row motion-timeline-track ${
+                        instance.visible === false ? "is-hidden" : ""
+                      }`}
+                      key={instance.id}
+                    >
+                      <div
+                        className={`motion-track-controls ${
                           selectedInstanceIdSet.has(instance.id) ? "active" : ""
                         }`}
-                        onClick={() => selectOnlyInstance(instance.id)}
-                        title={definition.name}
                       >
-                        {String(index + 1).padStart(2, "0")}
-                      </button>
+                        <button
+                          type="button"
+                          className="motion-track-toggle"
+                          aria-pressed={instance.visible !== false}
+                          aria-label={`${instance.visible === false ? "显示" : "隐藏"}动效轨道 ${definition.name}`}
+                          title={`${instance.visible === false ? "显示" : "隐藏"}动效轨道（V）`}
+                          onClick={() => {
+                            selectOnlyInstance(instance.id);
+                            toggleMotionTrackVisibility([instance.id]);
+                          }}
+                        >
+                          {instance.visible === false ? <EyeSlash /> : <Eye />}
+                        </button>
+                        <button
+                          type="button"
+                          className="motion-track-select"
+                          onClick={() => selectOnlyInstance(instance.id)}
+                          title={`${definition.name}（选中后按 V 切换显示）`}
+                        >
+                          {String(index + 1).padStart(2, "0")}
+                        </button>
+                      </div>
                       <div
                         className="track-body"
                         onClick={(event) => {
@@ -3355,7 +3753,7 @@ const App = () => {
                     </div>
                   );
                 })
-              ) : (
+              ) : videoTracks.length > 0 ? null : (
                 <div className="empty-timeline">
                   从左侧组件清单点击添加一个组件
                 </div>
