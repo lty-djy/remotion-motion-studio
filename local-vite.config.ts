@@ -1,7 +1,19 @@
 import react from "@vitejs/plugin-react";
 import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
-import { createReadStream, existsSync, mkdirSync, statSync } from "node:fs";
+import {
+  renderFrames,
+  renderMedia,
+  selectComposition,
+  stitchFramesToVideo,
+} from "@remotion/renderer";
+import { execFile } from "node:child_process";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -18,6 +30,98 @@ const statePath = join(rootDir, "local-state.json");
 const effectRegistryPath = join(rootDir, "registry.ts");
 const legacyEffectsPath = join(rootDir, "legacy-effects.tsx");
 const systemChrome = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+
+// Remotion 随包自带 ffmpeg/ffprobe，位于平台对应的 compositor 包中；
+// 找不到时退回系统 PATH（execFile 按名字查找）。
+const rendererBinaryCandidates = [
+  `compositor-${process.platform}-${process.arch}-msvc`,
+  `compositor-${process.platform}-${process.arch}-gnu`,
+  `compositor-${process.platform}-${process.arch}`,
+];
+const resolveRendererBinary = (name: string) => {
+  const exe = process.platform === "win32" ? `${name}.exe` : name;
+  for (const dir of rendererBinaryCandidates) {
+    const candidate = join(rootDir, "node_modules", "@remotion", dir, exe);
+    if (existsSync(candidate)) return candidate;
+  }
+  return name;
+};
+const ffprobeBinary = () => resolveRendererBinary("ffprobe");
+
+const runBinary = (bin: string, args: string[]) =>
+  new Promise<string>((resolvePromise, rejectPromise) => {
+    execFile(
+      bin,
+      args,
+      { maxBuffer: 64 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          const detail = (stderr || error.message || "").trim();
+          rejectPromise(
+            new Error(
+              detail
+                ? `${basename(bin)} 执行失败：${detail.slice(0, 600)}`
+                : `${basename(bin)} 执行失败`,
+            ),
+          );
+          return;
+        }
+        resolvePromise(stdout);
+      },
+    );
+  });
+
+// 用 PowerShell 调起系统原生文件夹选择对话框，返回真实路径（用于直接写盘）。
+// 关键点：先创建一个隐形宿主窗体作为对话框的 Owner（置顶），
+// 否则 ShowDialog() 无宿主时对话框可能被隐藏进程带住、弹不到前台。
+const runFolderPicker = () =>
+  new Promise<string | null>((resolvePromise, rejectPromise) => {
+    const script = [
+      "Add-Type -AssemblyName System.Windows.Forms",
+      "Add-Type -AssemblyName System.Drawing",
+      "$f = New-Object System.Windows.Forms.FolderBrowserDialog",
+      "$f.Description = '选择导出文件夹'",
+      "$f.ShowNewFolderButton = $true",
+      "$owner = New-Object System.Windows.Forms.Form",
+      "$owner.StartPosition = 'CenterScreen'",
+      "$owner.TopMost = $true",
+      "$owner.ShowInTaskbar = $false",
+      "$owner.Opacity = 0",
+      "$owner.Size = New-Object System.Drawing.Size(1, 1)",
+      "$owner.Show()",
+      "$owner.Activate()",
+      "if ($f.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {",
+      "  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
+      "  Write-Output $f.SelectedPath",
+      "}",
+      "$owner.Close()",
+    ].join("\n");
+    // -EncodedCommand 用 UTF-16LE base64 传脚本，规避中文路径的编码与转义问题；
+    // -STA 让 WinForms 对话框跑在正确的单线程套间。
+    const encoded = Buffer.from(script, "utf16le").toString("base64");
+    execFile(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-STA",
+        "-EncodedCommand",
+        encoded,
+      ],
+      { maxBuffer: 1024 * 1024, windowsHide: true },
+      (error, stdout) => {
+        if (error) {
+          rejectPromise(new Error("无法打开文件夹选择器（PowerShell 不可用）"));
+          return;
+        }
+        const lines = stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        resolvePromise(lines.length ? lines[lines.length - 1] : null);
+      },
+    );
+  });
 
 type LocalState = {
   videoName?: string;
@@ -93,6 +197,15 @@ type RenderJob = {
     fileName: string;
     outputLocation: string;
     downloadUrl: string;
+    mode?: "transparent" | "mp4";
+    codec?: string;
+    profile?: string;
+    pixelFormat?: string;
+    alphaVerified?: boolean;
+    width?: number;
+    height?: number;
+    fps?: number;
+    durationInFrames?: number;
   };
 };
 
@@ -823,8 +936,58 @@ const localApi = (): Plugin => ({
         }
 
         if (url.pathname.startsWith("/api/renders/")) {
-          const name = basename(url.pathname);
-          serveFile(req, res, join(renderDir, name));
+          // pathname 是百分号编码的，中文文件名必须解码后才能对应磁盘上的真实文件。
+          const name = decodeURIComponent(basename(url.pathname));
+          const target = join(renderDir, name);
+          if (req.method === "DELETE") {
+            // 前端把文件写入用户选定文件夹后，删除服务端临时副本。
+            if (!existsSync(target)) {
+              sendJson(res, 404, { ok: false, error: "文件不存在" });
+              return;
+            }
+            await unlink(target);
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+          serveFile(req, res, target);
+          return;
+        }
+
+        if (url.pathname === "/api/pick-folder" && req.method === "POST") {
+          try {
+            const selected = await runFolderPicker();
+            sendJson(res, 200, {
+              ok: true,
+              path: selected ?? "",
+              cancelled: selected === null,
+            });
+          } catch (error) {
+            sendJson(res, 500, {
+              ok: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "无法打开文件夹选择器",
+            });
+          }
+          return;
+        }
+
+        if (url.pathname === "/api/open-folder" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 1024 * 1024)).toString("utf8"),
+          ) as { path?: string };
+          const target = typeof body.path === "string" ? body.path.trim() : "";
+          if (!target) {
+            sendJson(res, 400, { ok: false, error: "缺少文件路径" });
+            return;
+          }
+          if (!existsSync(target)) {
+            sendJson(res, 400, { ok: false, error: "文件不存在" });
+            return;
+          }
+          execFile("explorer.exe", [`/select,${target}`], () => undefined);
+          sendJson(res, 200, { ok: true });
           return;
         }
 
@@ -917,7 +1080,10 @@ const localApi = (): Plugin => ({
 
               updateRenderJob(job, {
                 status: "preparing",
-                stage: "正在读取视频与组件",
+                stage:
+                  inputProps.transparent === true
+                    ? "正在读取组件与时间轴"
+                    : "正在读取视频与组件",
                 progress: 0.05,
               });
               const composition = await selectComposition({
@@ -932,10 +1098,178 @@ const localApi = (): Plugin => ({
                 totalFrames: composition.durationInFrames,
               });
 
-              const fileName = `动效导出-${new Date()
+              const transparent = inputProps.transparent === true;
+              const timestamp = new Date()
                 .toISOString()
-                .replace(/[:.]/g, "-")}.mp4`;
-              const outputLocation = join(renderDir, fileName);
+                .replace(/[:.]/g, "-");
+              const defaultFileName = transparent
+                ? `动效透明导出-${timestamp}.mov`
+                : `动效导出-${timestamp}.mp4`;
+              // 用户指定的文件名需清洗掉路径分隔符与非法字符，避免越权写出。
+              const sanitizeFileName = (name: string) =>
+                name
+                  .replace(/[\\/:*?"<>|\x00-\x1f]/g, "")
+                  .replace(/^\.+/, "")
+                  .trim() || defaultFileName;
+              const fileName =
+                typeof inputProps.fileName === "string" &&
+                inputProps.fileName.trim()
+                  ? sanitizeFileName(inputProps.fileName.trim())
+                  : defaultFileName;
+              // 用户指定的导出目录；未指定时回退到 outputs/renders。
+              const requestedOutputDir =
+                typeof inputProps.outputDir === "string" &&
+                inputProps.outputDir.trim()
+                  ? inputProps.outputDir.trim()
+                  : renderDir;
+              try {
+                mkdirSync(requestedOutputDir, { recursive: true });
+              } catch {
+                // 目录不可用时继续，让 ffmpeg 报错
+              }
+              const outputLocation = join(requestedOutputDir, fileName);
+              const directWrite = requestedOutputDir !== renderDir;
+              const downloadUrl = directWrite
+                ? ""
+                : `/api/renders/${encodeURIComponent(fileName)}`;
+
+              if (transparent) {
+                // 透明导出：逐帧渲染 PNG（保留 Alpha，虚拟时钟保证逐帧确定性），
+                // 再用 ffmpeg 封装成 ProRes 4444 带 Alpha 的 MOV。
+                const framesDir = join(renderDir, `.frames-${jobId}`);
+                rmSync(framesDir, { recursive: true, force: true });
+                updateRenderJob(job, {
+                  status: "rendering",
+                  stage: "正在逐帧渲染透明画面（虚拟时钟）",
+                  progress: 0.06,
+                });
+                const { assetsInfo } = await renderFrames({
+                  composition,
+                  serveUrl: bundled,
+                  inputProps: resolvedInputProps,
+                  outputDir: framesDir,
+                  imageFormat: "png",
+                  concurrency: 4,
+                  logLevel: "error",
+                  browserExecutable: existsSync(systemChrome)
+                    ? systemChrome
+                    : undefined,
+                  onStart: () => undefined,
+                  onFrameUpdate: (framesRendered) => {
+                    updateRenderJob(job, {
+                      status: "rendering",
+                      stage: "正在逐帧渲染透明画面（虚拟时钟）",
+                      progress: Math.min(
+                        0.72,
+                        0.06 +
+                          (framesRendered / composition.durationInFrames) *
+                            0.66,
+                      ),
+                      renderedFrames: framesRendered,
+                    });
+                  },
+                });
+
+                updateRenderJob(job, {
+                  status: "rendering",
+                  stage: "正在用 ffmpeg 封装 ProRes 4444（含 Alpha）",
+                  progress: 0.74,
+                });
+                await stitchFramesToVideo({
+                  assetsInfo,
+                  fps: composition.fps,
+                  width: composition.width,
+                  height: composition.height,
+                  outputLocation,
+                  codec: "prores",
+                  proResProfile: "4444",
+                  pixelFormat: "yuva444p10le",
+                  muted: true,
+                  logLevel: "error",
+                  onProgress: (frame) => {
+                    updateRenderJob(job, {
+                      status: "rendering",
+                      stage: "正在用 ffmpeg 封装 ProRes 4444（含 Alpha）",
+                      progress: Math.min(
+                        0.92,
+                        0.74 +
+                          (frame / composition.durationInFrames) * 0.18,
+                      ),
+                      encodedFrames: frame,
+                    });
+                  },
+                });
+                rmSync(framesDir, { recursive: true, force: true });
+
+                updateRenderJob(job, {
+                  status: "rendering",
+                  stage: "正在用 ffprobe 校验 Alpha 通道",
+                  progress: 0.93,
+                });
+                const probeOutput = await runBinary(ffprobeBinary(), [
+                  "-v",
+                  "error",
+                  "-select_streams",
+                  "v:0",
+                  "-show_entries",
+                  "stream=codec_name,profile,pix_fmt,width,height,avg_frame_rate",
+                  "-of",
+                  "json",
+                  outputLocation,
+                ]);
+                const probe = JSON.parse(probeOutput) as {
+                  streams?: Array<{
+                    codec_name?: string;
+                    profile?: string;
+                    pix_fmt?: string;
+                    width?: number;
+                    height?: number;
+                    avg_frame_rate?: string;
+                  }>;
+                };
+                const stream = probe.streams?.[0];
+                // ProRes 4444 在 ffprobe 中 profile 为数字 id（4 = 4444），
+                // pix_fmt 以 yuva 开头即带 Alpha 通道（10/12 位均可）。
+                const proresProfileLabels: Record<string, string> = {
+                  "0": "Proxy",
+                  "1": "LT",
+                  "2": "Standard",
+                  "3": "HQ",
+                  "4": "4444",
+                  "5": "4444 XQ",
+                };
+                const alphaVerified =
+                  stream?.codec_name === "prores" &&
+                  /^yuva/.test(stream?.pix_fmt ?? "");
+
+                updateRenderJob(job, {
+                  status: "completed",
+                  stage: "透明导出完成",
+                  progress: 1,
+                  renderedFrames: composition.durationInFrames,
+                  encodedFrames: composition.durationInFrames,
+                  estimatedRemainingMs: 0,
+                  result: {
+                    fileName,
+                    outputLocation,
+                    downloadUrl,
+                    mode: "transparent",
+                    codec: stream?.codec_name ?? "prores",
+                    profile:
+                      proresProfileLabels[String(stream?.profile)] ?? "4444",
+                    pixelFormat: stream?.pix_fmt ?? "yuva444p12le",
+                    alphaVerified,
+                    width: stream?.width ?? composition.width,
+                    height: stream?.height ?? composition.height,
+                    fps: composition.fps,
+                    durationInFrames: composition.durationInFrames,
+                    savedTo: outputLocation,
+                    outputDir: requestedOutputDir,
+                  },
+                });
+                return;
+              }
+
               updateRenderJob(job, {
                 status: "rendering",
                 stage: "正在渲染画面",
@@ -982,7 +1316,10 @@ const localApi = (): Plugin => ({
                 result: {
                   fileName,
                   outputLocation,
-                  downloadUrl: `/api/renders/${encodeURIComponent(fileName)}`,
+                  downloadUrl,
+                  mode: "mp4",
+                  savedTo: outputLocation,
+                  outputDir: requestedOutputDir,
                 },
               });
             } catch (error) {

@@ -12,10 +12,12 @@ import {
   ArrowCounterClockwise,
   ArrowsInLineVertical,
   CaretDown,
+  CheckCircle,
   DeviceMobile,
   DownloadSimple,
   FilmSlate,
   FloppyDisk,
+  FolderOpen,
   FrameCorners,
   Keyboard,
   MagnifyingGlass,
@@ -536,6 +538,13 @@ const App = () => {
   const componentInput = useRef<HTMLInputElement>(null);
   const activeComponentIdRef = useRef("");
   const workspaceReadyRef = useRef(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportDirDraft, setExportDirDraft] = useState(
+    () => localStorage.getItem("export-folder-path") ?? "",
+  );
+  const [exportFileNameDraft, setExportFileNameDraft] = useState("");
+  const [exportPicking, setExportPicking] = useState(false);
+  const [exportFileName, setExportFileName] = useState<string | null>(null);
   const [motionModule, setMotionModule] = useState<MotionModule | null>(null);
   const [definitions, setDefinitions] = useState<MotionComponentDefinition[]>(
     [],
@@ -567,6 +576,16 @@ const App = () => {
     fileName: string;
     downloadUrl: string;
     outputLocation: string;
+    mode?: "transparent" | "mp4";
+    codec?: string;
+    profile?: string;
+    pixelFormat?: string;
+    alphaVerified?: boolean;
+    width?: number;
+    height?: number;
+    fps?: number;
+    durationInFrames?: number;
+    savedTo?: string;
   } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [canvasOrientation, setCanvasOrientation] = useState<
@@ -1358,13 +1377,74 @@ const App = () => {
     setNotice({ tone: "ok", text: `已从历史记录加载 ${item.name}。` });
   };
 
+  const defaultExportFileName = () => {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `动效透明导出-${now.getFullYear()}${pad(
+      now.getMonth() + 1,
+    )}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.mov`;
+  };
+
+  const openExportDialog = () => {
+    setExportDirDraft(
+      localStorage.getItem("export-folder-path") ?? "",
+    );
+    setExportFileNameDraft(defaultExportFileName());
+    setExportDialogOpen(true);
+  };
+
+  const pickExportFolder = async () => {
+    setExportPicking(true);
+    try {
+      const response = await fetch("/api/pick-folder", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "选择文件夹失败");
+      if (data.path) {
+        setExportDirDraft(String(data.path));
+        localStorage.setItem("export-folder-path", String(data.path));
+      }
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开文件夹选择器",
+      });
+    } finally {
+      setExportPicking(false);
+    }
+  };
+
+  const openExportFolder = async (path: string) => {
+    try {
+      const response = await fetch("/api/open-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "无法打开文件夹");
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开文件夹",
+      });
+    }
+  };
+
   const renderVideo = async () => {
+    const outputDir = exportDirDraft.trim();
+    const fileName = exportFileNameDraft.trim() || defaultExportFileName();
+    if (!outputDir) {
+      setNotice({ tone: "error", text: "请先选择导出文件夹。" });
+      return;
+    }
+    setExportDialogOpen(false);
+    setExportFileName(fileName);
     setRendering(true);
     setRenderProgress(null);
     setRenderResult(null);
     setNotice({
       tone: "info",
-      text: "正在本机渲染多组件时间轴，首次渲染会准备 Chromium…",
+      text: "透明导出：虚拟时钟逐帧渲染 PNG，再经 ffmpeg 封装为 ProRes 4444（含 Alpha）。",
     });
     try {
       const response = await fetch("/api/render", {
@@ -1377,6 +1457,9 @@ const App = () => {
           timelineDurationInFrames: durationInFrames,
           canvasWidth,
           canvasHeight,
+          transparent: true,
+          outputDir,
+          fileName,
         }),
       });
       const data = await response.json();
@@ -1413,10 +1496,14 @@ const App = () => {
           if (!statusData.result) {
             throw new Error("渲染完成，但本地服务没有返回输出文件");
           }
-          setRenderResult(statusData.result);
+          const result = statusData.result;
+          setRenderResult(result);
           setNotice({
-            tone: "ok",
-            text: `渲染完成：${statusData.result.fileName}`,
+            tone: result.alphaVerified === false ? "error" : "ok",
+            text:
+              result.alphaVerified === false
+                ? `导出完成，但 ffprobe 未检测到 Alpha 通道：${result.fileName}`
+                : `透明导出完成：${result.savedTo ?? result.fileName}（ffprobe 已确认 Alpha 通道）`,
           });
           break;
         }
@@ -2692,8 +2779,8 @@ const App = () => {
         <span />
       </div>
       <header className="studio-topbar">
-        <div className="studio-brand" aria-label="动效编辑台 V1.0">
-          <strong>动效编辑台</strong>
+        <div className="studio-brand" aria-label="动效工作台 V1.0">
+          <strong>动效工作台</strong>
           <small>V1.0</small>
         </div>
 
@@ -2741,7 +2828,11 @@ const App = () => {
           <button><UploadSimple />导入 JSON</button>
           <button><FilmSlate />示例</button>
           <button><UploadSimple />导入视频</button>
-          <button className="export-action" onClick={renderVideo}>
+          <button
+            className="export-action"
+            disabled={rendering}
+            onClick={openExportDialog}
+          >
             <DownloadSimple weight="bold" />导出透明 MOV
           </button>
         </div>
@@ -2922,7 +3013,11 @@ const App = () => {
 
           <div className="reference-path">/demo/8月14日.mp4</div>
 
-          <button className="reference-wide-button reference-export-track">
+          <button
+            className="reference-wide-button reference-export-track"
+            disabled={rendering}
+            onClick={openExportDialog}
+          >
             <DownloadSimple weight="bold" />导出整条时间轴(透明)
           </button>
 
@@ -3625,6 +3720,167 @@ const App = () => {
         >
           {notice.text}
         </button>
+      ) : null}
+      {exportDialogOpen ? (
+        <div
+          className="export-dialog-layer"
+          onPointerDown={() => setExportDialogOpen(false)}
+        >
+          <section
+            className="export-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <strong>导出透明 MOV</strong>
+              <button
+                aria-label="关闭"
+                onClick={() => setExportDialogOpen(false)}
+              >
+                <X />
+              </button>
+            </header>
+            <label className="export-dialog-field">
+              <span>保存文件夹</span>
+              <div className="export-dialog-row">
+                <input
+                  type="text"
+                  value={exportDirDraft}
+                  onChange={(event) => setExportDirDraft(event.target.value)}
+                  placeholder="例如 D:\导出"
+                  spellCheck={false}
+                />
+                <button
+                  className="export-dialog-browse"
+                  disabled={exportPicking}
+                  onClick={pickExportFolder}
+                >
+                  <FolderOpen weight="bold" />
+                  {exportPicking ? "选择中…" : "选择文件夹"}
+                </button>
+              </div>
+            </label>
+            <label className="export-dialog-field">
+              <span>文件名</span>
+              <input
+                type="text"
+                value={exportFileNameDraft}
+                onChange={(event) =>
+                  setExportFileNameDraft(event.target.value)
+                }
+                placeholder="动效透明导出.mov"
+                spellCheck={false}
+              />
+            </label>
+            <footer>
+              <button onClick={() => setExportDialogOpen(false)}>取消</button>
+              <button
+                className="export-dialog-confirm"
+                disabled={rendering || exportPicking}
+                onClick={renderVideo}
+              >
+                <DownloadSimple weight="bold" />开始导出
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+      {rendering || renderProgress || renderResult ? (
+        <aside className="export-panel">
+          <header>
+            <strong>
+              {renderResult ? "透明导出完成" : "正在透明导出"}
+            </strong>
+            <button
+              aria-label="关闭"
+              disabled={rendering}
+              onClick={() => {
+                setRenderProgress(null);
+                setRenderResult(null);
+              }}
+            >
+              <X />
+            </button>
+          </header>
+          {!renderResult && renderProgress ? (
+            <div className="export-progress">
+              <div className="export-progress-bar">
+                <i
+                  style={{
+                    width: `${Math.round(renderProgress.progress * 100)}%`,
+                  }}
+                />
+              </div>
+              <p>{renderProgress.stage}</p>
+              {exportFileName ? (
+                <p className="export-folder-line">
+                  将保存为 <b>{exportFileName}</b>
+                </p>
+              ) : null}
+              <small>
+                {renderProgress.renderedFrames} / {renderProgress.totalFrames} 帧
+                {renderProgress.estimatedRemainingMs
+                  ? ` · 预计剩余 ${Math.round(
+                      renderProgress.estimatedRemainingMs / 1000,
+                    )} 秒`
+                  : ""}
+              </small>
+            </div>
+          ) : null}
+          {renderResult ? (
+            <div className="export-result">
+              {renderResult.savedTo ? (
+                <button
+                  className="export-saved-path"
+                  onClick={() =>
+                    openExportFolder(renderResult.savedTo as string)
+                  }
+                  title="点击打开所在文件夹"
+                >
+                  <CheckCircle weight="bold" />
+                  <span className="export-saved-text">
+                    已导出到 {renderResult.savedTo}
+                  </span>
+                  <FolderOpen weight="bold" />
+                </button>
+              ) : null}
+              {renderResult.downloadUrl ? (
+                <a
+                  className="export-download"
+                  href={renderResult.downloadUrl}
+                  download={renderResult.fileName}
+                >
+                  <DownloadSimple weight="bold" />
+                  下载 {renderResult.fileName}
+                </a>
+              ) : null}
+              <dl className="export-verify">
+                <div
+                  className={
+                    renderResult.alphaVerified === false ? "warn" : "ok"
+                  }
+                >
+                  <dt>Alpha 校验（ffprobe）</dt>
+                  <dd>
+                    {renderResult.alphaVerified === false
+                      ? "未检测到 Alpha，请重新导出"
+                      : `已确认 · ${renderResult.codec} ${renderResult.profile} · ${renderResult.pixelFormat}`}
+                  </dd>
+                </div>
+                <div>
+                  <dt>规格</dt>
+                  <dd>
+                    {renderResult.width}×{renderResult.height} ·{" "}
+                    {renderResult.fps} fps · {renderResult.durationInFrames} 帧
+                  </dd>
+                </div>
+              </dl>
+              <p className="export-hint">
+                已封装为 ProRes 4444 MOV，可直接拖入 Premiere / Final Cut /
+                剪映，透明底自动透出。
+              </p>
+            </div>
+          ) : null}
+        </aside>
       ) : null}
       {contextMenu ? (
         <>

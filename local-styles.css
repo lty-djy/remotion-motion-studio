@@ -2157,6 +2157,338 @@ aside {
   border-color: rgba(255, 96, 117, 0.48);
 }
 
+.export-panel {
+  position: fixed;
+  z-index: 98;
+  right: 18px;
+  bottom: 18px;
+  width: 430px;
+  max-width: calc(100vw - 36px);
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(13, 17, 25, 0.97);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+}
+
+.export-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.export-panel > header strong {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.export-panel > header button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.export-panel > header button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+
+.export-panel > header button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.export-progress-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.export-progress-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #35c4f2, #68e8ff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.export-progress p {
+  margin: 8px 0 2px;
+  font-size: 11px;
+}
+
+.export-folder-line {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.export-folder-line b {
+  color: #9feeff;
+  font-weight: 600;
+}
+
+.export-progress small {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+}
+
+.export-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(104, 232, 255, 0.45);
+  border-radius: 9px;
+  color: #9feeff;
+  background: rgba(104, 232, 255, 0.08);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.export-download:hover {
+  background: rgba(104, 232, 255, 0.16);
+}
+
+.export-saved-path {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(83, 219, 163, 0.35);
+  border-radius: 9px;
+  color: #53dba3;
+  background: rgba(83, 219, 163, 0.08);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+  word-break: break-all;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.export-saved-path:hover {
+  border-color: rgba(83, 219, 163, 0.6);
+  background: rgba(83, 219, 163, 0.16);
+}
+
+.export-saved-path svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.export-saved-path .export-saved-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.export-saved-path > svg:last-child {
+  color: rgba(83, 219, 163, 0.75);
+}
+
+.export-dialog-layer {
+  position: fixed;
+  z-index: 112;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 8, 13, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.export-dialog {
+  width: 480px;
+  max-width: calc(100vw - 40px);
+  padding: 16px 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(15, 19, 27, 0.98);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+}
+
+.export-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.export-dialog > header strong {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.export-dialog > header button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.export-dialog > header button:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+
+.export-dialog-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.export-dialog-field > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.export-dialog-field input[type="text"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  outline: none;
+}
+
+.export-dialog-field input[type="text"]:focus {
+  border-color: rgba(104, 232, 255, 0.55);
+}
+
+.export-dialog-row {
+  display: flex;
+  gap: 8px;
+}
+
+.export-dialog-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.export-dialog-browse {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid rgba(104, 232, 255, 0.4);
+  border-radius: 8px;
+  color: #9feeff;
+  background: rgba(104, 232, 255, 0.08);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.export-dialog-browse:hover:not(:disabled) {
+  background: rgba(104, 232, 255, 0.16);
+}
+
+.export-dialog-browse:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.export-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.export-dialog > footer button {
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.export-dialog > footer button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.export-dialog > footer .export-dialog-confirm {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-color: rgba(104, 232, 255, 0.5);
+  color: #9feeff;
+  background: rgba(104, 232, 255, 0.1);
+}
+
+.export-dialog > footer .export-dialog-confirm:hover:not(:disabled) {
+  background: rgba(104, 232, 255, 0.18);
+}
+
+.export-dialog > footer .export-dialog-confirm:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.export-verify {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.export-verify > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+}
+
+.export-verify dt {
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.export-verify dd {
+  margin: 0;
+  text-align: right;
+}
+
+.export-verify .ok dd {
+  color: #53dba3;
+}
+
+.export-verify .warn dd {
+  color: #ff96a5;
+}
+
+.export-hint {
+  margin: 10px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .context-dismiss-layer {
   position: fixed;
   z-index: 110;
