@@ -15,7 +15,7 @@ import {
   statSync,
 } from "node:fs";
 import { readFile, unlink, writeFile } from "node:fs/promises";
-import { basename, extname, join, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, type Plugin } from "vite";
 
@@ -122,6 +122,94 @@ const runFolderPicker = () =>
       },
     );
   });
+
+// 打开所在文件夹并把资源管理器窗口置顶抢焦点到应用前面。
+// 后台进程 spawn 的 explorer 窗口通常会躲在应用后面，需要用 Win32 找到
+// 该文件夹的 Explorer 窗口，ShowWindow + 置顶 + AttachThreadInput 抢前台。
+const openFolderScript = (target: string) => {
+  const dirName = basename(dirname(target));
+  const safeTarget = target.replace(/'/g, "''");
+  const safeDirName = dirName.replace(/'/g, "''");
+  return [
+    "Add-Type -TypeDefinition @'",
+    "using System;",
+    "using System.Runtime.InteropServices;",
+    "using System.Text;",
+    "public class Fw {",
+    "    public delegate bool CB(IntPtr h, IntPtr l);",
+    "    [DllImport(\"user32.dll\")] public static extern bool EnumWindows(CB cb, IntPtr l);",
+    "    [DllImport(\"user32.dll\")] public static extern bool IsWindowVisible(IntPtr h);",
+    "    [DllImport(\"user32.dll\")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);",
+    "    [DllImport(\"user32.dll\")] public static extern int GetClassName(IntPtr h, StringBuilder s, int n);",
+    "    [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int c);",
+    "    [DllImport(\"user32.dll\")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);",
+    "    [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h);",
+    "    [DllImport(\"user32.dll\")] public static extern bool BringWindowToTop(IntPtr h);",
+    "    [DllImport(\"user32.dll\")] public static extern IntPtr GetForegroundWindow();",
+    "    [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);",
+    "    [DllImport(\"kernel32.dll\")] public static extern uint GetCurrentThreadId();",
+    "    [DllImport(\"user32.dll\")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);",
+    "    [DllImport(\"user32.dll\")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);",
+    "    public static void ForceForeground(IntPtr h) {",
+    "        // 模拟 ALT 键击，让系统认为本进程刚收到最后输入事件，从而获得前台激活权。",
+    "        keybd_event(0x12, 0, 0, UIntPtr.Zero);",
+    "        keybd_event(0x12, 0, 0x0002, UIntPtr.Zero);",
+    "        uint fgThread = 0;",
+    "        IntPtr fg = GetForegroundWindow();",
+    "        if (fg != IntPtr.Zero) { GetWindowThreadProcessId(fg, out fgThread); }",
+    "        uint curThread = GetCurrentThreadId();",
+    "        uint wThread = 0;",
+    "        GetWindowThreadProcessId(h, out wThread);",
+    "        bool fgAttached = false;",
+    "        if (fgThread != 0 && fgThread != curThread) { AttachThreadInput(fgThread, curThread, true); fgAttached = true; }",
+    "        if (wThread != 0 && wThread != curThread) { AttachThreadInput(wThread, curThread, true); }",
+    "        ShowWindow(h, 9);",
+    "        BringWindowToTop(h);",
+    "        SetWindowPos(h, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040);",
+    "        SetWindowPos(h, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002);",
+    "        SetForegroundWindow(h);",
+    "        if (wThread != 0 && wThread != curThread) { AttachThreadInput(wThread, curThread, false); }",
+    "        if (fgAttached) { AttachThreadInput(fgThread, curThread, false); }",
+    "    }",
+    "}",
+    "'@",
+    `explorer.exe /select,'${safeTarget}'`,
+    `$dirName = '${safeDirName}'`,
+    "for ($i = 0; $i -lt 5; $i++) {",
+    "    Start-Sleep -Milliseconds 400",
+    "    $script:hit = [IntPtr]::Zero",
+    "    $script:fallback = [IntPtr]::Zero",
+    "    [Fw]::EnumWindows({ param($h, $l)",
+    "        if (-not [Fw]::IsWindowVisible($h)) { return $true }",
+    "        $c = New-Object System.Text.StringBuilder 128",
+    "        [void][Fw]::GetClassName($h, $c, 128)",
+    "        if ($c.ToString() -ne 'CabinetWClass') { return $true }",
+    "        $t = New-Object System.Text.StringBuilder 512",
+    "        [void][Fw]::GetWindowText($h, $t, 512)",
+    "        if ($t.ToString().Length -gt 0) { $script:fallback = $h }",
+    "        if ($t.ToString().IndexOf($dirName, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) { $script:hit = $h; return $false }",
+    "        return $true",
+    "    }, [IntPtr]::Zero) | Out-Null",
+    "    if ($script:hit -ne [IntPtr]::Zero) { break }",
+    "}",
+    "$w = [IntPtr]::Zero",
+    "if ($script:hit -ne [IntPtr]::Zero) { $w = $script:hit } elseif ($script:fallback -ne [IntPtr]::Zero) { $w = $script:fallback }",
+    "if ($w -ne [IntPtr]::Zero) { [Fw]::ForceForeground($w) }",
+  ].join("\n");
+};
+
+const runOpenFolder = (target: string) => {
+  const encoded = Buffer.from(
+    openFolderScript(target),
+    "utf16le",
+  ).toString("base64");
+  execFile(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+    { maxBuffer: 1024 * 1024, windowsHide: true },
+    () => undefined,
+  );
+};
 
 type LocalState = {
   videoName?: string;
@@ -986,7 +1074,7 @@ const localApi = (): Plugin => ({
             sendJson(res, 400, { ok: false, error: "文件不存在" });
             return;
           }
-          execFile("explorer.exe", [`/select,${target}`], () => undefined);
+          runOpenFolder(target);
           sendJson(res, 200, { ok: true });
           return;
         }
