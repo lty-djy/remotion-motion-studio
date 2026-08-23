@@ -16,6 +16,7 @@ when_to_use: 用户丢一段 SRT + 视频上下文（可选），要求"AI 编�
 
 - `references/card-catalog.md` —— 当前 registry 暴露的全部标准卡清单（每张卡的 `id`、展示名、可编排 `props` 与约束）。**只允许使用此处的卡片 id，不允许自己造 id**。该文件由 `scripts/generate-card-catalog.mjs` 从 `registry.ts` 自动生成，运行命令：`node scripts/generate-card-catalog.mjs`。registry 改了就重跑这条命令。
 - `references/palette.md` —— 唯一的颜色来源。**只允许从此处挑选 token，不允许写任何 hex、rgb()、hsl()、oklch()、命名色**。
+- `references/design-tokens.md` —— 顶层设计令牌（theme/skin/style/font）的枚举全集与语义。
 
 如果你拿不到这两份文档，立刻停下来要求用户运行一次上述命令补齐，再继续编排。
 
@@ -90,6 +91,10 @@ SRT 行 ──> Board（信息板，对应一段口播）
 {
   "manifestVersion": "1.0",
   "generatedBy": "ai-motion-arranger/1",
+  "theme": "dark",                   // 可选设计令牌，缺省 dark；见 references/design-tokens.md
+  "skin": "tech-cyan",               // 可选设计令牌（配色主题包），缺省 tech-cyan
+  "style": "glass",                  // 可选设计令牌（骨架），缺省 glass
+  "font": "sans",                    // 可选设计令牌（字体栈），缺省 sans
   "fps": 30,
   "videoDurationSec": 19.4,
   "canvasOrientation": "landscape",
@@ -136,7 +141,7 @@ SRT 行 ──> Board（信息板，对应一段口播）
 }
 ```
 
-禁止出现的顶层字段：`title`、`subtitle`、`code`、`tsx`、`react`、`import`、`export`、`style`、`x`、`y`、`width`、`height` 等任何渲染层字段。
+禁止出现的顶层字段：`title`、`subtitle`、`code`、`tsx`、`react`、`import`、`export`、`x`、`y`、`width`、`height` 等任何渲染层字段。**唯一例外**：`theme` / `skin` / `style` / `font` 是顶层设计令牌（字符串枚举，见 references/design-tokens.md）；`style` 仅允许 `"glass" | "flat" | "outline" | "tile"` 四个字符串值之一，样式对象（如 `{"radius":8}`）仍然违法。
 
 ## 10. 枚举全集（hard constraint）
 
@@ -174,6 +179,19 @@ SRT 行 ──> Board（信息板，对应一段口播）
 
 完全以 `references/palette.md` 为准。任何未在那里登记的字符串都视为非法。
 
+### Design Token Enum（顶层设计令牌）
+
+`theme` / `skin` / `style` / `font` 四个顶层字段的枚举全集以 `references/design-tokens.md` 为准：
+
+| 令牌 | 枚举 | 管什么 |
+| --- | --- | --- |
+| `theme` | `dark` · `light` | 基调（深底/浅底） |
+| `skin` | `tech-cyan` · `brand-amber` · `growth-lime` · `creative-violet` · `alert-rose` · `pro-neutral` | 配色主题（accent+support 预设包，决定未显式填色卡片的缺省色） |
+| `style` | `glass` · `flat` · `outline` · `tile` | 骨架（圆角/描边/阴影/模糊） |
+| `font` | `sans` · `serif` · `mono-tech` | 字体栈 |
+
+skin 不豁免 palette 硬约束：accent 去重数 ∈ [2,4]、相邻 Board 换主调仍然生效。
+
 ## 11. 视频级硬规则
 
 - 全视频至少出现 **3 类** Board（密度/节奏/锚点的组合多样性，或至少在 §12 自检里复核 `paletteUsedCount ≥ 2`）。
@@ -195,6 +213,14 @@ SRT 行 ──> Board（信息板，对应一段口播）
 
 任一项不通过 → 在最终回答前改 manifest，并解释改了什么；不要把 `selfCheck` 字段写成与正文矛盾的状态。
 
+除人工自检外，输出后应运行 lint 体检器做机械复核（它把上面 8 条全部自动化，并额外扫描颜色字面量与令牌枚举）：
+
+```bash
+node scripts/lint-manifest.mjs manifest.json
+```
+
+退出码 0 = 通过（可能带 warning）；1 = 存在 error，必须修正 manifest 后重跑。
+
 ## 13. 失败模式速查（避免常见错误）
 
 - ❌ 给卡加 `x: 100`/`y: 200` 这种像素坐标 → 改用 `board.anchor`。
@@ -207,9 +233,10 @@ SRT 行 ──> Board（信息板，对应一段口播）
 
 ## 14. 后续链路（你不必执行，知道即可）
 
-1. `node scripts/manifest-to-tsx.mjs manifest.json > package.tsx` → TSX
-2. `powershell -ExecutionPolicy Bypass -File scripts/import-to-studio.ps1 -FilePath package.tsx` → 导入工作台
-3. 工作台按 protocol 自动激活组件、生成时间轴实例。用户在工作台里再做位置/时序微调。
+1. `node scripts/lint-manifest.mjs manifest.json` → 体检（error 必须清零）
+2. `node scripts/manifest-to-tsx.mjs manifest.json > package.tsx` → TSX
+3. `powershell -ExecutionPolicy Bypass -File scripts/import-to-studio.ps1 -FilePath package.tsx` → 导入工作台
+4. 工作台按 protocol 自动激活组件、生成时间轴实例。用户在工作台里再做位置/时序微调。
 
 ## 15. 反馈循环
 

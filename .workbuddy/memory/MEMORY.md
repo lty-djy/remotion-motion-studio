@@ -15,10 +15,12 @@
 - 一段口播 = 一个 Board；Board 决定 palette/density/rhythm/anchor/backgroundOpacity
 - 整段视频主调去重 ∈ [2, 4]；相邻 Board 主调不同
 - 同 Board 多张卡共享同一 backgroundOpacity
+- 顶层设计令牌 theme/skin/style/font 只能填 `references/design-tokens.md` 的枚举（两层架构：卡片库层=组件+schema+CSS变量令牌，skin 管配色 style 管骨架；编排层=overlayJSON 大脑，lint 体检器机械复核）
 
 **数据同步链路**：
 - 修改 `effects/*.tsx` 或 `legacy-effects.tsx` → 同步 `scripts/registry-meta.mjs` + `scripts/arranger-overlay.json` → `node scripts/generate-card-catalog.mjs`
 - 新增 token → `references/palette.md` + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_*_TOKENS`
+- 新增设计令牌 → `references/design-tokens.md` + `manifest-to-tsx.mjs` / `lint-manifest.mjs` 顶部枚举与预设同步
 
 **TSX 编译细节**：工作台 `local-vite.config.ts` 的安全校验拒绝非 react/remotion 的 import；`manifest-to-tsx.mjs` 用 `normalizeForInline` strip + IIFE 闭包，把 `effects/use-raf-progress.ts` + `LegacyMetricEffects.tsx` + `ChapterBar.tsx` 的源码内联进 package.tsx。
 

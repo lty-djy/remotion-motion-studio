@@ -52,6 +52,56 @@ const ALLOWED_ANCHORS = new Set([
 const ALLOWED_DENSITY = new Set(["sparse", "balanced", "rich"]);
 const ALLOWED_RHYTHM = new Set(["single", "staggered", "cascade"]);
 
+// ---------- 设计令牌（references/design-tokens.md）----------
+// theme 管基调、skin 管配色（accent+support 预设包）、style 管骨架、font 管字体栈。
+// 全部是顶层字符串枚举；编译期解析为 CSS 变量并注入生成的 TSX。
+const ALLOWED_THEMES = new Set(["dark", "light"]);
+const ALLOWED_SKINS = new Set([
+  "tech-cyan",
+  "brand-amber",
+  "growth-lime",
+  "creative-violet",
+  "alert-rose",
+  "pro-neutral",
+]);
+const SKIN_PRESETS = {
+  "tech-cyan": { accent: "cyan", support: "info" },
+  "brand-amber": { accent: "amber", support: "warning" },
+  "growth-lime": { accent: "lime", support: "success" },
+  "creative-violet": { accent: "violet", support: "info" },
+  "alert-rose": { accent: "rose", support: "danger" },
+  "pro-neutral": { accent: "neutral", support: "support-neutral" },
+};
+const ALLOWED_STYLES = new Set(["glass", "flat", "outline", "tile"]);
+const STYLE_PRESETS = {
+  glass: { radius: 18, border: "1px solid rgba(255,255,255,0.14)", shadow: "0 10px 30px rgba(0,0,0,0.35)", blur: 8 },
+  flat: { radius: 8, border: "none", shadow: "none", blur: 0 },
+  outline: { radius: 12, border: "2px solid var(--arranger-accent)", shadow: "none", blur: 0 },
+  tile: { radius: 14, border: "none", shadow: "0 6px 18px rgba(0,0,0,0.28)", blur: 0 },
+};
+const ALLOWED_FONTS = new Set(["sans", "serif", "mono-tech"]);
+const FONT_STACKS = {
+  sans:
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
+  serif: 'Georgia, "Songti SC", "SimSun", serif',
+  "mono-tech": '"JetBrains Mono", Menlo, Consolas, monospace',
+};
+const TOKEN_HEX = {
+  cyan: "#22d3ee",
+  violet: "#a78bfa",
+  amber: "#fca311",
+  lime: "#a3e635",
+  rose: "#fb7185",
+  teal: "#2dd4bf",
+  gold: "#f5c542",
+  neutral: "#d7d7d7",
+  "support-neutral": "#8b8f98",
+  success: "#34d399",
+  warning: "#fbbf24",
+  danger: "#f87171",
+  info: "#60a5fa",
+};
+
 class CompileError extends Error {}
 
 // ---------- 校验 ----------
@@ -62,8 +112,21 @@ function checkManifest(manifest) {
   }
   if (manifest.manifestVersion !== "1.0") {
     throw new CompileError(
-      `manifestVersion 必须是 "1.0"，当前：${manifest.manifestVersion}`,
+      `manifestVersion 必须是 "1.0"，当前是：${manifest.manifestVersion}`,
     );
+  }
+  for (const [field, allowed, hint] of [
+    ["theme", ALLOWED_THEMES, "dark | light"],
+    ["skin", ALLOWED_SKINS, "见 references/design-tokens.md §3"],
+    ["style", ALLOWED_STYLES, "glass | flat | outline | tile"],
+    ["font", ALLOWED_FONTS, "sans | serif | mono-tech"],
+  ]) {
+    if (manifest[field] === undefined) continue;
+    if (typeof manifest[field] !== "string" || !allowed.has(manifest[field])) {
+      throw new CompileError(
+        `顶层设计令牌 ${field} "${manifest[field]}" 非法（允许：${hint}）`,
+      );
+    }
   }
   if (!Array.isArray(manifest.boards)) {
     throw new CompileError("boards 必须是数组");
@@ -373,14 +436,42 @@ async function buildPackage(manifest, meta) {
   }
 
   const viewBlocks = [];
+  const theme = manifest.theme ?? "dark";
+  const skin = manifest.skin ?? "tech-cyan";
+  const styleToken = manifest.style ?? "glass";
+  const font = manifest.font ?? "sans";
+  const skinPreset = SKIN_PRESETS[skin];
+  const stylePreset = STYLE_PRESETS[styleToken];
+  const cssVars = {
+    "--arranger-theme": theme,
+    "--arranger-accent": TOKEN_HEX[skinPreset.accent],
+    "--arranger-support": TOKEN_HEX[skinPreset.support],
+    "--arranger-radius": `${stylePreset.radius}px`,
+    "--arranger-border": stylePreset.border,
+    "--arranger-shadow": stylePreset.shadow,
+    "--arranger-font": FONT_STACKS[font],
+  };
+  viewBlocks.push(
+    `const DESIGN_TOKENS = ${JSON.stringify(
+      { theme, skin, style: styleToken, font, cssVars },
+      null,
+      2,
+    )};`,
+    `const SkinShell = ({ children }) => (`,
+    `  <div style={{ display: "contents", fontFamily: ${JSON.stringify(
+      FONT_STACKS[font],
+    )} }}>\${children}</div>`,
+    `);`,
+    ``,
+  );
   for (const card of usedOrdered) {
     if (card.id === "ChapterBar") {
       viewBlocks.push(
-        `const ChapterBarView = (props) => <ChapterBar {...props} />;`,
+        `const ChapterBarView = (props) => <SkinShell><ChapterBar {...props} /></SkinShell>;`,
       );
     } else {
       viewBlocks.push(
-        `const ${card.id}View = (props) => <LegacyMetricEffect componentType="${card.id}" {...props} />;`,
+        `const ${card.id}View = (props) => <SkinShell><LegacyMetricEffect componentType="${card.id}" {...props} /></SkinShell>;`,
       );
     }
   }
@@ -399,17 +490,33 @@ async function buildPackage(manifest, meta) {
     propsSchema: card.propsSchema,
   }));
 
+  const cardsById = new Map(REGISTERED_CARDS.map((c) => [c.id, c]));
+  const skinPropsFor = (cardId, explicitProps) => {
+    const filled = {};
+    const registered = cardsById.get(cardId);
+    if (!registered || !skinPreset) return filled;
+    const schema = registered.propsSchema;
+    if (schema.accentColor && !("accentColor" in explicitProps)) {
+      filled.accentColor = skinPreset.accent;
+    }
+    if (schema.secondaryColor && !("secondaryColor" in explicitProps)) {
+      filled.secondaryColor = skinPreset.support;
+    }
+    return filled;
+  };
+
   const timeline = [];
   for (const board of manifest.boards) {
     const baseOpacity = Number(board.board.backgroundOpacity);
     for (const card of board.cards) {
+      const explicitProps = card.props ?? {};
       timeline.push({
         componentId: card.id,
         startFrame: board.startFrame,
         durationInFrames: board.durationInFrames,
         position: { x: 0, y: 0, scale: 1 },
         backgroundOpacity: baseOpacity,
-        props: card.props ?? {},
+        props: { ...skinPropsFor(card.id, explicitProps), ...explicitProps },
       });
     }
   }

@@ -73,7 +73,10 @@ type ShortcutAction =
   | "trimRight"
   | "toggleVideoTrack"
   | "duplicate"
-  | "delete";
+  | "delete"
+  | "regionIn"
+  | "regionOut"
+  | "regionClear";
 
 type ShortcutMap = Record<ShortcutAction, string>;
 
@@ -124,6 +127,9 @@ const DEFAULT_SHORTCUTS: ShortcutMap = {
   toggleVideoTrack: "V",
   duplicate: "Control+D",
   delete: "S",
+  regionIn: "4",
+  regionOut: "5",
+  regionClear: "Alt+X",
 };
 
 const SHORTCUT_DEFINITIONS: Array<{
@@ -143,6 +149,9 @@ const SHORTCUT_DEFINITIONS: Array<{
   { action: "toggleVideoTrack", label: "显示 / 隐藏轨道", description: "切换当前选中视频或动效轨道的实时预览" },
   { action: "duplicate", label: "复制所选卡片", description: "复制当前选中的轨道卡片" },
   { action: "delete", label: "删除所选片段", description: "删除当前选中的视频或动效片段" },
+  { action: "regionIn", label: "区域入点", description: "在播放头位置设置导出区域的入点（键 4）" },
+  { action: "regionOut", label: "区域出点", description: "在播放头位置设置导出区域的出点（键 5）" },
+  { action: "regionClear", label: "清除区域出入点", description: "取消已设置的区域入点和出点标记" },
 ];
 
 const loadShortcuts = (): ShortcutMap => {
@@ -513,11 +522,29 @@ const getRegisteredEffectPosition = (
   orientation: "landscape" | "portrait",
 ) => {
   const registeredEffect = EFFECT_REGISTRY_BY_ID.get(definition.id);
-  if (!registeredEffect || orientation === "landscape") {
+  if (!registeredEffect) {
     return { ...definition.defaultPosition };
   }
+  const canvasWidth = orientation === "portrait" ? 1080 : 1920;
+  const canvasHeight = orientation === "portrait" ? 1920 : 1080;
   if (registeredEffect.placement === "top") {
-    return { x: 0, y: 0, scale: 1080 / definition.bounds.width };
+    return { x: 0, y: 0, scale: canvasWidth / definition.bounds.width };
+  }
+  if (registeredEffect.placement === "bottom") {
+    // 底部落点：贴画布下缘、水平居中、按画布宽度自适应，横竖屏都可见
+    const scale = Math.min(1, canvasWidth / definition.bounds.width);
+    const scaledWidth = definition.bounds.width * scale;
+    const margin = orientation === "portrait" ? 64 : 44;
+    return {
+      x: Math.round((canvasWidth - scaledWidth) / 2),
+      y: Math.round(
+        canvasHeight - definition.bounds.height * scale - margin,
+      ),
+      scale,
+    };
+  }
+  if (orientation === "landscape") {
+    return { ...definition.defaultPosition };
   }
   // 竖屏 9:16：按画布宽度自适应（约 88% 画布宽），水平居中。
   // 固定 0.45 会让 700px 设计宽的卡片只占画布 29%，明显偏小。
@@ -646,15 +673,6 @@ const SRT_CARD_CYCLE = [
 const firstNumberInText = (text: string) => {
   const match = text.match(/\d+(?:[.,]\d+)?\s*(?:%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒)?/);
   return match ? match[0].replace(/\s+/g, "") : null;
-};
-
-const chunkText = (text: string, size: number) => {
-  const clean = text.replace(/[。！？!?…；;：:，,、\s]/g, "");
-  const chunks: string[] = [];
-  for (let i = 0; i < clean.length && chunks.length < 6; i += size) {
-    chunks.push(clean.slice(i, i + size));
-  }
-  return chunks;
 };
 
 type StudioPreviewProps = {
@@ -941,6 +959,10 @@ const App = () => {
   const [resizingSidebar, setResizingSidebar] = useState<"left" | "right" | null>(null);
   const [sourceIncludesVideo, setSourceIncludesVideo] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [manualTimelineEndFrame, setManualTimelineEndFrame] = useState(0);
+  const [regionInFrame, setRegionInFrame] = useState<number | null>(null);
+  const [regionOutFrame, setRegionOutFrame] = useState<number | null>(null);
+  const [exportUseRegion, setExportUseRegion] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shortcutPanelOpen, setShortcutPanelOpen] = useState(false);
   const [recordingShortcut, setRecordingShortcut] =
@@ -1030,13 +1052,23 @@ const App = () => {
       Math.max(maximum, track.startFrame + track.durationInFrames),
     0,
   );
+  const instanceTimelineFrames = instances.reduce(
+    (maximum, instance) =>
+      Math.max(maximum, instance.startFrame + instance.durationInFrames),
+    0,
+  );
   const durationInFrames = Math.max(
     1,
     videoTracks.length > 0
-      ? Math.max(videoTimelineFrames, Math.round(videoDuration * fps))
+      ? Math.max(
+          videoTimelineFrames,
+          Math.round(videoDuration * fps),
+          instanceTimelineFrames,
+        )
       : videoUrl
-        ? Math.round(videoDuration * fps)
-        : sourceFrames,
+        ? Math.max(Math.round(videoDuration * fps), instanceTimelineFrames)
+        : Math.max(sourceFrames, instanceTimelineFrames),
+    manualTimelineEndFrame,
   );
   const canvasWidth = canvasOrientation === "portrait" ? 1080 : 1920;
   const canvasHeight = canvasOrientation === "portrait" ? 1920 : 1080;
@@ -1048,6 +1080,53 @@ const App = () => {
   const exportTransparent = !mainVideoVisible;
   const playheadPercent =
     (currentFrame / Math.max(1, durationInFrames - 1)) * 100;
+
+  // 时间轴横向缩放与滚动（剪映式底部滑轨）
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const [timelineScroll, setTimelineScroll] = useState(0);
+  const timelineTracksRef = useRef<HTMLDivElement | null>(null);
+  const [trackViewportWidth, setTrackViewportWidth] = useState(0);
+  useEffect(() => {
+    const element = timelineTracksRef.current;
+    if (!element) return;
+    const update = () => {
+      const body = element.querySelector<HTMLElement>(".track-body");
+      setTrackViewportWidth(body ? body.clientWidth : element.clientWidth);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  const timelineContentWidth = Math.max(
+    1,
+    Math.round(trackViewportWidth * timelineZoom),
+  );
+  const timelineMaxScroll = Math.max(
+    0,
+    timelineContentWidth - trackViewportWidth,
+  );
+  useEffect(() => {
+    setTimelineScroll((current) =>
+      clamp(current, 0, Math.max(0, timelineContentWidth - trackViewportWidth)),
+    );
+  }, [timelineContentWidth, trackViewportWidth]);
+
+  // 默认缩放：视口约显示 12 秒，长视频自动出现可拖动的滑轨；
+  // 用户手动点过缩放按钮后不再自动覆盖。
+  const autoZoomAppliedRef = useRef(false);
+  useEffect(() => {
+    if (autoZoomAppliedRef.current || trackViewportWidth <= 0) return;
+    const target = durationInFrames / (12 * fps);
+    if (target > 1.05) {
+      autoZoomAppliedRef.current = true;
+      setTimelineZoom(clamp(Number(target.toFixed(3)), 1, 16));
+    }
+  }, [trackViewportWidth, durationInFrames, fps]);
 
   const definitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -1913,12 +1992,13 @@ const App = () => {
       durationInFrames,
       {
         position: getRegisteredEffectPosition(definition, canvasOrientation),
+        // 新效果插入到轨道列表最上方（最小序号），同时位于预览图层最前面
         trackOrder:
-          Math.max(
-            -1,
+          Math.min(
+            0,
             ...videoTracks.map((track) => track.trackOrder),
             ...instances.map((candidate) => candidate.trackOrder),
-          ) + 1,
+          ) - 1,
       },
     );
     setInstances((current) => [...current, instance]);
@@ -1992,8 +2072,13 @@ const App = () => {
       const messages: string[] = [];
       const nextInstances: MotionInstance[] = [];
       let cardCount = 0;
+      // 语义板必须拿到比视频更小的序号（低序号绘制在最上层），否则整组被视频遮挡
       let trackOrder =
-        Math.max(-1, ...videoTracks.map((track) => track.trackOrder)) + 1;
+        Math.min(
+          0,
+          ...videoTracks.map((track) => track.trackOrder),
+          ...instances.map((candidate) => candidate.trackOrder),
+        ) - 1;
 
       const srtEndSeconds = Math.max(
         ...srtEntries.map((entry) => entry.endMs),
@@ -2012,11 +2097,17 @@ const App = () => {
         }
         const accent = SRT_ACCENT_CYCLE[boardIndex % SRT_ACCENT_CYCLE.length];
         const number = firstNumberInText(board.text);
-        const chunks = chunkText(board.text, 6);
+        const segments = board.text
+          .split(/[，,。！？!?…；;：:\s]+/)
+          .filter(Boolean);
         const startFrame = Math.round((board.startMs / 1000) * fps);
         const boardFrames = Math.max(
           24,
           Math.round(((board.endMs - board.startMs) / 1000) * fps),
+        );
+        const boardAnimationSeconds = Math.min(
+          3,
+          Math.max(0.8, Number(((boardFrames / fps) * 0.45).toFixed(2))),
         );
         const totalFramesForInstance = Math.max(
           durationInFrames,
@@ -2032,17 +2123,20 @@ const App = () => {
               definition,
               canvasOrientation,
             ),
-            trackOrder: trackOrder++,
+            trackOrder: trackOrder--,
             props: {
-              title: board.text.slice(0, 12),
+              title:
+                board.text.length > 16
+                  ? `${board.text.slice(0, 16)}…`
+                  : board.text,
               subtitle: `SRT 语义板 ${boardIndex + 1}`,
-              value: number ?? chunks[0] ?? "—",
-              item1: chunks[1] ?? chunks[0] ?? "关键节点一",
-              item2: chunks[2] ?? chunks[1] ?? "关键节点二",
-              item3: chunks[3] ?? chunks[2] ?? "关键节点三",
+              value: number ?? segments[0] ?? "—",
+              item1: segments[1] ?? segments[0] ?? "关键节点一",
+              item2: segments[2] ?? segments[1] ?? "关键节点二",
+              item3: segments[3] ?? segments[2] ?? "关键节点三",
               accentColor: accent,
               secondaryColor: "#7a7d84",
-              animationSeconds: 0.9,
+              animationSeconds: boardAnimationSeconds,
             },
           },
         );
@@ -2057,6 +2151,44 @@ const App = () => {
           messages.push(`第 ${boardIndex + 1} 板时长偏短，动画节奏已压缩。`);
         }
       });
+
+      const captionDefinition = definitionMap.get("SrtSemanticCaptions");
+      if (captionDefinition && srtEntries.length > 0) {
+        const cuesPayload = srtEntries.map((entry, index) => ({
+          index: index + 1,
+          start: Number((entry.startMs / 1000).toFixed(3)),
+          end: Number((entry.endMs / 1000).toFixed(3)),
+          text: entry.text,
+        }));
+        const captionStartFrame = Math.round(
+          (srtEntries[0].startMs / 1000) * fps,
+        );
+        const captionFrames = Math.max(
+          3,
+          Math.round(srtEndSeconds * fps) - captionStartFrame,
+        );
+        nextInstances.push(
+          createInstance(
+            captionDefinition,
+            captionStartFrame,
+            captionFrames,
+            {
+              position: getRegisteredEffectPosition(
+                captionDefinition,
+                canvasOrientation,
+              ),
+              trackOrder: trackOrder--,
+              props: {
+                enabled: true,
+                cuesJson: JSON.stringify(cuesPayload),
+                accentMode: "auto",
+                showRail: true,
+              },
+            },
+          ),
+        );
+        messages.push("已叠加 1 条逐句语义字幕轨（底部常驻，14 句逐句驱动）。");
+      }
 
       const mergedEntries = srtEntries.length - boards.length;
       if (mergedEntries > 0) {
@@ -2114,6 +2246,7 @@ const App = () => {
       setVideoPreviewEnabled(false);
       setVideoName("尚未导入视频");
       setVideoDuration(6);
+      setManualTimelineEndFrame(0);
     }
     setContextMenu(null);
     setNotice({ tone: "ok", text: "已删除该视频轨道。" });
@@ -2203,16 +2336,44 @@ const App = () => {
 
   const computeLaneDropTarget = useCallback(
     (clientX: number, clientY: number, draggedLaneId: string) => {
-      const target = document
-        .elementFromPoint(clientX, clientY)
-        ?.closest<HTMLElement>("[data-lane-id]");
-      if (!target?.dataset.laneId || target.dataset.laneId === draggedLaneId) {
-        return null;
+      const all = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-lane-id]"),
+      );
+      if (all.length < 2) return null;
+
+      const lanes = all
+        .map((el) => {
+          const rect = el.getBoundingClientRect();
+          return {
+            laneId: el.dataset.laneId!,
+            top: rect.top,
+            bottom: rect.bottom,
+            height: rect.height,
+            center: rect.top + rect.height / 2,
+          };
+        })
+        .sort((a, b) => a.top - b.top);
+
+      const draggedIndex = lanes.findIndex((l) => l.laneId === draggedLaneId);
+      if (draggedIndex < 0) return null;
+
+      // 找光标 Y 最接近的那条轨道，按其中心线决定插入前/后。
+      // 落点区域是半个轨道高度，上下方向对称，也能一次跨越多条轨道。
+      let closestIndex = -1;
+      let closestDistance = Infinity;
+      for (let i = 0; i < lanes.length; i++) {
+        if (i === draggedIndex) continue;
+        const distance = Math.abs(clientY - lanes[i].center);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = i;
+        }
       }
-      const rect = target.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const placement = clientY < midY ? "before" : "after";
-      return { targetLaneId: target.dataset.laneId, placement };
+      if (closestIndex < 0) return null;
+
+      const target = lanes[closestIndex];
+      const placement = clientY < target.center ? "before" : "after";
+      return { targetLaneId: target.laneId, placement };
     },
     [],
   );
@@ -2644,6 +2805,14 @@ const App = () => {
           soundEnabled,
           instances,
           timelineDurationInFrames: durationInFrames,
+          ...(exportUseRegion &&
+          regionInFrame !== null &&
+          regionOutFrame !== null
+            ? {
+                regionStartFrame: Math.min(regionInFrame, regionOutFrame),
+                regionEndFrame: Math.max(regionInFrame, regionOutFrame),
+              }
+            : {}),
           canvasWidth,
           canvasHeight,
           transparent: exportTransparent,
@@ -2721,7 +2890,11 @@ const App = () => {
     element: HTMLElement,
   ) => {
     const bounds = element.getBoundingClientRect();
-    const ratio = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    const ratio = clamp(
+      (event.clientX - bounds.left + timelineScroll) / timelineContentWidth,
+      0,
+      1,
+    );
     const frame = clamp(
       Math.round(ratio * (durationInFrames - 1)),
       0,
@@ -2731,14 +2904,106 @@ const App = () => {
     setCurrentFrame(frame);
   };
 
+  const hScrollDragRef = useRef<{
+    startX: number;
+    startScroll: number;
+    pointerId: number;
+    barWidth: number;
+    contentWidth: number;
+    maxScroll: number;
+  } | null>(null);
+
+  const beginHScrollbarDrag = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const barRect = event.currentTarget.getBoundingClientRect();
+    const isThumb = (event.target as HTMLElement).classList.contains(
+      "timeline-hscroll-thumb",
+    );
+    let startScroll = timelineScroll;
+    if (!isThumb) {
+      const ratio = clamp(
+        (event.clientX - barRect.left) / Math.max(1, barRect.width),
+        0,
+        1,
+      );
+      startScroll = clamp(
+        ratio * timelineContentWidth - trackViewportWidth / 2,
+        0,
+        timelineMaxScroll,
+      );
+      setTimelineScroll(startScroll);
+    }
+    const dragState = {
+      startX: event.clientX,
+      startScroll,
+      pointerId: event.pointerId,
+      barWidth: Math.max(1, barRect.width),
+      contentWidth: timelineContentWidth,
+      maxScroll: timelineMaxScroll,
+    };
+    hScrollDragRef.current = dragState;
+    const move = (moveEvent: PointerEvent) => {
+      const state = hScrollDragRef.current;
+      if (!state || moveEvent.pointerId !== state.pointerId) return;
+      const dx = moveEvent.clientX - state.startX;
+      const scrollPerPixel = state.contentWidth / state.barWidth;
+      setTimelineScroll(
+        clamp(state.startScroll + dx * scrollPerPixel, 0, state.maxScroll),
+      );
+    };
+    const finish = (upEvent: PointerEvent) => {
+      if (
+        hScrollDragRef.current &&
+        upEvent.pointerId !== hScrollDragRef.current.pointerId
+      )
+        return;
+      hScrollDragRef.current = null;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
+
+  // 播放时播放头靠边则自动滚动跟随
+  useEffect(() => {
+    if (!isPlaying || trackViewportWidth <= 0) return;
+    const headX = (trackViewportWidth * playheadPercent) / 100 - timelineScroll;
+    if (headX < 0 || headX > trackViewportWidth * 0.92) {
+      setTimelineScroll(
+        clamp(
+          (trackViewportWidth * playheadPercent) / 100 -
+            trackViewportWidth * 0.3,
+          0,
+          timelineMaxScroll,
+        ),
+      );
+    }
+  }, [
+    currentFrame,
+    isPlaying,
+    playheadPercent,
+    trackViewportWidth,
+    timelineScroll,
+    timelineMaxScroll,
+  ]);
+
   const seekTimelineFromClientX = useCallback(
     (clientX: number) => {
       const timeline = timelineRef.current;
       if (!timeline) return;
       const bounds = timeline.getBoundingClientRect();
       const trackLeft = bounds.left + 84;
-      const trackWidth = Math.max(1, bounds.width - 98);
-      const ratio = clamp((clientX - trackLeft) / trackWidth, 0, 1);
+      const ratio = clamp(
+        (clientX - trackLeft + timelineScroll) / timelineContentWidth,
+        0,
+        1,
+      );
       const frame = clamp(
         Math.round(ratio * (durationInFrames - 1)),
         0,
@@ -2747,8 +3012,69 @@ const App = () => {
       playerRef.current?.seekTo(frame);
       setCurrentFrame(frame);
     },
-    [durationInFrames],
+    [durationInFrames, timelineContentWidth, timelineScroll],
   );
+
+  const frameFromClientX = useCallback(
+    (clientX: number) => {
+      const timeline = timelineRef.current;
+      if (!timeline) return 0;
+      const bounds = timeline.getBoundingClientRect();
+      const trackLeft = bounds.left + 84;
+      const ratio = clamp(
+        (clientX - trackLeft + timelineScroll) / timelineContentWidth,
+        0,
+        1,
+      );
+      return clamp(
+        Math.round(ratio * (durationInFrames - 1)),
+        0,
+        durationInFrames - 1,
+      );
+    },
+    [durationInFrames, timelineContentWidth, timelineScroll],
+  );
+
+  const regionDragRef = useRef<{
+    side: "in" | "out";
+    pointerId: number;
+  } | null>(null);
+
+  const beginRegionMarkerDrag = (side: "in" | "out") => (
+    event: React.PointerEvent,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    regionDragRef.current = { side, pointerId: event.pointerId };
+    const move = (moveEvent: PointerEvent) => {
+      const state = regionDragRef.current;
+      if (!state || moveEvent.pointerId !== state.pointerId) return;
+      const frame = frameFromClientX(moveEvent.clientX);
+      if (state.side === "in") {
+        setRegionInFrame(frame);
+        setRegionOutFrame((out) => (out !== null && out < frame ? null : out));
+      } else {
+        setRegionOutFrame(frame);
+        setRegionInFrame((inFrame) =>
+          inFrame !== null && inFrame > frame ? null : inFrame,
+        );
+      }
+    };
+    const finish = (upEvent: PointerEvent) => {
+      if (
+        !regionDragRef.current ||
+        upEvent.pointerId !== regionDragRef.current.pointerId
+      )
+        return;
+      regionDragRef.current = null;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
 
   const beginSidebarResize = (
     side: "left" | "right",
@@ -2872,7 +3198,10 @@ const App = () => {
       sourceStartFrame: track.sourceStartFrame,
       sourceDurationInFrames: track.sourceDurationInFrames,
       durationInFrames: track.durationInFrames,
-      width: event.currentTarget.closest(".track-body")?.clientWidth ?? 1,
+      width:
+        timelineContentWidth ||
+        event.currentTarget.closest(".track-body")?.clientWidth ||
+        1,
     };
   };
 
@@ -2983,6 +3312,7 @@ const App = () => {
     pointerX: number;
     startFrame: number;
     durationInFrames: number;
+    baseDurationInFrames: number;
     sourceStartFrame: number;
     width: number;
     members: Array<{
@@ -3032,13 +3362,9 @@ const App = () => {
     let collisionMinDelta = -Math.min(
       ...members.map((member) => member.startFrame),
     );
+    // 允许向右拖出当前总长：只受同轨道相邻片段约束，不再被总长锁死
     let collisionMaxDelta =
-      durationInFrames -
-      Math.max(
-        ...members.map(
-          (member) => member.startFrame + member.durationInFrames,
-        ),
-      );
+      Number.MAX_SAFE_INTEGER;
     for (const member of members) {
       const memberEnd = member.startFrame + member.durationInFrames;
       const laneNeighbors = staticInstances.filter(
@@ -3055,7 +3381,7 @@ const App = () => {
           candidate.startFrame >= memberEnd
             ? Math.min(minimum, candidate.startFrame)
             : minimum,
-        durationInFrames,
+        Number.MAX_SAFE_INTEGER,
       );
       collisionMinDelta = Math.max(
         collisionMinDelta,
@@ -3084,16 +3410,19 @@ const App = () => {
         candidate.startFrame >= activeEnd
           ? Math.min(minimum, candidate.startFrame)
           : minimum,
-      durationInFrames,
+      Number.MAX_SAFE_INTEGER,
     );
     const width =
-      event.currentTarget.closest(".track-body")?.clientWidth ?? 1;
+      timelineContentWidth ||
+      event.currentTarget.closest(".track-body")?.clientWidth ||
+      1;
     timelineDragState.current = {
       mode,
       instanceId: instance.id,
       pointerX: event.clientX,
       startFrame: instance.startFrame,
       durationInFrames: instance.durationInFrames,
+      baseDurationInFrames: durationInFrames,
       sourceStartFrame: instance.sourceStartFrame,
       width,
       members,
@@ -3112,12 +3441,19 @@ const App = () => {
   };
 
   useEffect(() => {
+    const extendTimelineTo = (endFrame: number) => {
+      setManualTimelineEndFrame((current) =>
+        endFrame > current ? Math.ceil(endFrame) : current,
+      );
+    };
     const moveTimeline = (event: PointerEvent) => {
       const state = timelineDragState.current;
       if (!state) return;
       event.preventDefault();
+      // 帧换算固定用拖拽开始时的总长，避免时间轴扩展后 delta 正反馈放大
       const deltaFrames = Math.round(
-        ((event.clientX - state.pointerX) / state.width) * durationInFrames,
+        ((event.clientX - state.pointerX) / state.width) *
+          state.baseDurationInFrames,
       );
       if (Math.abs(event.clientX - state.pointerX) > 2) {
         state.moved = true;
@@ -3127,11 +3463,12 @@ const App = () => {
         const safeDeltaFrames = clamp(
           deltaFrames,
           Math.max(-state.minStartFrame, state.collisionMinDelta),
-          Math.min(
-            durationInFrames - state.maxEndFrame,
-            state.collisionMaxDelta,
-          ),
+          state.collisionMaxDelta,
         );
+        const newMaxEnd = state.maxEndFrame + safeDeltaFrames;
+        if (newMaxEnd > durationInFrames) {
+          extendTimelineTo(newMaxEnd);
+        }
         const memberMap = new Map<
           string,
           {
@@ -3175,16 +3512,18 @@ const App = () => {
             durationInFrames: right - startFrame,
           };
         }
+        const nextDuration = clamp(
+          state.durationInFrames + deltaFrames,
+          minFrames,
+          state.nextStartFrame - state.startFrame,
+        );
+        const newEnd = state.startFrame + nextDuration;
+        if (newEnd > durationInFrames) {
+          extendTimelineTo(newEnd);
+        }
         return {
           ...instance,
-          durationInFrames: clamp(
-            state.durationInFrames + deltaFrames,
-            minFrames,
-            Math.min(
-              durationInFrames - state.startFrame,
-              state.nextStartFrame - state.startFrame,
-            ),
-          ),
+          durationInFrames: nextDuration,
         };
       });
     };
@@ -4108,6 +4447,35 @@ const App = () => {
         if (selectedVideoTrackId) removeVideoTrack(selectedVideoTrackId);
         else deleteInstances(selectionIds);
       }
+      if (action === "regionIn") {
+        setRegionInFrame(currentFrame);
+        setRegionOutFrame((out) =>
+          out !== null && out < currentFrame ? null : out,
+        );
+        setNotice({
+          tone: "ok",
+          text: `区域入点已设在 ${formatTime(currentFrame / fps)}。`,
+        });
+      }
+      if (action === "regionOut") {
+        setRegionOutFrame(currentFrame);
+        setRegionInFrame((inFrame) =>
+          inFrame !== null && inFrame > currentFrame ? null : inFrame,
+        );
+        setNotice({
+          tone: "ok",
+          text: `区域出点已设在 ${formatTime(currentFrame / fps)}。`,
+        });
+      }
+      if (action === "regionClear") {
+        if (regionInFrame === null && regionOutFrame === null) {
+          setNotice({ tone: "info", text: "当前没有区域出入点标记。" });
+        } else {
+          setRegionInFrame(null);
+          setRegionOutFrame(null);
+          setNotice({ tone: "ok", text: "已清除区域出入点标记。" });
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -4118,6 +4486,8 @@ const App = () => {
     instances,
     isPlaying,
     recordingShortcut,
+    regionInFrame,
+    regionOutFrame,
     selectedInstanceId,
     selectedInstanceIds,
     selectedVideoTrackId,
@@ -4534,29 +4904,6 @@ const App = () => {
             <DownloadSimple weight="bold" />导出整条时间轴(透明)
           </button>
 
-          <section className="reference-range-group">
-            <div className="reference-range-head">
-              <label>特效整体大小</label>
-              <b>{Math.round(globalCardScale * 100)}%</b>
-            </div>
-            <input
-              type="range"
-              min="50"
-              max="200"
-              step="1"
-              value={Math.round(globalCardScale * 100)}
-              onChange={(event) =>
-                setGlobalCardScale(Number(event.target.value) / 100)
-              }
-              title="统一缩放所有动效卡片"
-            />
-          </section>
-
-          <section className="reference-range-group">
-            <div className="reference-range-head"><label>动画速度</label><b>1.00×</b></div>
-            <input type="range" min="0" max="100" defaultValue="35" />
-          </section>
-
           <section className="reference-control-group">
             <label>全局字体</label>
             <button className="reference-select"><TextAa />思源黑体<span><CaretDown /></span></button>
@@ -4755,12 +5102,66 @@ const App = () => {
               type="button"
               className="playhead timeline-playhead"
               style={{
-                left: `calc(84px + (100% - 98px) * ${playheadPercent / 100})`,
+                left: `calc(84px + ${(
+                  (trackViewportWidth * playheadPercent) / 100 -
+                  timelineScroll
+                ).toFixed(1)}px)`,
               }}
               aria-label={`拖动播放指针，当前 ${formatTime(currentFrame / fps)}`}
               title="按住拖动播放指针"
               onPointerDown={beginPlayheadDrag}
             />
+            {regionInFrame !== null || regionOutFrame !== null
+              ? (() => {
+                  const frameToX = (frame: number) =>
+                    84 +
+                    (trackViewportWidth * frame) /
+                      Math.max(1, durationInFrames - 1) -
+                    timelineScroll;
+                  const inX = regionInFrame !== null ? frameToX(regionInFrame) : null;
+                  const outX = regionOutFrame !== null ? frameToX(regionOutFrame) : null;
+                  const bandLeft =
+                    inX !== null && outX !== null ? Math.min(inX, outX) : null;
+                  const bandWidth =
+                    inX !== null && outX !== null ? Math.abs(outX - inX) : null;
+                  return (
+                    <>
+                      {bandLeft !== null && bandWidth !== null && bandWidth > 1 ? (
+                        <div
+                          className="timeline-region-band"
+                          style={{ left: `${bandLeft.toFixed(1)}px`, width: `${bandWidth.toFixed(1)}px` }}
+                          onDoubleClick={() => {
+                            setRegionInFrame(null);
+                            setRegionOutFrame(null);
+                            setNotice({ tone: "info", text: "已清除区域出入点。" });
+                          }}
+                          title="导出区域（双击或 Alt+X 清除；按 4/5 重新设置）"
+                        />
+                      ) : null}
+                      {inX !== null ? (
+                        <button
+                          type="button"
+                          className="timeline-region-marker region-in"
+                          style={{ left: `${inX.toFixed(1)}px` }}
+                          onPointerDown={beginRegionMarkerDrag("in")}
+                          aria-label="区域入点"
+                          title="区域入点（拖动调整；播放头处按 4 重新设置）"
+                        />
+                      ) : null}
+                      {outX !== null ? (
+                        <button
+                          type="button"
+                          className="timeline-region-marker region-out"
+                          style={{ left: `${outX.toFixed(1)}px` }}
+                          onPointerDown={beginRegionMarkerDrag("out")}
+                          aria-label="区域出点"
+                          title="区域出点（拖动调整；播放头处按 5 重新设置）"
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()
+              : null}
             <div className="timeline-head">
               <div className="timeline-status">
                 <span>
@@ -4769,6 +5170,17 @@ const App = () => {
                 <span>
                   总时长 <b>{formatTime(timelineSeconds)}</b>
                 </span>
+                {regionInFrame !== null && regionOutFrame !== null ? (
+                  <span>
+                    区域{" "}
+                    <b>
+                      {formatTime(
+                        Math.min(regionInFrame, regionOutFrame) / fps,
+                      )}{" "}
+                      – {formatTime(Math.max(regionInFrame, regionOutFrame) / fps)}
+                    </b>
+                  </span>
+                ) : null}
                 <span className="timeline-card-count">
                   <b>{instances.length}</b>/50
                 </span>
@@ -4799,19 +5211,68 @@ const App = () => {
                   <Plus weight="bold" />
                 </button>
               </div>
+              <div className="timeline-height-controls" aria-label="时间轴横向缩放">
+                <button
+                  type="button"
+                  aria-label="缩小时间比例"
+                  title="缩小时间比例"
+                  onClick={() => {
+                    autoZoomAppliedRef.current = true;
+                    setTimelineZoom((zoom) =>
+                      clamp(Number((zoom / 1.25).toFixed(3)), 1, 16),
+                    );
+                  }}
+                >
+                  <Minus weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="时间比例适应窗口"
+                  title="时间比例适应窗口"
+                  onClick={() => {
+                    autoZoomAppliedRef.current = true;
+                    setTimelineZoom(1);
+                    setTimelineScroll(0);
+                  }}
+                >
+                  <ArrowsInLineVertical weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="放大时间比例"
+                  title="放大时间比例"
+                  onClick={() => {
+                    autoZoomAppliedRef.current = true;
+                    setTimelineZoom((zoom) =>
+                      clamp(Number((zoom * 1.25).toFixed(3)), 1, 16),
+                    );
+                  }}
+                >
+                  <Plus weight="bold" />
+                </button>
+              </div>
             </div>
             <div
               className="ruler"
               onClick={(event) => seekFromPointer(event, event.currentTarget)}
               title="点击跳转到此时刻"
             >
-              {Array.from({ length: 6 }, (_, index) => (
-                <span key={index} style={{ left: `${index * 20}%` }}>
-                  {formatTime((timelineSeconds * index) / 5)}
-                </span>
-              ))}
+              <div
+                className="timeline-scroll-content"
+                style={{
+                  width: timelineContentWidth,
+                  transform: `translateX(${-timelineScroll}px)`,
+                }}
+              >
+                {Array.from({ length: 6 }, (_, index) => (
+                  <span key={index} style={{ left: `${index * 20}%` }}>
+                    {formatTime((timelineSeconds * index) / 5)}
+                  </span>
+                ))}
+              </div>
             </div>
             <div
+              ref={timelineTracksRef}
               className="timeline-tracks"
               onPointerDown={beginTimelineMarquee}
             >
@@ -4911,14 +5372,22 @@ const App = () => {
                     </div>
                     <div
                       className="track-body"
-                      onClick={(event) => {
-                        if (event.target === event.currentTarget) {
-                          seekFromPointer(event, event.currentTarget);
-                        }
-                      }}
+                      style={{ overflow: "hidden", position: "relative" }}
                     >
-                      {lane.kind === "video"
-                        ? lane.clips.map((track) => (
+                      <div
+                        className="timeline-scroll-content"
+                        style={{
+                          width: timelineContentWidth,
+                          transform: `translateX(${-timelineScroll}px)`,
+                        }}
+                        onClick={(event) => {
+                          if (event.target === event.currentTarget) {
+                            seekFromPointer(event, event.currentTarget);
+                          }
+                        }}
+                      >
+                        {lane.kind === "video"
+                          ? lane.clips.map((track) => (
                             <div
                               className={`clip video-clip ${
                                 selectedVideoTrackId === track.id
@@ -5003,6 +5472,7 @@ const App = () => {
                               />
                             </div>
                           ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -5024,6 +5494,24 @@ const App = () => {
                   aria-hidden="true"
                 />
               ) : null}
+            </div>
+            <div
+              className="timeline-hscrollbar"
+              onPointerDown={beginHScrollbarDrag}
+              title="拖动滑块左右预览时间轴"
+            >
+              <div
+                className="timeline-hscroll-thumb"
+                style={{
+                  left: `${
+                    (timelineScroll / Math.max(1, timelineContentWidth)) * 100
+                  }%`,
+                  width: `${
+                    (trackViewportWidth / Math.max(1, timelineContentWidth)) *
+                    100
+                  }%`,
+                }}
+              />
             </div>
           </div>
         </section>
@@ -5065,6 +5553,127 @@ const App = () => {
           </header>
 
           <div className="reference-inspector-body">
+            <section className="reference-inspector-section">
+              <div className="reference-section-title">
+                <strong>全局控制</strong><small>GLOBAL</small>
+              </div>
+              <div className="dynamic-prop-fields">
+                <div className="reference-range-group">
+                  <div className="reference-range-head">
+                    <label>特效整体大小</label>
+                    <b>{Math.round(globalCardScale * 100)}%</b>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="1"
+                    value={Math.round(globalCardScale * 100)}
+                    onChange={(event) =>
+                      setGlobalCardScale(Number(event.target.value) / 100)
+                    }
+                    title="统一缩放所有动效卡片"
+                  />
+                </div>
+                <div className="reference-range-group">
+                  <div className="reference-range-head"><label>动画速度</label><b>1.00×</b></div>
+                  <input type="range" min="0" max="100" defaultValue="35" />
+                </div>
+              </div>
+            </section>
+            {selectedInstance &&
+            selectedDefinition &&
+            (EFFECT_REGISTRY_BY_ID.get(selectedDefinition.id)?.placement ===
+              "bottom" ||
+              selectedDefinition.id === "SrtSemanticBadge") ? (
+              <section className="reference-inspector-section">
+                <div className="reference-section-title">
+                  <strong>位置微调</strong><small>POSITION</small>
+                </div>
+                <div className="dynamic-prop-fields">
+                  <div className="reference-range-group">
+                    <div className="reference-range-head">
+                      <label>水平位置</label>
+                      <b>{Math.round(selectedInstance.position.x)}px</b>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(
+                        0,
+                        Math.round(
+                          canvasWidth -
+                            selectedDefinition.bounds.width *
+                              selectedInstance.position.scale,
+                        ),
+                      )}
+                      step={1}
+                      value={clamp(
+                        Math.round(selectedInstance.position.x),
+                        0,
+                        Math.max(
+                          0,
+                          Math.round(
+                            canvasWidth -
+                              selectedDefinition.bounds.width *
+                                selectedInstance.position.scale,
+                          ),
+                        ),
+                      )}
+                      onChange={(event) =>
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          position: {
+                            ...instance.position,
+                            x: Number(event.target.value),
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="reference-range-group">
+                    <div className="reference-range-head">
+                      <label>垂直位置</label>
+                      <b>{Math.round(selectedInstance.position.y)}px</b>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(
+                        0,
+                        Math.round(
+                          canvasHeight -
+                            selectedDefinition.bounds.height *
+                              selectedInstance.position.scale,
+                        ),
+                      )}
+                      step={1}
+                      value={clamp(
+                        Math.round(selectedInstance.position.y),
+                        0,
+                        Math.max(
+                          0,
+                          Math.round(
+                            canvasHeight -
+                              selectedDefinition.bounds.height *
+                                selectedInstance.position.scale,
+                          ),
+                        ),
+                      )}
+                      onChange={(event) =>
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          position: {
+                            ...instance.position,
+                            y: Number(event.target.value),
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : null}
             {!selectedInstance || !selectedDefinition ? (
               <div className="reference-inspector-empty">
                 在时间轴中选择组件后，可在这里修改参数。
@@ -5533,6 +6142,28 @@ const App = () => {
                 spellCheck={false}
               />
             </label>
+            {regionInFrame !== null && regionOutFrame !== null ? (
+              <label className="export-dialog-field export-dialog-checkline">
+                <input
+                  type="checkbox"
+                  checked={exportUseRegion}
+                  onChange={(event) =>
+                    setExportUseRegion(event.target.checked)
+                  }
+                />
+                <span>
+                  仅导出区域范围（
+                  {formatTime(
+                    Math.min(regionInFrame, regionOutFrame) / fps,
+                  )}{" "}
+                  –{" "}
+                  {formatTime(
+                    Math.max(regionInFrame, regionOutFrame) / fps,
+                  )}
+                  ，按 4/5 重新设置）
+                </span>
+              </label>
+            ) : null}
             <footer>
               <button onClick={() => setExportDialogOpen(false)}>取消</button>
               <button

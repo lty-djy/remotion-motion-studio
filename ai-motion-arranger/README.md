@@ -11,11 +11,13 @@ ai-motion-arranger/
 ├── SKILL.md                 # AI 编排器主文档（请勿手改）
 ├── references/
 │   ├── card-catalog.md      # 自动生成的卡片清单（AI 只能用这里登记的 id + props）
-│   └── palette.md           # 语义色板（AI 只能用这里登记的 token）
+│   ├── palette.md           # 语义色板（AI 只能用这里登记的 token）
+│   └── design-tokens.md     # 顶层设计令牌：theme（基调）/ skin（配色）/ style（骨架）/ font（字体）
 ├── scripts/
 │   ├── arranger-overlay.json        # 编排层注释（人类可读的语义）
 │   ├── registry-meta.mjs            # 技术字段（propsSchema/defaultProps/bounds）
 │   ├── generate-card-catalog.mjs    # 自动生成 references/card-catalog.md
+│   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
 │   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
 └── examples/
     ├── README.md
@@ -23,14 +25,32 @@ ai-motion-arranger/
     └── sample-manifest.json
 ```
 
+## 两层架构
+
+```
+┌─ 卡片库层 · 资产 ─────────────────────────────────┐
+│ 动效卡 = React 组件 + 注册表（registry-meta）        │
+│ 每张卡自带参数 schema → 工作台右栏面板自动生成        │
+│ 设计系统 = CSS 变量令牌：skin 管配色，style 管骨架   │
+└─────────────────────────────────────────────────┘
+               ▲ 编译消费（manifest-to-tsx）
+┌─ 编排层 · 大脑 ──────────────────────────────────┐
+│ overlayJSON = { theme, skin, style, font,         │
+│                 boards[] }                        │
+│ AI Skill 读 SRT 出 JSON —— 唯一花 token 的一一步    │
+│ lint-manifest.mjs 体检器做机械复核                  │
+└─────────────────────────────────────────────────┘
+```
+
 ## 验收标准
 
 **新会话只丢 SRT、零额外说明，能直出可用 JSON。** 这是用户给项目的 hard 要求。
 
 具体表现为：
-1. AI 读 `SKILL.md` + `references/card-catalog.md` + `references/palette.md` 即可完整工作，无需追问用户。
+1. AI 读 `SKILL.md` + `references/card-catalog.md` + `references/palette.md` + `references/design-tokens.md` 即可完整工作，无需追问用户。
 2. AI 的输出是 manifest JSON（不是 TSX），覆盖给定的硬规则输出格式（见 SKILL §9）。
-3. `node scripts/manifest-to-tsx.mjs manifest.json > package.tsx` 必须零错误生成；TSX 直接被工作台现有 `import-to-studio.ps1` 接受。
+3. `node scripts/lint-manifest.mjs manifest.json` 体检通过（error=0）。
+4. `node scripts/manifest-to-tsx.mjs manifest.json > package.tsx` 必须零错误生成；TSX 直接被工作台现有 `import-to-studio.ps1` 接受。
 
 ## 工作流
 
@@ -70,6 +90,7 @@ ai-motion-arranger/
 | 相邻 Board 主调不同 | 校验 `prevAccent === accent` 不允许 |
 | 整段视频主调去重 ∈ [2, 4] | 校验 `mainPaletteSet.size` |
 | 调色板 token 字典封闭 | `ALLOWED_ACCENT_TOKENS` / `ALLOWED_SUPPORT_TOKENS` |
+| 顶层设计令牌枚举封闭 | `ALLOWED_THEMES/SKINS/STYLES/FONTS`（编译器 + lint 双重校验） |
 | 不写 TSX、JSX、CSS、SVG | SKILL §0 强调；manifest 输出层就只有 JSON |
 | AI 看不到 component 实现 | catalog 只暴露 props/bounds，不暴露源码 |
 
@@ -80,6 +101,7 @@ ai-motion-arranger/
 | registry 新增/修改一张卡片 | `scripts/registry-meta.mjs` 加/改 + `scripts/arranger-overlay.json` 加一行 → 重跑 `generate-card-catalog.mjs` |
 | 新增一种颜色语义 | `references/palette.md` §2/§3 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_*_TOKENS` 同步 |
 | 新增/修改 Board 锚点、密度、节奏枚举 | `SKILL.md` §10 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_ANCHORS/DENSITY/RHYTHM` 同步 |
+| 新增 theme/skin/style/font 令牌 | `references/design-tokens.md` + `scripts/manifest-to-tsx.mjs` 与 `scripts/lint-manifest.mjs` 顶部枚举/预设同步 |
 | 新增编排层规则 | `SKILL.md` 全文改；`scripts/manifest-to-tsx.mjs` 校验逻辑同步 |
 
 ## 跟现有 Skill 的分工

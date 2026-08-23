@@ -1,6 +1,10 @@
 {
   "manifestVersion": "1.0",
   "generatedBy": "ai-motion-arranger/1",
+  "theme": "dark",
+  "skin": "tech-cyan",
+  "style": "glass",
+  "font": "sans",
   "fps": 30,
   "videoDurationSec": 19.4,
   "canvasOrientation": "landscape",

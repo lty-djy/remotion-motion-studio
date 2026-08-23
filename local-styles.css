@@ -1535,7 +1535,7 @@ aside {
 
 .timeline-tracks {
   position: relative;
-  height: calc(100% - 74px);
+  height: calc(100% - 100px);
   min-height: 76px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2998,4 +2998,91 @@ aside {
 
 .srt-dialog-confirm:hover:not(:disabled) {
   background: rgba(255, 78, 104, 0.24) !important;
+}
+
+/* ===== 时间轴横向滚动（剪映式底部滑轨） ===== */
+.ruler {
+  overflow: hidden;
+}
+.ruler .timeline-scroll-content {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 2% 8px;
+  background-position: left bottom;
+  background-repeat: repeat-x;
+}
+.timeline-scroll-content {
+  position: relative;
+  height: 100%;
+}
+.timeline-hscrollbar {
+  position: relative;
+  height: 12px;
+  margin: 6px 14px 8px 84px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  touch-action: none;
+  cursor: pointer;
+  flex: none;
+}
+.timeline-hscroll-thumb {
+  position: absolute;
+  top: 2px;
+  height: 8px;
+  min-width: 48px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.15s ease;
+}
+.timeline-hscroll-thumb:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+/* ===== 区域出入点（按 4 / 5 设置，用于区域导出） ===== */
+.timeline-region-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(56, 189, 248, 0.14);
+  border-left: 1px solid rgba(56, 189, 248, 0.55);
+  border-right: 1px solid rgba(56, 189, 248, 0.55);
+  pointer-events: auto;
+  z-index: 6;
+}
+.timeline-region-marker {
+  position: absolute;
+  top: 0;
+  width: 11px;
+  height: 22px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(56, 189, 248, 0.9);
+  border-radius: 3px;
+  background: #0ea5e9;
+  cursor: ew-resize;
+  padding: 0;
+  z-index: 8;
+}
+.timeline-region-marker.region-in {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 0;
+}
+.timeline-region-marker.region-out {
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 0;
+}
+.timeline-region-marker:hover {
+  background: #38bdf8;
+}
+.export-dialog-checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.export-dialog-checkline input {
+  accent-color: #38bdf8;
 }

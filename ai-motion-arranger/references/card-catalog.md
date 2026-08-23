@@ -22,18 +22,13 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 **何时使用**：整支视频作为长视频导航单独存在，不进入 boards[].cards。常通过工作台单独添加。  
 **视觉/语义**：顶部全宽章节进度条，覆盖整支视频。从口播句子里抽离出 3–6 个并列章节标题，按等分时间推进。
 
-**可编排 props（共 10 个）：**
+**可编排 props（共 5 个）：**
 
-- `enabled` — true/false；缺省 true
-- `title` — 第 1 段章节名
-- `subtitle` — 第 2 段章节名
-- `value` — 第 3 段章节名
-- `item1` — 第 4 段章节名
-- `item2` — 第 5 段章节名
-- `item3` — 第 6 段章节名
-- `animationSeconds` — 整支视频时长秒数（脚本里读 videoDurationSec 自动填入）
-- `accentColor` — 前景 token；常用 cyan / gold / violet
-- `secondaryColor` — 轨道 token；常用 support-neutral
+- `enabled` — true/false，缺省 true
+- `chapters` — 章节标题，用 | 分隔（如 开场|卖点|收尾），3–8 个为宜，数量自适应
+- `animationSeconds` — 整支视频时长（编排脚本按 videoDurationSec 自动填入）
+- `accentColor` — 前景 token（推荐 cyan / gold / violet）
+- `secondaryColor` — 轨道 token（推荐 support-neutral）
 
 ## 数字与指标
 

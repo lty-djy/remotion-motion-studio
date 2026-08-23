@@ -1192,6 +1192,18 @@ const localApi = (): Plugin => ({
           };
           renderJobSequence += 1;
           const jobId = `render-${Date.now()}-${renderJobSequence}`;
+          // 区域出入点导出：校验后转换为 Remotion frameRange
+          const regionStartRaw = Number(inputProps.regionStartFrame);
+          const regionEndRaw = Number(inputProps.regionEndFrame);
+          const regionFrameRange: [number, number] | undefined =
+            Number.isFinite(regionStartRaw) &&
+            Number.isFinite(regionEndRaw) &&
+            regionEndRaw > regionStartRaw
+              ? [Math.max(0, Math.round(regionStartRaw)), Math.round(regionEndRaw)]
+              : undefined;
+          const regionTotalFrames = regionFrameRange
+            ? regionFrameRange[1] - regionFrameRange[0] + 1
+            : null;
           const now = new Date().toISOString();
           const job: RenderJob = {
             id: jobId,
@@ -1202,7 +1214,9 @@ const localApi = (): Plugin => ({
             encodedFrames: 0,
             totalFrames: Math.max(
               1,
-              Number(inputProps.timelineDurationInFrames) || 1,
+              regionTotalFrames ||
+                Number(inputProps.timelineDurationInFrames) ||
+                1,
             ),
             estimatedRemainingMs: null,
             startedAt: now,
@@ -1265,8 +1279,11 @@ const localApi = (): Plugin => ({
                   : undefined,
               });
               updateRenderJob(job, {
-                totalFrames: composition.durationInFrames,
+                totalFrames: regionTotalFrames || composition.durationInFrames,
               });
+
+              const renderTotalFrames =
+                regionTotalFrames || composition.durationInFrames;
 
               const transparent = inputProps.transparent === true;
               const timestamp = new Date()
@@ -1323,6 +1340,7 @@ const localApi = (): Plugin => ({
                   inputProps: resolvedInputProps,
                   outputDir: framesDir,
                   imageFormat: "png",
+                  ...(regionFrameRange ? { frameRange: regionFrameRange } : {}),
                   concurrency: 4,
                   logLevel: "error",
                   browserExecutable: existsSync(systemChrome)
@@ -1336,8 +1354,7 @@ const localApi = (): Plugin => ({
                       progress: Math.min(
                         0.72,
                         0.06 +
-                          (framesRendered / composition.durationInFrames) *
-                            0.66,
+                          (framesRendered / renderTotalFrames) * 0.66,
                       ),
                       renderedFrames: framesRendered,
                     });
@@ -1366,8 +1383,7 @@ const localApi = (): Plugin => ({
                       stage: "正在用 ffmpeg 封装 ProRes 4444（含 Alpha）",
                       progress: Math.min(
                         0.92,
-                        0.74 +
-                          (frame / composition.durationInFrames) * 0.18,
+                        0.74 + (frame / renderTotalFrames) * 0.18,
                       ),
                       encodedFrames: frame,
                     });
@@ -1458,6 +1474,7 @@ const localApi = (): Plugin => ({
                 audioCodec: "pcm-16",
                 outputLocation,
                 inputProps: resolvedInputProps,
+                ...(regionFrameRange ? { frameRange: regionFrameRange } : {}),
                 browserExecutable: existsSync(systemChrome)
                   ? systemChrome
                   : undefined,
@@ -1517,8 +1534,8 @@ const localApi = (): Plugin => ({
                 status: "completed",
                 stage: "渲染完成",
                 progress: 1,
-                renderedFrames: composition.durationInFrames,
-                encodedFrames: composition.durationInFrames,
+                renderedFrames: renderTotalFrames,
+                encodedFrames: renderTotalFrames,
                 estimatedRemainingMs: 0,
                 result: {
                   fileName,
@@ -1534,7 +1551,7 @@ const localApi = (): Plugin => ({
                   width: previewStream?.width ?? composition.width,
                   height: previewStream?.height ?? composition.height,
                   fps: composition.fps,
-                  durationInFrames: composition.durationInFrames,
+                  durationInFrames: renderTotalFrames,
                   savedTo: outputLocation,
                   outputDir: requestedOutputDir,
                 },
