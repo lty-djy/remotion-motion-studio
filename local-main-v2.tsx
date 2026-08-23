@@ -15,7 +15,6 @@ import {
   CheckCircle,
   DeviceMobile,
   DownloadSimple,
-  DotsSixVertical,
   Eye,
   EyeSlash,
   FilmSlate,
@@ -347,6 +346,12 @@ type ContextMenuState = {
   groupComponentIds?: string[];
 };
 
+type LaneDropState = {
+  draggedLaneId: string;
+  targetLaneId: string;
+  placement: "before" | "after";
+};
+
 type MarqueeRect = {
   left: number;
   top: number;
@@ -514,7 +519,9 @@ const getRegisteredEffectPosition = (
   if (registeredEffect.placement === "top") {
     return { x: 0, y: 0, scale: 1080 / definition.bounds.width };
   }
-  const scale = 0.45;
+  // 竖屏 9:16：按画布宽度自适应（约 88% 画布宽），水平居中。
+  // 固定 0.45 会让 700px 设计宽的卡片只占画布 29%，明显偏小。
+  const scale = (1080 * 0.88) / definition.bounds.width;
   const scaledWidth = definition.bounds.width * scale;
   const y =
     definition.id === "QuoteLockup"
@@ -523,13 +530,131 @@ const getRegisteredEffectPosition = (
         ? 650
         : 430;
   return {
-    x:
-      registeredEffect.placement === "left"
-        ? 24
-        : 1080 - scaledWidth - 24,
+    x: Math.round((1080 - scaledWidth) / 2),
     y,
     scale,
   };
+};
+
+type SrtEntry = {
+  index: number;
+  startMs: number;
+  endMs: number;
+  text: string;
+};
+
+type SrtBoard = {
+  entries: SrtEntry[];
+  startMs: number;
+  endMs: number;
+  text: string;
+};
+
+const parseSrtTimestamp = (raw: string) => {
+  const match = raw
+    .trim()
+    .match(/^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  const millis = Number(match[4].padEnd(3, "0"));
+  return hours * 3600000 + minutes * 60000 + seconds * 1000 + millis;
+};
+
+const parseSrt = (content: string): SrtEntry[] => {
+  const blocks = content.replace(/\r\n/g, "\n").trim().split(/\n\s*\n+/);
+  const entries: SrtEntry[] = [];
+  for (const block of blocks) {
+    const lines = block.split("\n").filter((line) => line.trim() !== "");
+    if (lines.length < 2) continue;
+    const timeLineIndex = lines.findIndex((line) => line.includes("-->"));
+    if (timeLineIndex < 0) continue;
+    const [rawStart, rawEnd] = lines[timeLineIndex].split("-->");
+    const startMs = parseSrtTimestamp(rawStart ?? "");
+    const endMs = parseSrtTimestamp(rawEnd ?? "");
+    if (startMs === null || endMs === null || endMs <= startMs) continue;
+    const text = lines
+      .slice(timeLineIndex + 1)
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) continue;
+    entries.push({
+      index: entries.length + 1,
+      startMs,
+      endMs,
+      text,
+    });
+  }
+  return entries;
+};
+
+const SRT_SEMANTIC_PAUSE_MS = 350;
+
+const groupSrtBoards = (entries: SrtEntry[]): SrtBoard[] => {
+  const boards: SrtBoard[] = [];
+  let current: SrtEntry[] = [];
+  const flush = () => {
+    if (current.length === 0) return;
+    boards.push({
+      entries: current,
+      startMs: current[0].startMs,
+      endMs: current[current.length - 1].endMs,
+      text: current.map((entry) => entry.text).join(""),
+    });
+    current = [];
+  };
+  for (const entry of entries) {
+    current.push(entry);
+    const text = current.map((item) => item.text).join("");
+    const trimmedLength = text.replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g, "").length;
+    const endsSentence = /[。！？!?…；;：:]$/.test(entry.text.trim());
+    const isShort = trimmedLength < 6;
+    if (endsSentence && !isShort) flush();
+    else if (trimmedLength >= 18) flush();
+  }
+  flush();
+  return boards;
+};
+
+const SRT_ACCENT_CYCLE = [
+  "#65dff7",
+  "#8877ff",
+  "#ffc46b",
+  "#7dffb0",
+  "#ff8fab",
+];
+
+const SRT_CARD_CYCLE = [
+  "CounterTicker",
+  "MetricBar",
+  "ProgressRing",
+  "StatGrid",
+  "DeltaBadge",
+  "SegmentedMeter",
+  "DualMetricBar",
+  "PulseMetric",
+  "RadialTicks",
+  "WaveformMetric",
+  "LiquidGauge",
+  "FlipCounter",
+  "SpeedGauge",
+  "Countdown",
+];
+
+const firstNumberInText = (text: string) => {
+  const match = text.match(/\d+(?:[.,]\d+)?\s*(?:%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒)?/);
+  return match ? match[0].replace(/\s+/g, "") : null;
+};
+
+const chunkText = (text: string, size: number) => {
+  const clean = text.replace(/[。！？!?…；;：:，,、\s]/g, "");
+  const chunks: string[] = [];
+  for (let i = 0; i < clean.length && chunks.length < 6; i += size) {
+    chunks.push(clean.slice(i, i + size));
+  }
+  return chunks;
 };
 
 type StudioPreviewProps = {
@@ -542,6 +667,7 @@ type StudioPreviewProps = {
   canvasOrientation: "landscape" | "portrait";
   safetyGuideVisible: boolean;
   soundEnabled: boolean;
+  globalCardScale: number;
 };
 
 const StudioPreviewComposition = ({
@@ -554,6 +680,7 @@ const StudioPreviewComposition = ({
   canvasOrientation,
   safetyGuideVisible,
   soundEnabled,
+  globalCardScale,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -580,7 +707,7 @@ const StudioPreviewComposition = ({
         id: instance.id,
         instance,
       })),
-  ].sort((a, b) => a.order - b.order);
+  ].sort((a, b) => b.order - a.order);
 
   return (
     <AbsoluteFill>
@@ -617,7 +744,7 @@ const StudioPreviewComposition = ({
           >
             <AbsoluteFill
               style={{
-                transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale})`,
+                transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
                 transformOrigin: "0 0",
               }}
             >
@@ -767,6 +894,24 @@ const App = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
+  const [globalCardScale, setGlobalCardScale] = useState(() => {
+    const saved = localStorage.getItem("motion-studio-global-card-scale");
+    const parsed = saved ? Number(saved) : NaN;
+    return Number.isFinite(parsed) && parsed >= 0.5 && parsed <= 2
+      ? parsed
+      : 1;
+  });
+  const [srtDialogOpen, setSrtDialogOpen] = useState(false);
+  const [srtFileName, setSrtFileName] = useState("");
+  const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
+  const [srtGenerating, setSrtGenerating] = useState(false);
+  const [srtResult, setSrtResult] = useState<{
+    cardCount: number;
+    reminderCount: number;
+    boardCount: number;
+    messages: string[];
+  } | null>(null);
+  const srtInput = useRef<HTMLInputElement>(null);
   const [rendering, setRendering] = useState(false);
   const [renderProgress, setRenderProgress] =
     useState<RenderProgressState | null>(null);
@@ -831,6 +976,16 @@ const App = () => {
     laneId: string;
     pointerId: number;
   } | null>(null);
+  // 整条轨道行按下手势：先不判定意图，移动超过阈值后按主方向仲裁
+  // 纵向 → 轨道换位（剪映式）；横向 → 交给片段自身的水平拖拽
+  const laneGestureRef = useRef<{
+    laneId: string;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    resolved: "none" | "vertical" | "horizontal";
+  } | null>(null);
+  const [laneDrop, setLaneDrop] = useState<LaneDropState | null>(null);
   const historyRef = useRef<{
     past: EditHistorySnapshot[];
     present: EditHistorySnapshot | null;
@@ -1295,6 +1450,13 @@ const App = () => {
     );
   }, [leftPanelWidth, rightPanelWidth]);
 
+  useEffect(() => {
+    window.localStorage.setItem(
+      "motion-studio-global-card-scale",
+      String(globalCardScale),
+    );
+  }, [globalCardScale]);
+
   useEffect(
     () => () => {
       sidebarDragCleanupRef.current?.();
@@ -1431,6 +1593,7 @@ const App = () => {
       canvasOrientation,
       safetyGuideVisible,
       soundEnabled,
+      globalCardScale,
     }),
     [
       definitions,
@@ -1442,6 +1605,7 @@ const App = () => {
       videoPreviewEnabled,
       videoUrl,
       videoTracks,
+      globalCardScale,
     ],
   );
 
@@ -1782,6 +1946,148 @@ const App = () => {
 
   const openVideoPicker = () => videoInput.current?.click();
 
+  const openSrtOrchestrator = () => {
+    setSrtDialogOpen(true);
+  };
+
+  const openSrtPicker = () => srtInput.current?.click();
+
+  const handleSrtFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const content = await file.text();
+      const entries = parseSrt(content);
+      if (entries.length === 0) {
+        setNotice({
+          tone: "error",
+          text: "SRT 解析失败：没有识别到有效字幕条目。",
+        });
+        return;
+      }
+      setSrtFileName(file.name);
+      setSrtEntries(entries);
+      setSrtResult(null);
+      setNotice({
+        tone: "ok",
+        text: `已解析 ${file.name}：${entries.length} 条字幕。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "SRT 文件读取失败",
+      });
+    }
+  };
+
+  const generateSrtTimeline = () => {
+    if (srtEntries.length === 0) {
+      setNotice({ tone: "info", text: "请先选择一个 SRT 文件。" });
+      return;
+    }
+    setSrtGenerating(true);
+    try {
+      const boards = groupSrtBoards(srtEntries);
+      const messages: string[] = [];
+      const nextInstances: MotionInstance[] = [];
+      let cardCount = 0;
+      let trackOrder =
+        Math.max(-1, ...videoTracks.map((track) => track.trackOrder)) + 1;
+
+      const srtEndSeconds = Math.max(
+        ...srtEntries.map((entry) => entry.endMs),
+      ) / 1000;
+      if (srtEndSeconds * fps > durationInFrames) {
+        setVideoDuration((current) => Math.max(current, srtEndSeconds + 1));
+      }
+
+      boards.forEach((board, boardIndex) => {
+        const definition =
+          definitionMap.get(SRT_CARD_CYCLE[boardIndex % SRT_CARD_CYCLE.length]) ??
+          definitionMap.get("CounterTicker");
+        if (!definition) {
+          messages.push(`第 ${boardIndex + 1} 板：找不到可用卡片，已跳过。`);
+          return;
+        }
+        const accent = SRT_ACCENT_CYCLE[boardIndex % SRT_ACCENT_CYCLE.length];
+        const number = firstNumberInText(board.text);
+        const chunks = chunkText(board.text, 6);
+        const startFrame = Math.round((board.startMs / 1000) * fps);
+        const boardFrames = Math.max(
+          24,
+          Math.round(((board.endMs - board.startMs) / 1000) * fps),
+        );
+        const totalFramesForInstance = Math.max(
+          durationInFrames,
+          Math.round((srtEndSeconds + 1) * fps),
+        );
+        const instance = createInstance(
+          definition,
+          startFrame,
+          totalFramesForInstance,
+          {
+            durationInFrames: boardFrames,
+            position: getRegisteredEffectPosition(
+              definition,
+              canvasOrientation,
+            ),
+            trackOrder: trackOrder++,
+            props: {
+              title: board.text.slice(0, 12),
+              subtitle: `SRT 语义板 ${boardIndex + 1}`,
+              value: number ?? chunks[0] ?? "—",
+              item1: chunks[1] ?? chunks[0] ?? "关键节点一",
+              item2: chunks[2] ?? chunks[1] ?? "关键节点二",
+              item3: chunks[3] ?? chunks[2] ?? "关键节点三",
+              accentColor: accent,
+              secondaryColor: "#7a7d84",
+              animationSeconds: 0.9,
+            },
+          },
+        );
+        nextInstances.push(instance);
+        cardCount += 1;
+        if (!number) {
+          messages.push(
+            `第 ${boardIndex + 1} 板未识别到数字，已用关键词代替核心数值。`,
+          );
+        }
+        if (boardFrames < 45) {
+          messages.push(`第 ${boardIndex + 1} 板时长偏短，动画节奏已压缩。`);
+        }
+      });
+
+      const mergedEntries = srtEntries.length - boards.length;
+      if (mergedEntries > 0) {
+        messages.push(
+          `${srtEntries.length} 条字幕合并为 ${boards.length} 块语义板。`,
+        );
+      }
+
+      setInstances(nextInstances);
+      setSelectedInstanceId(nextInstances[0]?.id ?? "");
+      setSelectedInstanceIds(nextInstances[0] ? [nextInstances[0].id] : []);
+      setSrtResult({
+        cardCount,
+        reminderCount: messages.length,
+        boardCount: boards.length,
+        messages,
+      });
+      setNotice({
+        tone: "ok",
+        text: `生成成功：${cardCount} 个动效片段 · ${messages.length} 条提醒。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "时间轴生成失败",
+      });
+    } finally {
+      setSrtGenerating(false);
+    }
+  };
+
   const handleVideoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -1851,14 +2157,25 @@ const App = () => {
   }, []);
 
   const reorderTimelineLane = useCallback(
-    (draggedLaneId: string, targetLaneId: string) => {
+    (
+      draggedLaneId: string,
+      targetLaneId: string,
+      placement: "before" | "after" = "after",
+    ) => {
       if (!draggedLaneId || draggedLaneId === targetLaneId) return;
       const laneIds = timelineLanes.map((lane) => lane.laneId);
       const fromIndex = laneIds.indexOf(draggedLaneId);
       const targetIndex = laneIds.indexOf(targetLaneId);
       if (fromIndex < 0 || targetIndex < 0) return;
       laneIds.splice(fromIndex, 1);
-      laneIds.splice(targetIndex, 0, draggedLaneId);
+      let insertIndex = targetIndex;
+      if (fromIndex < targetIndex && placement === "before") {
+        insertIndex = Math.max(0, targetIndex - 1);
+      } else if (fromIndex > targetIndex && placement === "after") {
+        insertIndex = targetIndex + 1;
+      }
+      insertIndex = clamp(insertIndex, 0, laneIds.length);
+      laneIds.splice(insertIndex, 0, draggedLaneId);
       const orderByLane = new Map(
         laneIds.map((laneId, index) => [laneId, index]),
       );
@@ -1884,43 +2201,129 @@ const App = () => {
     [timelineLanes],
   );
 
-  const beginLaneReorder = (
-    event: React.PointerEvent<HTMLButtonElement>,
+  const computeLaneDropTarget = useCallback(
+    (clientX: number, clientY: number, draggedLaneId: string) => {
+      const target = document
+        .elementFromPoint(clientX, clientY)
+        ?.closest<HTMLElement>("[data-lane-id]");
+      if (!target?.dataset.laneId || target.dataset.laneId === draggedLaneId) {
+        return null;
+      }
+      const rect = target.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const placement = clientY < midY ? "before" : "after";
+      return { targetLaneId: target.dataset.laneId, placement };
+    },
+    [],
+  );
+
+  const beginLaneGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
     laneId: string,
   ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    draggedLaneIdRef.current = laneId;
-    laneReorderPointerRef.current = {
+    if ((event.target as HTMLElement).closest("button")) return;
+    laneGestureRef.current = {
       laneId,
       pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      resolved: "none",
     };
   };
 
   useEffect(() => {
-    const finishLaneReorder = (event: PointerEvent) => {
+    const arbitrateLaneGesture = (event: PointerEvent) => {
+      const gesture = laneGestureRef.current;
+      if (
+        !gesture ||
+        event.pointerId !== gesture.pointerId ||
+        gesture.resolved !== "none"
+      )
+        return;
+      const dx = event.clientX - gesture.startX;
+      const dy = event.clientY - gesture.startY;
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        // 纵向主导 → 升级为轨道换位，同时取消片段的水平拖拽
+        gesture.resolved = "vertical";
+        videoTimelineDragState.current = null;
+        timelineDragState.current = null;
+        draggedLaneIdRef.current = gesture.laneId;
+        laneReorderPointerRef.current = {
+          laneId: gesture.laneId,
+          pointerId: gesture.pointerId,
+        };
+        setLaneDrop({
+          draggedLaneId: gesture.laneId,
+          targetLaneId: gesture.laneId,
+          placement: "after",
+        });
+      } else {
+        // 横向主导 → 片段时间拖拽，手势结束
+        gesture.resolved = "horizontal";
+        laneGestureRef.current = null;
+      }
+    };
+    const clearLaneGesture = (event: PointerEvent) => {
+      const gesture = laneGestureRef.current;
+      if (gesture && event.pointerId === gesture.pointerId) {
+        laneGestureRef.current = null;
+      }
+    };
+    const moveLaneReorder = (event: PointerEvent) => {
+      arbitrateLaneGesture(event);
       const state = laneReorderPointerRef.current;
       if (!state || event.pointerId !== state.pointerId) return;
-      const target = document
-        .elementFromPoint(event.clientX, event.clientY)
-        ?.closest<HTMLElement>("[data-lane-id]");
-      if (target?.dataset.laneId) {
-        reorderTimelineLane(state.laneId, target.dataset.laneId);
+      const drop = computeLaneDropTarget(
+        event.clientX,
+        event.clientY,
+        state.laneId,
+      );
+      if (!drop) {
+        setLaneDrop((current) =>
+          current?.draggedLaneId === state.laneId
+            ? { draggedLaneId: state.laneId, targetLaneId: state.laneId, placement: "after" }
+            : current,
+        );
+        return;
+      }
+      setLaneDrop({
+        draggedLaneId: state.laneId,
+        targetLaneId: drop.targetLaneId,
+        placement: drop.placement,
+      });
+    };
+    const finishLaneReorder = (event: PointerEvent) => {
+      clearLaneGesture(event);
+      const state = laneReorderPointerRef.current;
+      if (!state || event.pointerId !== state.pointerId) return;
+      const drop = computeLaneDropTarget(
+        event.clientX,
+        event.clientY,
+        state.laneId,
+      );
+      if (drop) {
+        reorderTimelineLane(state.laneId, drop.targetLaneId, drop.placement);
       }
       draggedLaneIdRef.current = "";
       laneReorderPointerRef.current = null;
+      setLaneDrop(null);
     };
-    const cancelLaneReorder = () => {
+    const cancelLaneReorder = (event: PointerEvent) => {
+      clearLaneGesture(event);
       draggedLaneIdRef.current = "";
       laneReorderPointerRef.current = null;
+      setLaneDrop(null);
     };
+    window.addEventListener("pointermove", moveLaneReorder);
     window.addEventListener("pointerup", finishLaneReorder);
     window.addEventListener("pointercancel", cancelLaneReorder);
     return () => {
+      window.removeEventListener("pointermove", moveLaneReorder);
       window.removeEventListener("pointerup", finishLaneReorder);
       window.removeEventListener("pointercancel", cancelLaneReorder);
     };
-  }, [reorderTimelineLane]);
+  }, [reorderTimelineLane, computeLaneDropTarget]);
 
   const splitSelectedTracks = (instanceIds: string[]) => {
     const minFrames = Math.max(3, Math.round(fps * 0.1));
@@ -3862,6 +4265,13 @@ const App = () => {
         onChange={handleVideoFile}
         hidden
       />
+      <input
+        ref={srtInput}
+        type="file"
+        accept=".srt,text/plain"
+        onChange={handleSrtFile}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -3927,7 +4337,7 @@ const App = () => {
             {soundEnabled ? <SpeakerHigh /> : <SpeakerSlash />}
             {soundEnabled ? "声音" : "静音"}
           </button>
-          <button><UploadSimple />导入 JSON</button>
+          <button onClick={openSrtOrchestrator}><UploadSimple />导入 SRT</button>
           <button><FilmSlate />示例</button>
           <button onClick={openVideoPicker}><UploadSimple />导入视频</button>
           <button
@@ -4100,7 +4510,7 @@ const App = () => {
           <button className="reference-wide-button" onClick={openVideoPicker}><VideoCamera />导入视频</button>
 
           <div className="reference-split-actions">
-            <button><UploadSimple />导入 JSON</button>
+            <button onClick={openSrtOrchestrator}><UploadSimple />导入 SRT</button>
             <button disabled><DownloadSimple />导出</button>
           </div>
 
@@ -4125,8 +4535,21 @@ const App = () => {
           </button>
 
           <section className="reference-range-group">
-            <div className="reference-range-head"><label>特效整体大小</label><b>100%</b></div>
-            <input type="range" min="0" max="100" defaultValue="48" />
+            <div className="reference-range-head">
+              <label>特效整体大小</label>
+              <b>{Math.round(globalCardScale * 100)}%</b>
+            </div>
+            <input
+              type="range"
+              min="50"
+              max="200"
+              step="1"
+              value={Math.round(globalCardScale * 100)}
+              onChange={(event) =>
+                setGlobalCardScale(Number(event.target.value) / 100)
+              }
+              title="统一缩放所有动效卡片"
+            />
           </section>
 
           <section className="reference-range-group">
@@ -4239,19 +4662,23 @@ const App = () => {
                       style={{
                         left: `${
                           ((instance.position.x +
-                            definition.bounds.x * instance.position.scale) /
+                            definition.bounds.x *
+                              instance.position.scale *
+                              globalCardScale) /
                             canvasWidth) *
                           100
                         }%`,
                         top: `${
                           ((instance.position.y +
-                            definition.bounds.y * instance.position.scale) /
+                            definition.bounds.y *
+                              instance.position.scale *
+                              globalCardScale) /
                             canvasHeight) *
                           100
                         }%`,
                         width: `${(definition.bounds.width / canvasWidth) * 100}%`,
                         height: `${(definition.bounds.height / canvasHeight) * 100}%`,
-                        transform: `scale(${instance.position.scale})`,
+                        transform: `scale(${instance.position.scale * globalCardScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}
                       onPointerDown={(event) =>
@@ -4407,15 +4834,24 @@ const App = () => {
                 if (lane.kind === "motion" && !definition) return null;
                 const laneName =
                   lane.kind === "video" ? firstClip.name : definition!.name;
+                const isDragging = laneDrop?.draggedLaneId === lane.laneId;
+                const isDropTarget =
+                  laneDrop && laneDrop.targetLaneId === lane.laneId;
+                const isDropBefore = isDropTarget && laneDrop.placement === "before";
+                const isDropAfter = isDropTarget && laneDrop.placement === "after";
                 return (
                   <div
                     className={`timeline-track-row ${
                       lane.kind === "video"
                         ? "timeline-video-track"
                         : "motion-timeline-track"
-                    } ${laneHidden ? "is-hidden" : ""}`}
+                    } ${laneHidden ? "is-hidden" : ""} ${isDragging ? "is-dragging" : ""} ${isDropBefore ? "is-drop-before" : ""} ${isDropAfter ? "is-drop-after" : ""}`}
                     key={lane.laneId}
                     data-lane-id={lane.laneId}
+                    onPointerDownCapture={(event) =>
+                      beginLaneGesture(event, lane.laneId)
+                    }
+                    title="上下拖动轨道任意位置可换层；横向拖动片段可调时间"
                   >
                     <div
                       className={`${
@@ -4424,17 +4860,6 @@ const App = () => {
                           : "motion-track-controls"
                       } ${laneSelected ? "active" : ""}`}
                     >
-                      <button
-                        type="button"
-                        className="lane-drag-handle"
-                        aria-label={`上下拖动轨道 ${laneName}`}
-                        title="拖动可上下调整轨道顺序"
-                        onPointerDown={(event) =>
-                          beginLaneReorder(event, lane.laneId)
-                        }
-                      >
-                        <DotsSixVertical weight="bold" />
-                      </button>
                       <button
                         type="button"
                         className={
@@ -4971,6 +5396,92 @@ const App = () => {
         >
           {notice.text}
         </button>
+      ) : null}
+      {srtDialogOpen ? (
+        <div
+          className="export-dialog-layer"
+          onPointerDown={() => setSrtDialogOpen(false)}
+        >
+          <section
+            className="srt-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div className="srt-dialog-title">
+                <small>05 / SRT ORCHESTRATOR</small>
+                <strong>字幕语义匹配 · 覆盖当前时间轴</strong>
+              </div>
+              <button aria-label="关闭" onClick={() => setSrtDialogOpen(false)}>
+                <X />
+              </button>
+            </header>
+
+            <div className="srt-dialog-meta">
+              <span>
+                {srtFileName
+                  ? `${srtFileName} · ${srtEntries.length} 条字幕`
+                  : "尚未选择 SRT 文件"}
+              </span>
+              {srtResult ? (
+                <b>
+                  {srtResult.boardCount} 块语义板 · {srtResult.cardCount} 个动效片段 ·{" "}
+                  {srtResult.reminderCount} 条提醒
+                </b>
+              ) : null}
+            </div>
+
+            <div className="srt-dialog-list">
+              {srtEntries.length === 0 ? (
+                <p className="srt-dialog-empty">
+                  选择 SRT 字幕文件后，将按语义分段生成动效时间轴，
+                  并覆盖当前时间轴上的全部动效片段。
+                </p>
+              ) : (
+                srtEntries.map((entry) => (
+                  <div className="srt-dialog-row" key={entry.index}>
+                    <i>{String(entry.index).padStart(2, "0")}</i>
+                    <small>
+                      {new Date(entry.startMs)
+                        .toISOString()
+                        .substring(11, 21)
+                        .replace(".", ",")}
+                    </small>
+                    <span>{entry.text}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {srtResult && srtResult.messages.length > 0 ? (
+              <div className="srt-dialog-reminders">
+                {srtResult.messages.slice(0, 6).map((message, index) => (
+                  <p key={index}>· {message}</p>
+                ))}
+                {srtResult.messages.length > 6 ? (
+                  <p>· … 其余 {srtResult.messages.length - 6} 条省略</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <footer>
+              <button
+                className="srt-dialog-pick"
+                disabled={srtGenerating}
+                onClick={openSrtPicker}
+              >
+                <UploadSimple weight="bold" />
+                选择 SRT 文件
+              </button>
+              <button
+                className="srt-dialog-confirm"
+                disabled={srtGenerating || srtEntries.length === 0}
+                onClick={generateSrtTimeline}
+              >
+                {srtGenerating ? "生成中…" : "生成时间轴"}
+              </button>
+            </footer>
+          </section>
+        </div>
       ) : null}
       {exportDialogOpen ? (
         <div

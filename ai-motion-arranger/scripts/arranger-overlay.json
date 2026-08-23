@@ -1,0 +1,318 @@
+[
+  {
+    "id": "ChapterBar",
+    "catalogGroup": "导航与进度",
+    "category": "navigation",
+    "placement": "top",
+    "purpose": "顶部全宽章节进度条，覆盖整支视频。从口播句子里抽离出 3–6 个并列章节标题，按等分时间推进。",
+    "whenToUse": "整支视频作为长视频导航单独存在，不进入 boards[].cards。常通过工作台单独添加。",
+    "role": "navigation",
+    "preferredPalettes": ["cyan", "violet", "gold"],
+    "propsFieldSemantics": {
+      "enabled": "true/false；缺省 true",
+      "title": "第 1 段章节名",
+      "subtitle": "第 2 段章节名",
+      "value": "第 3 段章节名",
+      "item1": "第 4 段章节名",
+      "item2": "第 5 段章节名",
+      "item3": "第 6 段章节名",
+      "animationSeconds": "整支视频时长秒数（脚本里读 videoDurationSec 自动填入）",
+      "accentColor": "前景 token；常用 cyan / gold / violet",
+      "secondaryColor": "轨道 token；常用 support-neutral"
+    }
+  },
+  {
+    "id": "SpeedGauge",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "码表式核心数字。带刻度盘和指针，适合表达 0–100 的指标完成度。",
+    "whenToUse": "口播里有明确的 'A 达到 X%'、'速度 Y' 等 0–100 的数字；作为 board 的 hero 卡。",
+    "role": "hero-metric",
+    "preferredPalettes": ["cyan", "violet", "gold"],
+    "propsFieldSemantics": {
+      "title": "指标标题（中文短词）",
+      "subtitle": "副标题 / 英文标签",
+      "value": "主数值（字符串，比如 87 或 87%）",
+      "item1": "补充项一（文字列）",
+      "item2": "补充项二（文字列）",
+      "item3": "补充项三（文字列）",
+      "animationSeconds": "动画时长秒数（0.2-8）",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "CounterTicker",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "滚动累加数字，适合表达累计数、跨步增长。",
+    "whenToUse": "口播里有明确的累计数字、'已有 X 万用户' 之类。",
+    "role": "hero-metric",
+    "preferredPalettes": ["cyan", "violet", "amber"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "起始到目标的数字范围，由 useCurrentFrame 推出；填目标字符串",
+      "item1": "补充项一",
+      "item2": "补充项二",
+      "item3": "补充项三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "StatGrid",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "2×2 矩阵指标。适合一次性表达 4 个并列指标。",
+    "whenToUse": "口播里一连提到 4 个并列指标 / 4 个步骤要点。",
+    "role": "balanced-set",
+    "preferredPalettes": ["cyan", "violet", "teal", "lime"],
+    "propsFieldSemantics": {
+      "title": "主标题",
+      "subtitle": "副标题/英文标签",
+      "value": "第一格主值",
+      "item1": "第二格内容",
+      "item2": "第三格内容",
+      "item3": "第四格内容",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "ProgressRing",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "环形进度，3 行补充说明在右。适合表达完成度 + 3 条关键说明。",
+    "whenToUse": "口播里 '完成率 X%' + 三条文字补充。",
+    "role": "hero-metric",
+    "preferredPalettes": ["cyan", "violet", "lime"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "百分比（0-100 字符串）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "DeltaBadge",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "涨跌标签 + 大数字。适合表达同比/环比/增长趋势。",
+    "whenToUse": "口播里 '增长 X%' / '下跌 X%' / '同比增加'。",
+    "role": "trend",
+    "preferredPalettes": ["amber", "rose", "lime"],
+    "propsFieldSemantics": {
+      "title": "维度名（同比/环比）",
+      "subtitle": "副标题 / 英文标签",
+      "value": "变动数字（带正负号，例如 24.6）",
+      "item1": "上下文一行",
+      "item2": "上下文二行（可留空）",
+      "item3": "上下文三行（可留空）",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token（升为 amber / lime，降为 rose）",
+      "secondaryColor": "support token（success / danger 视方向）"
+    }
+  },
+  {
+    "id": "Countdown",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "center-stage",
+    "purpose": "倒计时 / 大数字翻转。适合表达阶段倒计时、即时数字。",
+    "whenToUse": "口播里 '还有 X 秒' / '第 N 阶段倒计时' / 数字封顶。",
+    "role": "anchor",
+    "preferredPalettes": ["rose", "amber", "cyan"],
+    "propsFieldSemantics": {
+      "title": "阶段标签（中文，可留空）",
+      "subtitle": "副标题 / 英文标签（必填）",
+      "value": "起算数字（≥ 0 数字串）",
+      "item1": "补充说明一（可留空）",
+      "item2": "补充说明二（可留空）",
+      "item3": "补充说明三（可留空）",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "MetricBar",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "紧凑横向条形指标 + 目标刻度。适合 2–3 条并列子项对比。",
+    "whenToUse": "口播里 '速度 A / 质量 B / 稳定 C' 类的 2–3 条并列子项。",
+    "role": "balanced-set",
+    "preferredPalettes": ["cyan", "violet", "teal", "lime"],
+    "propsFieldSemantics": {
+      "title": "主标题",
+      "subtitle": "副标题/英文标签",
+      "value": "主条形 0–100（数字串）",
+      "item1": "第 1 子项标签",
+      "item2": "第 2 子项标签",
+      "item3": "第 3 子项标签",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "SegmentedMeter",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "分段容量槽。适合表达能量/电池/性能等级。",
+    "whenToUse": "口播里 '容量 X%' / '性能 Y 级' / 阈值暗示。",
+    "role": "balanced-set",
+    "preferredPalettes": ["cyan", "amber", "rose"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "百分比 0–100（数字串）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "DualMetricBar",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "A/B 双向条形差异对比。中心基线两侧分别表达 A 和 B。",
+    "whenToUse": "口播里明确对比 A vs B / 两者差距。",
+    "role": "compare",
+    "preferredPalettes": ["violet", "cyan", "amber"],
+    "propsFieldSemantics": {
+      "title": "对比标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "差值数字（带正负号字符串，比如 -20）",
+      "item1": "A 侧标签 + 数字（用 item1 表达 A）",
+      "item2": "B 侧标签 + 数字（用 item2 表达 B）",
+      "item3": "补充说明（可留空）",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "FlipCounter",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "center-stage",
+    "purpose": "机械翻牌数字。适合表达大整数（千、万、亿）。",
+    "whenToUse": "口播里 '已经有 X 用户' / '数量突破 Y 万'。",
+    "role": "anchor",
+    "preferredPalettes": ["cyan", "amber", "violet"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "数量字符串（含千分位）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "WaveformMetric",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "实时波形 + 当前读数。适合表达吞吐/信号/帧率。",
+    "whenToUse": "口播里 '实时吞吐 X / 秒' / 连续信号流。",
+    "role": "live-metric",
+    "preferredPalettes": ["cyan", "violet", "teal"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "当前读数（数字串 ≥ 0）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "LiquidGauge",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "液态填充式百分比。适合完成率、留存、口径充满度。",
+    "whenToUse": "口播里 '存量已达 X%' / '覆盖率 Y'。",
+    "role": "hero-metric",
+    "preferredPalettes": ["cyan", "teal", "lime", "amber"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "百分比 0–100（数字串）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "RadialTicks",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "HUD 刻度环 + 中心数字。适合科技感读数 / 角度感。",
+    "whenToUse": "口播里偏 HUD / 飞行仪表 / 角度读数感的内容。",
+    "role": "hero-metric",
+    "preferredPalettes": ["cyan", "violet", "teal"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "百分比 0–100（数字串）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  },
+  {
+    "id": "PulseMetric",
+    "catalogGroup": "数字与指标",
+    "category": "metric",
+    "placement": "left",
+    "purpose": "心电式脉冲线 + 状态峰值。适合表达实时状态 / 突发告警。",
+    "whenToUse": "口播里 '此刻实时心跳' / '告警脉冲'。",
+    "role": "live-metric",
+    "preferredPalettes": ["cyan", "rose", "amber"],
+    "propsFieldSemantics": {
+      "title": "标题",
+      "subtitle": "副标题 / 英文标签",
+      "value": "当前值（数字串）",
+      "item1": "补充说明一",
+      "item2": "补充说明二",
+      "item3": "补充说明三",
+      "animationSeconds": "动画时长",
+      "accentColor": "accent token",
+      "secondaryColor": "support token"
+    }
+  }
+]

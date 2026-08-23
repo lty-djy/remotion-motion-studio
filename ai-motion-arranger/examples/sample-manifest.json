@@ -1,0 +1,177 @@
+{
+  "manifestVersion": "1.0",
+  "generatedBy": "ai-motion-arranger/1",
+  "fps": 30,
+  "videoDurationSec": 19.4,
+  "canvasOrientation": "landscape",
+  "boards": [
+    {
+      "id": "board-001",
+      "voiceSegmentId": "srt:1",
+      "voiceText": "大家好，今天我们来聊一聊 AI 数字人 半年内能跑出什么成绩",
+      "voiceStartSec": 0.0,
+      "voiceEndSec": 2.4,
+      "startFrame": 0,
+      "endFrame": 72,
+      "durationInFrames": 72,
+      "board": {
+        "anchor": "left-bottom",
+        "palette": { "accent": "cyan", "support": "support-neutral" },
+        "density": "balanced",
+        "rhythm": "single",
+        "backgroundOpacity": 0.78
+      },
+      "cards": [
+        {
+          "id": "SpeedGauge",
+          "props": {
+            "title": "整体成绩",
+            "subtitle": "OVERALL SCORE",
+            "value": 92,
+            "item1": "推理 92",
+            "item2": "稳定 99",
+            "item3": "成本 66",
+            "animationSeconds": 2.0,
+            "accentColor": "cyan",
+            "secondaryColor": "support-neutral"
+          }
+        }
+      ]
+    },
+    {
+      "id": "board-002",
+      "voiceSegmentId": "srt:2+srt:3",
+      "voiceText": "我们的推理吞吐提升了百分之四十二 比上一代快了将近一半；延迟压到了二十毫秒以内 相比竞品低了整整一半",
+      "voiceStartSec": 2.4,
+      "voiceEndSec": 8.5,
+      "startFrame": 72,
+      "endFrame": 255,
+      "durationInFrames": 183,
+      "board": {
+        "anchor": "left-bottom",
+        "palette": { "accent": "amber", "support": "success" },
+        "density": "rich",
+        "rhythm": "staggered",
+        "backgroundOpacity": 0.82
+      },
+      "cards": [
+        {
+          "id": "DeltaBadge",
+          "props": {
+            "title": "推理吞吐",
+            "subtitle": "VS LAST GEN",
+            "value": 42,
+            "item1": "较上代增长",
+            "item2": "",
+            "item3": "",
+            "animationSeconds": 1.4,
+            "accentColor": "amber",
+            "secondaryColor": "success"
+          }
+        },
+        {
+          "id": "DualMetricBar",
+          "props": {
+            "title": "延迟对比",
+            "subtitle": "LATENCY",
+            "value": -20,
+            "item1": "竞品 38ms",
+            "item2": "我们 18ms",
+            "item3": "",
+            "animationSeconds": 1.6,
+            "accentColor": "amber",
+            "secondaryColor": "support-neutral"
+          }
+        }
+      ]
+    },
+    {
+      "id": "board-003",
+      "voiceSegmentId": "srt:4",
+      "voiceText": "线上服务连续七天一直稳定 峰值吞吐每分钟一千二百帧",
+      "voiceStartSec": 8.5,
+      "voiceEndSec": 11.8,
+      "startFrame": 255,
+      "endFrame": 354,
+      "durationInFrames": 99,
+      "board": {
+        "anchor": "right-bottom",
+        "palette": { "accent": "violet", "support": "support-neutral" },
+        "density": "balanced",
+        "rhythm": "single",
+        "backgroundOpacity": 0.78
+      },
+      "cards": [
+        {
+          "id": "WaveformMetric",
+          "props": {
+            "title": "实时吞吐",
+            "subtitle": "PEAK 1,200 RPM",
+            "value": 1200,
+            "item1": "7 天稳定",
+            "item2": "峰值 1,200",
+            "item3": "",
+            "animationSeconds": 1.5,
+            "accentColor": "violet",
+            "secondaryColor": "support-neutral"
+          }
+        }
+      ]
+    },
+    {
+      "id": "board-004",
+      "voiceSegmentId": "srt:5+srt:6",
+      "voiceText": "整体运行完成度已经突破了九成 成本还比去年低了三分之一；这就是数字人的速度 让复杂的信息一眼就能懂",
+      "voiceStartSec": 11.8,
+      "voiceEndSec": 19.4,
+      "startFrame": 354,
+      "endFrame": 582,
+      "durationInFrames": 228,
+      "board": {
+        "anchor": "left-bottom",
+        "palette": { "accent": "lime", "support": "success" },
+        "density": "rich",
+        "rhythm": "staggered",
+        "backgroundOpacity": 0.85
+      },
+      "cards": [
+        {
+          "id": "ProgressRing",
+          "props": {
+            "title": "完成度",
+            "subtitle": "OVERALL",
+            "value": 92,
+            "item1": "覆盖率 92%",
+            "item2": "稳定性 99%",
+            "item3": "故障率 0.4%",
+            "animationSeconds": 1.8,
+            "accentColor": "lime",
+            "secondaryColor": "support-neutral"
+          }
+        },
+        {
+          "id": "MetricBar",
+          "props": {
+            "title": "成本对比",
+            "subtitle": "VS LAST YEAR",
+            "value": 66,
+            "item1": "推理 -34%",
+            "item2": "训练 -28%",
+            "item3": "运维 -22%",
+            "animationSeconds": 1.6,
+            "accentColor": "lime",
+            "secondaryColor": "success"
+          }
+        }
+      ]
+    }
+  ],
+  "selfCheck": {
+    "cardIdsAllInCatalog": true,
+    "colorTokensAllInPalette": true,
+    "noBannedFields": true,
+    "boardsWithinDuration": true,
+    "palettesUsedCount": 4,
+    "mainPalettesPerBoardDistinct": true
+  }
+}
