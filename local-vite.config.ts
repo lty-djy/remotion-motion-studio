@@ -853,11 +853,8 @@ const localApi = (): Plugin => {
       Date.now() <= suppressEffectSourceHmrUntil &&
       isEffectSourcePath(options.file)
     ) {
-<<<<<<< Updated upstream
-=======
       // Keep the current browser state, but invalidate the server cache so a
       // newly opened page receives the registry after the deletion.
->>>>>>> Stashed changes
       for (const module of options.modules) {
         this.environment.moduleGraph.invalidateModule(
           module,

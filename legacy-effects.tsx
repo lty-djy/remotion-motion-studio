@@ -18,11 +18,7 @@ type LegacyProps = {
 type LegacySpec = readonly [string, string, string, string, string];
 
 const legacyGroups: ReadonlyArray<readonly [string, string, readonly LegacySpec[]]> = [
-<<<<<<< Updated upstream
-  ["数字与指标", "metric", [   ["ProgressRing", "环形进度", "环形完成率和阶段反馈", "◔", "76%"], ["DeltaBadge", "涨跌标签", "环比、同比和涨跌提示", "+24%", "+24.6%"], ["Countdown", "倒计时", "倒计时和阶段切换", "03", "03"],  ["SegmentedMeter", "分段能量条", "分段式容量、性能和能量指示", "▮▮▮", "75%"], ["DualMetricBar", "双向指标差异", "双向指标差异和竞争关系", "⇆", "+42%"], ["FlipCounter", "翻牌数字", "机械翻牌式核心数字", "8:8", "12,804"], ["WaveformMetric", "波形指标", "连续波形和实时吞吐读数", "∿", "128/s"], ["LiquidGauge", "液态仪表", "液态填充式完成率仪表", "≈", "68%"], ["RadialTicks", "HUD 刻度环", "科技 HUD 刻度与中心读数", "◎", "92%"], ["PulseMetric", "实时脉冲", "心电式实时状态脉冲", "⌁", "LIVE"]]],
-=======
-  ["数字与指标", "metric", [   ["ProgressRing", "环形进度", "环形完成率和阶段反馈", "◔", "76%"],  ["Countdown", "倒计时", "倒计时和阶段切换", "03", "03"], ["MetricBar", "条形指标图", "紧凑型条形指标和目标刻度", "BAR+", "84%"], ["SegmentedMeter", "分段能量条", "分段式容量、性能和能量指示", "▮▮▮", "75%"], ["DualMetricBar", "双向指标差异", "双向指标差异和竞争关系", "⇆", "+42%"], ["FlipCounter", "翻牌数字", "机械翻牌式核心数字", "8:8", "12,804"], ["WaveformMetric", "波形指标", "连续波形和实时吞吐读数", "∿", "128/s"], ["LiquidGauge", "液态仪表", "液态填充式完成率仪表", "≈", "68%"], ["RadialTicks", "HUD 刻度环", "科技 HUD 刻度与中心读数", "◎", "92%"], ["PulseMetric", "实时脉冲", "心电式实时状态脉冲", "⌁", "LIVE"]]],
->>>>>>> Stashed changes
+  ["数字与指标", "metric", [   ["ProgressRing", "环形进度", "环形完成率和阶段反馈", "◔", "76%"], ["Countdown", "倒计时", "倒计时和阶段切换", "03", "03"], ["SegmentedMeter", "分段能量条", "分段式容量、性能和能量指示", "▮▮▮", "75%"], ["DualMetricBar", "双向指标差异", "双向指标差异和竞争关系", "⇆", "+42%"], ["FlipCounter", "翻牌数字", "机械翻牌式核心数字", "8:8", "12,804"], ["WaveformMetric", "波形指标", "连续波形和实时吞吐读数", "∿", "128/s"], ["LiquidGauge", "液态仪表", "液态填充式完成率仪表", "≈", "68%"], ["RadialTicks", "HUD 刻度环", "科技 HUD 刻度与中心读数", "◎", "92%"], ["PulseMetric", "实时脉冲", "心电式实时状态脉冲", "⌁", "LIVE"]]],
   ["图表与比较", "chart", [       ]],
   ["文字与叙事", "text", [       ]],
   ["图片、视频与证据", "media", [      ]],
