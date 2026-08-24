@@ -3090,6 +3090,15 @@ aside {
   background: rgba(101, 223, 247, 0.18);
 }
 
+.component-context-menu .group-rename-action {
+  color: #c7a5ff;
+  background: rgba(139, 119, 255, 0.13);
+}
+
+.component-context-menu .group-rename-action:hover {
+  background: rgba(139, 119, 255, 0.22);
+}
+
 .component-context-menu .delete-action {
   margin-top: 5px;
   color: #ff8294;
