@@ -1089,12 +1089,19 @@ const App = () => {
   const [timelineScroll, setTimelineScroll] = useState(0);
   const timelineTracksRef = useRef<HTMLDivElement | null>(null);
   const [trackViewportWidth, setTrackViewportWidth] = useState(0);
+  const [trackOffsetLeft, setTrackOffsetLeft] = useState(84);
   useEffect(() => {
     const element = timelineTracksRef.current;
     if (!element) return;
     const update = () => {
       const body = element.querySelector<HTMLElement>(".track-body");
       setTrackViewportWidth(body ? body.clientWidth : element.clientWidth);
+      const container = timelineRef.current;
+      if (body && container) {
+        setTrackOffsetLeft(
+          body.getBoundingClientRect().left - container.getBoundingClientRect().left,
+        );
+      }
     };
     update();
     const observer = new ResizeObserver(update);
@@ -3016,11 +3023,11 @@ const App = () => {
   // 播放时播放头靠边则自动滚动跟随
   useEffect(() => {
     if (!isPlaying || trackViewportWidth <= 0) return;
-    const headX = (trackViewportWidth * playheadPercent) / 100 - timelineScroll;
+    const headX = (timelineContentWidth * playheadPercent) / 100 - timelineScroll;
     if (headX < 0 || headX > trackViewportWidth * 0.92) {
       setTimelineScroll(
         clamp(
-          (trackViewportWidth * playheadPercent) / 100 -
+          (timelineContentWidth * playheadPercent) / 100 -
             trackViewportWidth * 0.3,
           0,
           timelineMaxScroll,
@@ -3031,6 +3038,7 @@ const App = () => {
     currentFrame,
     isPlaying,
     playheadPercent,
+    timelineContentWidth,
     trackViewportWidth,
     timelineScroll,
     timelineMaxScroll,
@@ -3041,7 +3049,7 @@ const App = () => {
       const timeline = timelineRef.current;
       if (!timeline) return;
       const bounds = timeline.getBoundingClientRect();
-      const trackLeft = bounds.left + 84;
+      const trackLeft = bounds.left + trackOffsetLeft;
       const ratio = clamp(
         (clientX - trackLeft + timelineScroll) / timelineContentWidth,
         0,
@@ -3055,7 +3063,7 @@ const App = () => {
       playerRef.current?.seekTo(frame);
       setCurrentFrame(frame);
     },
-    [durationInFrames, timelineContentWidth, timelineScroll],
+    [durationInFrames, timelineContentWidth, timelineScroll, trackOffsetLeft],
   );
 
   const frameFromClientX = useCallback(
@@ -3063,7 +3071,7 @@ const App = () => {
       const timeline = timelineRef.current;
       if (!timeline) return 0;
       const bounds = timeline.getBoundingClientRect();
-      const trackLeft = bounds.left + 84;
+      const trackLeft = bounds.left + trackOffsetLeft;
       const ratio = clamp(
         (clientX - trackLeft + timelineScroll) / timelineContentWidth,
         0,
@@ -3075,7 +3083,7 @@ const App = () => {
         durationInFrames - 1,
       );
     },
-    [durationInFrames, timelineContentWidth, timelineScroll],
+    [durationInFrames, timelineContentWidth, timelineScroll, trackOffsetLeft],
   );
 
   const regionDragRef = useRef<{
@@ -4730,6 +4738,24 @@ const App = () => {
         onChange={handleSrtFile}
         hidden
       />
+      <input
+        ref={componentInput}
+        type="file"
+        accept=".tsx,text/plain"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          importComponent(file).catch((error) => {
+            setNotice({
+              tone: "error",
+              text:
+                error instanceof Error ? error.message : "TSX 组件导入失败",
+            });
+          });
+        }}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -4968,8 +4994,17 @@ const App = () => {
           <button className="reference-wide-button" onClick={openVideoPicker}><VideoCamera />导入视频</button>
 
           <div className="reference-split-actions">
-            <button onClick={openSrtOrchestrator}><UploadSimple />导入 SRT</button>
-            <button disabled><DownloadSimple />导出</button>
+            <button
+              onClick={() => componentInput.current?.click()}
+              title="导入 .tsx 组件包，按 MOTION_TIMELINE 预设生成轨道"
+            >
+              <UploadSimple />
+              导入 TSX 效果
+            </button>
+            <button disabled>
+              <DownloadSimple />
+              导出
+            </button>
           </div>
 
           <label className="reference-checkline">
@@ -5190,8 +5225,8 @@ const App = () => {
               type="button"
               className="playhead timeline-playhead"
               style={{
-                left: `calc(84px + ${(
-                  (trackViewportWidth * playheadPercent) / 100 -
+                left: `calc(${trackOffsetLeft}px + ${(
+                  (timelineContentWidth * playheadPercent) / 100 -
                   timelineScroll
                 ).toFixed(1)}px)`,
               }}
@@ -5202,8 +5237,8 @@ const App = () => {
             {regionInFrame !== null || regionOutFrame !== null
               ? (() => {
                   const frameToX = (frame: number) =>
-                    84 +
-                    (trackViewportWidth * frame) /
+                    trackOffsetLeft +
+                    (timelineContentWidth * frame) /
                       Math.max(1, durationInFrames - 1) -
                     timelineScroll;
                   const inX = regionInFrame !== null ? frameToX(regionInFrame) : null;
@@ -5342,7 +5377,7 @@ const App = () => {
             </div>
             <div
               className="ruler"
-              onClick={(event) => seekFromPointer(event, event.currentTarget)}
+              onClick={(event) => seekTimelineFromClientX(event.clientX)}
               title="点击跳转到此时刻"
             >
               <div
@@ -5486,7 +5521,10 @@ const App = () => {
                         }}
                         onClick={(event) => {
                           if (event.target === event.currentTarget) {
-                            seekFromPointer(event, event.currentTarget);
+                            const body = event.currentTarget.parentElement;
+                            if (body) {
+                              seekFromPointer(event, body as HTMLElement);
+                            }
                           }
                         }}
                       >
