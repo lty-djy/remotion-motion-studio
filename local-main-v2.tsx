@@ -1269,10 +1269,12 @@ const App = () => {
     const availableGroupIds = new Set(groups.map((group) => group.id));
     const sourceByComponentId = new Map<string, string>();
     const items = BUILT_IN_CATALOG.flatMap((group) =>
-      group.items.map((item) => {
-        sourceByComponentId.set(item.ids[0], group.id);
-        return item;
-      }),
+      group.items
+        .filter((item) => definitionMap.has(item.ids[0]))
+        .map((item) => {
+          sourceByComponentId.set(item.ids[0], group.id);
+          return item;
+        }),
     );
     for (const item of items) {
       const sourceGroupId = sourceByComponentId.get(item.ids[0]) ?? "";
@@ -1284,7 +1286,7 @@ const App = () => {
       target?.items.push(item);
     }
     return groups;
-  }, [customCatalogGroups, effectGroupAssignments]);
+  }, [customCatalogGroups, definitionMap, effectGroupAssignments]);
   const catalogDefinitionMap = useMemo(() => {
     const resolved = new Map<string, MotionComponentDefinition>();
     for (const category of effectCatalog) {
@@ -4526,7 +4528,6 @@ const App = () => {
         });
       }
       setNotice({ tone: "ok", text: `已彻底删除分组“${groupName}”。` });
-      window.setTimeout(() => window.location.reload(), 250);
     } catch (error) {
       setNotice({
         tone: "error",
@@ -4562,7 +4563,6 @@ const App = () => {
         return next;
       });
       setNotice({ tone: "ok", text: "已删除效果源码及全部时间轴实例。" });
-      window.setTimeout(() => window.location.reload(), 250);
     } catch (error) {
       setNotice({
         tone: "error",

@@ -825,13 +825,54 @@ const serveFile = (
   createReadStream(filePath, { start, end }).pipe(res);
 };
 
-const localApi = (): Plugin => ({
+const localApi = (): Plugin => {
+  let suppressEffectSourceHmrUntil = 0;
+  const normalizeWatchPath = (file: string) =>
+    resolve(file).replace(/\\/g, "/").toLocaleLowerCase("en-US");
+  const normalizedEffectRegistryPath = normalizeWatchPath(effectRegistryPath);
+  const normalizedLegacyEffectsPath = normalizeWatchPath(legacyEffectsPath);
+  const normalizedActiveComponentPath = normalizeWatchPath(activeComponentPath);
+  const effectSourcePathPrefixes = [
+    `${normalizeWatchPath(join(rootDir, "effects"))}/`,
+    `${normalizeWatchPath(componentStoreDir)}/`,
+  ];
+  const isEffectSourcePath = (file: string) => {
+    const normalizedFile = normalizeWatchPath(file);
+    return (
+      normalizedFile === normalizedEffectRegistryPath ||
+      normalizedFile === normalizedLegacyEffectsPath ||
+      normalizedFile === normalizedActiveComponentPath ||
+      effectSourcePathPrefixes.some((prefix) => normalizedFile.startsWith(prefix))
+    );
+  };
+
+  return {
   name: "motion-studio-local-api",
+  hotUpdate(options) {
+    if (
+      Date.now() <= suppressEffectSourceHmrUntil &&
+      isEffectSourcePath(options.file)
+    ) {
+      for (const module of options.modules) {
+        this.environment.moduleGraph.invalidateModule(
+          module,
+          undefined,
+          options.timestamp,
+          true,
+        );
+      }
+      return [];
+    }
+  },
   configureServer(server) {
     mkdirSync(mediaDir, { recursive: true });
     mkdirSync(projectDir, { recursive: true });
     mkdirSync(renderDir, { recursive: true });
     mkdirSync(componentStoreDir, { recursive: true });
+    const withoutEffectSourceHotReload = async <T>(operation: () => Promise<T>) => {
+      suppressEffectSourceHmrUntil = Date.now() + 2_000;
+      return operation();
+    };
     server.middlewares.use(async (req, res, next) => {
       try {
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
@@ -847,9 +888,11 @@ const localApi = (): Plugin => ({
           if (!body.componentId || !/^[A-Za-z0-9_-]+$/.test(body.componentId)) {
             throw new Error("效果标识无效");
           }
-          const deleted = body.imported
-            ? await deleteImportedEffectSource(body.componentId)
-            : await deleteRegisteredEffectSource(body.componentId);
+          const deleted = await withoutEffectSourceHotReload(() =>
+            body.imported
+              ? deleteImportedEffectSource(body.componentId)
+              : deleteRegisteredEffectSource(body.componentId),
+          );
           sendJson(res, 200, { ok: true, componentId: body.componentId, ...deleted });
           return;
         }
@@ -874,13 +917,16 @@ const localApi = (): Plugin => ({
           if (componentIds.length === 0 || componentIds.length > 100) {
             throw new Error("分组内没有可删除的注册效果");
           }
-          const deleted = [];
-          for (const componentId of componentIds) {
-            deleted.push({
-              componentId,
-              ...(await deleteRegisteredEffectSource(componentId)),
-            });
-          }
+          const deleted = await withoutEffectSourceHotReload(async () => {
+            const results = [];
+            for (const componentId of componentIds) {
+              results.push({
+                componentId,
+                ...(await deleteRegisteredEffectSource(componentId)),
+              });
+            }
+            return results;
+          });
           sendJson(res, 200, { ok: true, deleted });
           return;
         }
@@ -1652,7 +1698,8 @@ const localApi = (): Plugin => ({
       }
     });
   },
-});
+  };
+};
 
 export default defineConfig({
   plugins: [react(), localApi()],
