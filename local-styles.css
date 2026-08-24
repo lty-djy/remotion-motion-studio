@@ -16,7 +16,7 @@ body {
   margin: 0;
   min-width: 1180px;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 button,
@@ -181,6 +181,150 @@ main.is-resizing-sidebar * {
   background: #101113;
   font-size: 13px;
   cursor: default;
+}
+
+.code-template-panel {
+  display: flex;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 9px;
+  overflow: hidden;
+  padding: 14px 12px 12px;
+  color: #dfe0e5;
+  background: #111217;
+}
+
+.code-template-panel header {
+  display: grid;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.code-template-panel header small {
+  color: #9d77ff;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .16em;
+}
+
+.code-template-panel header strong {
+  font-size: 16px;
+}
+
+.code-template-panel header span,
+.code-template-panel > p {
+  color: #8f929c;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.code-template-panel > label {
+  display: grid;
+  gap: 7px;
+  flex: 0 0 auto;
+  color: #b9bbc4;
+  font-size: 12px;
+}
+
+.code-template-panel input,
+.code-template-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #343640;
+  border-radius: 6px;
+  color: #e8e9ee;
+  background: #0b0c10;
+  outline: none;
+}
+
+.code-template-panel input {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.code-template-panel textarea {
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
+  resize: none;
+  padding: 11px;
+  font: 11px/1.55 Consolas, "SFMono-Regular", monospace;
+  tab-size: 2;
+}
+
+.code-template-panel input:focus,
+.code-template-panel textarea:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, .16);
+}
+
+.code-template-editor {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+.code-template-panel > .code-template-editor {
+  flex: 0 0 auto;
+}
+
+.code-editor-resize-handle {
+  height: 14px;
+  flex: 0 0 14px;
+  display: grid;
+  place-items: center;
+  margin-top: -1px;
+  padding: 0;
+  border: 1px solid #343640;
+  border-radius: 0 0 6px 6px;
+  color: #858893;
+  background: #15161c;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.code-editor-resize-handle i {
+  width: 34px;
+  height: 3px;
+  border-radius: 99px;
+  background: currentColor;
+}
+
+.code-editor-resize-handle:hover,
+.code-editor-resize-handle:focus-visible {
+  color: #c9b8ff;
+  border-color: #8b5cf6;
+  outline: none;
+}
+
+.code-template-panel code {
+  color: #bda5ff;
+  font-family: Consolas, monospace;
+}
+
+.code-template-actions {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 8px;
+}
+
+.code-template-actions button {
+  height: 36px;
+  border: 1px solid #3b3d47;
+  border-radius: 6px;
+  color: #d8d9de;
+  background: #1a1b22;
+  cursor: pointer;
+}
+
+.code-template-actions button.primary {
+  border-color: #8b5cf6;
+  color: #fff;
+  background: linear-gradient(135deg, #7042d5, #9b6cff);
 }
 
 .studio-nav button.active {
@@ -2934,12 +3078,48 @@ aside {
 }
 
 .srt-dialog-empty {
+  min-height: 140px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
   margin: 0;
   padding: 28px 12px;
+  border: 1px dashed rgba(104, 232, 255, 0.4);
+  border-radius: 8px;
+  background: rgba(104, 232, 255, 0.035);
   font-size: 12px;
   line-height: 1.8;
   color: var(--muted);
   text-align: center;
+  cursor: pointer;
+}
+
+.srt-dialog-empty svg {
+  width: 22px;
+  height: 22px;
+  color: #9feeff;
+}
+
+.srt-dialog-empty strong {
+  color: #dffbff;
+  font-size: 14px;
+}
+
+.srt-dialog-empty span {
+  max-width: 370px;
+}
+
+.srt-dialog-empty:hover:not(:disabled) {
+  border-color: rgba(104, 232, 255, 0.85);
+  background: rgba(104, 232, 255, 0.09);
+}
+
+.srt-dialog-empty:disabled {
+  cursor: wait;
 }
 
 .srt-dialog-row {
@@ -2992,7 +3172,7 @@ aside {
 .srt-dialog > footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: 14px;
 }

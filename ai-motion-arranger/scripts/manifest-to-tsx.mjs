@@ -61,6 +61,7 @@ const ALLOWED_SKINS = new Set([
   "brand-amber",
   "growth-lime",
   "creative-violet",
+  "soft-teaching-violet",
   "alert-rose",
   "pro-neutral",
 ]);
@@ -69,15 +70,17 @@ const SKIN_PRESETS = {
   "brand-amber": { accent: "amber", support: "warning" },
   "growth-lime": { accent: "lime", support: "success" },
   "creative-violet": { accent: "violet", support: "info" },
+  "soft-teaching-violet": { accent: "violet", support: "support-neutral" },
   "alert-rose": { accent: "rose", support: "danger" },
   "pro-neutral": { accent: "neutral", support: "support-neutral" },
 };
-const ALLOWED_STYLES = new Set(["glass", "flat", "outline", "tile"]);
+const ALLOWED_STYLES = new Set(["glass", "flat", "outline", "tile", "teaching-overlay"]);
 const STYLE_PRESETS = {
   glass: { radius: 18, border: "1px solid rgba(255,255,255,0.14)", shadow: "0 10px 30px rgba(0,0,0,0.35)", blur: 8 },
   flat: { radius: 8, border: "none", shadow: "none", blur: 0 },
   outline: { radius: 12, border: "2px solid var(--arranger-accent)", shadow: "none", blur: 0 },
   tile: { radius: 14, border: "none", shadow: "0 6px 18px rgba(0,0,0,0.28)", blur: 0 },
+  "teaching-overlay": { radius: 26, border: "1px solid rgba(224,218,255,0.30)", shadow: "0 14px 34px rgba(11,8,22,0.22)", blur: 12 },
 };
 const ALLOWED_FONTS = new Set(["sans", "serif", "mono-tech"]);
 const FONT_STACKS = {
@@ -118,7 +121,7 @@ function checkManifest(manifest) {
   for (const [field, allowed, hint] of [
     ["theme", ALLOWED_THEMES, "dark | light"],
     ["skin", ALLOWED_SKINS, "见 references/design-tokens.md §3"],
-    ["style", ALLOWED_STYLES, "glass | flat | outline | tile"],
+    ["style", ALLOWED_STYLES, "glass | flat | outline | tile | teaching-overlay"],
     ["font", ALLOWED_FONTS, "sans | serif | mono-tech"],
   ]) {
     if (manifest[field] === undefined) continue;

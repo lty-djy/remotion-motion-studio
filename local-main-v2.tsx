@@ -62,6 +62,55 @@ import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
 
+const DEFAULT_CODE_TEMPLATE = `import React from "react";
+import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+
+export const CodeTemplate = ({ title = "代码模板", accent = "#8b5cf6" }) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", opacity }}>
+      <div style={{ padding: "32px 42px", borderRadius: 22, color: "white", background: "#14131c", border: \`1px solid \${accent}\` }}>
+        <div style={{ color: accent, fontSize: 14, letterSpacing: 4 }}>CODE TEMPLATE</div>
+        <div style={{ marginTop: 12, fontSize: 42, fontWeight: 800 }}>{title}</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+export const MOTION_COMPONENTS = [{
+  id: "code-template",
+  name: "代码模板",
+  description: "由代码板块新建的 Remotion 效果",
+  category: "custom",
+  glyph: "CODE",
+  exportName: "CodeTemplate",
+  durationInFrames: 150,
+  bounds: { x: 300, y: 700, width: 1320, height: 420 },
+  defaultPosition: { x: 0, y: 0, scale: 1 },
+  defaultProps: { title: "代码模板", accent: "#8b5cf6" },
+  propsSchema: {
+    title: { type: "text", label: "标题", default: "代码模板" },
+    accent: { type: "color", label: "强调色", default: "#8b5cf6" }
+  }
+}];
+
+export const MOTION_TIMELINE = [{ componentId: "code-template", startFrame: 0, durationInFrames: 150 }];
+`;
+
+type TimelineJsonItem = {
+  componentId: string;
+  startFrame?: number;
+  durationInFrames?: number;
+  laneId?: string;
+  trackOrder?: number;
+  visible?: boolean;
+  sourceStartFrame?: number;
+  position?: Partial<MotionInstance["position"]>;
+  backgroundOpacity?: number;
+  props?: Record<string, unknown>;
+};
+
 type ShortcutAction =
   | "undo"
   | "redo"
@@ -434,6 +483,12 @@ const formatRenderRemaining = (milliseconds: number | null) => {
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const finiteNumber = (value: unknown, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
 const preventLaneOverlaps = <
   T extends { id: string; laneId: string; startFrame: number; durationInFrames: number },
@@ -878,6 +933,7 @@ const App = () => {
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const componentInput = useRef<HTMLInputElement>(null);
+  const timelineJsonInput = useRef<HTMLInputElement>(null);
   const activeComponentIdRef = useRef("");
   const workspaceReadyRef = useRef(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -965,6 +1021,9 @@ const App = () => {
   const [regionInFrame, setRegionInFrame] = useState<number | null>(null);
   const [regionOutFrame, setRegionOutFrame] = useState<number | null>(null);
   const [exportUseRegion, setExportUseRegion] = useState(true);
+  const [globalCardBase, setGlobalCardBase] = useState<"dark" | "light">(
+    "dark",
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [shortcutPanelOpen, setShortcutPanelOpen] = useState(false);
   const [recordingShortcut, setRecordingShortcut] =
@@ -978,7 +1037,12 @@ const App = () => {
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
-    useState<"editor" | "effects">("editor");
+    useState<"editor" | "effects" | "code">("editor");
+  const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
+  const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
+  const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
+    Math.max(160, Math.min(440, window.innerHeight - 245)),
+  );
   const [effectSearch, setEffectSearch] = useState("");
   const [customCatalogGroups, setCustomCatalogGroups] = useState(
     loadCustomCatalogGroups,
@@ -1672,6 +1736,18 @@ const App = () => {
     return () => window.cancelAnimationFrame(animationFrame);
   }, [durationInFrames, fps, isPlaying]);
 
+  // 亮底模式：所有卡片背景透明（backgroundOpacity 归零），暗底保持原值
+  const effectiveInstances = useMemo<MotionInstance[]>(
+    () =>
+      globalCardBase === "light"
+        ? instances.map((instance) => ({
+            ...instance,
+            backgroundOpacity: 0,
+          }))
+        : instances,
+    [instances, globalCardBase],
+  );
+
   const previewInputProps = useMemo<StudioPreviewProps>(
     () => ({
       videoUrl,
@@ -1679,7 +1755,7 @@ const App = () => {
       sourceIncludesVideo,
       videoTracks,
       definitions,
-      instances,
+      instances: effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
       soundEnabled,
@@ -1687,7 +1763,7 @@ const App = () => {
     }),
     [
       definitions,
-      instances,
+      effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
       soundEnabled,
@@ -2753,6 +2829,171 @@ const App = () => {
     });
   };
 
+  const importCodeTemplate = async () => {
+    const code = codeTemplate.trim();
+    if (!code) throw new Error("请先输入 TSX / React 代码。");
+    const safeName = codeTemplateName.trim() || "我的代码动效";
+    await importComponent(
+      new File([code], `${safeName.replace(/[\\/:*?"<>|]/g, "-")}.tsx`, {
+        type: "text/plain",
+      }),
+    );
+    setActiveWorkspace("editor");
+  };
+
+  const beginCodeEditorResize = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = codeEditorHeight;
+    const resize = (moveEvent: PointerEvent) => {
+      const maxHeight = Math.max(220, window.innerHeight - 245);
+      setCodeEditorHeight(
+        clamp(startHeight + moveEvent.clientY - startY, 160, maxHeight),
+      );
+    };
+    const finish = () => {
+      window.removeEventListener("pointermove", resize);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+    window.addEventListener("pointermove", resize);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
+
+  const importTimelineJson = async (file: File) => {
+    if (definitions.length === 0) {
+      throw new Error("请先导入 TSX 效果包，再导入 JSON 编排。");
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      throw new Error("JSON 格式无效，无法读取编排内容。");
+    }
+    const rawItems = Array.isArray(parsed)
+      ? parsed
+      : isRecord(parsed)
+        ? parsed.timeline ?? parsed.MOTION_TIMELINE ?? parsed.instances
+        : undefined;
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+      throw new Error(
+        "编排需是数组，或包含 timeline、MOTION_TIMELINE、instances 数组的对象。",
+      );
+    }
+
+    const items = rawItems.map((rawItem, index): TimelineJsonItem => {
+      if (!isRecord(rawItem)) {
+        throw new Error(`第 ${index + 1} 项必须是对象。`);
+      }
+      const componentId =
+        typeof rawItem.componentId === "string" ? rawItem.componentId.trim() : "";
+      if (!componentId || !definitionMap.has(componentId)) {
+        throw new Error(
+          `第 ${index + 1} 项的 componentId “${componentId || "未填写"}”不在当前效果库中。`,
+        );
+      }
+      if (
+        rawItem.durationInFrames !== undefined &&
+        (!Number.isFinite(rawItem.durationInFrames) ||
+          Number(rawItem.durationInFrames) <= 0)
+      ) {
+        throw new Error(`第 ${index + 1} 项的 durationInFrames 必须大于 0。`);
+      }
+      if (
+        rawItem.startFrame !== undefined &&
+        (!Number.isFinite(rawItem.startFrame) || Number(rawItem.startFrame) < 0)
+      ) {
+        throw new Error(`第 ${index + 1} 项的 startFrame 必须是非负数字。`);
+      }
+      if (rawItem.props !== undefined && !isRecord(rawItem.props)) {
+        throw new Error(`第 ${index + 1} 项的 props 必须是对象。`);
+      }
+      if (rawItem.position !== undefined && !isRecord(rawItem.position)) {
+        throw new Error(`第 ${index + 1} 项的 position 必须是对象。`);
+      }
+      const positionSource = isRecord(rawItem.position) ? rawItem.position : {};
+      return {
+        componentId,
+        startFrame: Math.round(finiteNumber(rawItem.startFrame, 0)),
+        durationInFrames:
+          rawItem.durationInFrames === undefined
+            ? undefined
+            : Math.round(finiteNumber(rawItem.durationInFrames, 3)),
+        laneId:
+          typeof rawItem.laneId === "string" && rawItem.laneId.trim()
+            ? rawItem.laneId.trim()
+            : undefined,
+        trackOrder:
+          rawItem.trackOrder === undefined
+            ? undefined
+            : finiteNumber(rawItem.trackOrder, 0),
+        visible: rawItem.visible !== false,
+        sourceStartFrame: Math.max(
+          0,
+          Math.round(finiteNumber(rawItem.sourceStartFrame, 0)),
+        ),
+        position: {
+          ...(typeof positionSource.x === "number" && Number.isFinite(positionSource.x)
+            ? { x: positionSource.x }
+            : {}),
+          ...(typeof positionSource.y === "number" && Number.isFinite(positionSource.y)
+            ? { y: positionSource.y }
+            : {}),
+          ...(typeof positionSource.scale === "number" && Number.isFinite(positionSource.scale)
+            ? { scale: positionSource.scale }
+            : {}),
+        },
+        backgroundOpacity:
+          rawItem.backgroundOpacity === undefined
+            ? undefined
+            : finiteNumber(rawItem.backgroundOpacity, 0),
+        props: isRecord(rawItem.props) ? rawItem.props : undefined,
+      };
+    });
+    const importTotalFrames = Math.max(
+      durationInFrames,
+      ...items.map((item) => {
+        const definition = definitionMap.get(item.componentId)!;
+        return (
+          (item.startFrame ?? 0) +
+          (item.durationInFrames ?? definition.durationInFrames)
+        );
+      }),
+    );
+    const firstTrackOrder =
+      Math.min(
+        0,
+        ...videoTracks.map((track) => track.trackOrder),
+        ...instances.map((instance) => instance.trackOrder),
+      ) - items.length;
+    const importedInstances = items.map((item, index) =>
+      createInstance(
+        definitionMap.get(item.componentId)!,
+        item.startFrame ?? 0,
+        importTotalFrames,
+        {
+          durationInFrames: item.durationInFrames,
+          laneId: item.laneId,
+          trackOrder: item.trackOrder ?? firstTrackOrder + index,
+          visible: item.visible,
+          sourceStartFrame: item.sourceStartFrame,
+          position: item.position,
+          backgroundOpacity: item.backgroundOpacity,
+          props: item.props,
+        },
+      ),
+    );
+    const nextInstances = preventLaneOverlaps([...instances, ...importedInstances]);
+    setManualTimelineEndFrame((current) => Math.max(current, importTotalFrames));
+    setInstances(nextInstances);
+    selectOnlyInstance(importedInstances[0].id);
+    setNotice({
+      tone: "ok",
+      text: `已从 ${file.name} 导入 ${importedInstances.length} 个编排效果到时间轴。`,
+    });
+  };
+
   const activateHistoryItem = async (item: ComponentHistoryItem) => {
     const response = await fetch("/api/activate-component", {
       method: "POST",
@@ -2853,7 +3094,7 @@ const App = () => {
           })),
           sourceIncludesVideo,
           soundEnabled,
-          instances,
+          instances: effectiveInstances,
           timelineDurationInFrames: durationInFrames,
           ...(exportUseRegion &&
           regionInFrame !== null &&
@@ -4756,6 +4997,24 @@ const App = () => {
         }}
         hidden
       />
+      <input
+        ref={timelineJsonInput}
+        type="file"
+        accept=".json,application/json"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          importTimelineJson(file).catch((error) => {
+            setNotice({
+              tone: "error",
+              text:
+                error instanceof Error ? error.message : "JSON 编排导入失败",
+            });
+          });
+        }}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -4777,6 +5036,15 @@ const App = () => {
             onClick={() => setActiveWorkspace("effects")}
           >
             效果库
+          </button>
+          <button
+            className={activeWorkspace === "code" ? "active" : ""}
+            onClick={() => {
+              setActiveWorkspace("code");
+              setLeftPanelWidth((width) => Math.max(width, 460));
+            }}
+          >
+            代码
           </button>
         </nav>
 
@@ -4845,7 +5113,71 @@ const App = () => {
         }
       >
         <aside className="left-panel reference-left-panel">
-          {activeWorkspace === "effects" ? (
+          {activeWorkspace === "code" ? (
+            <div className="code-template-panel">
+              <header>
+                <small>CODE</small>
+                <strong>新建代码模板</strong>
+                <span>Remotion / React / TSX</span>
+              </header>
+              <label>
+                <span>模板名称</span>
+                <input
+                  value={codeTemplateName}
+                  onChange={(event) => setCodeTemplateName(event.target.value)}
+                  placeholder="我的代码动效"
+                />
+              </label>
+              <label
+                className="code-template-editor"
+                style={{ height: `${codeEditorHeight}px` }}
+              >
+                <span>代码</span>
+                <textarea
+                  value={codeTemplate}
+                  onChange={(event) => setCodeTemplate(event.target.value)}
+                  spellCheck={false}
+                  aria-label="TSX 代码模板"
+                />
+                <button
+                  type="button"
+                  className="code-editor-resize-handle"
+                  onPointerDown={beginCodeEditorResize}
+                  aria-label="上下调整代码框高度"
+                  title="上下拖动调整代码框高度"
+                >
+                  <i />
+                </button>
+              </label>
+              <p>需导出 <code>MOTION_COMPONENTS</code>；可选导出 <code>MOTION_TIMELINE</code>，导入后会自动加入效果库和时间轨道。</p>
+              <div className="code-template-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCodeTemplateName("我的代码动效");
+                    setCodeTemplate(DEFAULT_CODE_TEMPLATE);
+                    setNotice({ tone: "info", text: "已新建默认代码模板。" });
+                  }}
+                >
+                  新建模板
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() =>
+                    importCodeTemplate().catch((error) =>
+                      setNotice({
+                        tone: "error",
+                        text: error instanceof Error ? error.message : "代码模板导入失败",
+                      }),
+                    )
+                  }
+                >
+                  导入到工作台
+                </button>
+              </div>
+            </div>
+          ) : activeWorkspace === "effects" ? (
             <div className="effect-library-panel">
               <header className="effect-library-header">
                 <div>
@@ -4976,8 +5308,22 @@ const App = () => {
           <section className="reference-control-group">
             <label>全局底色(所有卡片)</label>
             <div className="reference-segmented">
-              <button className="active"><MoonStars weight="fill" />暗底</button>
-              <button><Sun weight="fill" />亮底</button>
+              <button
+                className={globalCardBase === "dark" ? "active" : ""}
+                onClick={() => setGlobalCardBase("dark")}
+                title="保持各卡片默认背景底色"
+              >
+                <MoonStars weight="fill" />
+                暗底
+              </button>
+              <button
+                className={globalCardBase === "light" ? "active" : ""}
+                onClick={() => setGlobalCardBase("light")}
+                title="所有卡片透明：去掉背景底色，只留文字与图形"
+              >
+                <Sun weight="fill" />
+                亮底
+              </button>
             </div>
           </section>
 
@@ -5001,9 +5347,12 @@ const App = () => {
               <UploadSimple />
               导入 TSX 效果
             </button>
-            <button disabled>
-              <DownloadSimple />
-              导出
+            <button
+              onClick={() => timelineJsonInput.current?.click()}
+              title="导入 AI 生成的 JSON 编排，将当前效果库中的效果添加到时间轴"
+            >
+              <UploadSimple />
+              导入 JSON 编排
             </button>
           </div>
 
@@ -5723,14 +6072,10 @@ const App = () => {
                 </div>
               </div>
             </section>
-            {selectedInstance &&
-            selectedDefinition &&
-            (EFFECT_REGISTRY_BY_ID.get(selectedDefinition.id)?.placement ===
-              "bottom" ||
-              selectedDefinition.id === "SrtSemanticBadge") ? (
+            {selectedInstance && selectedDefinition ? (
               <section className="reference-inspector-section">
                 <div className="reference-section-title">
-                  <strong>位置微调</strong><small>POSITION</small>
+                  <strong>独立位置微调</strong><small>POSITION</small>
                 </div>
                 <div className="dynamic-prop-fields">
                   <div className="reference-range-group">
@@ -6183,10 +6528,19 @@ const App = () => {
 
             <div className="srt-dialog-list">
               {srtEntries.length === 0 ? (
-                <p className="srt-dialog-empty">
-                  选择 SRT 字幕文件后，将按语义分段生成动效时间轴，
-                  并覆盖当前时间轴上的全部动效片段。
-                </p>
+                <button
+                  type="button"
+                  className="srt-dialog-empty"
+                  disabled={srtGenerating}
+                  onClick={openSrtPicker}
+                  title="点击选择 SRT 字幕文件"
+                >
+                  <UploadSimple weight="bold" />
+                  <strong>点击选择 SRT 文件</strong>
+                  <span>
+                    选择后将按语义分段生成动效时间轴，并覆盖当前时间轴上的全部动效片段。
+                  </span>
+                </button>
               ) : (
                 srtEntries.map((entry) => (
                   <div className="srt-dialog-row" key={entry.index}>
@@ -6215,14 +6569,6 @@ const App = () => {
             ) : null}
 
             <footer>
-              <button
-                className="srt-dialog-pick"
-                disabled={srtGenerating}
-                onClick={openSrtPicker}
-              >
-                <UploadSimple weight="bold" />
-                选择 SRT 文件
-              </button>
               <button
                 className="srt-dialog-confirm"
                 disabled={srtGenerating || srtEntries.length === 0}

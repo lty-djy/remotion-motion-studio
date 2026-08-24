@@ -141,7 +141,7 @@ SRT 行 ──> Board（信息板，对应一段口播）
 }
 ```
 
-禁止出现的顶层字段：`title`、`subtitle`、`code`、`tsx`、`react`、`import`、`export`、`x`、`y`、`width`、`height` 等任何渲染层字段。**唯一例外**：`theme` / `skin` / `style` / `font` 是顶层设计令牌（字符串枚举，见 references/design-tokens.md）；`style` 仅允许 `"glass" | "flat" | "outline" | "tile"` 四个字符串值之一，样式对象（如 `{"radius":8}`）仍然违法。
+禁止出现的顶层字段：`title`、`subtitle`、`code`、`tsx`、`react`、`import`、`export`、`x`、`y`、`width`、`height` 等任何渲染层字段。**唯一例外**：`theme` / `skin` / `style` / `font` 是顶层设计令牌（字符串枚举，见 references/design-tokens.md）；`style` 仅允许 `"glass" | "flat" | "outline" | "tile" | "teaching-overlay"`，样式对象（如 `{"radius":8}`）仍然违法。
 
 ## 10. 枚举全集（hard constraint）
 
@@ -186,8 +186,8 @@ SRT 行 ──> Board（信息板，对应一段口播）
 | 令牌 | 枚举 | 管什么 |
 | --- | --- | --- |
 | `theme` | `dark` · `light` | 基调（深底/浅底） |
-| `skin` | `tech-cyan` · `brand-amber` · `growth-lime` · `creative-violet` · `alert-rose` · `pro-neutral` | 配色主题（accent+support 预设包，决定未显式填色卡片的缺省色） |
-| `style` | `glass` · `flat` · `outline` · `tile` | 骨架（圆角/描边/阴影/模糊） |
+| `skin` | `tech-cyan` · `brand-amber` · `growth-lime` · `creative-violet` · `soft-teaching-violet` · `alert-rose` · `pro-neutral` | 配色主题（accent+support 预设包，决定未显式填色卡片的缺省色） |
+| `style` | `glass` · `flat` · `outline` · `tile` · `teaching-overlay` | 骨架（圆角/描边/阴影/模糊） |
 | `font` | `sans` · `serif` · `mono-tech` | 字体栈 |
 
 skin 不豁免 palette 硬约束：accent 去重数 ∈ [2,4]、相邻 Board 换主调仍然生效。

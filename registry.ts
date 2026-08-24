@@ -3,12 +3,17 @@ import { ChapterBarEffectDef } from "./effects/ChapterBar";
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
-import { SrtKaraokeLineEffectDef } from "./effects/SrtKaraokeLine";
+
 import { SrtProgressRailEffectDef } from "./effects/SrtProgressRail";
-import { SrtSemanticBadgeEffectDef } from "./effects/SrtSemanticBadge";
+
 import { FlowPipelineEffectDef } from "./effects/FlowPipeline";
 
-
+import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
+import { TerminalStepHeroEffectDef } from "./effects/TerminalStepHero";
+import { SoftTeachingStepRailEffectDef } from "./effects/SoftTeachingStepRail";
+import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
+import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryGrid";
+import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -26,13 +31,21 @@ export const EFFECT_REGISTRY: EffectDef[] = [
 
   SrtCueTextEffectDef,
 
-  SrtKaraokeLineEffectDef,
-
   SrtProgressRailEffectDef,
 
-  SrtSemanticBadgeEffectDef,
-
   FlowPipelineEffectDef,
+
+  TerminalPanelEffectDef,
+
+  TerminalStepHeroEffectDef,
+
+  SoftTeachingStepRailEffectDef,
+
+  SoftTeachingGlassPanelEffectDef,
+
+  SoftTeachingLibraryGridEffectDef,
+
+  SoftTeachingIncrementBadgeEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

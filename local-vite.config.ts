@@ -397,6 +397,39 @@ const removeEffectFromSavedTimelines = async (componentId: string) => {
 
 const deleteRegisteredEffectSource = async (componentId: string) => {
   const registrySource = await readFile(effectRegistryPath, "utf8");
+  // 所有独立 effects/*.tsx 都由 registry.ts 的导入和导出项控制。
+  // 不再依赖少数效果的硬编码表，新增的注册效果也能直接删除。
+  const registryImports = [
+    ...registrySource.matchAll(
+      /^import\s+\{\s*(\w+)\s*\}\s+from\s+["'](\.\/effects\/[^"']+)["'];?\s*$/gm,
+    ),
+  ];
+  for (const imported of registryImports) {
+    const [, exportName, modulePath] = imported;
+    const sourcePath = resolve(rootDir, `${modulePath}.tsx`);
+    if (!sourcePath.startsWith(join(rootDir, "effects"))) continue;
+    let effectSource = "";
+    try {
+      effectSource = await readFile(sourcePath, "utf8");
+    } catch {
+      continue;
+    }
+    const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!new RegExp(`id\\s*:\\s*["']${escapedId}["']`).test(effectSource)) {
+      continue;
+    }
+    const nextRegistry = registrySource
+      .replace(imported[0], "")
+      .replace(new RegExp(`^\\s*${exportName},\\s*$`, "m"), "");
+    if (nextRegistry === registrySource) {
+      throw new Error("注册表中没有找到该效果的可删除条目");
+    }
+    await writeFile(effectRegistryPath, nextRegistry, "utf8");
+    await unlink(sourcePath);
+    await removeEffectFromSavedTimelines(componentId);
+    return { source: `effects/${basename(sourcePath)}` };
+  }
+
   const managed = managedEffectFiles[componentId];
   if (managed) {
     const nextRegistry = registrySource

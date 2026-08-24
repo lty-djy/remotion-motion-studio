@@ -25,17 +25,18 @@ const SUPPORT_TOKENS = new Set([
 ]);
 const THEMES = new Set(["dark", "light"]);
 const SKINS = new Set([
-  "tech-cyan", "brand-amber", "growth-lime", "creative-violet", "alert-rose", "pro-neutral",
+  "tech-cyan", "brand-amber", "growth-lime", "creative-violet", "soft-teaching-violet", "alert-rose", "pro-neutral",
 ]);
 const SKIN_DEFAULTS = {
   "tech-cyan": { accent: "cyan", support: "info" },
   "brand-amber": { accent: "amber", support: "warning" },
   "growth-lime": { accent: "lime", support: "success" },
   "creative-violet": { accent: "violet", support: "info" },
+  "soft-teaching-violet": { accent: "violet", support: "support-neutral" },
   "alert-rose": { accent: "rose", support: "danger" },
   "pro-neutral": { accent: "neutral", support: "support-neutral" },
 };
-const STYLES = new Set(["glass", "flat", "outline", "tile"]);
+const STYLES = new Set(["glass", "flat", "outline", "tile", "teaching-overlay"]);
 const FONTS = new Set(["sans", "serif", "mono-tech"]);
 const ANCHORS = new Set([
   "left-bottom", "right-bottom", "left-top", "right-top", "top-rail", "bottom-rail", "center-stage",
@@ -97,7 +98,7 @@ function lint(manifest) {
     manifest.style !== undefined &&
     !STYLES.has(manifest.style)
   ) {
-    err(`style "${manifest.style}" 不在枚举 [glass, flat, outline, tile]`);
+    err(`style "${manifest.style}" 不在枚举 [glass, flat, outline, tile, teaching-overlay]`);
   }
   if (
     manifest.font !== undefined &&

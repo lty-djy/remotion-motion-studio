@@ -372,5 +372,55 @@
                                     "accentColor":  "accent token",
                                     "secondaryColor":  "support token"
                                 }
+    },
+    {
+        "id": "TerminalPanel",
+        "catalogGroup": "终端教学 HUD",
+        "category": "hud",
+        "placement": "left",
+        "purpose": "终端命令和三步讲解面板；以操作指令、逐项内容和 READY 状态组织教学信息。",
+        "whenToUse": "解释方法、规则或工作流时作为左侧主叙事卡，每个 board 最多一个。",
+        "role": "teaching-anchor",
+        "preferredPalettes": ["cyan", "amber", "violet"],
+        "propsFieldSemantics": { "title": "本段教学结论", "subtitle": "英文步骤标签", "command": "一行伪命令或操作指令", "item1": "要点一", "item2": "要点二", "item3": "要点三", "accentColor": "主强调色 token", "animationSeconds": "入场动画时长" }
+    },
+    {
+        "id": "TerminalStepHero",
+        "catalogGroup": "终端教学 HUD",
+        "category": "hud",
+        "placement": "right",
+        "purpose": "大号步骤编号和一句原则，提供右侧强焦点而不堆叠普通数据卡。",
+        "whenToUse": "每个教学章节的核心结论，可与 TerminalPanel 配对。",
+        "role": "chapter-hero",
+        "preferredPalettes": ["violet", "cyan", "amber"],
+        "propsFieldSemantics": { "step": "两位步骤编号", "title": "短结论", "subtitle": "一句解释", "accentColor": "编号和标题强调色 token", "secondaryColor": "进度线 token", "animationSeconds": "入场动画时长" }
+    },
+    {
+        "id": "SoftTeachingStepRail", "catalogGroup": "柔和教学紫", "category": "teaching", "placement": "top",
+        "purpose": "三段圆形步骤与连接线，从左到右建立教学路径，适配实拍人物顶部留白。",
+        "whenToUse": "讲解流程、课程路径或三个阶段时使用；每个 board 最多一个。", "role": "teaching-rail",
+        "preferredPalettes": ["violet", "neutral"],
+        "propsFieldSemantics": { "item1": "第一步标题", "item2": "第二步标题", "item3": "第三步标题", "accentColor": "淡紫主调 token", "animationSeconds": "展开时长" }
+    },
+    {
+        "id": "SoftTeachingGlassPanel", "catalogGroup": "柔和教学紫", "category": "teaching", "placement": "left",
+        "purpose": "柔和玻璃信息板，主标题配英文标签和三项解释，保留人物画面呼吸感。",
+        "whenToUse": "人物口播的概念解释、方法概览或三项要点；每个 board 最多一个。", "role": "teaching-anchor",
+        "preferredPalettes": ["violet", "neutral"],
+        "propsFieldSemantics": { "title": "中文结论", "subtitle": "英文辅助标签", "item1": "解释一", "item2": "解释二", "item3": "解释三", "accentColor": "淡紫主调 token", "animationSeconds": "入场时长" }
+    },
+    {
+        "id": "SoftTeachingLibraryGrid", "catalogGroup": "柔和教学紫", "category": "teaching", "placement": "left",
+        "purpose": "低对比紫色卡槽矩阵，单格高亮表达能力库、素材库或动效库的新增。",
+        "whenToUse": "表达积累、模块库、工具箱或能力增加时使用；可搭配 +1 反馈徽章。", "role": "library-visual",
+        "preferredPalettes": ["violet", "neutral"],
+        "propsFieldSemantics": { "title": "主标题", "subtitle": "英文辅助标签", "columns": "每行卡槽数 3-8", "highlightIndex": "高亮的第 1-12 格", "accentColor": "高亮 token", "animationSeconds": "逐格入场时长" }
+    },
+    {
+        "id": "SoftTeachingIncrementBadge", "catalogGroup": "柔和教学紫", "category": "teaching", "placement": "left",
+        "purpose": "轻量 +1 / 已完成反馈，不抢人物主体，可贴在卡槽矩阵旁。",
+        "whenToUse": "新增、收集、完成一个步骤或增加一个能力时使用；每个 board 最多一个。", "role": "micro-feedback",
+        "preferredPalettes": ["violet", "neutral"],
+        "propsFieldSemantics": { "value": "反馈数值，例如 +1", "label": "短反馈说明", "accentColor": "淡紫 token", "animationSeconds": "反馈入场时长" }
     }
 ]

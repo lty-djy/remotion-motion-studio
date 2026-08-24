@@ -8,10 +8,10 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：15 张
-**覆盖分组**：2 个（数字与指标 / 导航与进度 / 等）
-**registry 集合**：15 个 id
-**overlay 集合**：15 个 id
+**当前卡片总数**：21 张
+**覆盖分组**：4 个（数字与指标 / 导航与进度 / 等）
+**registry 集合**：21 个 id
+**overlay 集合**：21 个 id
 ## 导航与进度
 
 ### `ChapterBar`
@@ -29,6 +29,112 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `animationSeconds` — 整支视频时长（编排脚本按 videoDurationSec 自动填入）
 - `accentColor` — 前景 token（推荐 cyan / gold / violet）
 - `secondaryColor` — 轨道 token（推荐 support-neutral）
+
+## 终端教学 HUD
+
+### `TerminalPanel`
+
+**角色**：teaching-anchor  
+**画布落点**：left  
+**推荐调色板**：cyan / amber / violet  
+**何时使用**：解释方法、规则或工作流时作为左侧主叙事卡，每个 board 最多一个。  
+**视觉/语义**：终端命令和三步讲解面板；以操作指令、逐项内容和 READY 状态组织教学信息。
+
+**可编排 props（共 8 个）：**
+
+- `title` — 本段教学结论
+- `subtitle` — 英文步骤标签
+- `command` — 一行伪命令或操作指令
+- `item1` — 要点一
+- `item2` — 要点二
+- `item3` — 要点三
+- `accentColor` — 主强调色 token
+- `animationSeconds` — 入场动画时长
+
+### `TerminalStepHero`
+
+**角色**：chapter-hero  
+**画布落点**：right  
+**推荐调色板**：violet / cyan / amber  
+**何时使用**：每个教学章节的核心结论，可与 TerminalPanel 配对。  
+**视觉/语义**：大号步骤编号和一句原则，提供右侧强焦点而不堆叠普通数据卡。
+
+**可编排 props（共 6 个）：**
+
+- `step` — 两位步骤编号
+- `title` — 短结论
+- `subtitle` — 一句解释
+- `accentColor` — 编号和标题强调色 token
+- `secondaryColor` — 进度线 token
+- `animationSeconds` — 入场动画时长
+
+## 柔和教学紫
+
+### `SoftTeachingStepRail`
+
+**角色**：teaching-rail  
+**画布落点**：top  
+**推荐调色板**：violet / neutral  
+**何时使用**：讲解流程、课程路径或三个阶段时使用；每个 board 最多一个。  
+**视觉/语义**：三段圆形步骤与连接线，从左到右建立教学路径，适配实拍人物顶部留白。
+
+**可编排 props（共 5 个）：**
+
+- `item1` — 第一步标题
+- `item2` — 第二步标题
+- `item3` — 第三步标题
+- `accentColor` — 淡紫主调 token
+- `animationSeconds` — 展开时长
+
+### `SoftTeachingGlassPanel`
+
+**角色**：teaching-anchor  
+**画布落点**：left  
+**推荐调色板**：violet / neutral  
+**何时使用**：人物口播的概念解释、方法概览或三项要点；每个 board 最多一个。  
+**视觉/语义**：柔和玻璃信息板，主标题配英文标签和三项解释，保留人物画面呼吸感。
+
+**可编排 props（共 7 个）：**
+
+- `title` — 中文结论
+- `subtitle` — 英文辅助标签
+- `item1` — 解释一
+- `item2` — 解释二
+- `item3` — 解释三
+- `accentColor` — 淡紫主调 token
+- `animationSeconds` — 入场时长
+
+### `SoftTeachingLibraryGrid`
+
+**角色**：library-visual  
+**画布落点**：left  
+**推荐调色板**：violet / neutral  
+**何时使用**：表达积累、模块库、工具箱或能力增加时使用；可搭配 +1 反馈徽章。  
+**视觉/语义**：低对比紫色卡槽矩阵，单格高亮表达能力库、素材库或动效库的新增。
+
+**可编排 props（共 6 个）：**
+
+- `title` — 主标题
+- `subtitle` — 英文辅助标签
+- `columns` — 每行卡槽数 3-8
+- `highlightIndex` — 高亮的第 1-12 格
+- `accentColor` — 高亮 token
+- `animationSeconds` — 逐格入场时长
+
+### `SoftTeachingIncrementBadge`
+
+**角色**：micro-feedback  
+**画布落点**：left  
+**推荐调色板**：violet / neutral  
+**何时使用**：新增、收集、完成一个步骤或增加一个能力时使用；每个 board 最多一个。  
+**视觉/语义**：轻量 +1 / 已完成反馈，不抢人物主体，可贴在卡槽矩阵旁。
+
+**可编排 props（共 4 个）：**
+
+- `value` — 反馈数值，例如 +1
+- `label` — 短反馈说明
+- `accentColor` — 淡紫 token
+- `animationSeconds` — 反馈入场时长
 
 ## 数字与指标
 
@@ -313,8 +419,8 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：15
-- overlay 条目数：15
+- registry 条目数：21
+- overlay 条目数：21
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

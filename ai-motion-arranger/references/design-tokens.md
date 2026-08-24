@@ -38,11 +38,12 @@ skin 决定的是**未显式指定颜色时**的缺省 accent/support。
 | `brand-amber` | amber | warning | 人物故事、品牌、市场活动 |
 | `growth-lime` | lime | success | 增长、健康、成绩汇报 |
 | `creative-violet` | violet | info | 创意、发布、未来感 |
+| `soft-teaching-violet` | violet | support-neutral | 人物口播、柔和解释、步骤教学 |
 | `alert-rose` | rose | danger | 风险、对比、营销节点 |
 | `pro-neutral` | neutral | support-neutral | 严谨、企业、章节叙述 |
 
 规则：
-1. skin 只能从上表 6 个枚举中选。
+1. skin 只能从上表 7 个枚举中选。
 2. skin **不改变** palette.md 的硬约束：accent 去重数 ∈ [2,4]、相邻 Board 换主调仍然生效。
 3. 卡片 props 里已写 `accentColor` 的以卡片为准；未写的由编译器填 skin 的 accent。
 
@@ -54,6 +55,7 @@ skin 决定的是**未显式指定颜色时**的缺省 accent/support。
 | `flat` | 8px | 实底 | 无 | 无 | 扁平演示、图表风 |
 | `outline` | 12px | 透明 | 2px 主调描边 | 无 | 线框科技感 |
 | `tile` | 14px | 实底 | 无 | 中投影 | 瓷片拼版、信息卡墙 |
+| `teaching-overlay` | 26px | 半透明紫灰＋模糊 | 1px 低对比淡紫边 | 柔和 | 人物口播左侧信息层、步骤解释 |
 
 ## 5. font（字体栈）
 

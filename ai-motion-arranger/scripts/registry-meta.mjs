@@ -46,6 +46,42 @@ export const REGISTERED_CARDS = [
       secondaryColor: { type: "color", label: "轨道颜色", default: "support-neutral" },
     },
   },
+  {
+    id: "TerminalPanel", category: "hud", catalogGroup: "终端教学 HUD", placement: "left", glyph: "CMD", durationInFrames: 210,
+    bounds: { x: 0, y: 0, width: 560, height: 620 }, defaultPosition: { x: 58, y: 540, scale: 1 },
+    defaultProps: { enabled: true, title: "建立可复用设计令牌", subtitle: "01 / TOKEN LAYER", command: "npm run compose -- --theme terminal-hud", item1: "定义颜色、间距、描边", item2: "把动效节奏写成规则", item3: "组件只消费令牌，不写死风格", accentColor: "cyan", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示面板", default: true }, title: { type: "text", label: "主标题" }, subtitle: { type: "text", label: "终端标签" }, command: { type: "text", label: "命令行" }, item1: { type: "text", label: "步骤一" }, item2: { type: "text", label: "步骤二" }, item3: { type: "text", label: "步骤三" }, accentColor: { type: "color", label: "强调色", default: "cyan" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
+  {
+    id: "TerminalStepHero", category: "hud", catalogGroup: "终端教学 HUD", placement: "right", glyph: "01", durationInFrames: 180,
+    bounds: { x: 0, y: 0, width: 410, height: 430 }, defaultPosition: { x: 620, y: 640, scale: 1 },
+    defaultProps: { enabled: true, step: "01", title: "先定义规则", subtitle: "让每一张卡片看起来属于同一套系统", accentColor: "violet", secondaryColor: "cyan", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示主视觉", default: true }, step: { type: "text", label: "步骤编号" }, title: { type: "text", label: "结论标题" }, subtitle: { type: "text", label: "解释文字" }, accentColor: { type: "color", label: "主强调色", default: "violet" }, secondaryColor: { type: "color", label: "进度强调色", default: "cyan" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
+  {
+    id: "SoftTeachingStepRail", category: "teaching", catalogGroup: "柔和教学紫", placement: "top", glyph: "STEP", durationInFrames: 210,
+    bounds: { x: 0, y: 0, width: 1050, height: 250 }, defaultPosition: { x: 85, y: 92, scale: 1 },
+    defaultProps: { enabled: true, item1: "如何复刻编辑台", item2: "手把手教你搭建", item3: "沉淀自己的动效", accentColor: "violet", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示流程条", default: true }, item1: { type: "text", label: "步骤一" }, item2: { type: "text", label: "步骤二" }, item3: { type: "text", label: "步骤三" }, accentColor: { type: "color", label: "强调色", default: "violet" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
+  {
+    id: "SoftTeachingGlassPanel", category: "teaching", catalogGroup: "柔和教学紫", placement: "left", glyph: "GLASS", durationInFrames: 210,
+    bounds: { x: 0, y: 0, width: 650, height: 450 }, defaultPosition: { x: 90, y: 420, scale: 1 },
+    defaultProps: { enabled: true, title: "你自己的动效库", subtitle: "YOUR LIBRARY", item1: "统一设计令牌", item2: "可复用效果组件", item3: "AI 语义编排", accentColor: "violet", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示面板", default: true }, title: { type: "text", label: "主标题" }, subtitle: { type: "text", label: "英文标签" }, item1: { type: "text", label: "内容一" }, item2: { type: "text", label: "内容二" }, item3: { type: "text", label: "内容三" }, accentColor: { type: "color", label: "强调色", default: "violet" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
+  {
+    id: "SoftTeachingLibraryGrid", category: "teaching", catalogGroup: "柔和教学紫", placement: "left", glyph: "GRID", durationInFrames: 210,
+    bounds: { x: 0, y: 0, width: 680, height: 315 }, defaultPosition: { x: 90, y: 930, scale: 1 },
+    defaultProps: { enabled: true, title: "你自己的动效库", subtitle: "YOUR LIBRARY", columns: 6, highlightIndex: 7, accentColor: "violet", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示卡槽", default: true }, title: { type: "text", label: "主标题" }, subtitle: { type: "text", label: "英文标签" }, columns: { type: "number", label: "每行卡槽数", default: 6, min: 3, max: 8, step: 1 }, highlightIndex: { type: "number", label: "高亮第几格", default: 7, min: 1, max: 12, step: 1 }, accentColor: { type: "color", label: "高亮色", default: "violet" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
+  {
+    id: "SoftTeachingIncrementBadge", category: "teaching", catalogGroup: "柔和教学紫", placement: "left", glyph: "+1", durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 210, height: 108 }, defaultPosition: { x: 640, y: 980, scale: 1 },
+    defaultProps: { enabled: true, value: "+1", label: "已添加到动效库", accentColor: "violet", animationSeconds: 1.2 },
+    propsSchema: { enabled: { type: "boolean", label: "显示反馈", default: true }, value: { type: "text", label: "反馈数值" }, label: { type: "text", label: "反馈说明" }, accentColor: { type: "color", label: "强调色", default: "violet" }, animationSeconds: { type: "number", label: "动画时长(秒)", default: 1.2, min: 0.2, max: 8, step: 0.1 } },
+  },
 ];
 
 // 所有 legacy-effects 里注册为 metric 类的卡片共享同一份 spec。
