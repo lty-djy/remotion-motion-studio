@@ -14,7 +14,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, type Plugin } from "vite";
@@ -739,6 +739,215 @@ const normalizeComponent = (code: string) => {
   return `${code}\nexport default ${named};\n`;
 };
 
+type BundledImport = {
+  text: string;
+  source: string;
+  isTypeOnly: boolean;
+  defaultName: string;
+  namespaceName: string;
+  namedSpecs: Array<{ imported: string; local: string }>;
+};
+
+const parseBundlerImports = (code: string): BundledImport[] => {
+  const imports: BundledImport[] = [];
+  const pattern =
+    /^import\s+(?:[\s\S]*?\sfrom\s*)?["']([^"']+)["']\s*;?[ \t]*$/gm;
+  for (const match of code.matchAll(pattern)) {
+    const text = match[0];
+    const clause = text
+      .replace(/^import\s+/, "")
+      .replace(/\s*from\s*["'][^"']+["']\s*;?\s*$/, "")
+      .trim();
+    if (!clause || clause.startsWith('"') || clause.startsWith("'")) {
+      imports.push({
+        text,
+        source: match[1],
+        isTypeOnly: false,
+        defaultName: "",
+        namespaceName: "",
+        namedSpecs: [],
+      });
+      continue;
+    }
+    const isTypeOnly = /^type\s/.test(clause);
+    const working = isTypeOnly ? clause.replace(/^type\s+/, "") : clause;
+    const namespaceMatch = working.match(/^\*\s+as\s+(\w+)$/);
+    const defaultWithNamedMatch = working.match(/^(\w+)\s*,\s*([\s\S]*)$/);
+    const defaultOnlyMatch = working.match(/^(\w+)$/);
+    let defaultName = "";
+    let namespaceName = "";
+    let namedSource = "";
+    if (namespaceMatch) {
+      namespaceName = namespaceMatch[1];
+    } else if (defaultWithNamedMatch) {
+      defaultName = defaultWithNamedMatch[1];
+      namedSource = defaultWithNamedMatch[2];
+    } else if (/\{[\s\S]*\}/.test(working)) {
+      namedSource = working;
+    } else if (defaultOnlyMatch) {
+      defaultName = defaultOnlyMatch[1];
+    }
+    const namedSpecs: Array<{ imported: string; local: string }> = [];
+    const inner = namedSource.match(/\{([\s\S]*)\}/);
+    if (inner) {
+      for (const part of inner[1].split(",")) {
+        const trimmed = part.trim();
+        if (!trimmed || /^type\s/.test(trimmed)) continue;
+        const asMatch = trimmed.match(/^([\w$]+)\s+as\s+([\w$]+)$/);
+        namedSpecs.push(
+          asMatch
+            ? { imported: asMatch[1], local: asMatch[2] }
+            : { imported: trimmed, local: trimmed },
+        );
+      }
+    }
+    imports.push({
+      text,
+      source: match[1],
+      isTypeOnly,
+      defaultName,
+      namespaceName,
+      namedSpecs,
+    });
+  }
+  return imports;
+};
+
+// 把效果源文件打包成单文件：相对依赖递归内联（IIFE 隔离作用域），
+// 仅保留 react / remotion 外部导入，并补上 MOTION_COMPONENTS 导出，
+// 使「跳转到代码」载入的源码能直接通过导入校验。
+const bundleEffectSource = async (
+  entryCode: string,
+  entryDir: string,
+  componentId: string,
+): Promise<string> => {
+  const externalStatements = new Set<string>();
+  const visited = new Set<string>();
+  let defaultCounter = 0;
+
+  const resolveLocalModule = async (spec: string, dir: string) => {
+    const base = join(dir, spec);
+    const candidates = /\.(ts|tsx)$/i.test(spec)
+      ? [base]
+      : [`${base}.tsx`, `${base}.ts`];
+    for (const candidate of candidates) {
+      try {
+        return { path: candidate, code: await readFile(candidate, "utf8") };
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  const stripExports = (code: string, defaultVar: string) =>
+    code
+      .replace(/\bexport\s+default\s+/g, `const ${defaultVar} = `)
+      .replace(
+        /\bexport\s+(?:(async)\s+)?(const|let|var|function|class|type|interface|enum)\b/g,
+        "$1 $2",
+      );
+
+  const processModule = async (code: string, dir: string): Promise<string> => {
+    let body = code;
+    for (const statement of parseBundlerImports(code)) {
+      let replacement = "";
+      if (!statement.isTypeOnly) {
+        if (!statement.source.startsWith(".")) {
+          externalStatements.add(statement.text.trim());
+        } else {
+          const resolved = await resolveLocalModule(statement.source, dir);
+          if (!resolved) {
+            throw new Error(`无法内联本地依赖 ${statement.source}`);
+          }
+          if (!visited.has(resolved.path)) {
+            visited.add(resolved.path);
+            const defaultVar = `__bundledDefault${(defaultCounter += 1)}`;
+            const depBody = await processModule(
+              stripExports(resolved.code, defaultVar),
+              dirname(resolved.path),
+            );
+            if (statement.namespaceName) {
+              const declaredNames = new Set<string>();
+              for (const declared of depBody.matchAll(
+                /\b(?:const|let|var|function|class)\s+([\w$]+)/g,
+              )) {
+                declaredNames.add(declared[1]);
+              }
+              replacement = `const ${
+                statement.namespaceName
+              } = (() => {\n${depBody.trim()}\nreturn { ${[
+                ...declaredNames,
+              ].join(", ")} };\n})();`;
+            } else {
+              const returnKeys = statement.namedSpecs.map(
+                (spec) => spec.imported,
+              );
+              const destructured = statement.namedSpecs.map((spec) =>
+                spec.imported === spec.local
+                  ? spec.imported
+                  : `${spec.imported}: ${spec.local}`,
+              );
+              if (statement.defaultName) {
+                returnKeys.push(defaultVar);
+                destructured.push(`${defaultVar}: ${statement.defaultName}`);
+              }
+              replacement = `const { ${destructured.join(
+                ", ",
+              )} } = (() => {\n${depBody.trim()}\nreturn { ${returnKeys.join(
+                ", ",
+              )} };\n})();`;
+            }
+          }
+        }
+      }
+      body = body.replace(statement.text, () => replacement);
+    }
+    return body;
+  };
+
+  const buildMotionComponentsExport = () => {
+    if (/\bexport\s+(?:const|let|var)\s+MOTION_COMPONENTS\b/.test(entryCode)) {
+      return "";
+    }
+    for (const defMatch of entryCode.matchAll(
+      /export\s+const\s+(\w+)[^;{}]*?=\s*\{/g,
+    )) {
+      const windowStart = defMatch.index! + defMatch[0].length;
+      const idMatch = entryCode
+        .slice(windowStart, windowStart + 800)
+        .match(/id\s*:\s*["']([^"']+)["']/);
+      if (idMatch && idMatch[1] === componentId) {
+        return `export const MOTION_COMPONENTS = [${defMatch[1]}];\n`;
+      }
+    }
+    const listMatch = entryCode.match(
+      /export\s+const\s+(\w+)\s*:\s*(?:readonly\s+)?[\w.]+(?:\[\])+/,
+    );
+    if (listMatch) {
+      return `export const MOTION_COMPONENTS = ${
+        listMatch[1]
+      }.filter((def: { id?: string }) => def.id === ${JSON.stringify(
+        componentId,
+      )});\n`;
+    }
+    return "";
+  };
+
+  const entryBody = await processModule(entryCode, entryDir);
+  const motionComponentsExport = buildMotionComponentsExport();
+  return [
+    [...externalStatements].join("\n"),
+    "",
+    entryBody.trim(),
+    "",
+    motionComponentsExport,
+    motionComponentsExport ? "export default MOTION_COMPONENTS;\n" : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 const storeComponent = async (filename: string, code: string) => {
   const normalized = normalizeComponent(code);
   const safeName = basename(filename || "component.tsx");
@@ -1064,6 +1273,49 @@ const localApi = (): Plugin => {
               component?.id ?? snapshot.activeComponentId,
           });
           return;
+        }
+
+        if (url.pathname === "/api/effect-source" && req.method === "GET") {
+          const componentId = url.searchParams.get("id") ?? "";
+          if (!componentId) throw new Error("缺少效果 id");
+          const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const idPattern = new RegExp(
+            `id\\s*:\\s*["']${escapedId}["']|\\[\\s*["']${escapedId}["']\\s*,`,
+          );
+          const candidates: string[] = [];
+          const effectsDir = join(rootDir, "effects");
+          try {
+            for (const entry of await readdir(effectsDir)) {
+              if (entry.endsWith(".tsx")) candidates.push(join(effectsDir, entry));
+            }
+          } catch {
+            // effects 目录不存在时跳过
+          }
+          candidates.push(legacyEffectsPath);
+          const sourceState = await readState();
+          for (const item of sourceState.componentHistory ?? []) {
+            if (item && typeof item.storedFile === "string") {
+              candidates.push(join(componentStoreDir, basename(item.storedFile)));
+            }
+          }
+          for (const filePath of candidates) {
+            let code = "";
+            try {
+              code = await readFile(filePath, "utf8");
+            } catch {
+              continue;
+            }
+            if (idPattern.test(code)) {
+              const bundledCode = await bundleEffectSource(
+                code,
+                dirname(filePath),
+                componentId,
+              );
+              sendJson(res, 200, { ok: true, file: filePath, code: bundledCode });
+              return;
+            }
+          }
+          throw new Error("没有找到该效果的本地源码");
         }
 
         if (url.pathname === "/api/component" && req.method === "GET") {

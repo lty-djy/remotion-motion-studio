@@ -350,6 +350,83 @@ main.is-resizing-sidebar * {
   border-left: 1px solid #34363b;
 }
 
+.workspace-zoom-control {
+  min-width: 132px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  color: #aeb0b7;
+  border-left: 1px solid #34363b;
+  white-space: nowrap;
+}
+
+.workspace-zoom-control button {
+  min-width: 20px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #c7c9cf;
+  background: transparent;
+  font-size: 9px;
+}
+
+.workspace-zoom-control button:hover:not(:disabled) {
+  color: #ffffff;
+  background: #24262b;
+}
+
+.workspace-zoom-control button:disabled {
+  opacity: 0.32;
+}
+
+.workspace-zoom-control button svg {
+  width: 11px;
+  height: 11px;
+}
+
+.workspace-zoom-control input {
+  width: 34px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  outline: 0;
+  color: #f1f2f4;
+  background: transparent;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  text-align: center;
+}
+
+.workspace-zoom-control input:focus {
+  color: #ff704e;
+}
+
+.workspace-zoom-control input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.workspace-zoom-control input[type="number"]::-webkit-inner-spin-button,
+.workspace-zoom-control input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.workspace-zoom-control b {
+  color: #74777e;
+  font-family: Consolas, monospace;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.workspace-zoom-control .workspace-zoom-reset {
+  min-width: 27px;
+  color: #8da7ff;
+}
+
 .studio-actions button {
   min-width: 57px;
   display: flex;
@@ -395,6 +472,15 @@ main.is-resizing-sidebar * {
 }
 
 @media (max-width: 1450px) {
+  .workspace-zoom-control {
+    min-width: auto;
+    padding-inline: 5px;
+  }
+
+  .workspace-zoom-control b {
+    display: none;
+  }
+
   .studio-actions button {
     min-width: 48px;
     padding-inline: 8px;
@@ -564,33 +650,46 @@ main.is-resizing-sidebar * {
   border-top: 1px solid #2b2d32;
 }
 
-.effect-library-items > button {
+.effect-library-item {
   min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: #1b1d21;
+}
+
+.effect-library-item:hover {
+  background: #23252a;
+  border-color: #3a3d44;
+}
+
+.effect-library-item-main {
+  min-width: 0;
+  flex: 1;
   min-height: 48px;
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 6px;
-  border: 1px solid transparent;
-  border-radius: 3px;
+  border: 0;
   color: #c9cacf;
-  background: #1b1d21;
+  background: transparent;
   text-align: left;
   cursor: pointer;
 }
 
-.effect-library-items > button:hover:not(:disabled) {
+.effect-library-item-main:hover:not(:disabled) {
   color: #ffffff;
-  background: #23252a;
-  border-color: #3a3d44;
 }
 
-.effect-library-items > button:disabled {
+.effect-library-item-main:disabled {
   opacity: 0.42;
   cursor: not-allowed;
 }
 
-.effect-library-items > button > i {
+.effect-library-item-main > i {
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
@@ -605,11 +704,39 @@ main.is-resizing-sidebar * {
   font-style: normal;
 }
 
-.effect-library-items > button > span {
+.effect-library-item-main > span {
   min-width: 0;
   flex: 1;
   display: grid;
   gap: 3px;
+}
+
+.effect-library-item-main > svg {
+  width: 12px;
+  flex: 0 0 12px;
+  color: #777a82;
+}
+
+.effect-library-item-code {
+  flex: 0 0 24px;
+  width: 24px;
+  margin: 5px 5px 5px 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 3px;
+  color: #777a82;
+  background: transparent;
+  cursor: pointer;
+}
+
+.effect-library-item-code:hover {
+  color: #ff6a48;
+  background: #2c2f36;
+}
+
+.effect-library-item-code > svg {
+  width: 13px;
 }
 
 .effect-library-items strong,
@@ -627,12 +754,6 @@ main.is-resizing-sidebar * {
 .effect-library-items small {
   color: #6f7178;
   font-size: 8px;
-}
-
-.effect-library-items > button > svg {
-  width: 12px;
-  flex: 0 0 12px;
-  color: #777a82;
 }
 
 .effect-library-empty {

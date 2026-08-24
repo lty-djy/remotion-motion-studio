@@ -14,6 +14,7 @@ import {
   ArrowsOutLineVertical,
   CaretDown,
   CheckCircle,
+  Code,
   DeviceMobile,
   DownloadSimple,
   Eye,
@@ -977,6 +978,16 @@ const App = () => {
       ? parsed
       : 1;
   });
+  const [workspaceZoom, setWorkspaceZoom] = useState(() => {
+    const saved = localStorage.getItem("motion-studio-workspace-zoom");
+    const parsed = saved ? Number(saved) : NaN;
+    return Number.isFinite(parsed) && parsed >= 50 && parsed <= 200
+      ? parsed
+      : 100;
+  });
+  const [workspaceZoomInput, setWorkspaceZoomInput] = useState(() =>
+    String(workspaceZoom),
+  );
   const [srtDialogOpen, setSrtDialogOpen] = useState(false);
   const [srtFileName, setSrtFileName] = useState("");
   const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
@@ -1355,6 +1366,10 @@ const App = () => {
         totalFrames: number;
         restoredInstances?: MotionInstance[];
         restoredFrame?: number;
+        appendComponentId?: string;
+        appendStartFrame?: number;
+        appendTrackOrder?: number;
+        appendOrientation?: "landscape" | "portrait";
       },
     ) => {
       const loadedFps = getNumberExport(
@@ -1430,31 +1445,71 @@ const App = () => {
           }),
         ];
       });
-      const nextInstances = preventLaneOverlaps(
-        hasRestoredInstances ? restoredInstances : presetInstances,
-      );
-      if (
-        !hasRestoredInstances &&
-        nextInstances.length === 0 &&
-        nextDefinitions[0]
-      ) {
-        nextInstances.push(
-          createInstance(nextDefinitions[0], 0, totalFrames, {
-            durationInFrames: Math.min(
-              nextDefinitions[0].durationInFrames,
-              totalFrames,
-            ),
-          }),
+      const appendComponentId = options.appendComponentId?.trim() ?? "";
+      const appendingToTimeline = Boolean(appendComponentId);
+      const appendedInstances = appendingToTimeline
+        ? presetInstances.length > 0
+          ? presetInstances
+          : (() => {
+              const targetDefinition =
+                nextDefinitions.find(
+                  (candidate) => candidate.id === appendComponentId,
+                ) ??
+                importedDefinitions[0] ??
+                nextDefinitions[0];
+              return targetDefinition
+                ? [
+                    createInstance(
+                      targetDefinition,
+                      options.appendStartFrame ?? 0,
+                      totalFrames,
+                      {
+                        position: getRegisteredEffectPosition(
+                          targetDefinition,
+                          options.appendOrientation ?? "landscape",
+                        ),
+                        trackOrder: options.appendTrackOrder,
+                      },
+                    ),
+                  ]
+                : [];
+            })()
+        : [];
+      if (appendingToTimeline) {
+        if (appendedInstances.length > 0) {
+          setInstances((current) =>
+            preventLaneOverlaps([...current, ...appendedInstances]),
+          );
+          setSelectedInstanceId(appendedInstances[0].id);
+          setSelectedInstanceIds([appendedInstances[0].id]);
+        }
+      } else {
+        const nextInstances = preventLaneOverlaps(
+          hasRestoredInstances ? restoredInstances : presetInstances,
         );
+        if (
+          !hasRestoredInstances &&
+          nextInstances.length === 0 &&
+          nextDefinitions[0]
+        ) {
+          nextInstances.push(
+            createInstance(nextDefinitions[0], 0, totalFrames, {
+              durationInFrames: Math.min(
+                nextDefinitions[0].durationInFrames,
+                totalFrames,
+              ),
+            }),
+          );
+        }
+        setInstances(nextInstances);
+        setSelectedInstanceId(nextInstances[0]?.id ?? "");
+        setSelectedInstanceIds(
+          nextInstances[0]?.id ? [nextInstances[0].id] : [],
+        );
+        setSelectedVideoTrackId("");
       }
       setMotionModule(loaded);
       setDefinitions(nextDefinitions);
-      setInstances(nextInstances);
-      setSelectedInstanceId(nextInstances[0]?.id ?? "");
-      setSelectedInstanceIds(
-        nextInstances[0]?.id ? [nextInstances[0].id] : [],
-      );
-      setSelectedVideoTrackId("");
       setSourceIncludesVideo(options.sourceIncludesVideo);
       setComponentName(options.componentName);
       setCurrentFrame((frame) =>
@@ -1474,6 +1529,10 @@ const App = () => {
         totalFrames: number;
         restoredInstances?: MotionInstance[];
         restoredFrame?: number;
+        appendComponentId?: string;
+        appendStartFrame?: number;
+        appendTrackOrder?: number;
+        appendOrientation?: "landscape" | "portrait";
       },
     ) => {
       const loaded = (await import(/* @vite-ignore */ url)) as MotionModule;
@@ -1613,6 +1672,17 @@ const App = () => {
     );
   }, [globalCardScale]);
 
+  useEffect(() => {
+    window.localStorage.setItem(
+      "motion-studio-workspace-zoom",
+      String(workspaceZoom),
+    );
+  }, [workspaceZoom]);
+
+  useEffect(() => {
+    setWorkspaceZoomInput(String(workspaceZoom));
+  }, [workspaceZoom]);
+
   useEffect(
     () => () => {
       sidebarDragCleanupRef.current?.();
@@ -1745,6 +1815,7 @@ const App = () => {
         ? instances.map((instance) => ({
             ...instance,
             backgroundOpacity: 0,
+            props: { ...instance.props, cardTransparent: true },
           }))
         : instances,
     [instances, globalCardBase],
@@ -2808,7 +2879,10 @@ const App = () => {
     });
   };
 
-  const importComponent = async (file: File) => {
+  const importComponent = async (
+    file: File,
+    options?: { appendToTimeline?: boolean },
+  ) => {
     const code = await file.text();
     setNotice({ tone: "info", text: "正在进行安全校验并编译组件清单…" });
     const response = await fetch("/api/import-component", {
@@ -2819,15 +2893,36 @@ const App = () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "组件导入失败");
     setActiveComponentId(data.activeComponentId ?? "");
-    await loadModuleUrl(data.moduleUrl, {
-      sourceIncludesVideo: Boolean(data.sourceIncludesVideo),
-      componentName: file.name,
-      totalFrames: durationInFrames,
-    });
+    const appendToTimeline = options?.appendToTimeline === true;
+    await loadModuleUrl(
+      data.moduleUrl,
+      appendToTimeline
+        ? {
+            sourceIncludesVideo: Boolean(data.sourceIncludesVideo),
+            componentName: file.name,
+            totalFrames: durationInFrames,
+            appendComponentId: String(data.activeComponentId ?? ""),
+            appendStartFrame: currentFrame,
+            appendTrackOrder:
+              Math.min(
+                0,
+                ...videoTracks.map((track) => track.trackOrder),
+                ...instances.map((candidate) => candidate.trackOrder),
+              ) - 1,
+            appendOrientation: canvasOrientation,
+          }
+        : {
+            sourceIncludesVideo: Boolean(data.sourceIncludesVideo),
+            componentName: file.name,
+            totalFrames: durationInFrames,
+          },
+    );
     await refreshHistory();
     setNotice({
       tone: "ok",
-      text: `已加载 ${file.name}，识别到组件清单和预设时间轴。`,
+      text: appendToTimeline
+        ? `已将 ${file.name} 导入到时间轴。`
+        : `已加载 ${file.name}，识别到组件清单和预设时间轴。`,
     });
   };
 
@@ -2839,6 +2934,7 @@ const App = () => {
       new File([code], `${safeName.replace(/[\\/:*?"<>|]/g, "-")}.tsx`, {
         type: "text/plain",
       }),
+      { appendToTimeline: true },
     );
     setActiveWorkspace("editor");
   };
@@ -4372,6 +4468,30 @@ const App = () => {
     });
   };
 
+  const openEffectInCodeEditor = async (componentId: string) => {
+    setContextMenu(null);
+    try {
+      const response = await fetch(
+        `/api/effect-source?id=${encodeURIComponent(componentId)}`,
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "读取效果源码失败");
+      }
+      setCodeTemplate(String(payload.code ?? ""));
+      const definition =
+        definitionMap.get(componentId) ?? EFFECT_REGISTRY_BY_ID.get(componentId);
+      setCodeTemplateName(definition?.name ?? componentId);
+      setActiveWorkspace("code");
+      setNotice({ tone: "info", text: "已载入该效果源码，修改后可点导入生成新组件。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "读取效果源码失败",
+      });
+    }
+  };
+
   const showLibraryMenu = (event: React.MouseEvent, componentId: string) => {
     event.preventDefault();
     event.stopPropagation();
@@ -4964,7 +5084,11 @@ const App = () => {
   );
 
   return (
-    <div className="app" data-theme={theme}>
+    <div
+      className="app"
+      data-theme={theme}
+      style={{ zoom: workspaceZoom / 100 }}
+    >
       <input
         ref={videoInput}
         type="file"
@@ -5049,6 +5173,57 @@ const App = () => {
         </nav>
 
         <div className="studio-actions" aria-label="编辑操作">
+          <div className="workspace-zoom-control" aria-label="工作台界面缩放">
+            <button
+              type="button"
+              onClick={() => setWorkspaceZoom((zoom) => Math.max(50, zoom - 10))}
+              disabled={workspaceZoom <= 50}
+              title="缩小工作台界面"
+              aria-label="缩小工作台界面"
+            >
+              <Minus weight="bold" />
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={workspaceZoomInput}
+              onChange={(event) => {
+                const nextText = event.target.value.replace(/\D/g, "");
+                setWorkspaceZoomInput(nextText);
+                const next = Number(nextText);
+                if (
+                  nextText &&
+                  Number.isFinite(next) &&
+                  next >= 50 &&
+                  next <= 200
+                ) {
+                  setWorkspaceZoom(next);
+                }
+              }}
+              onBlur={() => setWorkspaceZoomInput(String(workspaceZoom))}
+              aria-label="工作台界面缩放百分比"
+            />
+            <b>%</b>
+            <button
+              type="button"
+              onClick={() => setWorkspaceZoom((zoom) => Math.min(200, zoom + 10))}
+              disabled={workspaceZoom >= 200}
+              title="放大工作台界面"
+              aria-label="放大工作台界面"
+            >
+              <Plus weight="bold" />
+            </button>
+            <button
+              type="button"
+              className="workspace-zoom-reset"
+              onClick={() => setWorkspaceZoom(100)}
+              disabled={workspaceZoom === 100}
+              title="恢复 100% 工作台界面缩放"
+            >
+              重置
+            </button>
+          </div>
           <button
             className={canvasOrientation === "portrait" ? "format-entry active" : "format-entry"}
             onClick={toggleCanvasOrientation}
@@ -5149,7 +5324,7 @@ const App = () => {
                   <i />
                 </button>
               </label>
-              <p>需导出 <code>MOTION_COMPONENTS</code>；可选导出 <code>MOTION_TIMELINE</code>，导入后会自动加入效果库和时间轨道。</p>
+              <p>需导出 <code>MOTION_COMPONENTS</code>；可选导出 <code>MOTION_TIMELINE</code>，导入后组件加入效果库，并追加到时间轴当前播放位置。</p>
               <div className="code-template-actions">
                 <button
                   type="button"
@@ -5173,7 +5348,7 @@ const App = () => {
                     )
                   }
                 >
-                  导入到工作台
+                  导入到时间轴
                 </button>
               </div>
             </div>
@@ -5236,22 +5411,32 @@ const App = () => {
                           {category.items.map((item) => {
                             const definition = catalogDefinitionMap.get(item.ids[0]);
                             return (
-                              <button
-                                key={item.ids[0]}
-                                disabled={!definition}
-                                onClick={() => definition && addInstance(definition.id)}
-                                onContextMenu={(event) =>
-                                  definition && showLibraryMenu(event, definition.id)
-                                }
-                                title="单击添加到时间轴；右键可移动分组或彻底删除"
-                              >
-                                <i>{item.name.slice(0, 2)}</i>
-                                <span>
-                                  <strong>{item.name}</strong>
-                                  <small>{definition ? "单击添加到时间轴" : "暂不可用"}</small>
-                                </span>
-                                <Plus />
-                              </button>
+                              <div className="effect-library-item" key={item.ids[0]}>
+                                <button
+                                  className="effect-library-item-main"
+                                  disabled={!definition}
+                                  onClick={() => definition && addInstance(definition.id)}
+                                  onContextMenu={(event) =>
+                                    definition && showLibraryMenu(event, definition.id)
+                                  }
+                                  title="单击添加到时间轴；右键可移动分组或彻底删除"
+                                >
+                                  <i>{item.name.slice(0, 2)}</i>
+                                  <span>
+                                    <strong>{item.name}</strong>
+                                    <small>{definition ? "单击添加到时间轴" : "暂不可用"}</small>
+                                  </span>
+                                  <Plus />
+                                </button>
+                                <button
+                                  className="effect-library-item-code"
+                                  title="跳转到代码"
+                                  aria-label={`跳转到 ${item.name} 的代码`}
+                                  onClick={() => openEffectInCodeEditor(item.ids[0])}
+                                >
+                                  <Code />
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -5273,19 +5458,29 @@ const App = () => {
                   </div>
                   <div className="effect-library-items">
                     {customDefinitions.map((definition) => (
-                      <button
-                        key={definition.id}
-                        onClick={() => addInstance(definition.id)}
-                        onContextMenu={(event) => showLibraryMenu(event, definition.id)}
-                        title="单击添加到时间轴；右键彻底删除"
-                      >
-                        <i>FX</i>
-                        <span>
-                          <strong>{definition.name}</strong>
-                          <small>单击添加到时间轴</small>
-                        </span>
-                        <Plus />
-                      </button>
+                      <div className="effect-library-item" key={definition.id}>
+                        <button
+                          className="effect-library-item-main"
+                          onClick={() => addInstance(definition.id)}
+                          onContextMenu={(event) => showLibraryMenu(event, definition.id)}
+                          title="单击添加到时间轴；右键彻底删除"
+                        >
+                          <i>FX</i>
+                          <span>
+                            <strong>{definition.name}</strong>
+                            <small>单击添加到时间轴</small>
+                          </span>
+                          <Plus />
+                        </button>
+                        <button
+                          className="effect-library-item-code"
+                          title="跳转到代码"
+                          aria-label={`跳转到 ${definition.name} 的代码`}
+                          onClick={() => openEffectInCodeEditor(definition.id)}
+                        >
+                          <Code />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -6801,6 +6996,17 @@ const App = () => {
             ) : contextMenu.source === "library" ? (
               <>
                 <small>效果库</small>
+                {contextMenu.componentId ? (
+                  <button
+                    className="copy-action"
+                    onClick={() =>
+                      contextMenu.componentId &&
+                      openEffectInCodeEditor(contextMenu.componentId)
+                    }
+                  >
+                    跳转到代码
+                  </button>
+                ) : null}
                 {contextMenu.componentId &&
                 EFFECT_REGISTRY_BY_ID.has(contextMenu.componentId) ? (
                   <button

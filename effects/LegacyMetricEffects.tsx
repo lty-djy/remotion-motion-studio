@@ -12,6 +12,7 @@ export type LegacyMetricProps = {
   accentColor?: string;
   secondaryColor?: string;
   animationSeconds?: number;
+  cardTransparent?: boolean;
 };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
@@ -20,7 +21,7 @@ const numericValue = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 87;
 };
 
-const panel: CSSProperties = {
+const panelBase: CSSProperties = {
   position: "relative",
   width: 620,
   height: 300,
@@ -33,6 +34,17 @@ const panel: CSSProperties = {
   color: "#f5f5f5",
   fontFamily: "Inter, system-ui, sans-serif",
 };
+
+// cardTransparent（亮底模式）：去掉卡片底色与阴影，只留文字与图形
+const transparentPanel: CSSProperties = {
+  ...panelBase,
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+};
+
+const makePanel = (cardTransparent?: boolean) =>
+  cardTransparent ? transparentPanel : panelBase;
 
 // Remotion controls every animated value from the current frame. Browser CSS
 // interpolation would lag behind continuous preview playback and is skipped by
@@ -76,7 +88,9 @@ export const LegacyMetricEffect: React.FC<LegacyMetricProps> = ({
   accentColor = "#d7d7d7",
   secondaryColor = "#7a7d84",
   animationSeconds = 1.2,
+  cardTransparent,
 }) => {
+  const panel = makePanel(cardTransparent);
   const progress = useRafProgress(animationSeconds);
   const number = numericValue(value);
   const percent = clamp01(Math.abs(number) / 100);

@@ -85,6 +85,7 @@ type FlowPipelineProps = {
   propColor?: string;
   showHeader?: boolean;
   showConsole?: boolean;
+  cardTransparent?: boolean;
 };
 
 export const FlowPipeline: React.FC<FlowPipelineProps> = ({
@@ -96,6 +97,7 @@ export const FlowPipeline: React.FC<FlowPipelineProps> = ({
   propColor = "#fbbf24",
   showHeader = true,
   showConsole = true,
+  cardTransparent = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps: rawFps } = useVideoConfig();
@@ -154,7 +156,7 @@ export const FlowPipeline: React.FC<FlowPipelineProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
             borderBottom: "1px solid #1e293b",
-            background: "rgba(8,11,16,0.85)",
+            background: cardTransparent ? "transparent" : "rgba(8,11,16,0.85)",
             zIndex: 5,
           }}
         >
@@ -446,7 +448,7 @@ export const FlowPipeline: React.FC<FlowPipelineProps> = ({
             right: 20,
             bottom: 16,
             height: 132,
-            background: "#020617",
+            background: cardTransparent ? "transparent" : "#020617",
             border: "1px solid #1e293b",
             borderRadius: 6,
             padding: "9px 12px",
