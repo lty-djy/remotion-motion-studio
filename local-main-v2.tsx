@@ -234,12 +234,6 @@ type EffectMoveTarget = {
   effectName: string;
   currentGroupId: string;
 };
-type LaneMergeTarget = {
-  laneId: string;
-  laneName: string;
-  kind: TimelineLane["kind"];
-};
-
 const loadCustomCatalogGroups = (): CustomCatalogGroup[] => {
   try {
     const stored = JSON.parse(
@@ -400,7 +394,6 @@ type ContextMenuState = {
   source:
     | "preview"
     | "timeline"
-    | "timelineLane"
     | "videoTimeline"
     | "library"
     | "libraryGroup"
@@ -411,8 +404,6 @@ type ContextMenuState = {
   groupId?: string;
   groupName?: string;
   groupComponentIds?: string[];
-  laneId?: string;
-  laneKind?: TimelineLane["kind"];
 };
 
 type LaneDropState = {
@@ -754,174 +745,6 @@ type StudioPreviewProps = {
   globalCardScale: number;
 };
 
-const calculateRippleInsertion = <
-  T extends { id: string; startFrame: number; durationInFrames: number },
->(clips: T[], movingId: string, requestedStartFrame: number) => {
-  const moving = clips.find((clip) => clip.id === movingId);
-  if (!moving) return null;
-  const others = clips
-    .filter((clip) => clip.id !== movingId)
-    .sort((a, b) => a.startFrame - b.startFrame);
-  const starts = new Map<string, number>();
-  // 剪映式插入以片段的结束边界判断前序：只要现有片段仍与落点重叠，
-  // 它就是被插入片段挤开的对象，而不能反过来把被拖片段弹到它的后面。
-  const preceding = others.filter(
-    (clip) =>
-      clip.startFrame + clip.durationInFrames <= requestedStartFrame,
-  );
-  preceding.forEach((clip) => starts.set(clip.id, clip.startFrame));
-  const precedingEnd = preceding.reduce(
-    (maximum, clip) => Math.max(maximum, clip.startFrame + clip.durationInFrames),
-    0,
-  );
-  const movingStartFrame = Math.max(0, requestedStartFrame, precedingEnd);
-  starts.set(movingId, movingStartFrame);
-  let nextAvailableFrame = movingStartFrame + moving.durationInFrames;
-  const precedingIds = new Set(preceding.map((clip) => clip.id));
-  others
-    .filter((clip) => !precedingIds.has(clip.id))
-    .forEach((clip) => {
-      const startFrame = Math.max(clip.startFrame, nextAvailableFrame);
-      starts.set(clip.id, startFrame);
-      nextAvailableFrame = startFrame + clip.durationInFrames;
-    });
-  return { starts, endFrame: nextAvailableFrame };
-};
-
-const calculateCapCutReorder = <
-  T extends { id: string; startFrame: number; durationInFrames: number },
->(clips: T[], movingId: string, requestedStartFrame: number) => {
-  const ordered = [...clips].sort(
-    (a, b) => a.startFrame - b.startFrame,
-  );
-  const moving = ordered.find((clip) => clip.id === movingId);
-  if (!moving) return null;
-
-  const starts = new Map(
-    ordered.map((clip) => [clip.id, clip.startFrame] as const),
-  );
-  const safeRequestedStartFrame = Math.max(0, requestedStartFrame);
-  const requestedEndFrame =
-    safeRequestedStartFrame + moving.durationInFrames;
-  const others = ordered.filter((clip) => clip.id !== movingId);
-  const overlapsAnotherClip = others.some(
-    (clip) =>
-      safeRequestedStartFrame <
-        clip.startFrame + clip.durationInFrames &&
-      requestedEndFrame > clip.startFrame,
-  );
-
-  // 没有碰撞时保持自由定位，不强制把有间隙的片段吸成连续排列。
-  if (!overlapsAnotherClip) {
-    starts.set(movingId, safeRequestedStartFrame);
-    const endFrame = ordered.reduce(
-      (maximum, clip) =>
-        Math.max(
-          maximum,
-          (starts.get(clip.id) ?? clip.startFrame) + clip.durationInFrames,
-        ),
-      0,
-    );
-    return { starts, endFrame };
-  }
-
-  const originalIndex = ordered.findIndex((clip) => clip.id === movingId);
-  const requestedCenter =
-    safeRequestedStartFrame + moving.durationInFrames / 2;
-  // 剪映式换位阈值：拖动片段中心越过目标片段中心后才改变顺序。
-  const insertionIndex = others.findIndex(
-    (clip) =>
-      requestedCenter <
-      clip.startFrame + clip.durationInFrames / 2,
-  );
-  const targetIndex = insertionIndex < 0 ? others.length : insertionIndex;
-
-  // 只有边缘发生重叠但中心尚未越界：维持原顺序并吸附到相邻边界。
-  if (targetIndex === originalIndex) {
-    const previous = others[targetIndex - 1];
-    const next = others[targetIndex];
-    const minimumStart = previous
-      ? previous.startFrame + previous.durationInFrames
-      : 0;
-    const maximumStart = next
-      ? next.startFrame - moving.durationInFrames
-      : Number.POSITIVE_INFINITY;
-    starts.set(
-      movingId,
-      minimumStart <= maximumStart
-        ? clamp(safeRequestedStartFrame, minimumStart, maximumStart)
-        : moving.startFrame,
-    );
-  } else {
-    const reordered = [...others];
-    reordered.splice(targetIndex, 0, moving);
-    const firstAffectedIndex = Math.min(originalIndex, targetIndex);
-    const lastAffectedIndex = Math.max(originalIndex, targetIndex);
-    let cursorFrame = ordered[firstAffectedIndex]?.startFrame ?? 0;
-    reordered
-      .slice(firstAffectedIndex, lastAffectedIndex + 1)
-      .forEach((clip) => {
-        starts.set(clip.id, cursorFrame);
-        cursorFrame += clip.durationInFrames;
-      });
-  }
-
-  const endFrame = ordered.reduce(
-    (maximum, clip) =>
-      Math.max(
-        maximum,
-        (starts.get(clip.id) ?? clip.startFrame) + clip.durationInFrames,
-      ),
-    0,
-  );
-  return { starts, endFrame };
-};
-
-const calculateCapCutExternalInsertion = <
-  T extends { id: string; startFrame: number; durationInFrames: number },
->(targetClips: T[], moving: T, requestedStartFrame: number) => {
-  const safeRequestedStartFrame = Math.max(0, requestedStartFrame);
-  const orderedTargets = [...targetClips].sort(
-    (a, b) => a.startFrame - b.startFrame,
-  );
-  const starts = new Map(
-    orderedTargets.map((clip) => [clip.id, clip.startFrame] as const),
-  );
-  const requestedCenter =
-    safeRequestedStartFrame + moving.durationInFrames / 2;
-  const insertionIndex = orderedTargets.findIndex(
-    (clip) =>
-      requestedCenter <
-      clip.startFrame + clip.durationInFrames / 2,
-  );
-  const targetIndex =
-    insertionIndex < 0 ? orderedTargets.length : insertionIndex;
-  const previous = orderedTargets[targetIndex - 1];
-  const movingStartFrame = Math.max(
-    safeRequestedStartFrame,
-    previous
-      ? previous.startFrame + previous.durationInFrames
-      : 0,
-  );
-  starts.set(moving.id, movingStartFrame);
-
-  let nextAvailableFrame = movingStartFrame + moving.durationInFrames;
-  orderedTargets.slice(targetIndex).forEach((clip) => {
-    const startFrame = Math.max(clip.startFrame, nextAvailableFrame);
-    starts.set(clip.id, startFrame);
-    nextAvailableFrame = startFrame + clip.durationInFrames;
-  });
-  const endFrame = orderedTargets.reduce(
-    (maximum, clip) =>
-      Math.max(
-        maximum,
-        (starts.get(clip.id) ?? clip.startFrame) + clip.durationInFrames,
-      ),
-    nextAvailableFrame,
-  );
-  return { starts, endFrame };
-};
-
 const StudioPreviewComposition = ({
   videoUrl,
   includeVideo,
@@ -1245,8 +1068,6 @@ const App = () => {
   );
   const [effectMoveTarget, setEffectMoveTarget] =
     useState<EffectMoveTarget | null>(null);
-  const [laneMergeTarget, setLaneMergeTarget] =
-    useState<LaneMergeTarget | null>(null);
   const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
     "practice",
     "navigation",
@@ -2731,90 +2552,6 @@ const App = () => {
     [timelineLanes],
   );
 
-  const openLaneMergeDialog = (laneId: string) => {
-    const lane = timelineLanes.find((item) => item.laneId === laneId);
-    if (!lane) return;
-    const firstClip = lane.clips[0];
-    const laneName =
-      lane.kind === "video"
-        ? firstClip.name
-        : definitionMap.get(firstClip.componentId)?.name ?? "动效轨道";
-    const availableTargets = timelineLanes.filter(
-      (item) => item.kind === lane.kind && item.laneId !== laneId,
-    );
-    if (availableTargets.length === 0) {
-      setNotice({ tone: "info", text: "暂无可合并的同类型轨道。" });
-      return;
-    }
-    setContextMenu(null);
-    setLaneMergeTarget({ laneId, laneName, kind: lane.kind });
-  };
-
-  const mergeTimelineLane = (
-    targetLaneId: string,
-    sourceLaneIdOverride?: string,
-  ) => {
-    const sourceLaneId = sourceLaneIdOverride ?? laneMergeTarget?.laneId;
-    if (!sourceLaneId || targetLaneId === sourceLaneId) return;
-    const sourceLane = timelineLanes.find(
-      (lane) => lane.laneId === sourceLaneId,
-    );
-    const targetLane = timelineLanes.find((lane) => lane.laneId === targetLaneId);
-    if (!sourceLane || !targetLane || sourceLane.kind !== targetLane.kind) return;
-    const clips = [...sourceLane.clips, ...targetLane.clips];
-    const hasOverlap = clips.some((clip, index) =>
-      clips.slice(index + 1).some(
-        (other) =>
-          clip.startFrame < other.startFrame + other.durationInFrames &&
-          other.startFrame < clip.startFrame + clip.durationInFrames,
-      ),
-    );
-    if (hasOverlap) {
-      setNotice({
-        tone: "error",
-        text: "两个轨道存在重叠片段，无法合并。请先调整片段时间。",
-      });
-      return;
-    }
-    if (sourceLane.kind === "motion") {
-      setInstances((current) =>
-        current.map((instance) =>
-          instance.laneId === sourceLane.laneId
-            ? {
-                ...instance,
-                laneId: targetLane.laneId,
-                trackOrder: targetLane.trackOrder,
-              }
-            : instance,
-        ),
-      );
-    } else {
-      setVideoTracks((current) =>
-        current.map((track) =>
-          track.laneId === sourceLane.laneId
-            ? {
-                ...track,
-                laneId: targetLane.laneId,
-                trackOrder: targetLane.trackOrder,
-              }
-            : track,
-        ),
-      );
-    }
-    setTrackHeights((current) => {
-      const { [sourceLane.laneId]: _removed, ...next } = current;
-      return next;
-    });
-    const sourceLaneName =
-      laneMergeTarget?.laneName ??
-      (sourceLane.kind === "video"
-        ? sourceLane.clips[0]?.name ?? "视频轨道"
-        : definitionMap.get(sourceLane.clips[0]?.componentId)?.name ??
-          "动效轨道");
-    setLaneMergeTarget(null);
-    setNotice({ tone: "ok", text: `已将“${sourceLaneName}”合并到目标轨道。` });
-  };
-
   const computeLaneDropTarget = useCallback(
     (clientX: number, clientY: number, draggedLaneId: string) => {
       const all = Array.from(
@@ -2863,8 +2600,7 @@ const App = () => {
     event: React.PointerEvent<HTMLDivElement>,
     laneId: string,
   ) => {
-    // 只允许从轨道空白区发起整轨手势；片段本身始终保持单组件操作。
-    if ((event.target as HTMLElement).closest("button, .clip")) return;
+    if ((event.target as HTMLElement).closest("button")) return;
     laneGestureRef.current = {
       laneId,
       pointerId: event.pointerId,
@@ -2887,7 +2623,7 @@ const App = () => {
       const dy = event.clientY - gesture.startY;
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       if (Math.abs(dy) > Math.abs(dx)) {
-        // 纵向主导 → 直接尝试合并到目标轨道，同时取消片段的水平拖拽
+        // 纵向主导 → 升级为轨道换位，同时取消片段的水平拖拽
         gesture.resolved = "vertical";
         videoTimelineDragState.current = null;
         timelineDragState.current = null;
@@ -2946,17 +2682,7 @@ const App = () => {
         state.laneId,
       );
       if (drop) {
-        const sourceLane = timelineLanes.find(
-          (lane) => lane.laneId === state.laneId,
-        );
-        const targetLane = timelineLanes.find(
-          (lane) => lane.laneId === drop.targetLaneId,
-        );
-        if (sourceLane && targetLane && sourceLane.kind === targetLane.kind) {
-          mergeTimelineLane(targetLane.laneId, sourceLane.laneId);
-        } else {
-          reorderTimelineLane(state.laneId, drop.targetLaneId, drop.placement);
-        }
+        reorderTimelineLane(state.laneId, drop.targetLaneId, drop.placement);
       }
       draggedLaneIdRef.current = "";
       laneReorderPointerRef.current = null;
@@ -2976,12 +2702,7 @@ const App = () => {
       window.removeEventListener("pointerup", finishLaneReorder);
       window.removeEventListener("pointercancel", cancelLaneReorder);
     };
-  }, [
-    computeLaneDropTarget,
-    mergeTimelineLane,
-    reorderTimelineLane,
-    timelineLanes,
-  ]);
+  }, [reorderTimelineLane, computeLaneDropTarget]);
 
   const splitSelectedTracks = (instanceIds: string[]) => {
     const minFrames = Math.max(3, Math.round(fps * 0.1));
@@ -3868,12 +3589,6 @@ const App = () => {
     sourceDurationInFrames: number;
     durationInFrames: number;
     width: number;
-    requestedStartFrame: number;
-    laneClips: Array<{
-      id: string;
-      startFrame: number;
-      durationInFrames: number;
-    }>;
   } | null>(null);
 
   const beginVideoTimelineDrag = (
@@ -3896,14 +3611,6 @@ const App = () => {
         timelineContentWidth ||
         event.currentTarget.closest(".track-body")?.clientWidth ||
         1,
-      requestedStartFrame: track.startFrame,
-      laneClips: videoTracks
-        .filter((candidate) => candidate.laneId === track.laneId)
-        .map((candidate) => ({
-          id: candidate.id,
-          startFrame: candidate.startFrame,
-          durationInFrames: candidate.durationInFrames,
-        })),
     };
   };
 
@@ -3916,28 +3623,6 @@ const App = () => {
         ((event.clientX - state.pointerX) / state.width) * durationInFrames,
       );
       const minFrames = Math.max(3, Math.round(fps * 0.1));
-      if (state.mode === "move") {
-        const requestedStartFrame = Math.max(0, state.startFrame + deltaFrames);
-        state.requestedStartFrame = requestedStartFrame;
-        const reorder = calculateCapCutReorder(
-          state.laneClips,
-          state.trackId,
-          requestedStartFrame,
-        );
-        if (!reorder) return;
-        if (reorder.endFrame > durationInFrames) {
-          setManualTimelineEndFrame((current) =>
-            Math.max(current, Math.ceil(reorder.endFrame)),
-          );
-        }
-        setVideoTracks((current) =>
-          current.map((track) => {
-            const startFrame = reorder.starts.get(track.id);
-            return startFrame === undefined ? track : { ...track, startFrame };
-          }),
-        );
-        return;
-      }
       setVideoTracks((current) =>
         current.map((track) => {
           if (track.id !== state.trackId) return track;
@@ -3963,6 +3648,19 @@ const App = () => {
                 : minimum,
             Number.POSITIVE_INFINITY,
           );
+          if (state.mode === "move") {
+            const requestedStart = state.startFrame + deltaFrames;
+            const maximumStart = Number.isFinite(nextStart)
+              ? nextStart - state.durationInFrames
+              : Math.max(
+                  durationInFrames - state.durationInFrames,
+                  requestedStart,
+                );
+            return {
+              ...track,
+              startFrame: clamp(requestedStart, previousEnd, maximumStart),
+            };
+          }
           if (state.mode === "left") {
             const rightFrame = state.startFrame + state.durationInFrames;
             const maxStartFrame = Math.min(
@@ -4005,27 +3703,6 @@ const App = () => {
       );
     };
     const finishVideoTimeline = () => {
-      const state = videoTimelineDragState.current;
-      if (state?.mode === "move") {
-        const ripple = calculateRippleInsertion(
-          state.laneClips,
-          state.trackId,
-          state.requestedStartFrame,
-        );
-        if (ripple) {
-          if (ripple.endFrame > durationInFrames) {
-            setManualTimelineEndFrame((current) =>
-              Math.max(current, Math.ceil(ripple.endFrame)),
-            );
-          }
-          setVideoTracks((current) =>
-            current.map((track) => {
-              const startFrame = ripple.starts.get(track.id);
-              return startFrame === undefined ? track : { ...track, startFrame };
-            }),
-          );
-        }
-      }
       videoTimelineDragState.current = null;
     };
     window.addEventListener("pointermove", moveVideoTimeline, { passive: false });
@@ -4042,24 +3719,11 @@ const App = () => {
     mode: "move" | "left" | "right";
     instanceId: string;
     pointerX: number;
-    pointerY: number;
     startFrame: number;
     durationInFrames: number;
     baseDurationInFrames: number;
     sourceStartFrame: number;
     width: number;
-    laneClips: Array<{
-      id: string;
-      startFrame: number;
-      durationInFrames: number;
-    }>;
-    allClips: Array<{
-      id: string;
-      laneId: string;
-      trackOrder: number;
-      startFrame: number;
-      durationInFrames: number;
-    }>;
     members: Array<{
       id: string;
       laneId: string;
@@ -4072,9 +3736,7 @@ const App = () => {
     collisionMaxDelta: number;
     previousEndFrame: number;
     nextStartFrame: number;
-    requestedStartFrame: number;
     moved: boolean;
-    targetLaneId: string | null;
   } | null>(null);
 
   const beginTimelineDrag = (
@@ -4167,26 +3829,11 @@ const App = () => {
       mode,
       instanceId: instance.id,
       pointerX: event.clientX,
-      pointerY: event.clientY,
       startFrame: instance.startFrame,
       durationInFrames: instance.durationInFrames,
       baseDurationInFrames: durationInFrames,
       sourceStartFrame: instance.sourceStartFrame,
       width,
-      laneClips: instances
-        .filter((candidate) => candidate.laneId === instance.laneId)
-        .map((candidate) => ({
-          id: candidate.id,
-          startFrame: candidate.startFrame,
-          durationInFrames: candidate.durationInFrames,
-        })),
-      allClips: instances.map((candidate) => ({
-        id: candidate.id,
-        laneId: candidate.laneId,
-        trackOrder: candidate.trackOrder,
-        startFrame: candidate.startFrame,
-        durationInFrames: candidate.durationInFrames,
-      })),
       members,
       minStartFrame: Math.min(...members.map((member) => member.startFrame)),
       maxEndFrame: Math.max(
@@ -4198,9 +3845,7 @@ const App = () => {
       collisionMaxDelta,
       previousEndFrame,
       nextStartFrame,
-      requestedStartFrame: instance.startFrame,
       moved: false,
-      targetLaneId: null,
     };
   };
 
@@ -4224,39 +3869,6 @@ const App = () => {
       }
       const minFrames = Math.max(3, Math.round(fps * 0.1));
       if (state.mode === "move") {
-        const requestedStartFrame = Math.max(0, state.startFrame + deltaFrames);
-        state.requestedStartFrame = requestedStartFrame;
-        if (state.members.length === 1 && Math.abs(event.clientY - state.pointerY) > 12) {
-          const drop = computeLaneDropTarget(
-            event.clientX,
-            event.clientY,
-            state.members[0].laneId,
-          );
-          const targetLane = drop
-            ? timelineLanes.find((lane) => lane.laneId === drop.targetLaneId)
-            : null;
-          state.targetLaneId = targetLane?.kind === "motion" ? targetLane.laneId : null;
-          return;
-        }
-        state.targetLaneId = null;
-        if (state.members.length === 1) {
-          const reorder = calculateCapCutReorder(
-            state.laneClips,
-            state.instanceId,
-            requestedStartFrame,
-          );
-          if (!reorder) return;
-          if (reorder.endFrame > durationInFrames) {
-            extendTimelineTo(reorder.endFrame);
-          }
-          setInstances((current) =>
-            current.map((instance) => {
-              const startFrame = reorder.starts.get(instance.id);
-              return startFrame === undefined ? instance : { ...instance, startFrame };
-            }),
-          );
-          return;
-        }
         const safeDeltaFrames = clamp(
           deltaFrames,
           Math.max(-state.minStartFrame, state.collisionMinDelta),
@@ -4326,66 +3938,6 @@ const App = () => {
     };
     const finishTimeline = () => {
       const state = timelineDragState.current;
-      if (state?.targetLaneId) {
-        const member = state.members[0];
-        const targetLane = timelineLanes.find(
-          (lane) => lane.laneId === state.targetLaneId,
-        );
-        if (targetLane?.kind === "motion") {
-          const ripple = calculateRippleInsertion(
-            [
-              {
-                id: member.id,
-                startFrame: member.startFrame,
-                durationInFrames: member.durationInFrames,
-              },
-              ...targetLane.clips,
-            ],
-            member.id,
-            state.requestedStartFrame,
-          );
-          if (ripple) {
-            if (ripple.endFrame > durationInFrames) {
-              extendTimelineTo(ripple.endFrame);
-            }
-            setInstances((current) =>
-              current.map((instance) => {
-                const startFrame = ripple.starts.get(instance.id);
-                if (instance.id === state.instanceId) {
-                  return {
-                    ...instance,
-                    laneId: targetLane.laneId,
-                    trackOrder: targetLane.trackOrder,
-                    startFrame: startFrame ?? instance.startFrame,
-                  };
-                }
-                return startFrame === undefined ? instance : { ...instance, startFrame };
-              }),
-            );
-            setNotice({
-              tone: "ok",
-              text: "组件已插入目标轨道，后续片段已自动向后顺延。",
-            });
-          }
-        }
-      } else if (state?.mode === "move" && state.members.length === 1) {
-        const ripple = calculateRippleInsertion(
-          state.laneClips,
-          state.instanceId,
-          state.requestedStartFrame,
-        );
-        if (ripple) {
-          if (ripple.endFrame > durationInFrames) {
-            extendTimelineTo(ripple.endFrame);
-          }
-          setInstances((current) =>
-            current.map((instance) => {
-              const startFrame = ripple.starts.get(instance.id);
-              return startFrame === undefined ? instance : { ...instance, startFrame };
-            }),
-          );
-        }
-      }
       if (state && state.members.length > 1 && !state.moved) {
         selectOnlyInstance(state.instanceId);
       }
@@ -4399,14 +3951,7 @@ const App = () => {
       window.removeEventListener("pointerup", finishTimeline);
       window.removeEventListener("pointercancel", finishTimeline);
     };
-  }, [
-    computeLaneDropTarget,
-    durationInFrames,
-    fps,
-    selectOnlyInstance,
-    timelineLanes,
-    updateInstance,
-  ]);
+  }, [durationInFrames, fps, selectOnlyInstance, updateInstance]);
 
   const timelineResizeState = useRef<{
     pointerY: number;
@@ -4939,22 +4484,6 @@ const App = () => {
       source: "videoTimeline",
       instanceIds: [],
       videoTrackId: trackId,
-    });
-  };
-
-  const showTimelineLaneMenu = (
-    event: React.MouseEvent,
-    lane: TimelineLane,
-  ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenu({
-      x: Math.min(event.clientX, window.innerWidth - 190),
-      y: Math.min(event.clientY, window.innerHeight - 82),
-      source: "timelineLane",
-      instanceIds: [],
-      laneId: lane.laneId,
-      laneKind: lane.kind,
     });
   };
 
@@ -6501,8 +6030,7 @@ const App = () => {
                     onPointerDownCapture={(event) =>
                       beginLaneGesture(event, lane.laneId)
                     }
-                    onContextMenu={(event) => showTimelineLaneMenu(event, lane)}
-                    title="从轨道空白处上下拖动可合并或调整顺序；片段拖动仅操作该组件"
+                    title="拖动空白处上下换层；拖动左侧上下缩放图标调整轨道大小；横向拖动片段可调时间"
                   >
                     <div
                       className={`${
@@ -6665,7 +6193,7 @@ const App = () => {
                                   instance.id,
                                 )
                               }
-                              title="拖动中越过相邻片段中心会实时换位；上下拖到其他动效轨道可插入并顺延"
+                              title="拖动移动；同轨片段不会重叠；拖动两侧调整长度；右键复制或删除"
                             >
                               <button
                                 className="clip-handle left"
@@ -7213,63 +6741,6 @@ const App = () => {
         </div>
       ) : null}
 
-      {laneMergeTarget ? (
-        <div
-          className="shortcut-dialog-backdrop effect-move-backdrop"
-          onPointerDown={() => setLaneMergeTarget(null)}
-        >
-          <section
-            className="effect-move-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="merge-lane-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <small>MERGE TRACK</small>
-                <h2 id="merge-lane-title">合并“{laneMergeTarget.laneName}”</h2>
-                <p>选择同类型且时间不重叠的目标轨道。</p>
-              </div>
-              <button
-                className="effect-move-close"
-                aria-label="关闭"
-                onClick={() => setLaneMergeTarget(null)}
-              >
-                <X />
-              </button>
-            </header>
-            <div className="effect-move-groups">
-              {timelineLanes
-                .filter(
-                  (lane) =>
-                    lane.kind === laneMergeTarget.kind &&
-                    lane.laneId !== laneMergeTarget.laneId,
-                )
-                .map((lane) => {
-                  const targetName =
-                    lane.kind === "video"
-                      ? lane.clips[0]?.name ?? "视频轨道"
-                      : definitionMap.get(lane.clips[0]?.componentId)?.name ??
-                        "动效轨道";
-                  return (
-                    <button
-                      key={lane.laneId}
-                      onClick={() => mergeTimelineLane(lane.laneId)}
-                    >
-                      <span>{targetName}</span>
-                      <b>{lane.clips.length} 个片段</b>
-                    </button>
-                  );
-                })}
-            </div>
-            <footer>
-              <button onClick={() => setLaneMergeTarget(null)}>取消</button>
-            </footer>
-          </section>
-        </div>
-      ) : null}
-
       {notice ? (
         <button
           className={`toast ${notice.tone}`}
@@ -7570,19 +7041,7 @@ const App = () => {
             className="component-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            {contextMenu.source === "timelineLane" ? (
-              <>
-                <small>{contextMenu.laneKind === "video" ? "视频轨道" : "动效轨道"}</small>
-                <button
-                  className="copy-action"
-                  onClick={() =>
-                    contextMenu.laneId && openLaneMergeDialog(contextMenu.laneId)
-                  }
-                >
-                  合并到其他轨道
-                </button>
-              </>
-            ) : contextMenu.source === "videoTimeline" ? (
+            {contextMenu.source === "videoTimeline" ? (
               <>
                 <small>视频轨道片段</small>
                 <button
