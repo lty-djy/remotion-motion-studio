@@ -1100,7 +1100,35 @@ const localApi = (): Plugin => ({
           // Browsers percent-encode Chinese and other non-ASCII filenames.
           // Decode the final path segment before matching the stored local file.
           const name = decodeURIComponent(basename(url.pathname));
-          serveFile(req, res, join(mediaDir, name));
+          if (
+            !name ||
+            name === "." ||
+            name === ".." ||
+            name !== basename(name) ||
+            /[\\/]/.test(name)
+          ) {
+            sendJson(res, 400, { ok: false, error: "媒体文件名无效" });
+            return;
+          }
+          const target = join(mediaDir, name);
+          if (req.method === "DELETE") {
+            const alreadyDeleted = !existsSync(target);
+            if (!alreadyDeleted) await unlink(target);
+            const state = await readState();
+            if (
+              state.videoUrl &&
+              decodeURIComponent(basename(state.videoUrl.split("?")[0])) === name
+            ) {
+              await saveState({
+                videoName: "尚未导入视频",
+                videoUrl: "",
+                videoDuration: 0,
+              });
+            }
+            sendJson(res, 200, { ok: true, filename: name, alreadyDeleted });
+            return;
+          }
+          serveFile(req, res, target);
           return;
         }
 

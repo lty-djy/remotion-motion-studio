@@ -2241,14 +2241,43 @@ const App = () => {
     }
   };
 
-  const removeVideoTrack = (trackId: string) => {
+  const removeVideoTrack = async (trackId: string) => {
     const removed = videoTracks.find((track) => track.id === trackId);
     const remainingTracks = videoTracks.filter((track) => track.id !== trackId);
+    if (!removed) return;
+    const removedUrl = removed.url.split("?")[0];
+    const stillReferenced = remainingTracks.some(
+      (track) => track.url.split("?")[0] === removedUrl,
+    );
+    let mediaAlreadyMissing = false;
+    if (!stillReferenced) {
+      try {
+        const response = await fetch(removedUrl, { method: "DELETE" });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error ?? "本地视频文件删除失败");
+        }
+        mediaAlreadyMissing = data.alreadyDeleted === true;
+      } catch (error) {
+        setNotice({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "本地视频文件删除失败，已保留轨道。",
+        });
+        return;
+      }
+    }
     setVideoTracks(remainingTracks);
     setSelectedVideoTrackId((selected) =>
       selected === trackId ? (remainingTracks[0]?.id ?? "") : selected,
     );
-    if (removed && videoTracks.length === 1) {
+    if (videoUrl.split("?")[0] === removedUrl) {
+      setVideoUrl(remainingTracks[0]?.url ?? "");
+      setVideoName(remainingTracks[0]?.name ?? "尚未导入视频");
+    }
+    if (videoTracks.length === 1) {
       setVideoUrl("");
       setVideoPreviewEnabled(false);
       setVideoName("尚未导入视频");
@@ -2256,7 +2285,14 @@ const App = () => {
       setManualTimelineEndFrame(0);
     }
     setContextMenu(null);
-    setNotice({ tone: "ok", text: "已删除该视频轨道。" });
+    setNotice({
+      tone: "ok",
+      text: stillReferenced
+        ? "已删除该视频轨道；本地文件仍由其他片段使用。"
+        : mediaAlreadyMissing
+          ? "已移除失效视频轨道；本地媒体文件此前已删除。"
+          : "已删除该视频轨道，并清理本地视频文件。",
+    });
   };
 
   const toggleVideoTrackVisibility = useCallback((trackId: string) => {
@@ -4366,7 +4402,10 @@ const App = () => {
       setIsPlaying(false);
       return;
     }
-    if (currentFrame >= durationInFrames - 1) seekEditorFrame(0);
+    // 时间轴是唯一的播放时钟：启动前把 Remotion Player 对齐到播放头，
+    // 使视频轨道的 Sequence 与动效轨道从同一帧开始播放。
+    const startFrame = currentFrame >= durationInFrames - 1 ? 0 : currentFrame;
+    seekEditorFrame(startFrame);
     playerRef.current?.play();
     setIsPlaying(true);
   };
@@ -5030,8 +5069,8 @@ const App = () => {
                   compositionHeight={canvasHeight}
                   controls
                   loop
-                  autoPlay
                   clickToPlay={false}
+                  spaceKeyToPlayOrPause={false}
                   acknowledgeRemotionLicense
                   style={{
                     width: "100%",
