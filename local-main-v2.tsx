@@ -11,6 +11,7 @@ import { AbsoluteFill, Html5Video, Sequence } from "remotion";
 import {
   ArrowCounterClockwise,
   ArrowsInLineVertical,
+  ArrowsOutLineVertical,
   CaretDown,
   CheckCircle,
   DeviceMobile,
@@ -290,6 +291,7 @@ type ProjectSnapshot = {
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
+  trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
   soundEnabled?: boolean;
@@ -974,6 +976,7 @@ const App = () => {
   const [timelineMarquee, setTimelineMarquee] =
     useState<MarqueeRect | null>(null);
   const [timelineHeight, setTimelineHeight] = useState(230);
+  const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
     useState<"editor" | "effects">("editor");
   const [effectSearch, setEffectSearch] = useState("");
@@ -1500,6 +1503,7 @@ const App = () => {
         if (Number(draft?.timelineHeight) >= 180) {
           setTimelineHeight(Number(draft?.timelineHeight));
         }
+        setTrackHeights(draft?.trackHeights ?? {});
         setActiveComponentId(state.activeComponentId ?? "");
         await loadModuleUrl(component.moduleUrl, {
           sourceIncludesVideo: Boolean(
@@ -1706,6 +1710,7 @@ const App = () => {
       currentFrame,
       theme,
       timelineHeight,
+      trackHeights,
       canvasOrientation,
       safetyGuideVisible,
       soundEnabled,
@@ -1722,6 +1727,7 @@ const App = () => {
       sourceIncludesVideo,
       theme,
       timelineHeight,
+      trackHeights,
       videoDuration,
       videoName,
       videoUrl,
@@ -1943,6 +1949,7 @@ const App = () => {
           ? Number(snapshot.timelineHeight)
           : 230,
       );
+      setTrackHeights(snapshot.trackHeights ?? {});
       await loadModuleUrl(data.moduleUrl, {
         sourceIncludesVideo: Boolean(
           data.sourceIncludesVideo ?? snapshot.sourceIncludesVideo,
@@ -3548,6 +3555,11 @@ const App = () => {
     pointerY: number;
     height: number;
   } | null>(null);
+  const trackResizeState = useRef<{
+    laneId: string;
+    pointerY: number;
+    height: number;
+  } | null>(null);
 
   const beginTimelineResize = (event: React.PointerEvent) => {
     event.preventDefault();
@@ -3555,6 +3567,20 @@ const App = () => {
     timelineResizeState.current = {
       pointerY: event.clientY,
       height: timelineHeight,
+    };
+  };
+
+  const beginTrackResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    laneId: string,
+    height: number,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    trackResizeState.current = {
+      laneId,
+      pointerY: event.clientY,
+      height,
     };
   };
 
@@ -3581,6 +3607,29 @@ const App = () => {
       window.removeEventListener("pointermove", resizeTimeline);
       window.removeEventListener("pointerup", finishTimelineResize);
       window.removeEventListener("pointercancel", finishTimelineResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const resizeTrack = (event: PointerEvent) => {
+      const state = trackResizeState.current;
+      if (!state) return;
+      event.preventDefault();
+      setTrackHeights((heights) => ({
+        ...heights,
+        [state.laneId]: clamp(state.height + event.clientY - state.pointerY, 30, 180),
+      }));
+    };
+    const finishTrackResize = () => {
+      trackResizeState.current = null;
+    };
+    window.addEventListener("pointermove", resizeTrack, { passive: false });
+    window.addEventListener("pointerup", finishTrackResize);
+    window.addEventListener("pointercancel", finishTrackResize);
+    return () => {
+      window.removeEventListener("pointermove", resizeTrack);
+      window.removeEventListener("pointerup", finishTrackResize);
+      window.removeEventListener("pointercancel", finishTrackResize);
     };
   }, []);
 
@@ -5295,6 +5344,7 @@ const App = () => {
                 if (lane.kind === "motion" && !definition) return null;
                 const laneName =
                   lane.kind === "video" ? firstClip.name : definition!.name;
+                const laneTrackHeight = trackHeights[lane.laneId] ?? 42;
                 const isDragging = laneDrop?.draggedLaneId === lane.laneId;
                 const isDropTarget =
                   laneDrop && laneDrop.targetLaneId === lane.laneId;
@@ -5309,10 +5359,11 @@ const App = () => {
                     } ${laneHidden ? "is-hidden" : ""} ${isDragging ? "is-dragging" : ""} ${isDropBefore ? "is-drop-before" : ""} ${isDropAfter ? "is-drop-after" : ""}`}
                     key={lane.laneId}
                     data-lane-id={lane.laneId}
+                    style={{ "--track-height": `${laneTrackHeight}px` }}
                     onPointerDownCapture={(event) =>
                       beginLaneGesture(event, lane.laneId)
                     }
-                    title="上下拖动轨道任意位置可换层；横向拖动片段可调时间"
+                    title="拖动空白处上下换层；拖动左侧上下缩放图标调整轨道大小；横向拖动片段可调时间"
                   >
                     <div
                       className={`${
@@ -5369,10 +5420,24 @@ const App = () => {
                         ) : null}
                         <span>{String(laneIndex + 1).padStart(2, "0")}</span>
                       </button>
+                      <button
+                        type="button"
+                        className="track-height-drag-control"
+                        aria-label={`拖动调整${laneName}轨道上下长度`}
+                        title="按住上下拖动，独立调整此轨道高度"
+                        onPointerDown={(event) =>
+                          beginTrackResize(event, lane.laneId, laneTrackHeight)
+                        }
+                      >
+                        <ArrowsOutLineVertical weight="bold" />
+                      </button>
                     </div>
                     <div
                       className="track-body"
-                      style={{ overflow: "hidden", position: "relative" }}
+                      style={{
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
                     >
                       <div
                         className="timeline-scroll-content"

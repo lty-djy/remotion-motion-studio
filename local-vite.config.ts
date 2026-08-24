@@ -257,6 +257,7 @@ type ProjectSnapshot = {
   currentFrame?: number;
   theme?: "dark" | "light";
   timelineHeight?: number;
+  trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
   soundEnabled?: boolean;
@@ -511,6 +512,16 @@ const normalizeProjectSnapshot = (
   const videoDuration = Number(input.videoDuration);
   const currentFrame = Number(input.currentFrame);
   const timelineHeight = Number(input.timelineHeight);
+  const trackHeights = Object.entries(input.trackHeights ?? {}).reduce<Record<string, number>>(
+    (normalized, [laneId, height]) => {
+      const value = Number(height);
+      if (laneId && Number.isFinite(value) && value >= 30) {
+        normalized[laneId.slice(0, 160)] = Math.min(180, Math.round(value));
+      }
+      return normalized;
+    },
+    {},
+  );
   return {
     version: 1,
     name,
@@ -598,6 +609,7 @@ const normalizeProjectSnapshot = (
       Number.isFinite(timelineHeight) && timelineHeight >= 180
         ? Math.round(timelineHeight)
         : 230,
+    trackHeights,
     canvasOrientation:
       input.canvasOrientation === "portrait" ? "portrait" : "landscape",
     safetyGuideVisible: input.safetyGuideVisible !== false,
