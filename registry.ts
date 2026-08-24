@@ -1,10 +1,9 @@
 import type { MotionComponentDefinition } from "./local-protocol";
-import { ChapterBarEffectDef } from "./effects/ChapterBar";
+
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
-import { SrtProgressRailEffectDef } from "./effects/SrtProgressRail";
 
 import { FlowPipelineEffectDef } from "./effects/FlowPipeline";
 
@@ -23,15 +22,12 @@ export type EffectDef = MotionComponentDefinition & {
 };
 
 export const EFFECT_REGISTRY: EffectDef[] = [
-  ChapterBarEffectDef,
 
   GlobalExpeditionEffectDef,
 
   SrtSemanticCaptionsEffectDef,
 
   SrtCueTextEffectDef,
-
-  SrtProgressRailEffectDef,
 
   FlowPipelineEffectDef,
 
