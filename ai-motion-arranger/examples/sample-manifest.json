@@ -27,7 +27,7 @@
       },
       "cards": [
         {
-          "id": "SpeedGauge",
+          "id": "RadialTicks",
           "props": {
             "title": "整体成绩",
             "subtitle": "OVERALL SCORE",
@@ -60,7 +60,7 @@
       },
       "cards": [
         {
-          "id": "DeltaBadge",
+          "id": "FlipCounter",
           "props": {
             "title": "推理吞吐",
             "subtitle": "VS LAST GEN",
@@ -154,7 +154,7 @@
           }
         },
         {
-          "id": "MetricBar",
+          "id": "SegmentedMeter",
           "props": {
             "title": "成本对比",
             "subtitle": "VS LAST YEAR",

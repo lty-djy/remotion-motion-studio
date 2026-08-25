@@ -6,10 +6,10 @@
 
 - `sample-srt.srt` — 6 段口播字幕，覆盖 19.4 秒。
 - `sample-manifest.json` — 对应编排输出，已通过 `manifest-to-tsx.mjs` 校验。包含 4 个 Board：
-  1. 开场：SpeedGauge，cyan 主调
-  2. 数据：DeltaBadge + DualMetricBar，amber 主调
+  1. 开场：RadialTicks，cyan 主调
+  2. 数据：FlipCounter + DualMetricBar，amber 主调
   3. 实时：WaveformMetric，violet 主调
-  4. 收尾：ProgressRing + MetricBar，lime 主调
+  4. 收尾：ProgressRing + SegmentedMeter，lime 主调
 
 ## 走一遍工作流
 

@@ -58,7 +58,10 @@ import {
   isBuiltInDefinition,
   mergeWithBuiltInDefinitions,
 } from "./local-builtins";
-import { EFFECT_REGISTRY_BY_ID } from "./registry";
+import {
+  AI_ARRANGEABLE_COMPONENT_IDS,
+  EFFECT_REGISTRY_BY_ID,
+} from "./registry";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -708,23 +711,6 @@ const SRT_ACCENT_CYCLE = [
   "#ffc46b",
   "#7dffb0",
   "#ff8fab",
-];
-
-const SRT_CARD_CYCLE = [
-  "CounterTicker",
-  "MetricBar",
-  "ProgressRing",
-  "StatGrid",
-  "DeltaBadge",
-  "SegmentedMeter",
-  "DualMetricBar",
-  "PulseMetric",
-  "RadialTicks",
-  "WaveformMetric",
-  "LiquidGauge",
-  "FlipCounter",
-  "SpeedGauge",
-  "Countdown",
 ];
 
 const firstNumberInText = (text: string) => {
@@ -2254,6 +2240,12 @@ const App = () => {
       const messages: string[] = [];
       const nextInstances: MotionInstance[] = [];
       let cardCount = 0;
+      const arrangeableComponentIds = AI_ARRANGEABLE_COMPONENT_IDS.filter(
+        (componentId) => definitionMap.has(componentId),
+      );
+      if (arrangeableComponentIds.length === 0) {
+        throw new Error("当前效果库没有已开放给 AI 编排的真实组件。");
+      }
       // 语义板必须拿到比视频更小的序号（低序号绘制在最上层），否则整组被视频遮挡
       let trackOrder =
         Math.min(
@@ -2271,8 +2263,9 @@ const App = () => {
 
       boards.forEach((board, boardIndex) => {
         const definition =
-          definitionMap.get(SRT_CARD_CYCLE[boardIndex % SRT_CARD_CYCLE.length]) ??
-          definitionMap.get("CounterTicker");
+          definitionMap.get(
+            arrangeableComponentIds[boardIndex % arrangeableComponentIds.length],
+          ) ?? definitionMap.get(arrangeableComponentIds[0]);
         if (!definition) {
           messages.push(`第 ${boardIndex + 1} 板：找不到可用卡片，已跳过。`);
           return;
@@ -5538,7 +5531,7 @@ const App = () => {
           ) : (
             <>
           <div className="reference-left-tabs">
-            <button className="active">卡片 <b>50</b></button>
+            <button className="active">卡片 <b>{definitions.length}</b></button>
             <button>字幕稿 <b>109</b></button>
             <button className="clear-button"><Trash />清空</button>
           </div>

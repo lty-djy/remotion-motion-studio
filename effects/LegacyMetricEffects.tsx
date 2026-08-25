@@ -78,7 +78,7 @@ const Bars = ({ values, progress, color }: { values: number[]; progress: number;
 );
 
 export const LegacyMetricEffect: React.FC<LegacyMetricProps> = ({
-  componentType = "SpeedGauge",
+  componentType = "ProgressRing",
   title = "数字指标",
   subtitle = "LIVE METRIC",
   value = "87%",
@@ -98,36 +98,13 @@ export const LegacyMetricEffect: React.FC<LegacyMetricProps> = ({
   const shownValue = value.replace(/[0-9,.+-]+/, shownNumber);
   const commonHeader = <Header title={title} subtitle={subtitle} accentColor={accentColor} />;
 
-  if (componentType === "SpeedGauge") {
-    const angle = -120 + 240 * percent * progress;
-    return <div style={panel}>{commonHeader}<div style={{ display: "grid", placeItems: "center", marginTop: 18 }}><div style={{ position: "relative", width: 230, height: 124, overflow: "hidden", borderRadius: "230px 230px 0 0", border: "10px solid rgba(255,255,255,.10)", borderBottom: 0 }}><div style={{ position: "absolute", left: 107, bottom: 0, width: 9, height: 100, background: accentColor, transformOrigin: "50% 100%", transform: `rotate(${angle}deg)`, transition }} /></div><strong style={{ marginTop: -4, fontSize: 42 }}>{shownValue}</strong></div></div>;
-  }
-
-  if (componentType === "CounterTicker") {
-    return <div style={panel}>{commonHeader}<div style={{ marginTop: 42, display: "flex", gap: 8 }}>{String(shownNumber).split("").map((char, index) => <span key={index} style={{ minWidth: 56, padding: "16px 10px", border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, background: "#111318", fontFamily: "Consolas, monospace", fontSize: 52, textAlign: "center", transform: `translateY(${(1 - progress) * 18}px)`, opacity: progress, transition }}>{char}</span>)}</div></div>;
-  }
-
-  if (componentType === "StatGrid") {
-    return <div style={panel}>{commonHeader}<div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginTop: 22 }}>{[value, item1, item2, item3].map((item, index) => <div key={index} style={{ padding: "15px 18px", border: "1px solid rgba(255,255,255,.14)", borderRadius: 8, opacity: clamp01(progress * 1.8 - index * .18), transform: `translateY(${(1 - progress) * (10 + index * 3)}px)`, transition }}><small style={{ color: secondaryColor }}>0{index + 1}</small><strong style={{ display: "block", marginTop: 5, fontSize: 22 }}>{item}</strong></div>)}</div></div>;
-  }
-
   if (componentType === "ProgressRing") {
     return <div style={panel}>{commonHeader}<div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 34, marginTop: 20 }}><div style={{ position: "relative" }}><Ring progress={percent * progress} color={accentColor} /><strong style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 32 }}>{shownValue}</strong></div><div style={{ width: 180, color: secondaryColor, lineHeight: 1.8 }}>{item1}<br />{item2}<br />{item3}</div></div></div>;
-  }
-
-  if (componentType === "DeltaBadge") {
-    const positive = number >= 0;
-    return <div style={panel}>{commonHeader}<div style={{ marginTop: 46, display: "flex", alignItems: "center", gap: 28 }}><div style={{ width: 88, height: 88, display: "grid", placeItems: "center", borderRadius: "50%", border: `1px solid ${accentColor}`, fontSize: 38, transform: `rotate(${positive ? -45 : 45}deg) scale(${.8 + progress * .2})`, transition }}>→</div><div><strong style={{ display: "block", fontSize: 68, lineHeight: 1 }}>{shownValue}</strong><span style={{ color: secondaryColor }}>{positive ? "较上周期增长" : "较上周期下降"}</span></div></div></div>;
   }
 
   if (componentType === "Countdown") {
     const remaining = Math.max(0, Math.ceil(Math.abs(number) * (1 - progress)));
     return <div style={{ ...panel, display: "grid", placeItems: "center", textAlign: "center" }}><span style={{ color: accentColor, letterSpacing: 5 }}>{subtitle}</span><strong style={{ fontFamily: "Consolas, monospace", fontSize: 124, lineHeight: 1 }}>{String(remaining).padStart(2, "0")}</strong><div style={{ width: 280, height: 2, background: "rgba(255,255,255,.12)" }}><div style={{ width: `${progress * 100}%`, height: "100%", background: accentColor, transition }} /></div></div>;
-  }
-
-  if (componentType === "MetricBar") {
-    const rows = [item1, item2, item3];
-    return <div style={panel}>{commonHeader}<div style={{ marginTop: 24, display: "grid", gap: 15 }}>{rows.map((item, index) => { const rowValue = [84,72,91][index] * progress; return <div key={item}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}><span>{item}</span><span>{Math.round(rowValue)}%</span></div><div style={{ height: 6, background: "rgba(255,255,255,.10)" }}><div style={{ width: `${rowValue}%`, height: "100%", background: index === 0 ? accentColor : "rgba(255,255,255,.42)", transition }} /></div></div>; })}</div></div>;
   }
 
   if (componentType === "SegmentedMeter") {
@@ -155,6 +132,5 @@ export const LegacyMetricEffect: React.FC<LegacyMetricProps> = ({
     return <div style={panel}>{commonHeader}<div style={{ position: "relative", width: 180, height: 180, margin: "12px auto 0" }}><Ring progress={percent * progress} color={accentColor} size={180} stroke={3} />{Array.from({ length: 24 }, (_, index) => <span key={index} style={{ position: "absolute", left: 88, top: 2, width: 2, height: index / 24 < percent * progress ? 13 : 7, background: index / 24 < percent * progress ? accentColor : "#41434a", transformOrigin: "1px 88px", transform: `rotate(${index * 15}deg)`, transition }} />)}<strong style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 38 }}>{shownValue}</strong></div></div>;
   }
 
-  const pulse = [44,44,44,18,78,10,64,44,44,32,58,44,44];
-  return <div style={panel}>{commonHeader}<div style={{ marginTop: 34, display: "flex", alignItems: "center", gap: 22 }}><svg width="410" height="120" viewBox="0 0 410 120"><polyline points={pulse.map((y, index) => `${index * 34},${y}`).join(" ")} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="3" /><polyline points={pulse.map((y, index) => `${index * 34},${y}`).join(" ")} fill="none" stroke={accentColor} strokeWidth="3" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - progress} style={{ transition }} /></svg><div><strong style={{ display: "block", fontSize: 34 }}>{value}</strong><small style={{ color: secondaryColor }}>23 MS</small></div></div></div>;
+  return <div style={panel}>{commonHeader}<div style={{ marginTop: 34 }}><strong style={{ display: "block", fontSize: 54 }}>{shownValue}</strong><div style={{ marginTop: 18, color: secondaryColor, lineHeight: 1.8 }}>{item1}<br />{item2}<br />{item3}</div></div></div>;
 };

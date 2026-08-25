@@ -15,7 +15,8 @@ ai-motion-arranger/
 │   └── design-tokens.md     # 顶层设计令牌：theme（基调）/ skin（配色）/ style（骨架）/ font（字体）
 ├── scripts/
 │   ├── arranger-overlay.json        # 编排层注释（人类可读的语义）
-│   ├── registry-meta.mjs            # 技术字段（propsSchema/defaultProps/bounds）
+│   ├── sync-runtime-registry.mjs    # 从真实运行时 registry 同步元数据与目录
+│   ├── registry-meta.mjs            # 自动生成的技术字段，禁止手改
 │   ├── generate-card-catalog.mjs    # 自动生成 references/card-catalog.md
 │   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
 │   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
@@ -29,7 +30,7 @@ ai-motion-arranger/
 
 ```
 ┌─ 卡片库层 · 资产 ─────────────────────────────────┐
-│ 动效卡 = React 组件 + 注册表（registry-meta）        │
+│ 动效卡 = React 组件 + 运行时注册表（registry.ts）     │
 │ 每张卡自带参数 schema → 工作台右栏面板自动生成        │
 │ 设计系统 = CSS 变量令牌：skin 管配色，style 管骨架   │
 └─────────────────────────────────────────────────┘
@@ -98,7 +99,7 @@ ai-motion-arranger/
 
 | 改了什么 | 同步动什么 |
 | --- | --- |
-| registry 新增/修改一张卡片 | `scripts/registry-meta.mjs` 加/改 + `scripts/arranger-overlay.json` 加一行 → 重跑 `generate-card-catalog.mjs` |
+| registry 新增/修改一张卡片 | 修改真实组件与 `registry.ts`；确认编译支持后增加 overlay → 运行 `npm.cmd run sync:registry` |
 | 新增一种颜色语义 | `references/palette.md` §2/§3 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_*_TOKENS` 同步 |
 | 新增/修改 Board 锚点、密度、节奏枚举 | `SKILL.md` §10 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_ANCHORS/DENSITY/RHYTHM` 同步 |
 | 新增 theme/skin/style/font 令牌 | `references/design-tokens.md` + `scripts/manifest-to-tsx.mjs` 与 `scripts/lint-manifest.mjs` 顶部枚举/预设同步 |

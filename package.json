@@ -4,8 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs",
+    "predev": "npm run sync:registry",
     "dev": "vite --config local-vite.config.ts",
+    "prebuild": "npm run sync:registry",
     "build": "vite build --config local-vite.config.ts",
+    "prestart": "npm run sync:registry",
     "start": "vite --config local-vite.config.ts --host 127.0.0.1 --port 41735"
   },
   "dependencies": {
@@ -20,6 +24,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "esbuild": "0.28.1",
     "typescript": "5.9.3"
   }
 }

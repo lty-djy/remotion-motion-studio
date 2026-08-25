@@ -1,111 +1,43 @@
-# 组件目录
+# 组件目录（自动生成）
 
-按视频信息结构选择组件，不必让一个视频包含全部类型。默认选择 4–10 个，覆盖至少三类，同一画面同时出现的主要组件不超过 3 个。
+> 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
+> 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前提供 69 种标准类型。生成已知类型时必须使用下列大小写完全一致的 ID，导入后 AI 版本会覆盖同 ID 的内置模板。
-
-## 数字与指标
-
-- `MetricFocus`：核心数字动效
-- `SpeedGauge`：码表、速度、完成率
-- `CounterTicker`：滚动计数器
-- `StatGrid`：多指标矩阵
-- `ProgressRing`：环形进度
-- `DeltaBadge`：环比、同比、涨跌
-- `Countdown`：倒计时与阶段切换
-- `MetricBar`：紧凑型条形指标和目标刻度
-- `SegmentedMeter`：分段式容量、性能与能量指示
-- `DualMetricBar`：双向指标差异与方案对比
-- `FlipCounter`：机械翻牌式核心数字
-- `WaveformMetric`：连续波形与实时吞吐
-- `LiquidGauge`：液态填充式完成率
-- `RadialTicks`：科技 HUD 刻度环
-- `PulseMetric`：心电式实时状态脉冲
-
-需要生成这些扩展指标时，读取 [metric-components.md](metric-components.md) 获取推荐参数、尺寸和视觉约束。
-
-## 图表与比较
-
-- `CompareSplit`：左右对比卡
-- `BarChart`：横向或纵向柱状图
-- `LineTrend`：折线趋势
-- `AreaTrend`：面积趋势
-- `DonutShare`：占比环图
-- `RadarProfile`：能力雷达
-- `Leaderboard`：排行与名次变化
-- `BeforeAfter`：前后效果对照
-- `MatrixQuadrant`：二维象限
-
-## 文字与叙事
-
-- `TitleReveal`：章节标题揭示
-- `LowerThird`：人物或术语下三分之一
-- `QuoteLockup`：金句定格卡
-- `KeywordBurst`：关键词爆发
-- `BulletStack`：逐条要点
-- `CaptionHighlight`：字幕关键词高亮
-- `DefinitionCard`：概念定义
-- `QuestionCard`：问题抛出
-- `ChapterMarker`：章节编号与进度
-
-## 图片、视频与证据
-
-- `ImageFrame`：图片框与注释
-- `EvidenceCard`：截图、论文、官网证据
-- `DeviceMockup`：手机或电脑设备框
-- `GalleryStrip`：多图胶片带
-- `MagnifierCallout`：局部放大标注
-- `SourceCitation`：信源脚注卡
-- `VideoInset`：画中画视频框
-
-## 结构、流程与解释
-
-- `StepFlow`：步骤流
-- `TimelineRail`：事件时间线
-- `ArchitectureMap`：系统架构关系
-- `FunnelChart`：漏斗过程
-- `DecisionTree`：判断分支
-- `CauseEffect`：因果链
-- `Roadmap`：阶段路线图
-- `Checklist`：检查清单
-
-## UI 与科技界面
-
-- `TerminalWindow`：终端命令演示
-- `CodeSnippet`：代码片段聚焦
-- `DashboardPanel`：仪表盘面板
-- `StatusMonitor`：系统状态监控
-- `NotificationToast`：通知浮层
-- `SearchBarDemo`：搜索交互演示
-- `AIAgentFlow`：AI Agent 调用链
-- `DataPacket`：数据流与节点传输
+工作台当前实际注册 **18** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
+未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
 
-- `MapPin`：地图点位与路线
-- `OrbitDiagram`：轨道关系
-- `CoordinateGrid`：科技坐标网格
-- `SafeAreaGuide`：安全区提示
-- `FocusReticle`：目标框与扫描锁定
+- `GlobalExpedition`：环球征途地图 — 正交投影地球沿大圆航线环球飞行，途经节点停靠点亮，金色航迹＋HUD 任务面板（透明背景）（仅工作台可用；props：`enabled`、`title`、`subtitle`、`animationSeconds`、`accentColor`、`linkColor`、`showHud`）
 
-## 品牌、装饰与转场
+## 字幕与台词
 
-- `LogoReveal`：品牌标识揭示
-- `GlassPanel`：玻璃质感信息卡
-- `NeonDivider`：霓虹章节分隔
-- `WipeTransition`：方向擦除转场
-- `MaskReveal`：遮罩揭示
-- `ParticleField`：粒子背景
-- `ScanTransition`：扫描线转场
-- `EndLockup`：结尾锁定与行动提示
+- `SrtSemanticCaptions`：SRT字幕语义动画 — 逐句驱动 SVG 字幕：语义词库匹配关键词配色与图标，卡拉OK扫线＋台词轨时间轴（仅工作台可用；props：`enabled`、`fontSize`、`accentMode`、`accentColor`、`showRail`、`timeOffset`、`cuesJson`）
+- `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
 
-## 常用组合
+## 流程与图表
 
-- 新闻解读：`TitleReveal` + `EvidenceCard` + `MetricFocus` + `SourceCitation`
-- 产品发布：`LogoReveal` + `DeviceMockup` + `StatGrid` + `CompareSplit`
-- 数据复盘：`MetricFocus` + `LineTrend` + `Leaderboard` + `QuoteLockup`
-- 性能发布：`MetricBar` + `SegmentedMeter` + `RadialTicks` + `PulseMetric`
-- 实时监控：`FlipCounter` + `WaveformMetric` + `LiquidGauge` + `StatusMonitor`
-- 教程说明：`ChapterMarker` + `StepFlow` + `CodeSnippet` + `Checklist`
-- AI 技术：`AIAgentFlow` + `ArchitectureMap` + `TerminalWindow` + `StatusMonitor`
-- 人物口播：`LowerThird` + `KeywordBurst` + `ImageFrame` + `QuoteLockup`
+- `FlowPipeline`：数据管线流程图 — 任务控制台风格四区数据流转图：节点高亮、虚线流动、数据包飞行并在 VSM 中枢完成协议转换，底部滚动日志（中文，自动循环）（仅工作台可用；props：`enabled`、`title`、`subtitle`、`loopSeconds`、`dliColor`、`propColor`、`showHeader`、`showConsole`）
+
+## 终端教学 HUD
+
+- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
+- `TerminalStepHero`：终端步骤主视觉 — 大号步骤编号配合一句结论，适合终端教学的章节落点。（仅工作台可用；props：`enabled`、`step`、`title`、`subtitle`、`accentColor`、`secondaryColor`、`animationSeconds`）
+
+## 柔和教学紫
+
+- `SoftTeachingStepRail`：柔和教学流程条 — 紫色圆形步骤、连接线与三段教学标题，适合放在实拍人物画面的顶部左侧。（仅工作台可用；props：`enabled`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
+- `SoftTeachingGlassPanel`：柔和教学玻璃面板 — 人物口播上方的半透明信息面板，适合标题、英文标签和三项解释。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
+- `SoftTeachingLibraryGrid`：柔和教学动效库卡槽 — 低对比紫色卡槽矩阵，可指定一格高亮，表达动效库或能力模块新增。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`columns`、`highlightIndex`、`accentColor`、`animationSeconds`）
+- `SoftTeachingIncrementBadge`：柔和教学 +1 反馈 — 卡槽高亮后出现的 +1 反馈徽章，用于新增、完成或收集动作。（仅工作台可用；props：`enabled`、`value`、`label`、`accentColor`、`animationSeconds`）
+
+## 数字与指标
+
+- `ProgressRing`：环形进度 — 环形完成率和阶段反馈 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `Countdown`：倒计时 — 倒计时和阶段切换 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `DualMetricBar`：双向指标差异 — 双向指标差异和竞争关系 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `FlipCounter`：翻牌数字 — 机械翻牌式核心数字 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `WaveformMetric`：波形指标 — 连续波形和实时吞吐读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `LiquidGauge`：液态仪表 — 液态填充式完成率仪表 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+- `RadialTicks`：HUD 刻度环 — 科技 HUD 刻度与中心读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）

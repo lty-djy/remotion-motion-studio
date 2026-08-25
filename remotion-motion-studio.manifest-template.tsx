@@ -13,14 +13,14 @@ type CommonProps = {
   backgroundOpacity?: number;
 };
 
-type SpeedGaugeProps = CommonProps & {
+type ExampleGaugeProps = CommonProps & {
   label?: string;
   value?: number;
   unit?: string;
   accentColor?: string;
 };
 
-export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
+export const ExampleGauge: React.FC<ExampleGaugeProps> = ({
   label = "处理速度",
   value = 87,
   unit = "SCORE",
@@ -184,12 +184,12 @@ export const QuoteLockup: React.FC<QuoteLockupProps> = ({
 
 export const MOTION_COMPONENTS = [
   {
-    id: "SpeedGauge",
+    id: "ExampleGauge",
     name: "动态码表",
     description: "弧形进度、指针和数值反馈",
     category: "metric",
     glyph: "87",
-    component: SpeedGauge,
+    component: ExampleGauge,
     durationInFrames: 100,
     bounds: {x: 0, y: 0, width: 420, height: 300},
     defaultPosition: {x: 110, y: 100, scale: 1},
@@ -231,7 +231,7 @@ export const MOTION_COMPONENTS = [
 
 export const MOTION_TIMELINE = [
   {
-    componentId: "SpeedGauge",
+    componentId: "ExampleGauge",
     startFrame: 0,
     durationInFrames: 105,
     position: {x: 110, y: 100, scale: 1},
@@ -246,4 +246,4 @@ export const MOTION_TIMELINE = [
   },
 ];
 
-export default SpeedGauge;
+export default ExampleGauge;

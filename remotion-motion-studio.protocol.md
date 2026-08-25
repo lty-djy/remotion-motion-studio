@@ -21,12 +21,12 @@ export default DefaultComponent;
 ```tsx
 export const MOTION_COMPONENTS = [
   {
-    id: "SpeedGauge",
+    id: "ExampleGauge",
     name: "动态码表",
     description: "速度与增长率",
     category: "metric",
     glyph: "120",
-    component: SpeedGauge,
+    component: ExampleGauge,
     durationInFrames: 120,
     bounds: {x: 0, y: 0, width: 520, height: 300},
     defaultPosition: {x: 110, y: 110, scale: 1},
@@ -48,7 +48,7 @@ export const MOTION_COMPONENTS = [
 
 规则：
 
-- `id` 在同一组件包内唯一且稳定，修改组件时不要随意更换。实现工作台已有类型时，必须使用组件目录中大小写完全一致的标准 ID，例如 `MetricBar`，不能写成 `metric-bar`。
+- `id` 在同一组件包内唯一且稳定，修改组件时不要随意更换。实现工作台已有类型时，必须使用自动生成组件目录中大小写完全一致的标准 ID，例如 `RadialTicks`，不能写成 `radial-ticks`；自定义类型应使用不会冒充内置组件的独立 ID。
 - `component` 是 React 组件引用，不是字符串。
 - `durationInFrames` 至少为 3；时间轴仍可把实例压缩到 0.1 秒。
 - `bounds` 是组件自身的像素包围盒，通常从 `{x: 0, y: 0}` 开始，必须贴合真实视觉内容。
@@ -61,7 +61,7 @@ export const MOTION_COMPONENTS = [
 推荐使用“局部原点”模式：
 
 ```tsx
-const MetricBar: React.FC<Props> = (props) => {
+const ExampleMetric: React.FC<Props> = (props) => {
   return (
     <div style={{position: "absolute", left: 0, top: 0, width: 520, height: 300}}>
       {/* 所有背景、文字和图形都在此容器内 */}
@@ -87,7 +87,7 @@ defaultPosition: {x: 110, y: 110, scale: 1},
 ```tsx
 export const MOTION_TIMELINE = [
   {
-    componentId: "SpeedGauge",
+    componentId: "ExampleGauge",
     startFrame: 30,
     durationInFrames: 120,
     position: {x: 110, y: 110, scale: 1},
@@ -154,4 +154,4 @@ export const MOTION_TIMELINE = [
 - 工作台保存最近 50 个已成功导入文件；重新导入同名文件会新增版本，不覆盖历史文件。
 - 历史列表中的任意版本都可再次激活。
 - 同一标准 ID 同时存在内置模板与导入版本时，工作台优先渲染导入版本；清单中的参数协议和时间轴实例仍保持独立可编辑。
-- 数字、条形、翻牌、波形、液态与 HUD 指标的标准参数约定见 [metric-components.md](metric-components.md)。
+- 当前实际注册的指标 ID 与参数以自动生成的 [remotion-motion-studio.component-catalog.md](./remotion-motion-studio.component-catalog.md) 为准；[remotion-motion-studio.metric-components.md](./remotion-motion-studio.metric-components.md) 只说明维护边界，不再另行声明组件 ID。

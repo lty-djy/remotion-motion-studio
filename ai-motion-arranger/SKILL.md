@@ -14,7 +14,7 @@ when_to_use: 用户丢一段 SRT + 视频上下文（可选），要求"AI 编�
 
 请同时阅读以下两份 companion 文档，它们构成你看到的"可用世界"：
 
-- `references/card-catalog.md` —— 当前 registry 暴露的全部标准卡清单（每张卡的 `id`、展示名、可编排 `props` 与约束）。**只允许使用此处的卡片 id，不允许自己造 id**。该文件由 `scripts/generate-card-catalog.mjs` 从 `registry.ts` 自动生成，运行命令：`node scripts/generate-card-catalog.mjs`。registry 改了就重跑这条命令。
+- `references/card-catalog.md` —— 当前运行时 registry 中已明确开放给 AI 的标准卡清单（每张卡的 `id`、展示名、可编排 `props` 与约束）。**只允许使用此处的卡片 id，不允许自己造 id**。运行 `npm.cmd run sync:registry` 可从真实 `registry.ts` 自动刷新技术元数据和目录；registry 改了就重跑这条命令。
 - `references/palette.md` —— 唯一的颜色来源。**只允许从此处挑选 token，不允许写任何 hex、rgb()、hsl()、oklch()、命名色**。
 - `references/design-tokens.md` —— 顶层设计令牌（theme/skin/style/font）的枚举全集与语义。
 
@@ -155,7 +155,6 @@ SRT 行 ──> Board（信息板，对应一段口播）
 | `right-bottom` | 右下矩形 |
 | `left-top` | 左上矩形 |
 | `right-top` | 右上矩形 |
-| `top-rail` | 顶部全宽横条（仅当 `cards[0].id === "ChapterBar"` 时允许） |
 | `bottom-rail` | 底部全宽横条 |
 | `center-stage` | 中央展板（封面/总结独占） |
 
@@ -242,6 +241,6 @@ node scripts/lint-manifest.mjs manifest.json
 
 如果用户告诉你哪段口播编译后渲染不对，或者某个 Board 视觉过界，记下来回到本 Skill 的对应条款修订。下一次新会话前请同步更新：
 
-- `references/card-catalog.md`（重新跑 `scripts/generate-card-catalog.mjs`）
+- `references/card-catalog.md`（重新运行 `npm.cmd run sync:registry`）
 - `references/palette.md`（如新增 token）
 - 本文件（新增禁止条款或枚举值）

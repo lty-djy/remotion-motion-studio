@@ -5,7 +5,7 @@
 // 用法：node scripts/manifest-to-tsx.mjs <manifest.json> > package.tsx
 //
 // 它是确定性的、零 AI 的：AI 输出 manifest，本脚本生成 TSX；TSX 内联所有
-// 组件源码（ChapterBar + LegacyMetricEffect + useRafProgress），不 import 本地路径，
+// 组件源码（当前 AI 可编排的 LegacyMetricEffect + useRafProgress），不 import 本地路径，
 // 因此能直接走工作台的安全导入校验。
 // 工作台任何 effects/*.tsx 改了源 → 重跑本脚本即可，无需手动同步。
 
@@ -45,7 +45,6 @@ const ALLOWED_ANCHORS = new Set([
   "right-bottom",
   "left-top",
   "right-top",
-  "top-rail",
   "bottom-rail",
   "center-stage",
 ]);
@@ -414,9 +413,7 @@ async function buildPackage(manifest, meta) {
     wrapInScope(useRafSource, "useRafProgress"),
   );
 
-  const needsLegacy = usedOrdered.some(
-    (c) => c.category === "metric" && c.id !== "ChapterBar",
-  );
+  const needsLegacy = usedOrdered.length > 0;
   if (needsLegacy) {
     const legacySource = await loadInlinedSource(
       join(effectsDir, "LegacyMetricEffects.tsx"),
@@ -427,17 +424,6 @@ async function buildPackage(manifest, meta) {
       wrapInScope(legacySource, "LegacyMetricEffect"),
     );
   }
-  if (usedIds.has("ChapterBar")) {
-    const chapterSource = await loadInlinedSource(
-      join(effectsDir, "ChapterBar.tsx"),
-      "effects/ChapterBar.tsx",
-    );
-    blocks.push(
-      "// ====== 内联 ChapterBar ======",
-      wrapInScope(chapterSource, "ChapterBar"),
-    );
-  }
-
   const viewBlocks = [];
   const theme = manifest.theme ?? "dark";
   const skin = manifest.skin ?? "tech-cyan";
@@ -468,15 +454,9 @@ async function buildPackage(manifest, meta) {
     ``,
   );
   for (const card of usedOrdered) {
-    if (card.id === "ChapterBar") {
-      viewBlocks.push(
-        `const ChapterBarView = (props) => <SkinShell><ChapterBar {...props} /></SkinShell>;`,
-      );
-    } else {
-      viewBlocks.push(
-        `const ${card.id}View = (props) => <SkinShell><LegacyMetricEffect componentType="${card.id}" {...props} /></SkinShell>;`,
-      );
-    }
+    viewBlocks.push(
+      `const ${card.id}View = (props) => <SkinShell><LegacyMetricEffect componentType="${card.id}" {...props} /></SkinShell>;`,
+    );
   }
 
   const manifestDefinitions = usedOrdered.map((card) => ({

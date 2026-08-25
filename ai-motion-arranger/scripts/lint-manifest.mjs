@@ -39,7 +39,7 @@ const SKIN_DEFAULTS = {
 const STYLES = new Set(["glass", "flat", "outline", "tile", "teaching-overlay"]);
 const FONTS = new Set(["sans", "serif", "mono-tech"]);
 const ANCHORS = new Set([
-  "left-bottom", "right-bottom", "left-top", "right-top", "top-rail", "bottom-rail", "center-stage",
+  "left-bottom", "right-bottom", "left-top", "right-top", "bottom-rail", "center-stage",
 ]);
 const DENSITY = new Set(["sparse", "balanced", "rich"]);
 const RHYTHM = new Set(["single", "staggered", "cascade"]);

@@ -19,6 +19,9 @@ import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 export type EffectDef = MotionComponentDefinition & {
   catalogGroup: string;
   placement: "left" | "right" | "top" | "bottom";
+  arranger?: {
+    compiler: "legacy-metric";
+  };
 };
 
 export const EFFECT_REGISTRY: EffectDef[] = [
@@ -49,3 +52,7 @@ export const EFFECT_REGISTRY: EffectDef[] = [
 export const EFFECT_REGISTRY_BY_ID = new Map(
   EFFECT_REGISTRY.map((definition) => [definition.id, definition]),
 );
+
+export const AI_ARRANGEABLE_COMPONENT_IDS = EFFECT_REGISTRY.filter(
+  (definition) => definition.arranger,
+).map((definition) => definition.id);

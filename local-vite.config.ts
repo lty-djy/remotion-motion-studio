@@ -315,32 +315,6 @@ type RenderJob = {
 const renderJobs = new Map<string, RenderJob>();
 let renderJobSequence = 0;
 
-const managedEffectFiles: Record<
-  string,
-  { file: string; importLine: string; registryLine: string }
-> = {
-  ChapterBar: {
-    file: join(rootDir, "effects", "ChapterBar.tsx"),
-    importLine: 'import { ChapterBarEffectDef } from "./effects/ChapterBar";',
-    registryLine: "  ChapterBarEffectDef,",
-  },
-  MetricFocus: {
-    file: join(rootDir, "effects", "CoreNumberRoll.tsx"),
-    importLine: 'import { CoreNumberRollEffectDef } from "./effects/CoreNumberRoll";',
-    registryLine: "  CoreNumberRollEffectDef,",
-  },
-  CompareSplit: {
-    file: join(rootDir, "effects", "CompareBars.tsx"),
-    importLine: 'import { CompareBarsEffectDef } from "./effects/CompareBars";',
-    registryLine: "  CompareBarsEffectDef,",
-  },
-  QuoteLockup: {
-    file: join(rootDir, "effects", "QuoteLineReveal.tsx"),
-    importLine: 'import { QuoteLineRevealEffectDef } from "./effects/QuoteLineReveal";',
-    registryLine: "  QuoteLineRevealEffectDef,",
-  },
-};
-
 const removeEffectInstances = (instances: unknown[], componentId: string) =>
   instances.filter(
     (instance) =>
@@ -428,20 +402,6 @@ const deleteRegisteredEffectSource = async (componentId: string) => {
     await unlink(sourcePath);
     await removeEffectFromSavedTimelines(componentId);
     return { source: `effects/${basename(sourcePath)}` };
-  }
-
-  const managed = managedEffectFiles[componentId];
-  if (managed) {
-    const nextRegistry = registrySource
-      .replace(managed.importLine, "")
-      .replace(managed.registryLine, "");
-    if (nextRegistry === registrySource) {
-      throw new Error("该效果不在当前注册表中");
-    }
-    await writeFile(effectRegistryPath, nextRegistry, "utf8");
-    await unlink(managed.file);
-    await removeEffectFromSavedTimelines(componentId);
-    return { source: `effects/${basename(managed.file)}` };
   }
 
   const legacySource = await readFile(legacyEffectsPath, "utf8");
