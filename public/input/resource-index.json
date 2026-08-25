@@ -1,7 +1,7 @@
 {
   "indexVersion": "1",
   "root": "public/input",
-  "resourceCount": 8,
+  "resourceCount": 7,
   "libraries": {
     "icons": [
       {
@@ -135,28 +135,6 @@
         "usage": "用于组件滑入、滑出或轻转场",
         "media": {
           "durationSeconds": 0.55,
-          "sampleRate": 24000,
-          "channels": 1
-        }
-      }
-    ],
-    "bgm": [
-      {
-        "id": "default-bgm",
-        "label": "低强度合成氛围",
-        "file": "bgm/default-bgm.wav",
-        "url": "/input/bgm/default-bgm.wav",
-        "mimeType": "audio/wav",
-        "bytes": 288044,
-        "sha256": "deef0342b1d365f28ce567b11b81277701da83cc56247fd6654cf2fd93596a16",
-        "tags": [
-          "背景",
-          "科技",
-          "平稳"
-        ],
-        "usage": "可循环的低存在感背景底乐，需配合人声压低",
-        "media": {
-          "durationSeconds": 6,
           "sampleRate": 24000,
           "channels": 1
         }

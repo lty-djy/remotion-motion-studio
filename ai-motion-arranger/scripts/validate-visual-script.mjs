@@ -49,13 +49,11 @@ const TRACK_BY_KIND = {
   material: "material",
   caption: "caption",
   sfx: "sfx",
-  bgm: "bgm",
 };
 const LIBRARY_BY_KIND = {
   icon: "icons",
   material: "materials",
   sfx: "sfx",
-  bgm: "bgm",
 };
 const REQUIRED_QC_CHECKS = new Set([
   "face-occlusion",
@@ -266,7 +264,7 @@ export const validateVisualScript = (script) => {
         if (["icon", "material"].includes(expression.kind) && expression.audio) {
           errors.push(`${expressionPath} 视觉资源不应携带 audio`);
         }
-        if (["sfx", "bgm"].includes(expression.kind) && expression.layout) {
+        if (expression.kind === "sfx" && expression.layout) {
           errors.push(`${expressionPath} 音频资源不应携带 layout`);
         }
       }

@@ -1959,12 +1959,6 @@ aside {
   background: linear-gradient(90deg, rgba(210, 111, 24, 0.42), rgba(154, 73, 160, 0.35));
 }
 
-.resource-clip.resource-bgm {
-  border-color: rgba(99, 220, 174, 0.82);
-  color: #e2fff5;
-  background: linear-gradient(90deg, rgba(25, 150, 111, 0.42), rgba(40, 112, 183, 0.35));
-}
-
 .resource-timeline-track.is-hidden .track-body,
 .resource-timeline-track.is-hidden .resource-clip {
   opacity: 0.38;

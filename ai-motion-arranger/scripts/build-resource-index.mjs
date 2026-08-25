@@ -10,18 +10,16 @@ export const RESOURCE_ROOT = resolve(here, "..", "..", "public", "input");
 export const RESOURCE_MANIFEST_PATH = join(RESOURCE_ROOT, "resource-manifest.json");
 export const RESOURCE_INDEX_PATH = join(RESOURCE_ROOT, "resource-index.json");
 
-const LIBRARIES = ["icons", "materials", "sfx", "bgm"];
+const LIBRARIES = ["icons", "materials", "sfx"];
 const PREFIX_BY_LIBRARY = {
   icons: "icons/",
   materials: "materials/",
   sfx: "sfx/",
-  bgm: "bgm/",
 };
 const EXTENSIONS_BY_LIBRARY = {
   icons: new Set([".svg"]),
   materials: new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".mov", ".webm"]),
   sfx: new Set([".wav", ".mp3", ".ogg", ".m4a"]),
-  bgm: new Set([".wav", ".mp3", ".ogg", ".m4a"]),
 };
 const MIME_BY_EXTENSION = {
   ".svg": "image/svg+xml",

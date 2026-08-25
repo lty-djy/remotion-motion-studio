@@ -237,30 +237,6 @@
             "zIndex": 30,
             "maxScaleReduction": 0.2
           }
-        },
-        {
-          "id": "bgm-summary",
-          "intentId": "intent-conclusion",
-          "kind": "bgm",
-          "selectionReason": "轻背景音乐只负责收束情绪，并主动压低避免盖住人声。",
-          "enabled": true,
-          "resource": {
-            "library": "bgm",
-            "resourceId": "default-bgm"
-          },
-          "timing": {
-            "startFrame": 150,
-            "endFrame": 300,
-            "enter": "fade",
-            "exit": "fade"
-          },
-          "track": "bgm",
-          "audio": {
-            "volume": 0.18,
-            "voiceDucking": 0.55,
-            "fadeInFrames": 20,
-            "fadeOutFrames": 24
-          }
         }
       ]
     }

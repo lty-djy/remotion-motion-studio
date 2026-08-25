@@ -172,14 +172,14 @@
       "properties": {
         "id": { "$ref": "#/$defs/stableId" },
         "intentId": { "$ref": "#/$defs/stableId" },
-        "kind": { "enum": ["effect", "icon", "material", "caption", "sfx", "bgm"] },
+        "kind": { "enum": ["effect", "icon", "material", "caption", "sfx"] },
         "selectionReason": { "type": "string", "minLength": 1, "maxLength": 300 },
         "enabled": { "type": "boolean" },
         "component": { "$ref": "#/$defs/component" },
         "resource": { "$ref": "#/$defs/resource" },
         "content": { "type": "string", "minLength": 1, "maxLength": 1000 },
         "timing": { "$ref": "#/$defs/timing" },
-        "track": { "enum": ["motion", "icon", "material", "caption", "sfx", "bgm"] },
+        "track": { "enum": ["motion", "icon", "material", "caption", "sfx"] },
         "layout": { "$ref": "#/$defs/layout" },
         "audio": { "$ref": "#/$defs/audio" }
       },
@@ -197,7 +197,7 @@
           "then": { "required": ["content", "layout"] }
         },
         {
-          "if": { "properties": { "kind": { "enum": ["sfx", "bgm"] } }, "required": ["kind"] },
+          "if": { "properties": { "kind": { "const": "sfx" } }, "required": ["kind"] },
           "then": { "required": ["resource", "audio"] }
         }
       ]
@@ -216,7 +216,7 @@
       "additionalProperties": false,
       "required": ["library", "resourceId"],
       "properties": {
-        "library": { "enum": ["icons", "materials", "sfx", "bgm"] },
+        "library": { "enum": ["icons", "materials", "sfx"] },
         "resourceId": {
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9._-]*$",

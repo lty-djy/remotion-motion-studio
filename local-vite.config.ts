@@ -602,7 +602,7 @@ const normalizeProjectSnapshot = (
       ? input.resourceTracks.slice(0, 500).flatMap((track, index) => {
           if (!track || typeof track !== "object") return [];
           const record = track as Record<string, unknown>;
-          const kind = ["icon", "material", "sfx", "bgm"].includes(
+          const kind = ["icon", "material", "sfx"].includes(
             String(record.kind),
           )
             ? String(record.kind)
@@ -675,7 +675,6 @@ const normalizeProjectSnapshot = (
                 0,
                 Math.min(1, numberOr(record.voiceDucking, 0)),
               ),
-              loop: kind === "bgm" && record.loop !== false,
             },
           ];
         })

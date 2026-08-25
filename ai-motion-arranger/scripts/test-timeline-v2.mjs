@@ -14,11 +14,11 @@ const timeline = convertVisualScriptToTimeline(script);
 if (timeline.motionTimeline.length !== 3) {
   throw new Error(`预期 3 个动效轨道项，实际 ${timeline.motionTimeline.length}`);
 }
-if (timeline.resourceTracks.length !== 3) {
-  throw new Error(`预期 3 个资源轨道项，实际 ${timeline.resourceTracks.length}`);
+if (timeline.resourceTracks.length !== 2) {
+  throw new Error(`预期 2 个资源轨道项，实际 ${timeline.resourceTracks.length}`);
 }
 const kinds = new Set(timeline.resourceTracks.map((track) => track.kind));
-for (const kind of ["icon", "sfx", "bgm"]) {
+for (const kind of ["icon", "sfx"]) {
   if (!kinds.has(kind)) throw new Error(`缺少 ${kind} 资源轨道`);
 }
 if (!timeline.motionTimeline.every((item) => item.position && item.props)) {

@@ -72,19 +72,6 @@ const assets = [
       Math.exp(-time * 42) *
       0.34,
   },
-  {
-    file: "bgm/default-bgm.wav",
-    duration: 6,
-    sample: (time, duration) => {
-      const loopEnvelope = Math.sin(Math.PI * time / duration) ** 0.7;
-      const pad =
-        Math.sin(2 * Math.PI * 110 * time) * 0.028 +
-        Math.sin(2 * Math.PI * 164.81 * time) * 0.018 +
-        Math.sin(2 * Math.PI * 220 * time) * 0.012;
-      const pulse = Math.sin(2 * Math.PI * 0.5 * time) * 0.006;
-      return (pad + pulse) * loopEnvelope;
-    },
-  },
 ];
 
 for (const asset of assets) {

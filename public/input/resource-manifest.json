@@ -57,14 +57,6 @@
       "label": "轻点按",
       "tags": ["步骤", "勾选", "数字"],
       "usage": "用于逐项弹出、步骤完成或微交互"
-    },
-    {
-      "id": "default-bgm",
-      "library": "bgm",
-      "file": "bgm/default-bgm.wav",
-      "label": "低强度合成氛围",
-      "tags": ["背景", "科技", "平稳"],
-      "usage": "可循环的低存在感背景底乐，需配合人声压低"
     }
   ]
 }

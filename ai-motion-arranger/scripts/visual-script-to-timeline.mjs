@@ -157,7 +157,7 @@ export const convertVisualScriptToTimeline = (script) => {
       const audioFrames = resource.media?.durationSeconds
         ? Math.max(3, Math.round(resource.media.durationSeconds * script.project.fps))
         : durationInFrames;
-      const isAudio = expression.kind === "sfx" || expression.kind === "bgm";
+      const isAudio = expression.kind === "sfx";
       const trackDurationInFrames = expression.kind === "sfx"
         ? Math.min(durationInFrames, audioFrames)
         : durationInFrames;
@@ -180,7 +180,6 @@ export const convertVisualScriptToTimeline = (script) => {
           : resolveResourcePosition(expression, script.project),
         volume: expression.audio?.volume ?? 1,
         voiceDucking: expression.audio?.voiceDucking ?? 0,
-        loop: expression.kind === "bgm",
         sourceExpressionId: expression.id,
         sourceIntentId: expression.intentId,
       });

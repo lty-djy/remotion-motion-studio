@@ -80,7 +80,7 @@ export type VideoTrack = {
   visible: boolean;
 };
 
-export type ResourceTrackKind = "icon" | "material" | "sfx" | "bgm";
+export type ResourceTrackKind = "icon" | "material" | "sfx";
 
 export type ResourceTrack = {
   id: string;
@@ -106,7 +106,6 @@ export type ResourceTrack = {
   };
   volume: number;
   voiceDucking: number;
-  loop: boolean;
 };
 
 export type MotionModule = Record<string, unknown> & {

@@ -9,7 +9,6 @@ public/input/
 │  ├─ screenshots/         截图与静态图片
 │  └─ recordings/          录屏与补充视频
 ├─ sfx/                   短音效
-├─ bgm/                   背景音乐
 ├─ resource-manifest.json 人工维护的资源语义清单
 └─ resource-index.json    根据真实文件生成的技术索引
 ```

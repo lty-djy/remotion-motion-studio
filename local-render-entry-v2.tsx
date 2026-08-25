@@ -154,7 +154,7 @@ const MultiComponentRender = ({
       }
       if (layer.kind === "resource") {
         const track = layer.track;
-        const isAudio = track.kind === "sfx" || track.kind === "bgm";
+        const isAudio = track.kind === "sfx";
         const effectiveVolume = soundEnabled
           ? track.volume * (1 - track.voiceDucking)
           : 0;
@@ -170,7 +170,6 @@ const MultiComponentRender = ({
                 trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
                 volume={effectiveVolume}
                 muted={!soundEnabled}
-                loop={track.loop}
               />
             </Sequence>
           );

@@ -447,6 +447,15 @@ const createResourceTrackId = () => {
   return `resource-${Date.now()}-${resourceTrackSequence}`;
 };
 
+const isSupportedResourceTrack = (
+  track: unknown,
+): track is Partial<ResourceTrack> =>
+  Boolean(track) &&
+  typeof track === "object" &&
+  ["icon", "material", "sfx"].includes(
+    String((track as { kind?: unknown }).kind),
+  );
+
 const restoreVideoTrack = (
   track: Partial<VideoTrack>,
   fallback: { name: string; url: string; durationInFrames: number },
@@ -494,7 +503,7 @@ const restoreResourceTrack = (
     typeof track.id === "string" && track.id
       ? track.id
       : createResourceTrackId();
-  const kind = ["icon", "material", "sfx", "bgm"].includes(
+  const kind = ["icon", "material", "sfx"].includes(
     String(track.kind),
   )
     ? (track.kind as ResourceTrack["kind"])
@@ -545,8 +554,27 @@ const restoreResourceTrack = (
     },
     volume: clamp(finiteNumber(track.volume, 1), 0, 1),
     voiceDucking: clamp(finiteNumber(track.voiceDucking, 0), 0, 1),
-    loop: kind === "bgm" ? track.loop !== false : false,
   };
+};
+
+const ensureUniqueResourceTrackIds = (
+  tracks: ResourceTrack[],
+  reservedIds: string[] = [],
+) => {
+  const usedIds = new Set(reservedIds);
+  return tracks.map((track) => {
+    if (!usedIds.has(track.id)) {
+      usedIds.add(track.id);
+      return track;
+    }
+    const id = createResourceTrackId();
+    usedIds.add(id);
+    return {
+      ...track,
+      id,
+      laneId: track.laneId === track.id ? id : track.laneId,
+    };
+  });
 };
 
 const formatTime = (seconds: number) => {
@@ -884,7 +912,7 @@ const StudioPreviewComposition = ({
         }
         if (layer.kind === "resource") {
           const track = layer.track;
-          const isAudio = track.kind === "sfx" || track.kind === "bgm";
+          const isAudio = track.kind === "sfx";
           const effectiveVolume = soundEnabled
             ? track.volume * (1 - track.voiceDucking)
             : 0;
@@ -900,7 +928,6 @@ const StudioPreviewComposition = ({
                   trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
                   volume={effectiveVolume}
                   muted={!soundEnabled}
-                  loop={track.loop}
                 />
               </Sequence>
             );
@@ -1825,8 +1852,12 @@ const App = () => {
         setResourceTracks(
           canRestoreDraft && Array.isArray(draft?.resourceTracks)
             ? preventLaneOverlaps(
-                draft.resourceTracks.map((track, index) =>
-                  restoreResourceTrack(track, restoredTracks.length + index),
+                ensureUniqueResourceTrackIds(
+                  draft.resourceTracks
+                    .filter(isSupportedResourceTrack)
+                    .map((track, index) =>
+                      restoreResourceTrack(track, restoredTracks.length + index),
+                    ),
                 ),
               )
             : [],
@@ -2325,11 +2356,15 @@ const App = () => {
       setResourceTracks(
         Array.isArray(snapshot.resourceTracks)
           ? preventLaneOverlaps(
-              snapshot.resourceTracks.map((track, index) =>
-                restoreResourceTrack(
-                  track,
-                  normalizedVideoTracks.length + index,
-                ),
+              ensureUniqueResourceTrackIds(
+                snapshot.resourceTracks
+                  .filter(isSupportedResourceTrack)
+                  .map((track, index) =>
+                    restoreResourceTrack(
+                      track,
+                      normalizedVideoTracks.length + index,
+                    ),
+                  ),
               ),
             )
           : [],
@@ -3361,25 +3396,33 @@ const App = () => {
         ),
       );
     }
-    const importedResourceTracks = resourceItems.map((rawTrack, index) => {
-      if (!isRecord(rawTrack)) {
-        throw new Error(`资源轨道第 ${index + 1} 项必须是对象。`);
-      }
-      const kind = String(rawTrack.kind ?? "");
-      const resourceId = String(rawTrack.resourceId ?? "");
-      const library =
-        kind === "icon"
-          ? "icons"
-          : kind === "material"
-            ? "materials"
-            : kind;
-      if (!indexedResources.has(`${library}:${resourceId}`)) {
-        throw new Error(
-          `资源轨道第 ${index + 1} 项引用的 ${library}:${resourceId} 不在当前索引中。`,
-        );
-      }
-      return restoreResourceTrack(rawTrack as Partial<ResourceTrack>, index);
-    });
+    const importedResourceTracks = ensureUniqueResourceTrackIds(
+      resourceItems.map((rawTrack, index) => {
+        if (!isRecord(rawTrack)) {
+          throw new Error(`资源轨道第 ${index + 1} 项必须是对象。`);
+        }
+        const kind = String(rawTrack.kind ?? "");
+        const resourceId = String(rawTrack.resourceId ?? "");
+        if (!["icon", "material", "sfx"].includes(kind)) {
+          throw new Error(
+            `资源轨道第 ${index + 1} 项类型 ${kind || "缺失"} 不受支持。`,
+          );
+        }
+        const library =
+          kind === "icon"
+            ? "icons"
+            : kind === "material"
+              ? "materials"
+              : kind;
+        if (!indexedResources.has(`${library}:${resourceId}`)) {
+          throw new Error(
+            `资源轨道第 ${index + 1} 项引用的 ${library}:${resourceId} 不在当前索引中。`,
+          );
+        }
+        return restoreResourceTrack(rawTrack as Partial<ResourceTrack>, index);
+      }),
+      resourceTracks.map((track) => track.id),
+    );
     const importTotalFrames = Math.max(
       durationInFrames,
       ...items.map((item) => {
@@ -4058,7 +4101,6 @@ const App = () => {
     sourceStartFrame: number;
     sourceDurationInFrames: number;
     durationInFrames: number;
-    loop: boolean;
     width: number;
   } | null>(null);
 
@@ -4078,7 +4120,6 @@ const App = () => {
       sourceStartFrame: track.sourceStartFrame,
       sourceDurationInFrames: track.sourceDurationInFrames,
       durationInFrames: track.durationInFrames,
-      loop: track.loop,
       width:
         timelineContentWidth ||
         event.currentTarget.closest(".track-body")?.clientWidth ||
@@ -4131,9 +4172,7 @@ const App = () => {
             const minimumStart = Math.max(
               previousEnd,
               0,
-              state.loop
-                ? 0
-                : state.startFrame - state.sourceStartFrame,
+              state.startFrame - state.sourceStartFrame,
             );
             const startFrame = clamp(
               state.startFrame + deltaFrames,
@@ -4144,22 +4183,17 @@ const App = () => {
             return {
               ...track,
               startFrame,
-              sourceStartFrame: state.loop
-                ? Math.max(0, state.sourceStartFrame + sourceDelta) %
-                  state.sourceDurationInFrames
-                : state.sourceStartFrame + sourceDelta,
+              sourceStartFrame: state.sourceStartFrame + sourceDelta,
               durationInFrames: rightFrame - startFrame,
             };
           }
           const maximumDuration = Number.isFinite(nextStart)
             ? nextStart - state.startFrame
             : Number.MAX_SAFE_INTEGER;
-          const sourceLimit = state.loop
-            ? maximumDuration
-            : Math.min(
-                maximumDuration,
-                state.sourceDurationInFrames - state.sourceStartFrame,
-              );
+          const sourceLimit = Math.min(
+            maximumDuration,
+            state.sourceDurationInFrames - state.sourceStartFrame,
+          );
           const duration = clamp(
             state.durationInFrames + deltaFrames,
             minFrames,
@@ -6600,7 +6634,7 @@ const App = () => {
                         {lane.kind === "video" ? (
                           <VideoCamera weight="fill" />
                         ) : lane.kind === "resource" ? (
-                          firstClip.kind === "sfx" || firstClip.kind === "bgm" ? (
+                          firstClip.kind === "sfx" ? (
                             <SpeakerHigh weight="fill" />
                           ) : (
                             <SelectionForeground weight="fill" />
@@ -7067,13 +7101,11 @@ const App = () => {
                             3,
                             Math.round(Number(event.target.value) * fps),
                           );
-                          const nextDuration = selectedResourceTrack.loop
-                            ? requestedFrames
-                            : Math.min(
-                                requestedFrames,
-                                selectedResourceTrack.sourceDurationInFrames -
-                                  selectedResourceTrack.sourceStartFrame,
-                              );
+                          const nextDuration = Math.min(
+                            requestedFrames,
+                            selectedResourceTrack.sourceDurationInFrames -
+                              selectedResourceTrack.sourceStartFrame,
+                          );
                           updateResourceTrack(selectedResourceTrack.id, (track) => ({
                             ...track,
                             durationInFrames: nextDuration,

@@ -23,7 +23,7 @@ const main = async () => {
     Object.entries(actual.libraries).map(([library, entries]) => [library, entries.length]),
   );
   process.stdout.write(
-    `✓ 资源索引通过：total=${actual.resourceCount} icons=${counts.icons} materials=${counts.materials} sfx=${counts.sfx} bgm=${counts.bgm}\n`,
+    `✓ 资源索引通过：total=${actual.resourceCount} icons=${counts.icons} materials=${counts.materials} sfx=${counts.sfx}\n`,
   );
 };
 
