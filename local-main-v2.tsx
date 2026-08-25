@@ -850,6 +850,7 @@ const getRegisteredEffectPosition = (
       "PortraitDecisionTagStack",
       "PortraitStepChecklist",
       "PortraitRiskWarning",
+      "PortraitNextEpisodeCta",
       "TitleReveal",
       "LineTrend",
       "StepFlow",

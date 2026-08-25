@@ -147,6 +147,23 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "PortraitNextEpisodeCta",
+    placement: "right",
+    bounds: [390, 270],
+    props: [
+      "eyebrow",
+      "title",
+      "subtitle",
+      "cta",
+      "icon",
+      "accentColor",
+      "secondaryColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {
