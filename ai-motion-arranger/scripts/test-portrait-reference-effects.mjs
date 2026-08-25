@@ -74,8 +74,8 @@ const expected = [
   },
   {
     id: "PortraitMetricDecision",
-    placement: "top",
-    bounds: [930, 390],
+    placement: "left",
+    bounds: [410, 390],
     props: [
       "lead",
       "conclusion",
@@ -83,6 +83,17 @@ const expected = [
       "value",
       "unit",
       "verdict",
+      "accentColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
+  {
+    id: "PortraitDecisionTagStack",
+    placement: "right",
+    bounds: [330, 228],
+    props: [
       "tag1",
       "tag2",
       "tag3",

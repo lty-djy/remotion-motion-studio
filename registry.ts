@@ -17,6 +17,7 @@ import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitKeywordBurstEffectDef } from "./effects/PortraitKeywordBurst";
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
+import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
 import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
@@ -58,6 +59,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitInfoCalloutEffectDef,
 
   PortraitMetricDecisionEffectDef,
+
+  PortraitDecisionTagStackEffectDef,
 
   PortraitStepChecklistEffectDef,
 

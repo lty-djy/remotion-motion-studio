@@ -16,12 +16,6 @@ type Props = {
   value?: string;
   unit?: string;
   verdict?: string;
-  tag1?: string;
-  tag2?: string;
-  tag3?: string;
-  symbol1?: string;
-  symbol2?: string;
-  symbol3?: string;
   accentColor?: string;
   panelColor?: string;
   textColor?: string;
@@ -36,12 +30,6 @@ export const PortraitMetricDecision: React.FC<Props> = ({
   value = "1",
   unit = "K",
   verdict = "更推荐",
-  tag1 = "速度更快",
-  tag2 = "成本更低",
-  tag3 = "剪辑流畅",
-  symbol1 = "↗",
-  symbol2 = "✓",
-  symbol3 = "✂",
   accentColor = "#14E6A1",
   panelColor = "#111318",
   textColor = "#FFFFFF",
@@ -50,12 +38,6 @@ export const PortraitMetricDecision: React.FC<Props> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(12, Math.round(animationSeconds * fps));
-  const tagStartGap = Math.max(3, Math.round(enterFrames * 0.16));
-  const tags = [
-    { text: tag1, symbol: symbol1 },
-    { text: tag2, symbol: symbol2 },
-    { text: tag3, symbol: symbol3 },
-  ];
 
   if (!enabled) return null;
 
@@ -65,7 +47,7 @@ export const PortraitMetricDecision: React.FC<Props> = ({
       data-effect="PortraitMetricDecision"
       style={{
         position: "relative",
-        width: 930,
+        width: 410,
         height: 390,
         color: textColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
@@ -243,106 +225,6 @@ export const PortraitMetricDecision: React.FC<Props> = ({
         </div>
       </Interactive.Div>
 
-      <Interactive.Div
-        name="优缺点标签"
-        style={{
-          position: "absolute",
-          top: 126,
-          right: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: 12,
-          width: 330,
-        }}
-      >
-        {tags.map((tag, index) => {
-          const startFrame = enterFrames * 0.32 + index * tagStartGap;
-          const endFrame = startFrame + enterFrames * 0.6;
-          return (
-            <Interactive.Div
-              name={`决策标签 ${index + 1}`}
-              data-decision-tag={index + 1}
-              key={`${index}-${tag.text}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 13,
-                width: 314,
-                height: 68,
-                padding: "0 18px",
-                boxSizing: "border-box",
-                overflow: "hidden",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: 15,
-                color: textColor,
-                backgroundColor: `color-mix(in srgb, ${panelColor} 86%, transparent)`,
-                boxShadow: "0 13px 25px rgba(0, 0, 0, 0.34)",
-                backdropFilter: "blur(14px)",
-                opacity: interpolate(frame, [startFrame, endFrame], [0, 1], {
-                  easing: Easing.bezier(0.16, 1, 0.3, 1),
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                }),
-                translate: interpolate(
-                  frame,
-                  [startFrame, endFrame],
-                  ["42px 0px", "0px 0px"],
-                  {
-                    easing: Easing.bezier(0.16, 1, 0.3, 1),
-                    extrapolateLeft: "clamp",
-                    extrapolateRight: "clamp",
-                  },
-                ),
-                scale: interpolate(
-                  frame,
-                  [startFrame, endFrame * 0.9, endFrame],
-                  [0.88, 1.02, 1],
-                  {
-                    easing: Easing.bezier(0.16, 1, 0.3, 1),
-                    extrapolateLeft: "clamp",
-                    extrapolateRight: "clamp",
-                  },
-                ),
-                transformOrigin: "100% 50%",
-              }}
-            >
-              <span
-                style={{
-                  display: "grid",
-                  flex: "0 0 auto",
-                  width: 32,
-                  height: 32,
-                  placeItems: "center",
-                  border: `2px solid ${accentColor}`,
-                  borderRadius: "50%",
-                  color: accentColor,
-                  backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
-                  fontFamily: '"SFMono-Regular", Consolas, monospace',
-                  fontSize: 18,
-                  fontWeight: 950,
-                  lineHeight: 1,
-                }}
-              >
-                {tag.symbol}
-              </span>
-              <span
-                style={{
-                  minWidth: 0,
-                  overflow: "hidden",
-                  fontSize: 25,
-                  fontWeight: 850,
-                  lineHeight: 1.1,
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {tag.text}
-              </span>
-            </Interactive.Div>
-          );
-        })}
-      </Interactive.Div>
     </Interactive.Div>
   );
 };
@@ -350,14 +232,14 @@ export const PortraitMetricDecision: React.FC<Props> = ({
 export const PortraitMetricDecisionEffectDef: EffectDef = {
   id: "PortraitMetricDecision",
   name: "竖屏口播·数据决策卡",
-  description: "参考竖屏口播视频的 1K / 2K 决策段：左侧突出核心数字与结论，右侧依次弹出优缺点标签。",
+  description: "参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
   glyph: "1K",
-  placement: "top",
+  placement: "left",
   component: PortraitMetricDecision as React.ComponentType<Record<string, unknown>>,
   durationInFrames: 150,
-  bounds: { x: 0, y: 0, width: 930, height: 390 },
+  bounds: { x: 0, y: 0, width: 410, height: 390 },
   defaultPosition: { x: 75, y: 245, scale: 1 },
   defaultProps: {
     enabled: true,
@@ -367,12 +249,6 @@ export const PortraitMetricDecisionEffectDef: EffectDef = {
     value: "1",
     unit: "K",
     verdict: "更推荐",
-    tag1: "速度更快",
-    tag2: "成本更低",
-    tag3: "剪辑流畅",
-    symbol1: "↗",
-    symbol2: "✓",
-    symbol3: "✂",
     accentColor: "#14E6A1",
     panelColor: "#111318",
     textColor: "#FFFFFF",
@@ -386,12 +262,6 @@ export const PortraitMetricDecisionEffectDef: EffectDef = {
     value: { type: "text", label: "核心数字" },
     unit: { type: "text", label: "数字单位" },
     verdict: { type: "text", label: "数字结论" },
-    tag1: { type: "text", label: "标签一" },
-    tag2: { type: "text", label: "标签二" },
-    tag3: { type: "text", label: "标签三" },
-    symbol1: { type: "text", label: "图标一" },
-    symbol2: { type: "text", label: "图标二" },
-    symbol3: { type: "text", label: "图标三" },
     accentColor: { type: "color", label: "强调色", default: "#14E6A1" },
     panelColor: { type: "color", label: "底板颜色", default: "#111318" },
     textColor: { type: "color", label: "文字颜色", default: "#FFFFFF" },
