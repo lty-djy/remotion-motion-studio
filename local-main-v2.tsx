@@ -5530,16 +5530,6 @@ const App = () => {
             </div>
           ) : (
             <>
-          <div className="reference-left-tabs">
-            <button className="active">卡片 <b>{definitions.length}</b></button>
-            <button>字幕稿 <b>109</b></button>
-            <button className="clear-button"><Trash />清空</button>
-          </div>
-
-          <div className="reference-progress" aria-label="卡片进度">
-            <span />
-          </div>
-
           <div className="reference-kicker">全局 <i>·</i> 影响所有卡片</div>
 
           <section className="reference-control-group">
