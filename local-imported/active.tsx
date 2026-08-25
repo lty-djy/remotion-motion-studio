@@ -1,992 +1,465 @@
+// =============================================================================
+// 数据可视化可复用组件包 (DataViz Components)
+// 来源: C:\Users\10659\WorkBuddy\2026-08-25-00-02-29\dataviz-video\src
+// 5 场景 + 4 可复用基元；纯编排，仅 react/remotion 导入。
+// =============================================================================
+
 import React from "react";
 import {
-  Easing,
+  AbsoluteFill,
   interpolate,
   spring,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
 
-// =====================================================
-// 《未来3年卫浴行业》口播视频 · 定制动效组件包
-// 依据 SRT 逐句时间戳编排：7 个语义段落 → 7 个组件
-// 竖屏 9:16 画布（1080×1920），FPS 30，总长 582 帧（19.41s）
-// =====================================================
+// =============================================================================
+// Theme tokens (inlined — no external imports)
+// =============================================================================
 
-export const FPS = 30;
-export const DURATION_IN_FRAMES = 582;
+const COLORS = {
+  bgDeep: "#0B1220",
+  bgSurface: "#131E36",
+  bgCard: "#1A2540",
+  bgCardHover: "#1E2B4D",
+  blue: "#3B82F6",
+  teal: "#22D3A8",
+  amber: "#FBBF24",
+  rose: "#F43F5E",
+  purple: "#A855F7",
+  cyan: "#06B6D4",
+  textPrimary: "#F8FAFC",
+  textSecondary: "#94A3B8",
+  textMuted: "#64748B",
+  border: "#2A3A5C",
+  gridLine: "#1E2B4D",
+} as const;
 
-const FONT_STACK = "Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif";
-const INK = "#f5f9ff";
-const INK_SOFT = "rgba(214, 228, 240, 0.72)";
-const INK_FAINT = "rgba(199, 214, 228, 0.5)";
+const CHART_COLORS = [
+  COLORS.blue,
+  COLORS.teal,
+  COLORS.amber,
+  COLORS.rose,
+  COLORS.purple,
+  COLORS.cyan,
+] as const;
 
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+const FONT = {
+  primary:
+    'Helvetica Neue, Arial, "PingFang SC", "Microsoft YaHei", sans-serif',
+  mono: '"SF Mono", "Cascadia Code", "Fira Code", monospace',
+} as const;
 
-type CommonProps = {
-  backgroundOpacity?: number;
+// =============================================================================
+// Helpers
+// =============================================================================
+
+const formatValue = (
+  value: number,
+  format: "number" | "percent" | "currency",
+): string => {
+  if (value <= 0) {
+    if (format === "currency") return "¥0";
+    if (format === "percent") return "0.0%";
+    return "0";
+  }
+  switch (format) {
+    case "currency":
+      if (value >= 100000000) return `¥${(value / 100000000).toFixed(2)}亿`;
+      if (value >= 10000) return `¥${(value / 10000).toFixed(1)}万`;
+      return `¥${Math.round(value).toLocaleString()}`;
+    case "percent":
+      return `${value.toFixed(1)}%`;
+    case "number":
+    default:
+      if (value >= 100000000) return `${(value / 100000000).toFixed(2)}亿`;
+      if (value >= 10000) return `${(value / 10000).toFixed(1)}万`;
+      return Math.round(value).toLocaleString();
+  }
 };
 
-const cardSurface = (alpha: number): React.CSSProperties => ({
-  borderRadius: 24,
-  background: `linear-gradient(158deg, rgba(9, 13, 19, ${0.9 * alpha}), rgba(13, 18, 27, ${0.62 * alpha}))`,
-  border: `1px solid rgba(255, 255, 255, ${0.16 * alpha})`,
-  boxShadow: `0 26px 72px rgba(0, 0, 0, ${0.46 * alpha})`,
-  backdropFilter: alpha > 0.02 ? `blur(${Math.round(5 * alpha)}px)` : undefined,
-});
+const parseCsv = (raw: string): string[] => {
+  if (!raw) return [];
+  return raw
+    .split(/[,|]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+};
 
-// 进出场：进场弹簧 + 出场在实例结束前 8 帧淡出
-const useScene = (exitSeconds: number) => {
+const parseNumberCsv = (raw: string): number[] => {
+  return parseCsv(raw)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n));
+};
+
+// =============================================================================
+// Shared types
+// =============================================================================
+
+type KpiFormat = "number" | "percent" | "currency";
+
+interface SceneBaseProps {
+  backgroundOpacity?: number;
+}
+
+// =============================================================================
+// Reusable primitive — Background (full 1920×1080 frame)
+// =============================================================================
+
+interface BackgroundDot {
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  opacity: number;
+  color: string;
+}
+
+const BG_DOTS: BackgroundDot[] = Array.from({ length: 36 }, (_, i) => ({
+  x: (i * 173 + 47) % 1920,
+  y: (i * 271 + 91) % 1080,
+  size: 2 + ((i * 7) % 4),
+  speed: 0.15 + ((i * 3) % 5) * 0.12,
+  opacity: 0.06 + ((i * 11) % 10) * 0.012,
+  color: [COLORS.blue, COLORS.teal, COLORS.purple, COLORS.cyan][i % 4],
+}));
+
+const DatavizBackground: React.FC<SceneBaseProps> = () => {
+  const frame = useCurrentFrame();
+
+  const glowA = {
+    x: interpolate(frame, [0, 750], [-350, 2270]),
+    y: interpolate(frame, [0, 750], [820, 260]),
+  };
+  const glowB = {
+    x: interpolate(frame, [0, 750], [2270, -350]),
+    y: interpolate(frame, [0, 750], [180, 620]),
+  };
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgDeep, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "absolute",
+          left: glowA.x - 300,
+          top: glowA.y - 300,
+          width: 600,
+          height: 600,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${COLORS.blue}26 0%, transparent 70%)`,
+          filter: "blur(30px)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: glowB.x - 250,
+          top: glowB.y - 250,
+          width: 500,
+          height: 500,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${COLORS.purple}1F 0%, transparent 70%)`,
+          filter: "blur(30px)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `linear-gradient(${COLORS.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${COLORS.gridLine} 1px, transparent 1px)`,
+          backgroundSize: "80px 80px",
+          opacity: 0.35,
+        }}
+      />
+      {BG_DOTS.map((dot, i) => {
+        const y = ((dot.y + frame * dot.speed * 6) % 1200) - 60;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: dot.x,
+              top: y,
+              width: dot.size,
+              height: dot.size,
+              background: dot.color,
+              borderRadius: "50%",
+              opacity: dot.opacity,
+            }}
+          />
+        );
+      })}
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 55%, rgba(5,10,20,0.55) 100%)",
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+// =============================================================================
+// Scene container (fade in/out)
+// =============================================================================
+
+const SceneContainer: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+
+  const opacity = interpolate(
+    frame,
+    [0, 15, durationInFrames - 15, durationInFrames],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+
+  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
+};
+
+// =============================================================================
+// Scene 1 — DatavizIntro (title card scene, full 1920×1080)
+// =============================================================================
+
+interface DatavizIntroProps extends SceneBaseProps {
+  badgeText?: string;
+  title?: string;
+  subtitle?: string;
+  period?: string;
+  cornerAccentColor?: string;
+}
+
+const DatavizIntro: React.FC<DatavizIntroProps> = ({
+  backgroundOpacity = 0,
+  badgeText = "数据可视化报告",
+  title = "2026 年度业务报告",
+  subtitle = "Annual Business Intelligence Dashboard",
+  period = "Q1 – Q4 2026",
+  cornerAccentColor = COLORS.blue,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({
+
+  const titleSpring = spring({
     frame,
     fps,
-    config: { damping: 200, stiffness: 130, mass: 0.85 },
+    config: { damping: 200, stiffness: 80, mass: 1 },
+    durationInFrames: 60,
   });
-  const exitAt = Math.max(0.5, exitSeconds) * fps - 8;
-  const exit = interpolate(frame, [exitAt, exitAt + 8], [1, 0], {
+  const subSpring = spring({
+    frame: frame - 12,
+    fps,
+    config: { damping: 200, stiffness: 80, mass: 1 },
+    durationInFrames: 60,
+  });
+  const badgeSpring = spring({
+    frame: frame - 24,
+    fps,
+    config: { damping: 200, stiffness: 90, mass: 0.8 },
+    durationInFrames: 50,
+  });
+
+  const lineScale = interpolate(frame, [20, 55], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-  });
-  return {
-    frame,
-    fps,
-    enter,
-    exit,
-    sceneOpacity: (0.12 + 0.88 * enter) * exit,
-    sceneRise: (1 - enter) * 26,
-  };
-};
-
-const itemSpring = (
-  frame: number,
-  fps: number,
-  startSeconds: number,
-  lead = 0,
-) =>
-  spring({
-    frame: frame - Math.max(0, startSeconds * fps - lead),
-    fps,
-    config: { damping: 200, stiffness: 150, mass: 0.7 },
+    easing: (t) => 1 - Math.pow(1 - t, 3),
   });
 
-const parseItemStarts = (raw: string | undefined, count: number) => {
-  const parts = String(raw ?? "")
-    .split("|")
-    .map((piece) => Number(piece.trim()))
-    .filter((n) => Number.isFinite(n) && n >= 0);
-  return Array.from({ length: count }, (_, i) =>
-    i < parts.length ? parts[i] : i * 1.1,
+  const titleY = (1 - titleSpring) * 50;
+  const alpha = backgroundOpacity;
+
+  return (
+    <SceneContainer>
+      <AbsoluteFill
+        style={{
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "column",
+          gap: 28,
+        }}
+      >
+        <div
+          style={{
+            opacity: badgeSpring,
+            transform: `scale(${0.8 + badgeSpring * 0.2})`,
+            fontFamily: FONT.primary,
+            fontSize: 24,
+            fontWeight: 600,
+            color: COLORS.teal,
+            letterSpacing: 6,
+            padding: "10px 32px",
+            border: `1px solid ${COLORS.teal}55`,
+            borderRadius: 999,
+            background: `${COLORS.teal}14`,
+            textTransform: "uppercase",
+          }}
+        >
+          {badgeText}
+        </div>
+        <div
+          style={{
+            fontFamily: FONT.primary,
+            fontSize: 110,
+            fontWeight: 800,
+            color: COLORS.textPrimary,
+            letterSpacing: 4,
+            opacity: titleSpring,
+            transform: `translateY(${titleY}px)`,
+            textShadow: "0 4px 40px rgba(59,130,246,0.25)",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            width: 240 * lineScale,
+            height: 5,
+            borderRadius: 3,
+            background: `linear-gradient(90deg, ${CHART_COLORS[0]}, ${CHART_COLORS[1]}, ${CHART_COLORS[2]})`,
+            boxShadow: "0 0 20px rgba(59,130,246,0.5)",
+          }}
+        />
+        <div
+          style={{
+            fontFamily: FONT.primary,
+            fontSize: 34,
+            color: COLORS.textSecondary,
+            letterSpacing: 2,
+            opacity: subSpring,
+            transform: `translateY(${(1 - subSpring) * 30}px)`,
+          }}
+        >
+          {subtitle}
+        </div>
+        <div
+          style={{
+            marginTop: 18,
+            fontFamily: FONT.mono,
+            fontSize: 26,
+            color: COLORS.textMuted,
+            letterSpacing: 3,
+            opacity: subSpring,
+          }}
+        >
+          {period}
+        </div>
+      </AbsoluteFill>
+      <CornerAccent
+        position={{ top: 60, left: 60 }}
+        frame={frame}
+        fps={fps}
+        color={cornerAccentColor}
+      />
+      <CornerAccent
+        position={{ top: 60, right: 60 }}
+        frame={frame}
+        fps={fps}
+        color={cornerAccentColor}
+      />
+      <CornerAccent
+        position={{ bottom: 60, left: 60 }}
+        frame={frame}
+        fps={fps}
+        color={cornerAccentColor}
+      />
+      <CornerAccent
+        position={{ bottom: 60, right: 60 }}
+        frame={frame}
+        fps={fps}
+        color={cornerAccentColor}
+      />
+      {/* alpha kept as escape hatch — not directly used to avoid unintended dim */}
+      {alpha > 0 && <div style={{ display: "none" }} />}
+    </SceneContainer>
   );
 };
 
-const KickerChip: React.FC<{
-  text: string;
+const CornerAccent: React.FC<{
+  position: React.CSSProperties;
+  frame: number;
+  fps: number;
   color: string;
-  opacity: number;
-  x?: number;
-  y?: number;
-}> = ({ text, color, opacity, x = 0, y = 0 }) => (
-  <div
-    style={{
-      position: "absolute",
-      left: x,
-      top: y,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      opacity,
-    }}
-  >
-    <span
+}> = ({ position, frame, fps, color }) => {
+  const grow = spring({
+    frame: frame - 10,
+    fps,
+    config: { damping: 200, stiffness: 120, mass: 0.6 },
+    durationInFrames: 40,
+  });
+  const size = 44 * grow;
+  return (
+    <div
       style={{
-        width: 9,
-        height: 9,
-        borderRadius: 3,
-        background: color,
-        boxShadow: `0 0 14px ${color}`,
+        position: "absolute",
+        ...position,
+        width: size,
+        height: size,
+        borderTop:
+          position.top !== undefined ? `2px solid ${color}80` : undefined,
+        borderBottom:
+          position.bottom !== undefined ? `2px solid ${color}80` : undefined,
+        borderLeft:
+          position.left !== undefined ? `2px solid ${color}80` : undefined,
+        borderRight:
+          position.right !== undefined ? `2px solid ${color}80` : undefined,
       }}
     />
-    <span
-      style={{
-        fontSize: 19,
-        fontWeight: 700,
-        letterSpacing: "0.34em",
-        color: INK_SOFT,
-        fontFamily: FONT_STACK,
-      }}
-    >
-      {text}
-    </span>
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// 1. TitleReveal · 章节标题揭示（开场钩子 0.13s–3.2s）
-//    台词：未来3年 / 卫浴店只有这种 / 门店能够赚钱
-// ---------------------------------------------------------------------------
-type TitleRevealProps = CommonProps & {
-  kicker?: string;
-  titleLead?: string;
-  titleNumber?: string;
-  titleTail?: string;
-  subtitle?: string;
-  footerTag?: string;
-  accentColor?: string;
-  subtitleStart?: number;
-  exitSeconds?: number;
-};
-
-export const TitleReveal: React.FC<TitleRevealProps> = ({
-  backgroundOpacity = 0,
-  kicker = "卫浴行业 · 趋势判断",
-  titleLead = "未来",
-  titleNumber = "3",
-  titleTail = "年",
-  subtitle = "只有这种门店能够赚钱",
-  footerTag = "WINNING STORE MODEL",
-  accentColor = "#6ee7ff",
-  subtitleStart = 0.75,
-  exitSeconds = 3.07,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
-
-  const leadIn = itemSpring(frame, fps, 0.18, 6);
-  const numberIn = itemSpring(frame, fps, 0.4, 0);
-  const lineIn = itemSpring(frame, fps, 0.62, 0);
-  const subIn = itemSpring(frame, fps, subtitleStart, 0);
-  const tagIn = itemSpring(frame, fps, subtitleStart + 0.28, 0);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 640,
-        height: 330,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <KickerChip
-        text={kicker}
-        color={accentColor}
-        opacity={leadIn}
-        x={44}
-        y={34}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 86,
-          display: "flex",
-          alignItems: "baseline",
-          gap: 10,
-          opacity: 0.1 + 0.9 * leadIn,
-          transform: `translateY(${(1 - leadIn) * 18}px)`,
-        }}
-      >
-        <span style={{ fontSize: 88, fontWeight: 800, letterSpacing: "0.02em" }}>
-          {titleLead}
-        </span>
-        <span
-          style={{
-            fontSize: 132,
-            fontWeight: 900,
-            lineHeight: 1,
-            color: accentColor,
-            textShadow: `0 0 34px ${accentColor}66, 0 4px 22px rgba(0,0,0,0.55)`,
-            transform: `scale(${0.55 + 0.45 * numberIn})`,
-          }}
-        >
-          {titleNumber}
-        </span>
-        <span style={{ fontSize: 88, fontWeight: 800, letterSpacing: "0.02em" }}>
-          {titleTail}
-        </span>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 236,
-          width: 300,
-          height: 7,
-          borderRadius: 4,
-          background: `linear-gradient(90deg, ${accentColor}, ${accentColor}00)`,
-          transformOrigin: "0 50%",
-          transform: `scaleX(${lineIn})`,
-          boxShadow: `0 0 18px ${accentColor}55`,
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 258,
-          fontSize: 30,
-          fontWeight: 650,
-          color: INK,
-          textShadow: "0 3px 16px rgba(0,0,0,0.6)",
-          opacity: 0.12 + 0.88 * subIn,
-          transform: `translateY(${(1 - subIn) * 16}px)`,
-        }}
-      >
-        {subtitle}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          bottom: 26,
-          fontSize: 18,
-          fontWeight: 700,
-          letterSpacing: "0.28em",
-          color: INK_FAINT,
-          opacity: tagIn * 0.9,
-        }}
-      >
-        {footerTag}
-      </div>
-    </div>
   );
 };
 
-// ---------------------------------------------------------------------------
-// 2. LineTrend · 下滑趋势（风险预警 3.2s–6.4s）
-//    台词：单纯卖货的门店只会 / 慢慢的被市场淘汰
-// ---------------------------------------------------------------------------
-type LineTrendProps = CommonProps & {
-  title?: string;
-  subtitle?: string;
-  points?: string;
-  xLabels?: string;
-  deltaLabel?: string;
-  note?: string;
-  noteStart?: number;
+// =============================================================================
+// Reusable primitive — DatavizKpiCard (single card, 520×420)
+// =============================================================================
+
+interface DatavizKpiCardProps {
+  label?: string;
+  value?: number;
+  format?: KpiFormat;
+  delta?: number;
   accentColor?: string;
-  exitSeconds?: number;
-};
+  delaySeconds?: number;
+}
 
-export const LineTrend: React.FC<LineTrendProps> = ({
-  backgroundOpacity = 0,
-  title = "传统卖货门店",
-  subtitle = "TRAFFIC DECLINE",
-  points = "98|84|70|55|42|30",
-  xLabels = "Y1|Y2|Y3|Y4|Y5|Y6",
-  deltaLabel = "-69%",
-  note = "客流持续下滑 · 慢慢被淘汰",
-  noteStart = 1.55,
-  accentColor = "#ffc247",
-  exitSeconds = 3.07,
+const DatavizKpiCard: React.FC<DatavizKpiCardProps> = ({
+  label = "总营收",
+  value = 48200000,
+  format = "currency",
+  delta = 23.5,
+  accentColor = COLORS.blue,
+  delaySeconds = 0,
 }) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  const values = points
-    .split("|")
-    .map((p) => Number(p.trim()))
-    .filter((n) => Number.isFinite(n));
-  const labels = xLabels.split("|");
-  const chartW = 470;
-  const chartH = 172;
-  const baseY = 168;
-  const stepX = values.length > 1 ? chartW / (values.length - 1) : chartW;
-  const toY = (v: number) => baseY - (v / 100) * (chartH - 22);
-  const coords = values.map((v, i) => [24 + i * stepX, toY(v)] as const);
-  const pathD = coords
-    .map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`)
-    .join(" ");
-  const areaD = `${pathD} L ${coords[coords.length - 1][0].toFixed(1)} ${baseY} L ${coords[0][0].toFixed(1)} ${baseY} Z`;
+  const delayFrames = Math.round(delaySeconds * fps);
+  const local = frame - delayFrames;
 
-  const draw = interpolate(frame, [6, 52], [0, 1], {
+  const enter = spring({
+    frame: local,
+    fps,
+    config: { damping: 200, stiffness: 90, mass: 0.9 },
+    durationInFrames: 50,
+  });
+  const count = spring({
+    frame: local - 10,
+    fps,
+    config: { damping: 200, stiffness: 60, mass: 1.2 },
+    durationInFrames: 80,
+  });
+
+  const labelOpacity = interpolate(local, [0, 18], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: Easing.inOut(Easing.cubic),
   });
-  const headerIn = itemSpring(frame, fps, 0.05, 0);
-  const noteIn = itemSpring(frame, fps, noteStart, 0);
-  const lastPoint = coords[coords.length - 1];
-  const pulse = 8 + 3 * Math.sin(frame / 2.6);
-
-  const deltaValue = Number(deltaLabel.replace(/[^0-9.-]/g, ""));
-  const shownDelta = Number.isFinite(deltaValue)
-    ? Math.round(deltaValue * draw)
-    : 0;
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 560,
-        height: 360,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          top: 30,
-          right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          opacity: 0.12 + 0.88 * headerIn,
-          transform: `translateY(${(1 - headerIn) * 12}px)`,
-        }}
-      >
-        <span style={{ fontSize: 30, fontWeight: 750 }}>{title}</span>
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.22em",
-            color: accentColor,
-          }}
-        >
-          {subtitle}
-        </span>
-      </div>
-
-      <svg
-        viewBox="0 0 518 190"
-        style={{
-          position: "absolute",
-          left: 24,
-          top: 74,
-          width: 518,
-          height: 190,
-        }}
-      >
-        <defs>
-          <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={accentColor} stopOpacity={0.3} />
-            <stop offset="100%" stopColor={accentColor} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3].map((g) => (
-          <line
-            key={g}
-            x1="24"
-            x2="494"
-            y1={28 + g * 46}
-            y2={28 + g * 46}
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth="1"
-          />
-        ))}
-        <path d={areaD} fill="url(#trendFill)" opacity={draw * 0.9} />
-        <path
-          d={pathD}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - draw}
-          style={{ filter: `drop-shadow(0 0 8px ${accentColor}88)` }}
-        />
-        {coords.map(([x, y], i) => (
-          <circle
-            key={i}
-            cx={x}
-            cy={y}
-            r={i === coords.length - 1 ? 6 : 4}
-            fill={i === coords.length - 1 ? accentColor : "rgba(255,255,255,0.55)"}
-            opacity={draw > i / (coords.length - 1) - 0.03 ? 1 : 0}
-          />
-        ))}
-        <circle
-          cx={lastPoint[0]}
-          cy={lastPoint[1]}
-          r={pulse}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="2"
-          opacity={draw > 0.97 ? 0.6 : 0}
-        />
-        {labels.slice(0, values.length).map((label, i) => (
-          <text
-            key={label + i}
-            x={coords[i][0]}
-            y={188}
-            textAnchor="middle"
-            fill="rgba(199,214,228,0.5)"
-            fontSize="18"
-            fontFamily={FONT_STACK}
-            fontWeight={600}
-          >
-            {label}
-          </text>
-        ))}
-      </svg>
-
-      <div
-        style={{
-          position: "absolute",
-          right: 36,
-          top: 96,
-          display: "flex",
-          alignItems: "baseline",
-          gap: 8,
-          padding: "8px 16px",
-          borderRadius: 12,
-          background: `rgba(255, 194, 71, ${0.14 * Math.max(alpha, 0.35)})`,
-          border: `1px solid ${accentColor}55`,
-          opacity: draw > 0.55 ? 1 : 0,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 40,
-            fontWeight: 850,
-            color: accentColor,
-            textShadow: "0 2px 12px rgba(0,0,0,0.5)",
-          }}
-        >
-          {shownDelta}%
-        </span>
-        <span style={{ fontSize: 18, color: INK_SOFT, fontWeight: 650 }}>
-          客流
-        </span>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          bottom: 24,
-          fontSize: 24,
-          fontWeight: 650,
-          color: INK,
-          textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          opacity: 0.12 + 0.88 * noteIn,
-          transform: `translateY(${(1 - noteIn) * 14}px)`,
-        }}
-      >
-        {note}
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// 3. StepFlow · 双节点步骤流（OMO 出路 6.4s–9.97s）
-//    台词：线上引流线下成交 / 才是实体店最终的出路
-// ---------------------------------------------------------------------------
-type StepFlowProps = CommonProps & {
-  title?: string;
-  subtitle?: string;
-  item1?: string;
-  item1Note?: string;
-  item2?: string;
-  item2Note?: string;
-  footer?: string;
-  itemStarts?: string;
-  accentColor?: string;
-  exitSeconds?: number;
-};
-
-export const StepFlow: React.FC<StepFlowProps> = ({
-  backgroundOpacity = 0,
-  title = "实体店的最终出路",
-  subtitle = "OMO PATH",
-  item1 = "线上引流",
-  item1Note = "短视频 · 种草获客",
-  item2 = "线下成交",
-  item2Note = "到店体验 · 服务转化",
-  footer = "线上引流 × 线下成交 = 破局",
-  itemStarts = "0.05|1.48",
-  accentColor = "#b79cff",
-  exitSeconds = 3.57,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
-  const starts = parseItemStarts(itemStarts, 2);
-
-  const headerIn = itemSpring(frame, fps, 0.02, 0);
-  const node1 = itemSpring(frame, fps, starts[0], 0);
-  const node2 = itemSpring(frame, fps, starts[1], 0);
-  const footerIn = itemSpring(frame, fps, starts[1] + 0.15, 0);
-  const arrowFlow = (frame * 1.6) % 16;
-
-  const nodeStyle = (p: number, fromX: number): React.CSSProperties => ({
-    position: "absolute",
-    top: 96,
-    width: 286,
-    height: 152,
-    boxSizing: "border-box",
-    padding: "22px 24px",
-    borderRadius: 20,
-    background: `linear-gradient(160deg, ${accentColor}22, rgba(255,255,255,${0.05 * Math.max(alpha, 0.4)}))`,
-    border: `1px solid ${accentColor}${p > 0.5 ? "66" : "22"}`,
-    opacity: p,
-    transform: `translateX(${(1 - p) * fromX}px)`,
+  const deltaOpacity = interpolate(local, [55, 70], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
   });
 
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 720,
-        height: 320,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          top: 30,
-          right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          opacity: 0.12 + 0.88 * headerIn,
-          transform: `translateY(${(1 - headerIn) * 12}px)`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: 750 }}>{title}</span>
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.22em",
-            color: accentColor,
-          }}
-        >
-          {subtitle}
-        </span>
-      </div>
-
-      <div style={nodeStyle(node1, -46)}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40">
-            <rect
-              x="2"
-              y="7"
-              width="36"
-              height="26"
-              rx="7"
-              fill="none"
-              stroke={accentColor}
-              strokeWidth="2.5"
-            />
-            <path d="M17 15 L26 20 L17 25 Z" fill={accentColor} />
-          </svg>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              letterSpacing: "0.2em",
-              color: accentColor,
-            }}
-          >
-            01
-          </span>
-        </div>
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 38,
-            fontWeight: 800,
-            textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          }}
-        >
-          {item1}
-        </div>
-        <div style={{ marginTop: 4, fontSize: 20, color: INK_SOFT }}>
-          {item1Note}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 322,
-          top: 148,
-          width: 76,
-          height: 48,
-          opacity: Math.min(node1, node2) > 0.55 ? 1 : 0,
-        }}
-      >
-        <svg width="76" height="48" viewBox="0 0 76 48">
-          <line
-            x1="2"
-            y1="24"
-            x2="58"
-            y2="24"
-            stroke={accentColor}
-            strokeWidth="3"
-            strokeDasharray="9 7"
-            strokeDashoffset={-arrowFlow}
-            strokeLinecap="round"
-          />
-          <path
-            d="M56 12 L74 24 L56 36 Z"
-            fill={accentColor}
-            opacity={node2 > 0.4 ? 1 : 0.25}
-          />
-        </svg>
-      </div>
-
-      <div style={{ ...nodeStyle(node2, 46), left: 410 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40">
-            <path
-              d="M5 14 L5 9 Q5 5 9 5 L31 5 Q35 5 35 9 L35 14 Z"
-              fill="none"
-              stroke={accentColor}
-              strokeWidth="2.5"
-            />
-            <rect
-              x="7"
-              y="14"
-              width="26"
-              height="21"
-              rx="3"
-              fill="none"
-              stroke={accentColor}
-              strokeWidth="2.5"
-            />
-            <rect x="16" y="21" width="8" height="14" fill={accentColor} />
-          </svg>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              letterSpacing: "0.2em",
-              color: accentColor,
-            }}
-          >
-            02
-          </span>
-        </div>
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 38,
-            fontWeight: 800,
-            textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          }}
-        >
-          {item2}
-        </div>
-        <div style={{ marginTop: 4, fontSize: 20, color: INK_SOFT }}>
-          {item2Note}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          bottom: 22,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          opacity: 0.12 + 0.88 * footerIn,
-          transform: `translateY(${(1 - footerIn) * 14}px)`,
-        }}
-      >
-        <span
-          style={{
-            width: 26,
-            height: 4,
-            borderRadius: 2,
-            background: accentColor,
-            boxShadow: `0 0 12px ${accentColor}`,
-          }}
-        />
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 700,
-            textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          }}
-        >
-          {footer}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// 4. CompareSplit · 左右对比（双引擎 9.97s–13.0s）
-//    台词：短视频做品牌种草 / 直播做精准转化
-// ---------------------------------------------------------------------------
-type CompareSplitProps = CommonProps & {
-  title?: string;
-  subtitle?: string;
-  leftTitle?: string;
-  leftNote?: string;
-  leftTag?: string;
-  rightTitle?: string;
-  rightNote?: string;
-  rightTag?: string;
-  leftColor?: string;
-  rightColor?: string;
-  itemStarts?: string;
-  exitSeconds?: number;
-};
-
-export const CompareSplit: React.FC<CompareSplitProps> = ({
-  backgroundOpacity = 0,
-  title = "获客双引擎",
-  subtitle = "TWIN ENGINE",
-  leftTitle = "短视频",
-  leftNote = "品牌种草",
-  leftTag = "内容获客",
-  rightTitle = "直播",
-  rightNote = "精准转化",
-  rightTag = "即时成交",
-  leftColor = "#6ee7ff",
-  rightColor = "#b7f36b",
-  itemStarts = "0.05|1.51",
-  exitSeconds = 3.03,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
-  const starts = parseItemStarts(itemStarts, 2);
-
-  const headerIn = itemSpring(frame, fps, 0.02, 0);
-  const leftIn = itemSpring(frame, fps, starts[0], 0);
-  const rightIn = itemSpring(frame, fps, starts[1], 0);
-
-  const panel = (
-    p: number,
-    fromX: number,
-    color: string,
-  ): React.CSSProperties => ({
-    position: "absolute",
-    top: 92,
-    width: 288,
-    height: 234,
-    boxSizing: "border-box",
-    padding: "26px 26px 22px",
-    borderRadius: 20,
-    background: `linear-gradient(165deg, ${color}1f, rgba(255,255,255,${0.04 * Math.max(alpha, 0.4)}))`,
-    border: `1px solid ${color}${p > 0.5 ? "5c" : "20"}`,
-    opacity: p,
-    transform: `translateX(${(1 - p) * fromX}px)`,
-  });
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 660,
-        height: 380,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          top: 30,
-          right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          opacity: 0.12 + 0.88 * headerIn,
-          transform: `translateY(${(1 - headerIn) * 12}px)`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: 750 }}>{title}</span>
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.22em",
-            color: INK_SOFT,
-          }}
-        >
-          {subtitle}
-        </span>
-      </div>
-
-      <div style={panel(leftIn, -40, leftColor)}>
-        <svg width="46" height="46" viewBox="0 0 46 46">
-          <circle cx="23" cy="23" r="20" fill="none" stroke={leftColor} strokeWidth="2.5" />
-          <path d="M19 15 L31 23 L19 31 Z" fill={leftColor} />
-        </svg>
-        <div
-          style={{
-            marginTop: 14,
-            fontSize: 44,
-            fontWeight: 820,
-            textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          }}
-        >
-          {leftTitle}
-        </div>
-        <div style={{ marginTop: 2, fontSize: 26, color: INK_SOFT, fontWeight: 650 }}>
-          {leftNote}
-        </div>
-        <div
-          style={{
-            marginTop: 14,
-            display: "inline-block",
-            padding: "6px 14px",
-            borderRadius: 10,
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            color: leftColor,
-            border: `1px solid ${leftColor}55`,
-            background: `${leftColor}14`,
-          }}
-        >
-          {leftTag}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 312,
-          top: 186,
-          fontSize: 36,
-          fontWeight: 850,
-          color: INK_SOFT,
-          opacity: Math.min(leftIn, rightIn) > 0.6 ? 0.95 : 0,
-        }}
-      >
-        ×
-      </div>
-
-      <div style={{ ...panel(rightIn, 40, rightColor), left: 348 }}>
-        <svg width="46" height="46" viewBox="0 0 46 46">
-          <circle cx="23" cy="23" r="20" fill="none" stroke={rightColor} strokeWidth="2.5" />
-          <circle cx="23" cy="23" r="7" fill={rightColor} />
-          <path
-            d="M23 1 A22 22 0 0 1 45 23"
-            fill="none"
-            stroke={rightColor}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
-        <div
-          style={{
-            marginTop: 14,
-            fontSize: 44,
-            fontWeight: 820,
-            textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          }}
-        >
-          {rightTitle}
-        </div>
-        <div style={{ marginTop: 2, fontSize: 26, color: INK_SOFT, fontWeight: 650 }}>
-          {rightNote}
-        </div>
-        <div
-          style={{
-            marginTop: 14,
-            display: "inline-block",
-            padding: "6px 14px",
-            borderRadius: 10,
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            color: rightColor,
-            border: `1px solid ${rightColor}55`,
-            background: `${rightColor}14`,
-          }}
-        >
-          {rightTag}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// 5. BulletStack · 逐条要点（转型红利 13.0s–15.08s）
-//    台词：客流稳定 / 客单更高
-// ---------------------------------------------------------------------------
-type BulletStackProps = CommonProps & {
-  title?: string;
-  subtitle?: string;
-  item1?: string;
-  item1Note?: string;
-  item2?: string;
-  item2Note?: string;
-  itemStarts?: string;
-  accentColor?: string;
-  exitSeconds?: number;
-};
-
-export const BulletStack: React.FC<BulletStackProps> = ({
-  backgroundOpacity = 0,
-  title = "转型双重红利",
-  subtitle = "DIVIDENDS",
-  item1 = "客流稳定",
-  item1Note = "线上蓄水 · 持续到店",
-  item2 = "客单更高",
-  item2Note = "体验升级 · 连带成交",
-  itemStarts = "0.05|0.88",
-  accentColor = "#b7f36b",
-  exitSeconds = 2.07,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
-  const starts = parseItemStarts(itemStarts, 2);
-
-  const headerIn = itemSpring(frame, fps, 0.02, 0);
-  const rows = [
-    { label: item1, note: item1Note, start: starts[0], top: 100 },
-    { label: item2, note: item2Note, start: starts[1], top: 198 },
-  ].map((row) => ({
-    ...row,
-    pop: itemSpring(frame, fps, row.start, 0),
-    check: interpolate(frame, [row.start * fps + 6, row.start * fps + 22], [0, 1], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    }),
-  }));
+  const displayValue = count * value;
+  const translateY = (1 - enter) * 60;
 
   return (
     <div
@@ -995,961 +468,1342 @@ export const BulletStack: React.FC<BulletStackProps> = ({
         left: 0,
         top: 0,
         width: 520,
-        height: 300,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
+        height: 420,
+        padding: "48px 40px",
+        borderRadius: 24,
+        background: `linear-gradient(160deg, ${COLORS.bgCard} 0%, ${COLORS.bgSurface} 100%)`,
+        border: `1px solid ${COLORS.border}`,
+        opacity: enter,
+        transform: `translateY(${translateY}px)`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+        boxShadow: `0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)`,
       }}
     >
       <div
         style={{
-          position: "absolute",
-          left: 36,
-          top: 30,
-          right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          opacity: 0.12 + 0.88 * headerIn,
-          transform: `translateY(${(1 - headerIn) * 12}px)`,
+          width: 56,
+          height: 5,
+          borderRadius: 3,
+          background: accentColor,
+          boxShadow: `0 0 12px ${accentColor}80`,
+        }}
+      />
+      <div
+        style={{
+          fontFamily: FONT.primary,
+          fontSize: 26,
+          color: COLORS.textSecondary,
+          opacity: labelOpacity,
+          letterSpacing: 1,
         }}
       >
-        <span style={{ fontSize: 32, fontWeight: 750 }}>{title}</span>
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 72,
+          fontWeight: 700,
+          color: accentColor,
+          lineHeight: 1,
+          textShadow: `0 0 30px ${accentColor}50`,
+        }}
+      >
+        {formatValue(displayValue, format)}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          opacity: deltaOpacity,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: FONT.primary,
+            fontSize: 24,
+            fontWeight: 600,
+            color: delta >= 0 ? COLORS.teal : COLORS.rose,
+            background:
+              delta >= 0 ? `${COLORS.teal}1E` : `${COLORS.rose}1E`,
+            padding: "6px 16px",
+            borderRadius: 999,
+            border: `1px solid ${delta >= 0 ? `${COLORS.teal}44` : `${COLORS.rose}44`}`,
+          }}
+        >
+          {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}%
+        </div>
         <span
           style={{
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.22em",
-            color: accentColor,
+            fontFamily: FONT.primary,
+            fontSize: 20,
+            color: COLORS.textMuted,
           }}
         >
-          {subtitle}
+          同比增长
         </span>
       </div>
-
-      {rows.map((row) => (
+      <div
+        style={{
+          marginTop: "auto",
+          height: 6,
+          borderRadius: 3,
+          background: COLORS.bgDeep,
+          overflow: "hidden",
+        }}
+      >
         <div
-          key={row.label}
           style={{
-            position: "absolute",
-            left: 36,
-            top: row.top,
+            width: `${count * 100}%`,
+            height: "100%",
+            borderRadius: 3,
+            background: `linear-gradient(90deg, ${accentColor}90, ${accentColor})`,
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// Scene 2 — DatavizKpiScene (4 KPI cards in a row, full 1920×1080)
+// =============================================================================
+
+interface DatavizKpiSceneProps extends SceneBaseProps {
+  headerTitle?: string;
+  period?: string;
+  kpi1Label?: string;
+  kpi1Value?: number;
+  kpi1Format?: KpiFormat;
+  kpi1Delta?: number;
+  kpi2Label?: string;
+  kpi2Value?: number;
+  kpi2Format?: KpiFormat;
+  kpi2Delta?: number;
+  kpi3Label?: string;
+  kpi3Value?: number;
+  kpi3Format?: KpiFormat;
+  kpi3Delta?: number;
+  kpi4Label?: string;
+  kpi4Value?: number;
+  kpi4Format?: KpiFormat;
+  kpi4Delta?: number;
+}
+
+const DatavizKpiScene: React.FC<DatavizKpiSceneProps> = (props) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const headerSpring = spring({
+    frame,
+    fps,
+    config: { damping: 200, stiffness: 90, mass: 0.9 },
+    durationInFrames: 45,
+  });
+
+  const kpis = [
+    {
+      label: props.kpi1Label ?? "总营收",
+      value: props.kpi1Value ?? 48200000,
+      format: (props.kpi1Format ?? "currency") as KpiFormat,
+      delta: props.kpi1Delta ?? 23.5,
+      color: CHART_COLORS[0],
+    },
+    {
+      label: props.kpi2Label ?? "活跃用户",
+      value: props.kpi2Value ?? 1280000,
+      format: (props.kpi2Format ?? "number") as KpiFormat,
+      delta: props.kpi2Delta ?? 41.2,
+      color: CHART_COLORS[1],
+    },
+    {
+      label: props.kpi3Label ?? "订单量",
+      value: props.kpi3Value ?? 356800,
+      format: (props.kpi3Format ?? "number") as KpiFormat,
+      delta: props.kpi3Delta ?? 18.7,
+      color: CHART_COLORS[2],
+    },
+    {
+      label: props.kpi4Label ?? "客户满意度",
+      value: props.kpi4Value ?? 96.8,
+      format: (props.kpi4Format ?? "percent") as KpiFormat,
+      delta: props.kpi4Delta ?? 4.3,
+      color: CHART_COLORS[3],
+    },
+  ];
+
+  return (
+    <SceneContainer>
+      <AbsoluteFill
+        style={{
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "0 140px",
+          gap: 64,
+        }}
+      >
+        <div
+          style={{
             display: "flex",
-            alignItems: "center",
-            gap: 18,
-            opacity: row.pop,
-            transform: `translateX(${(1 - row.pop) * -26}px)`,
+            alignItems: "baseline",
+            gap: 24,
+            opacity: headerSpring,
+            transform: `translateY(${(1 - headerSpring) * 30}px)`,
           }}
         >
-          <svg width="52" height="52" viewBox="0 0 52 52">
-            <circle
-              cx="26"
-              cy="26"
-              r="23"
-              fill="none"
-              stroke={accentColor}
-              strokeWidth="3"
-              pathLength={1}
-              strokeDasharray={1}
-              strokeDashoffset={1 - row.check}
-              transform="rotate(-90 26 26)"
+          <div
+            style={{
+              width: 10,
+              height: 52,
+              borderRadius: 5,
+              background: `linear-gradient(180deg, ${CHART_COLORS[0]}, ${CHART_COLORS[1]})`,
+              boxShadow: `0 0 16px ${CHART_COLORS[0]}80`,
+              alignSelf: "center",
+            }}
+          />
+          <div
+            style={{
+              fontFamily: FONT.primary,
+              fontSize: 56,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              letterSpacing: 2,
+            }}
+          >
+            {props.headerTitle ?? "核心指标总览"}
+          </div>
+          <div
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 24,
+              color: COLORS.textMuted,
+              letterSpacing: 1,
+            }}
+          >
+            {props.period ?? "Q1 – Q4 2026"}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 32, height: 420 }}>
+          {kpis.map((kpi, i) => (
+            <DatavizKpiCard
+              key={i}
+              label={kpi.label}
+              value={kpi.value}
+              format={kpi.format}
+              delta={kpi.delta}
+              accentColor={kpi.color}
+              delaySeconds={0.6 + i * 0.33}
+            />
+          ))}
+        </div>
+      </AbsoluteFill>
+    </SceneContainer>
+  );
+};
+
+// =============================================================================
+// Reusable primitive — DatavizBarChart (1500×560, labels/values as CSV)
+// =============================================================================
+
+interface DatavizBarChartProps {
+  labels?: string;
+  values?: string;
+  unit?: string;
+  accentColor?: string;
+  delaySeconds?: number;
+}
+
+const DatavizBarChart: React.FC<DatavizBarChartProps> = ({
+  labels = "Q1,Q2,Q3,Q4",
+  values = "920,1180,1050,1670",
+  unit = "万元",
+  accentColor = COLORS.blue,
+  delaySeconds = 0,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const dataLabels = parseCsv(labels);
+  const dataValues = parseNumberCsv(values);
+  const data = dataLabels.map((label, i) => ({
+    label,
+    value: dataValues[i] ?? 0,
+  }));
+  if (data.length === 0) {
+    data.push({ label: "Q1", value: 0 });
+  }
+
+  const width = 1500;
+  const height = 560;
+  const maxVal = Math.max(...data.map((d) => d.value), 1);
+  const labelArea = 56;
+  const chartHeight = height - labelArea;
+  const delayFrames = Math.round(delaySeconds * fps);
+
+  return (
+    <div style={{ width, height, display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", height: chartHeight }}>
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: p * chartHeight,
+              height: 1,
+              background: i === 0 ? COLORS.border : COLORS.gridLine,
+            }}
+          />
+        ))}
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "flex-end",
+          }}
+        >
+          {data.map((d, i) => {
+            const local = frame - delayFrames - 15 - i * 9;
+            const grow = spring({
+              frame: local,
+              fps,
+              config: { damping: 200, stiffness: 110, mass: 0.8 },
+              durationInFrames: 60,
+            });
+            const barH = grow * (d.value / maxVal) * (chartHeight - 60);
+            const valOpacity = interpolate(local, [28, 42], [0, 1], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+            const valY = interpolate(local, [28, 42], [24, 0], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+
+            return (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 34,
+                    fontWeight: 700,
+                    color: COLORS.textPrimary,
+                    marginBottom: 14,
+                    opacity: valOpacity,
+                    transform: `translateY(${valY}px)`,
+                  }}
+                >
+                  {d.value.toLocaleString()}
+                  <span
+                    style={{
+                      fontSize: 20,
+                      color: COLORS.textMuted,
+                      marginLeft: 4,
+                    }}
+                  >
+                    {unit}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    width: "42%",
+                    maxWidth: 170,
+                    height: barH,
+                    borderRadius: "10px 10px 4px 4px",
+                    background: `linear-gradient(180deg, ${accentColor} 0%, ${accentColor}66 100%)`,
+                    boxShadow: `0 0 24px ${accentColor}55, inset 0 1px 0 rgba(255,255,255,0.25)`,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ height: labelArea, display: "flex" }}>
+        {data.map((d, i) => {
+          const labelOpacity = interpolate(
+            frame,
+            [20 + i * 9, 34 + i * 9],
+            [0, 1],
+            { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+          );
+          return (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                textAlign: "center",
+                fontFamily: FONT.primary,
+                fontSize: 26,
+                fontWeight: 600,
+                color: COLORS.textSecondary,
+                opacity: labelOpacity,
+                letterSpacing: 2,
+              }}
+            >
+              {d.label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// Scene 3 — DatavizBarScene (bar chart scene, full 1920×1080)
+// =============================================================================
+
+interface DatavizBarSceneProps extends SceneBaseProps {
+  title?: string;
+  labels?: string;
+  values?: string;
+  unit?: string;
+  accentColor?: string;
+}
+
+const DatavizBarScene: React.FC<DatavizBarSceneProps> = ({
+  title = "季度营收对比 (万元)",
+  labels,
+  values,
+  unit,
+  accentColor,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const headerSpring = spring({
+    frame,
+    fps,
+    config: { damping: 200, stiffness: 90, mass: 0.9 },
+    durationInFrames: 45,
+  });
+
+  const cardSpring = spring({
+    frame: frame - 10,
+    fps,
+    config: { damping: 200, stiffness: 70, mass: 1 },
+    durationInFrames: 60,
+  });
+
+  return (
+    <SceneContainer>
+      <AbsoluteFill
+        style={{
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "0 140px",
+          gap: 48,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 24,
+            opacity: headerSpring,
+            transform: `translateY(${(1 - headerSpring) * 30}px)`,
+          }}
+        >
+          <div
+            style={{
+              width: 10,
+              height: 52,
+              borderRadius: 5,
+              background: `linear-gradient(180deg, ${CHART_COLORS[2]}, ${CHART_COLORS[0]})`,
+              boxShadow: `0 0 16px ${CHART_COLORS[2]}80`,
+              alignSelf: "center",
+            }}
+          />
+          <div
+            style={{
+              fontFamily: FONT.primary,
+              fontSize: 56,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              letterSpacing: 2,
+            }}
+          >
+            {title}
+          </div>
+        </div>
+
+        <div
+          style={{
+            opacity: cardSpring,
+            transform: `translateY(${(1 - cardSpring) * 40}px) scale(${0.97 + cardSpring * 0.03})`,
+            padding: "56px 64px 40px",
+            borderRadius: 28,
+            background: `linear-gradient(165deg, ${COLORS.bgCard} 0%, ${COLORS.bgSurface} 100%)`,
+            border: `1px solid ${COLORS.border}`,
+            boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
+          }}
+        >
+          <DatavizBarChart
+            labels={labels}
+            values={values}
+            unit={unit}
+            accentColor={accentColor}
+          />
+        </div>
+      </AbsoluteFill>
+    </SceneContainer>
+  );
+};
+
+// =============================================================================
+// Reusable primitive — DatavizLineChart (1500×560, multi-series via ;)
+// =============================================================================
+
+interface DatavizLineChartProps {
+  xLabels?: string;
+  seriesNames?: string;
+  seriesValues?: string;
+  accentColor?: string;
+  delaySeconds?: number;
+}
+
+const DatavizLineChart: React.FC<DatavizLineChartProps> = ({
+  xLabels = "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月",
+  seriesNames = "营收,利润",
+  seriesValues = "210,245,280,310,295,340,365,390,420,450,510,580;65,78,92,105,98,120,135,148,165,178,210,245",
+  accentColor = COLORS.blue,
+  delaySeconds = 0,
+}) => {
+  const frame = useCurrentFrame();
+
+  const width = 1500;
+  const height = 560;
+  const pad = { top: 50, right: 40, bottom: 64, left: 90 };
+  const chartW = width - pad.left - pad.right;
+  const chartH = height - pad.top - pad.bottom;
+
+  const xLabelList = parseCsv(xLabels);
+  const nameList = parseCsv(seriesNames);
+  const seriesList = parseCsv(seriesValues).map((row) =>
+    parseNumberCsv(row),
+  );
+  const series = nameList.map((name, i) => ({
+    name,
+    values: seriesList[i] ?? [],
+  }));
+  if (series.length === 0) {
+    series.push({ name: "Series 1", values: [] });
+  }
+
+  const allValues = series.flatMap((s) => s.values);
+  const maxVal = Math.max(...allValues, 1) * 1.18;
+  const n = Math.max(xLabelList.length, 1);
+  const xStep = chartW / Math.max(n - 1, 1);
+
+  interface Point {
+    x: number;
+    y: number;
+  }
+
+  const seriesPoints: Point[][] = series.map((s) =>
+    s.values.map((v, i) => ({
+      x: pad.left + i * xStep,
+      y: pad.top + chartH - (v / maxVal) * chartH,
+    })),
+  );
+
+  const linePath = (pts: Point[]): string =>
+    pts
+      .map(
+        (p, i) =>
+          `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`,
+      )
+      .join(" ");
+
+  const areaPath = (pts: Point[]): string => {
+    if (pts.length === 0) return "";
+    const last = pts[pts.length - 1];
+    const first = pts[0];
+    return `${linePath(pts)} L ${last.x.toFixed(1)} ${(pad.top + chartH).toFixed(1)} L ${first.x.toFixed(1)} ${(pad.top + chartH).toFixed(1)} Z`;
+  };
+
+  const draw = interpolate(frame, [15, 85], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: (t) => 1 - Math.pow(1 - t, 2.2),
+  });
+
+  const gridOpacity = interpolate(frame, [0, 20], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+
+  return (
+    <svg width={width} height={height} style={{ overflow: "visible" }}>
+      <defs>
+        {series.map((_, si) => {
+          const color =
+            si === 0
+              ? accentColor
+              : CHART_COLORS[(si + 1) % CHART_COLORS.length];
+          return (
+            <linearGradient
+              key={si}
+              id={`area-grad-${si}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={color} stopOpacity={0.32} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          );
+        })}
+      </defs>
+
+      {yTicks.map((p, i) => {
+        const y = pad.top + p * chartH;
+        const tickVal = maxVal * (1 - p);
+        return (
+          <g key={i} opacity={gridOpacity}>
+            <line
+              x1={pad.left}
+              x2={pad.left + chartW}
+              y1={y}
+              y2={y}
+              stroke={i === 0 ? COLORS.border : COLORS.gridLine}
+              strokeWidth={1}
+            />
+            <text
+              x={pad.left - 16}
+              y={y + 6}
+              textAnchor="end"
+              fill={COLORS.textMuted}
+              fontSize={17}
+              fontFamily={FONT.mono}
+            >
+              {Math.round(tickVal)}
+            </text>
+          </g>
+        );
+      })}
+
+      {xLabelList.map((label, i) => {
+        const op = interpolate(frame, [10 + i * 4, 22 + i * 4], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        return (
+          <text
+            key={i}
+            x={pad.left + i * xStep}
+            y={pad.top + chartH + 38}
+            textAnchor="middle"
+            fill={COLORS.textSecondary}
+            fontSize={18}
+            fontFamily={FONT.primary}
+            opacity={op}
+          >
+            {label}
+          </text>
+        );
+      })}
+
+      {series.map((s, si) => {
+        const color =
+          si === 0
+            ? accentColor
+            : CHART_COLORS[(si + 1) % CHART_COLORS.length];
+        const pts = seriesPoints[si];
+        const seriesDraw = interpolate(
+          draw,
+          [si * 0.08, 1 - (series.length - 1 - si) * 0.08],
+          [0, 1],
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+        );
+
+        return (
+          <g key={si}>
+            <path
+              d={areaPath(pts)}
+              fill={`url(#area-grad-${si})`}
+              opacity={seriesDraw}
             />
             <path
-              d="M15 27 L23 35 L38 19"
+              d={linePath(pts)}
               fill="none"
-              stroke={accentColor}
-              strokeWidth="4"
+              stroke={color}
+              strokeWidth={5}
               strokeLinecap="round"
               strokeLinejoin="round"
               pathLength={1}
               strokeDasharray={1}
-              strokeDashoffset={1 - row.check}
+              strokeDashoffset={1 - seriesDraw}
+              style={{ filter: `drop-shadow(0 0 8px ${color}70)` }}
             />
-          </svg>
-          <div>
-            <div
-              style={{
-                fontSize: 36,
-                fontWeight: 800,
-                textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-              }}
+            {pts.map((pt, pi) => {
+              const start = Math.min(pi / Math.max(n - 1, 1), 0.94);
+              const pointAt = interpolate(
+                seriesDraw,
+                [start, start + 0.06],
+                [0, 1],
+                { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+              );
+              return (
+                <circle
+                  key={pi}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={6 * pointAt}
+                  fill={COLORS.bgDeep}
+                  stroke={color}
+                  strokeWidth={3}
+                />
+              );
+            })}
+          </g>
+        );
+      })}
+
+      {series.map((s, si) => {
+        const color =
+          si === 0
+            ? accentColor
+            : CHART_COLORS[(si + 1) % CHART_COLORS.length];
+        const op = interpolate(frame, [10 + si * 6, 24 + si * 6], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        const lx = pad.left + 10 + si * 180;
+        return (
+          <g key={si} opacity={op}>
+            <rect x={lx} y={14} width={22} height={5} rx={2.5} fill={color} />
+            <text
+              x={lx + 34}
+              y={22}
+              fill={COLORS.textSecondary}
+              fontSize={20}
+              fontFamily={FONT.primary}
             >
-              {row.label}
-            </div>
-            <div style={{ marginTop: 4, fontSize: 20, color: INK_SOFT }}>
-              {row.note}
-            </div>
+              {s.name}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+// =============================================================================
+// Scene 4 — DatavizLineScene (line chart scene, full 1920×1080)
+// =============================================================================
+
+interface DatavizLineSceneProps extends SceneBaseProps {
+  title?: string;
+  unit?: string;
+  xLabels?: string;
+  seriesNames?: string;
+  seriesValues?: string;
+  accentColor?: string;
+}
+
+const DatavizLineScene: React.FC<DatavizLineSceneProps> = ({
+  title = "月度增长趋势",
+  unit = "万",
+  xLabels,
+  seriesNames,
+  seriesValues,
+  accentColor,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const headerSpring = spring({
+    frame,
+    fps,
+    config: { damping: 200, stiffness: 90, mass: 0.9 },
+    durationInFrames: 45,
+  });
+
+  const cardSpring = spring({
+    frame: frame - 10,
+    fps,
+    config: { damping: 200, stiffness: 70, mass: 1 },
+    durationInFrames: 60,
+  });
+
+  return (
+    <SceneContainer>
+      <AbsoluteFill
+        style={{
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "0 140px",
+          gap: 48,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 24,
+            opacity: headerSpring,
+            transform: `translateY(${(1 - headerSpring) * 30}px)`,
+          }}
+        >
+          <div
+            style={{
+              width: 10,
+              height: 52,
+              borderRadius: 5,
+              background: `linear-gradient(180deg, ${CHART_COLORS[1]}, ${CHART_COLORS[4]})`,
+              boxShadow: `0 0 16px ${CHART_COLORS[1]}80`,
+              alignSelf: "center",
+            }}
+          />
+          <div
+            style={{
+              fontFamily: FONT.primary,
+              fontSize: 56,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              letterSpacing: 2,
+            }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 24,
+              color: COLORS.textMuted,
+            }}
+          >
+            单位: {unit}
           </div>
         </div>
-      ))}
-    </div>
+
+        <div
+          style={{
+            opacity: cardSpring,
+            transform: `translateY(${(1 - cardSpring) * 40}px) scale(${0.97 + cardSpring * 0.03})`,
+            padding: "40px 48px 24px",
+            borderRadius: 28,
+            background: `linear-gradient(165deg, ${COLORS.bgCard} 0%, ${COLORS.bgSurface} 100%)`,
+            border: `1px solid ${COLORS.border}`,
+            boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
+          }}
+        >
+          <DatavizLineChart
+            xLabels={xLabels}
+            seriesNames={seriesNames}
+            seriesValues={seriesValues}
+            accentColor={accentColor}
+          />
+        </div>
+      </AbsoluteFill>
+    </SceneContainer>
   );
 };
 
-// ---------------------------------------------------------------------------
-// 6. BarChart · 突破瓶颈柱状图（15.08s–16.88s）
-//    台词：轻松突破业绩瓶颈
-// ---------------------------------------------------------------------------
-type BarChartProps = CommonProps & {
+// =============================================================================
+// Scene 5 — DatavizOutro (closing summary, full 1920×1080)
+// =============================================================================
+
+interface DatavizOutroProps extends SceneBaseProps {
   title?: string;
-  subtitle?: string;
-  bars?: string;
-  ceiling?: number;
-  ceilingLabel?: string;
-  xLabels?: string;
-  badgeText?: string;
-  badgeStart?: number;
-  unit?: string;
-  accentColor?: string;
-  exitSeconds?: number;
-};
+  ctaText?: string;
+  stat1Label?: string;
+  stat1Value?: string;
+  stat2Label?: string;
+  stat2Value?: string;
+  stat3Label?: string;
+  stat3Value?: string;
+  stat4Label?: string;
+  stat4Value?: string;
+}
 
-export const BarChart: React.FC<BarChartProps> = ({
-  backgroundOpacity = 0,
-  title = "突破业绩瓶颈",
-  subtitle = "BREAKTHROUGH",
-  bars = "38|46|52|58|66|78|96|112",
-  ceiling = 100,
-  ceilingLabel = "业绩瓶颈线 100",
-  xLabels = "Q1|Q2|Q3|Q4|Q5|Q6|Q7|Q8",
-  badgeText = "突破 +12",
-  badgeStart = 1.15,
-  unit = "业绩指数",
-  accentColor = "#ffd76a",
-  exitSeconds = 1.8,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
+const DatavizOutro: React.FC<DatavizOutroProps> = (props) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  const values = bars
-    .split("|")
-    .map((p) => Number(p.trim()))
-    .filter((n) => Number.isFinite(n));
-  const labels = xLabels.split("|");
-  const chartTop = 96;
-  const chartH = 196;
-  const baseY = chartTop + chartH;
-  const maxV = Math.max(...values, ceiling) * 1.08;
-  const barAreaW = 488;
-  const barW = 36;
-  const gap =
-    values.length > 1 ? (barAreaW - values.length * barW) / (values.length - 1) : 0;
-  const ceilingY = baseY - (ceiling / maxV) * chartH;
+  const titleSpring = spring({
+    frame,
+    fps,
+    config: { damping: 200, stiffness: 80, mass: 1 },
+    durationInFrames: 50,
+  });
 
-  const headerIn = itemSpring(frame, fps, 0.02, 0);
-  const badgeIn = itemSpring(frame, fps, badgeStart, 0);
-  const barGrow = (i: number) =>
-    interpolate(
-      frame,
-      [8 + i * 4, 26 + i * 4],
-      [0, 1],
-      {
-        extrapolateLeft: "clamp",
-        extrapolateRight: "clamp",
-        easing: Easing.out(Easing.cubic),
-      },
-    );
+  const lineScale = interpolate(frame, [20, 50], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: (t) => 1 - Math.pow(1 - t, 3),
+  });
+
+  const ctaOpacity = interpolate(frame, [55, 75], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const stats = [
+    {
+      label: props.stat1Label ?? "全年营收",
+      value: props.stat1Value ?? "¥4,820万",
+    },
+    {
+      label: props.stat2Label ?? "用户增长",
+      value: props.stat2Value ?? "+41.2%",
+    },
+    {
+      label: props.stat3Label ?? "订单总量",
+      value: props.stat3Value ?? "35.7万",
+    },
+    {
+      label: props.stat4Label ?? "满意度",
+      value: props.stat4Value ?? "96.8%",
+    },
+  ];
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 560,
-        height: 380,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <div
+    <SceneContainer>
+      <AbsoluteFill
         style={{
-          position: "absolute",
-          left: 36,
-          top: 30,
-          right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          opacity: 0.12 + 0.88 * headerIn,
-          transform: `translateY(${(1 - headerIn) * 12}px)`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: 750 }}>{title}</span>
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.22em",
-            color: accentColor,
-          }}
-        >
-          {subtitle}
-        </span>
-      </div>
-
-      <svg
-        viewBox="0 0 560 380"
-        style={{ position: "absolute", left: 0, top: 0, width: 560, height: 380 }}
-      >
-        <line
-          x1="36"
-          x2="524"
-          y1={baseY}
-          y2={baseY}
-          stroke="rgba(255,255,255,0.22)"
-          strokeWidth="2"
-        />
-        <line
-          x1="36"
-          x2="524"
-          y1={ceilingY}
-          y2={ceilingY}
-          stroke={accentColor}
-          strokeWidth="2.5"
-          strokeDasharray="10 8"
-          opacity={0.85}
-        />
-        {values.map((v, i) => {
-          const h = (v / maxV) * chartH * barGrow(i);
-          const x = 36 + 2 + i * (barW + gap);
-          const y = baseY - h;
-          const isBreak = v > ceiling;
-          const color = isBreak ? accentColor : "rgba(255,255,255,0.34)";
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={y}
-                width={barW}
-                height={Math.max(2, h)}
-                rx="5"
-                fill={color}
-                opacity={isBreak ? 1 : 0.9}
-                style={
-                  isBreak
-                    ? { filter: `drop-shadow(0 0 10px ${accentColor}aa)` }
-                    : undefined
-                }
-              />
-              {isBreak && h > 4 ? (
-                <rect
-                  x={x}
-                  y={y}
-                  width={barW}
-                  height={Math.min(10, h)}
-                  rx="5"
-                  fill="#ffffff"
-                  opacity={0.85}
-                />
-              ) : null}
-            </g>
-          );
-        })}
-        {labels.slice(0, values.length).map((label, i) => (
-          <text
-            key={label + i}
-            x={36 + 2 + i * (barW + gap) + barW / 2}
-            y={baseY + 26}
-            textAnchor="middle"
-            fill="rgba(199,214,228,0.5)"
-            fontSize="18"
-            fontFamily={FONT_STACK}
-            fontWeight={600}
-          >
-            {label}
-          </text>
-        ))}
-      </svg>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 36,
-          top: ceilingY - 30,
-          fontSize: 18,
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          color: accentColor,
-          opacity: headerIn * 0.95,
-        }}
-      >
-        {ceilingLabel}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          right: 36,
-          top: 92,
-          padding: "8px 18px",
-          borderRadius: 12,
-          background: `rgba(255, 215, 106, ${0.18 * Math.max(alpha, 0.4)})`,
-          border: `1px solid ${accentColor}66`,
-          fontSize: 26,
-          fontWeight: 850,
-          color: accentColor,
-          textShadow: "0 2px 12px rgba(0,0,0,0.5)",
-          opacity: badgeIn,
-          transform: `scale(${0.6 + 0.4 * badgeIn}) rotate(${(1 - badgeIn) * -6}deg)`,
-        }}
-      >
-        {badgeText}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          right: 36,
-          bottom: 20,
-          fontSize: 18,
-          color: INK_FAINT,
-          fontWeight: 600,
-        }}
-      >
-        {unit}
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// 7. EndLockup · 结尾锁定（紧跟趋势·年入百万 16.88s–19.41s）
-//    台词：紧跟趋势 / 轻松实现年入百万
-// ---------------------------------------------------------------------------
-type EndLockupProps = CommonProps & {
-  kicker?: string;
-  amountPrefix?: string;
-  amount?: number;
-  amountUnit?: string;
-  amountNote?: string;
-  cta?: string;
-  accentColor?: string;
-  exitSeconds?: number;
-};
-
-export const EndLockup: React.FC<EndLockupProps> = ({
-  backgroundOpacity = 0,
-  kicker = "紧跟趋势",
-  amountPrefix = "¥",
-  amount = 100,
-  amountUnit = "万 / 年",
-  amountNote = "年入目标",
-  cta = "线上引流 × 线下成交 · 轻松实现",
-  accentColor = "#ffd76a",
-  exitSeconds = 2.53,
-}) => {
-  const { frame, fps, sceneOpacity, sceneRise } = useScene(exitSeconds);
-  const alpha = clamp01(backgroundOpacity);
-
-  const kickerIn = itemSpring(frame, fps, 0.0, 0);
-  const count = Math.round(
-    interpolate(frame, [10, 44], [0, amount], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: Easing.out(Easing.cubic),
-    }),
-  );
-  const lineIn = itemSpring(frame, fps, 0.5, 0);
-  const noteIn = itemSpring(frame, fps, 0.7, 0);
-  const ctaIn = itemSpring(frame, fps, 0.9, 0);
-  const spark = (delay: number) =>
-    spring({
-      frame: frame - delay,
-      fps,
-      config: { damping: 12, stiffness: 160, mass: 0.6 },
-    });
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 700,
-        height: 380,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        fontFamily: FONT_STACK,
-        color: INK,
-        ...cardSurface(alpha),
-        opacity: sceneOpacity,
-        transform: `translateY(${sceneRise}px)`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 40,
-          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
           alignItems: "center",
-          gap: 12,
-          padding: "8px 20px",
-          borderRadius: 999,
-          border: `1px solid ${accentColor}66`,
-          background: `${accentColor}16`,
-          opacity: kickerIn,
-          transform: `translateY(${(1 - kickerIn) * -14}px)`,
+          gap: 56,
         }}
       >
-        <span
+        <div
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            background: accentColor,
-            boxShadow: `0 0 12px ${accentColor}`,
-          }}
-        />
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 750,
-            letterSpacing: "0.3em",
-            color: accentColor,
-          }}
-        >
-          {kicker}
-        </span>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 108,
-          display: "flex",
-          alignItems: "baseline",
-          gap: 8,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 58,
+            fontFamily: FONT.primary,
+            fontSize: 84,
             fontWeight: 800,
-            color: accentColor,
-            opacity: kickerIn,
+            color: COLORS.textPrimary,
+            letterSpacing: 4,
+            opacity: titleSpring,
+            transform: `translateY(${(1 - titleSpring) * 40}px)`,
           }}
         >
-          {amountPrefix}
-        </span>
-        <span
+          {props.title ?? "2026 关键成果"}
+        </div>
+        <div
           style={{
-            fontSize: 138,
-            fontWeight: 900,
-            lineHeight: 1,
-            letterSpacing: "0.01em",
-            color: INK,
-            textShadow: `0 0 42px ${accentColor}55, 0 6px 26px rgba(0,0,0,0.6)`,
+            width: 200 * lineScale,
+            height: 5,
+            borderRadius: 3,
+            background: `linear-gradient(90deg, ${CHART_COLORS[1]}, ${CHART_COLORS[0]})`,
+            boxShadow: `0 0 20px ${CHART_COLORS[0]}60`,
           }}
-        >
-          {count}
-        </span>
-        <span
+        />
+        <div style={{ display: "flex", gap: 32 }}>
+          {stats.map((stat, i) => {
+            const tileSpring = spring({
+              frame: frame - 20 - i * 8,
+              fps,
+              config: { damping: 200, stiffness: 100, mass: 0.8 },
+              durationInFrames: 50,
+            });
+            const color = CHART_COLORS[i % CHART_COLORS.length];
+            return (
+              <div
+                key={i}
+                style={{
+                  minWidth: 260,
+                  padding: "36px 32px",
+                  borderRadius: 20,
+                  background: `linear-gradient(160deg, ${COLORS.bgCard} 0%, ${COLORS.bgSurface} 100%)`,
+                  border: `1px solid ${COLORS.border}`,
+                  textAlign: "center",
+                  opacity: tileSpring,
+                  transform: `translateY(${(1 - tileSpring) * 40}px)`,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 52,
+                    fontWeight: 700,
+                    color,
+                    textShadow: `0 0 24px ${color}45`,
+                    marginBottom: 12,
+                  }}
+                >
+                  {stat.value}
+                </div>
+                <div
+                  style={{
+                    fontFamily: FONT.primary,
+                    fontSize: 22,
+                    color: COLORS.textSecondary,
+                    letterSpacing: 2,
+                  }}
+                >
+                  {stat.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div
           style={{
-            fontSize: 44,
-            fontWeight: 800,
-            color: INK_SOFT,
-            opacity: noteIn,
+            marginTop: 24,
+            fontFamily: FONT.primary,
+            fontSize: 28,
+            color: COLORS.textMuted,
+            letterSpacing: 6,
+            opacity: ctaOpacity,
           }}
         >
-          {amountUnit}
-        </span>
-      </div>
-
-      <svg
-        width="30"
-        height="30"
-        viewBox="0 0 30 30"
-        style={{
-          position: "absolute",
-          left: 486,
-          top: 96,
-          opacity: spark(26) * 0.95,
-          transform: `scale(${0.4 + 0.6 * spark(26)}) rotate(${spark(26) * 20}deg)`,
-        }}
-      >
-        <path
-          d="M15 0 L18 12 L30 15 L18 18 L15 30 L12 18 L0 15 L12 12 Z"
-          fill={accentColor}
-        />
-      </svg>
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 30 30"
-        style={{
-          position: "absolute",
-          left: 530,
-          top: 176,
-          opacity: spark(40) * 0.8,
-          transform: `scale(${0.4 + 0.6 * spark(40)})`,
-        }}
-      >
-        <path
-          d="M15 0 L18 12 L30 15 L18 18 L15 30 L12 18 L0 15 L12 12 Z"
-          fill={accentColor}
-        />
-      </svg>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 268,
-          width: 380,
-          height: 6,
-          borderRadius: 3,
-          background: `linear-gradient(90deg, ${accentColor}, ${accentColor}00)`,
-          transformOrigin: "0 50%",
-          transform: `scaleX(${lineIn})`,
-          boxShadow: `0 0 16px ${accentColor}55`,
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          top: 288,
-          display: "flex",
-          alignItems: "baseline",
-          gap: 16,
-          opacity: 0.12 + 0.88 * noteIn,
-          transform: `translateY(${(1 - noteIn) * 12}px)`,
-        }}
-      >
-        <span style={{ fontSize: 26, fontWeight: 750, color: accentColor }}>
-          {amountNote}
-        </span>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 44,
-          bottom: 28,
-          fontSize: 24,
-          fontWeight: 650,
-          color: INK,
-          textShadow: "0 3px 14px rgba(0,0,0,0.55)",
-          opacity: 0.12 + 0.88 * ctaIn,
-          transform: `translateY(${(1 - ctaIn) * 12}px)`,
-        }}
-      >
-        {cta}
-      </div>
-    </div>
+          {props.ctaText ?? "THANKS FOR WATCHING"}
+        </div>
+      </AbsoluteFill>
+    </SceneContainer>
   );
 };
 
-// ---------------------------------------------------------------------------
-// 组件清单（全部使用工作台标准 ID，导入后覆盖内置基础模板）
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Manifest exports
+// =============================================================================
+
+export const FPS = 30;
+export const DURATION_IN_FRAMES = 750;
+
 export const MOTION_COMPONENTS = [
+  // --- Reusable primitives (smaller bounds, drop-in building blocks) ---
   {
-    id: "TitleReveal",
-    name: "章节标题揭示",
-    description: "开场钩子：超大数字年份 + 副标题逐层揭示",
-    category: "text",
-    glyph: "3",
-    component: TitleReveal,
-    durationInFrames: 92,
-    bounds: { x: 0, y: 0, width: 640, height: 330 },
-    defaultPosition: { x: 220, y: 830, scale: 1 },
+    id: "DatavizKpiCard",
+    name: "数据可视化 · 单 KPI 卡片",
+    description: "带强调色与同比徽章的滚动计数 KPI 卡片（520×420）",
+    category: "metric",
+    glyph: "KPI",
+    component: DatavizKpiCard,
+    durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 520, height: 420 },
+    defaultPosition: { x: 110, y: 110, scale: 1 },
     defaultProps: {
-      kicker: "卫浴行业 · 趋势判断",
-      titleLead: "未来",
-      titleNumber: "3",
-      titleTail: "年",
-      subtitle: "只有这种门店能够赚钱",
-      footerTag: "WINNING STORE MODEL",
-      accentColor: "#6ee7ff",
-      subtitleStart: 0.75,
-      exitSeconds: 3.07,
-      backgroundOpacity: 0,
+      label: "总营收",
+      value: 48200000,
+      format: "currency",
+      delta: 23.5,
+      accentColor: COLORS.blue,
+      delaySeconds: 0,
     },
+    defaultBackgroundOpacity: 0,
     propsSchema: {
-      kicker: { type: "text", label: "眉标" },
-      titleLead: { type: "text", label: "标题前段" },
-      titleNumber: { type: "text", label: "核心数字" },
-      titleTail: { type: "text", label: "标题后段" },
-      subtitle: { type: "text", label: "副标题" },
-      footerTag: { type: "text", label: "底部标签" },
+      label: { type: "text", label: "指标标签" },
+      value: { type: "number", label: "数值", min: 0, max: 1000000000, step: 1 },
+      format: {
+        type: "select",
+        label: "格式",
+        options: [
+          { label: "数字", value: "number" },
+          { label: "百分比", value: "percent" },
+          { label: "货币", value: "currency" },
+        ],
+      },
+      delta: { type: "number", label: "同比 %", min: -100, max: 1000, step: 0.1 },
       accentColor: { type: "color", label: "强调色" },
-      subtitleStart: { type: "number", label: "副标题延迟(秒)", min: 0, max: 5, step: 0.05 },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
+      delaySeconds: { type: "number", label: "进场延迟(秒)", min: 0, max: 10, step: 0.1 },
     },
   },
   {
-    id: "LineTrend",
-    name: "折线趋势",
-    description: "风险预警：逐年下滑折线 + 跌幅徽章",
+    id: "DatavizBarChart",
+    name: "数据可视化 · 柱状图",
+    description: "步进增长柱状图，标签/数值用逗号或竖线分隔（1500×560）",
     category: "chart",
-    glyph: "↘",
-    component: LineTrend,
-    durationInFrames: 92,
-    bounds: { x: 0, y: 0, width: 560, height: 360 },
-    defaultPosition: { x: 260, y: 830, scale: 1 },
+    glyph: "BAR",
+    component: DatavizBarChart,
+    durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 1500, height: 560 },
+    defaultPosition: { x: 210, y: 260, scale: 1 },
     defaultProps: {
-      title: "传统卖货门店",
-      subtitle: "TRAFFIC DECLINE",
-      points: "98|84|70|55|42|30",
-      xLabels: "Y1|Y2|Y3|Y4|Y5|Y6",
-      deltaLabel: "-69%",
-      note: "客流持续下滑 · 慢慢被淘汰",
-      accentColor: "#ffc247",
-      noteStart: 1.55,
-      exitSeconds: 3.07,
-      backgroundOpacity: 0,
+      labels: "Q1,Q2,Q3,Q4",
+      values: "920,1180,1050,1670",
+      unit: "万元",
+      accentColor: COLORS.blue,
+      delaySeconds: 0,
     },
+    defaultBackgroundOpacity: 0,
     propsSchema: {
-      title: { type: "text", label: "标题" },
-      subtitle: { type: "text", label: "副标题" },
-      points: { type: "text", label: "数据点(|分隔)" },
-      xLabels: { type: "text", label: "横轴标签(|分隔)" },
-      deltaLabel: { type: "text", label: "跌幅" },
-      note: { type: "text", label: "结论注释" },
-      accentColor: { type: "color", label: "强调色" },
-      noteStart: { type: "number", label: "注释延迟(秒)", min: 0, max: 5, step: 0.05 },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
-    },
-  },
-  {
-    id: "StepFlow",
-    name: "步骤流",
-    description: "OMO 路径：线上引流 → 线下成交 双节点动画",
-    category: "structure",
-    glyph: "⇄",
-    component: StepFlow,
-    durationInFrames: 107,
-    bounds: { x: 0, y: 0, width: 720, height: 320 },
-    defaultPosition: { x: 180, y: 840, scale: 1 },
-    defaultProps: {
-      title: "实体店的最终出路",
-      subtitle: "OMO PATH",
-      item1: "线上引流",
-      item1Note: "短视频 · 种草获客",
-      item2: "线下成交",
-      item2Note: "到店体验 · 服务转化",
-      footer: "线上引流 × 线下成交 = 破局",
-      itemStarts: "0.05|1.48",
-      accentColor: "#b79cff",
-      exitSeconds: 3.57,
-      backgroundOpacity: 0,
-    },
-    propsSchema: {
-      title: { type: "text", label: "标题" },
-      subtitle: { type: "text", label: "副标题" },
-      item1: { type: "text", label: "节点1" },
-      item1Note: { type: "text", label: "节点1注释" },
-      item2: { type: "text", label: "节点2" },
-      item2Note: { type: "text", label: "节点2注释" },
-      footer: { type: "text", label: "底部结论" },
-      itemStarts: { type: "text", label: "逐条起始(秒,|分隔)" },
-      accentColor: { type: "color", label: "强调色" },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
-    },
-  },
-  {
-    id: "CompareSplit",
-    name: "左右对比卡",
-    description: "双引擎对比：短视频种草 × 直播转化",
-    category: "structure",
-    glyph: "×",
-    component: CompareSplit,
-    durationInFrames: 91,
-    bounds: { x: 0, y: 0, width: 660, height: 380 },
-    defaultPosition: { x: 210, y: 820, scale: 1 },
-    defaultProps: {
-      title: "获客双引擎",
-      subtitle: "TWIN ENGINE",
-      leftTitle: "短视频",
-      leftNote: "品牌种草",
-      leftTag: "内容获客",
-      rightTitle: "直播",
-      rightNote: "精准转化",
-      rightTag: "即时成交",
-      leftColor: "#6ee7ff",
-      rightColor: "#b7f36b",
-      itemStarts: "0.05|1.51",
-      exitSeconds: 3.03,
-      backgroundOpacity: 0,
-    },
-    propsSchema: {
-      title: { type: "text", label: "标题" },
-      subtitle: { type: "text", label: "副标题" },
-      leftTitle: { type: "text", label: "左栏标题" },
-      leftNote: { type: "text", label: "左栏注释" },
-      leftTag: { type: "text", label: "左栏标签" },
-      rightTitle: { type: "text", label: "右栏标题" },
-      rightNote: { type: "text", label: "右栏注释" },
-      rightTag: { type: "text", label: "右栏标签" },
-      leftColor: { type: "color", label: "左栏色" },
-      rightColor: { type: "color", label: "右栏色" },
-      itemStarts: { type: "text", label: "逐条起始(秒,|分隔)" },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
-    },
-  },
-  {
-    id: "BulletStack",
-    name: "逐条要点",
-    description: "转型红利：勾选动画逐条弹出",
-    category: "text",
-    glyph: "✓",
-    component: BulletStack,
-    durationInFrames: 62,
-    bounds: { x: 0, y: 0, width: 520, height: 300 },
-    defaultPosition: { x: 280, y: 850, scale: 1 },
-    defaultProps: {
-      title: "转型双重红利",
-      subtitle: "DIVIDENDS",
-      item1: "客流稳定",
-      item1Note: "线上蓄水 · 持续到店",
-      item2: "客单更高",
-      item2Note: "体验升级 · 连带成交",
-      itemStarts: "0.05|0.88",
-      accentColor: "#b7f36b",
-      exitSeconds: 2.07,
-      backgroundOpacity: 0,
-    },
-    propsSchema: {
-      title: { type: "text", label: "标题" },
-      subtitle: { type: "text", label: "副标题" },
-      item1: { type: "text", label: "要点1" },
-      item1Note: { type: "text", label: "要点1注释" },
-      item2: { type: "text", label: "要点2" },
-      item2Note: { type: "text", label: "要点2注释" },
-      itemStarts: { type: "text", label: "逐条起始(秒,|分隔)" },
-      accentColor: { type: "color", label: "强调色" },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
-    },
-  },
-  {
-    id: "BarChart",
-    name: "柱状图",
-    description: "业绩突破：柱体增长冲破瓶颈虚线",
-    category: "chart",
-    glyph: "▂▄█",
-    component: BarChart,
-    durationInFrames: 54,
-    bounds: { x: 0, y: 0, width: 560, height: 380 },
-    defaultPosition: { x: 260, y: 820, scale: 1 },
-    defaultProps: {
-      title: "突破业绩瓶颈",
-      subtitle: "BREAKTHROUGH",
-      bars: "38|46|52|58|66|78|96|112",
-      ceiling: 100,
-      ceilingLabel: "业绩瓶颈线 100",
-      xLabels: "Q1|Q2|Q3|Q4|Q5|Q6|Q7|Q8",
-      badgeText: "突破 +12",
-      unit: "业绩指数",
-      accentColor: "#ffd76a",
-      badgeStart: 1.15,
-      exitSeconds: 1.8,
-      backgroundOpacity: 0,
-    },
-    propsSchema: {
-      title: { type: "text", label: "标题" },
-      subtitle: { type: "text", label: "副标题" },
-      bars: { type: "text", label: "柱数据(|分隔)" },
-      ceiling: { type: "number", label: "瓶颈线", min: 1, max: 500, step: 1 },
-      ceilingLabel: { type: "text", label: "瓶颈线标签" },
-      xLabels: { type: "text", label: "横轴标签(|分隔)" },
-      badgeText: { type: "text", label: "徽章文字" },
+      labels: { type: "text", label: "X 轴标签 (逗号分隔)" },
+      values: { type: "text", label: "数值 (逗号分隔)" },
       unit: { type: "text", label: "单位" },
-      accentColor: { type: "color", label: "强调色" },
-      badgeStart: { type: "number", label: "徽章延迟(秒)", min: 0, max: 5, step: 0.05 },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
+      accentColor: { type: "color", label: "柱体强调色" },
+      delaySeconds: { type: "number", label: "进场延迟(秒)", min: 0, max: 10, step: 0.1 },
     },
   },
   {
-    id: "EndLockup",
-    name: "结尾锁定",
-    description: "行动收尾：¥100万 数字滚动 + 行动号召",
-    category: "brand",
-    glyph: "¥",
-    component: EndLockup,
-    durationInFrames: 76,
-    bounds: { x: 0, y: 0, width: 700, height: 380 },
-    defaultPosition: { x: 190, y: 810, scale: 1 },
+    id: "DatavizLineChart",
+    name: "数据可视化 · 折线趋势",
+    description: "自绘折线 + 渐变面积填充，多系列用 ; 分行（1500×560）",
+    category: "chart",
+    glyph: "LINE",
+    component: DatavizLineChart,
+    durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 1500, height: 560 },
+    defaultPosition: { x: 210, y: 260, scale: 1 },
     defaultProps: {
-      kicker: "紧跟趋势",
-      amountPrefix: "¥",
-      amount: 100,
-      amountUnit: "万 / 年",
-      amountNote: "年入目标",
-      cta: "线上引流 × 线下成交 · 轻松实现",
-      accentColor: "#ffd76a",
-      exitSeconds: 2.53,
-      backgroundOpacity: 0,
+      xLabels:
+        "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月",
+      seriesNames: "营收,利润",
+      seriesValues:
+        "210,245,280,310,295,340,365,390,420,450,510,580;65,78,92,105,98,120,135,148,165,178,210,245",
+      accentColor: COLORS.teal,
+      delaySeconds: 0,
     },
+    defaultBackgroundOpacity: 0,
     propsSchema: {
-      kicker: { type: "text", label: "眉标" },
-      amountPrefix: { type: "text", label: "货币符号" },
-      amount: { type: "number", label: "金额数字", min: 0, max: 9999, step: 1 },
-      amountUnit: { type: "text", label: "金额单位" },
-      amountNote: { type: "text", label: "金额注释" },
-      cta: { type: "text", label: "行动号召" },
-      accentColor: { type: "color", label: "强调色" },
-      exitSeconds: { type: "number", label: "退出时间(秒)", min: 0.5, max: 10, step: 0.05 },
+      xLabels: { type: "text", label: "X 轴标签 (逗号分隔)" },
+      seriesNames: { type: "text", label: "系列名 (逗号分隔)" },
+      seriesValues: {
+        type: "text",
+        label: "系列数值 (分号分行，每行逗号分隔)",
+      },
+      accentColor: { type: "color", label: "首系列颜色" },
+      delaySeconds: { type: "number", label: "进场延迟(秒)", min: 0, max: 10, step: 0.1 },
+    },
+  },
+  {
+    id: "DatavizBackground",
+    name: "数据可视化 · 动态背景",
+    description: "深色渐变 + 漂浮粒子 + 漂移光晕（1920×1080）",
+    category: "brand",
+    glyph: "BG",
+    component: DatavizBackground,
+    durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {},
+    defaultBackgroundOpacity: 0,
+    propsSchema: {},
+  },
+
+  // --- Full-frame scenes (1920×1080) ---
+  {
+    id: "DatavizIntro",
+    name: "数据可视化 · 开场标题",
+    description: "徽章 + 大标题 + 渐变下划线 + 副标题 + 角落装饰",
+    category: "text",
+    glyph: "INTRO",
+    component: DatavizIntro,
+    durationInFrames: 120,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {
+      badgeText: "数据可视化报告",
+      title: "2026 年度业务报告",
+      subtitle: "Annual Business Intelligence Dashboard",
+      period: "Q1 – Q4 2026",
+      cornerAccentColor: COLORS.blue,
+    },
+    defaultBackgroundOpacity: 0,
+    propsSchema: {
+      badgeText: { type: "text", label: "徽章文本" },
+      title: { type: "text", label: "主标题" },
+      subtitle: { type: "text", label: "副标题" },
+      period: { type: "text", label: "时间段" },
+      cornerAccentColor: { type: "color", label: "角落装饰色" },
+    },
+  },
+  {
+    id: "DatavizKpiScene",
+    name: "数据可视化 · 4 指标场景",
+    description: "顶部标题 + 4 张 KPI 卡片横向排列",
+    category: "metric",
+    glyph: "KPI×4",
+    component: DatavizKpiScene,
+    durationInFrames: 180,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {
+      headerTitle: "核心指标总览",
+      period: "Q1 – Q4 2026",
+      kpi1Label: "总营收",
+      kpi1Value: 48200000,
+      kpi1Format: "currency",
+      kpi1Delta: 23.5,
+      kpi2Label: "活跃用户",
+      kpi2Value: 1280000,
+      kpi2Format: "number",
+      kpi2Delta: 41.2,
+      kpi3Label: "订单量",
+      kpi3Value: 356800,
+      kpi3Format: "number",
+      kpi3Delta: 18.7,
+      kpi4Label: "客户满意度",
+      kpi4Value: 96.8,
+      kpi4Format: "percent",
+      kpi4Delta: 4.3,
+    },
+    defaultBackgroundOpacity: 0,
+    propsSchema: {
+      headerTitle: { type: "text", label: "场景标题" },
+      period: { type: "text", label: "时间段" },
+      kpi1Label: { type: "text", label: "KPI1 标签" },
+      kpi1Value: { type: "number", label: "KPI1 数值" },
+      kpi1Format: {
+        type: "select",
+        label: "KPI1 格式",
+        options: [
+          { label: "数字", value: "number" },
+          { label: "百分比", value: "percent" },
+          { label: "货币", value: "currency" },
+        ],
+      },
+      kpi1Delta: { type: "number", label: "KPI1 同比" },
+      kpi2Label: { type: "text", label: "KPI2 标签" },
+      kpi2Value: { type: "number", label: "KPI2 数值" },
+      kpi2Format: {
+        type: "select",
+        label: "KPI2 格式",
+        options: [
+          { label: "数字", value: "number" },
+          { label: "百分比", value: "percent" },
+          { label: "货币", value: "currency" },
+        ],
+      },
+      kpi2Delta: { type: "number", label: "KPI2 同比" },
+      kpi3Label: { type: "text", label: "KPI3 标签" },
+      kpi3Value: { type: "number", label: "KPI3 数值" },
+      kpi3Format: {
+        type: "select",
+        label: "KPI3 格式",
+        options: [
+          { label: "数字", value: "number" },
+          { label: "百分比", value: "percent" },
+          { label: "货币", value: "currency" },
+        ],
+      },
+      kpi3Delta: { type: "number", label: "KPI3 同比" },
+      kpi4Label: { type: "text", label: "KPI4 标签" },
+      kpi4Value: { type: "number", label: "KPI4 数值" },
+      kpi4Format: {
+        type: "select",
+        label: "KPI4 格式",
+        options: [
+          { label: "数字", value: "number" },
+          { label: "百分比", value: "percent" },
+          { label: "货币", value: "currency" },
+        ],
+      },
+      kpi4Delta: { type: "number", label: "KPI4 同比" },
+    },
+  },
+  {
+    id: "DatavizBarScene",
+    name: "数据可视化 · 柱状图场景",
+    description: "顶部标题 + 柱状图卡片（步进增长柱 + 数值 + 单位）",
+    category: "chart",
+    glyph: "BAR+",
+    component: DatavizBarScene,
+    durationInFrames: 210,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {
+      title: "季度营收对比 (万元)",
+      labels: "Q1,Q2,Q3,Q4",
+      values: "920,1180,1050,1670",
+      unit: "万元",
+      accentColor: COLORS.blue,
+    },
+    defaultBackgroundOpacity: 0,
+    propsSchema: {
+      title: { type: "text", label: "场景标题" },
+      labels: { type: "text", label: "X 轴标签" },
+      values: { type: "text", label: "数值" },
+      unit: { type: "text", label: "单位" },
+      accentColor: { type: "color", label: "柱体强调色" },
+    },
+  },
+  {
+    id: "DatavizLineScene",
+    name: "数据可视化 · 折线场景",
+    description: "顶部标题 + 双系列折线趋势（自绘笔触 + 渐变面积）",
+    category: "chart",
+    glyph: "LINE+",
+    component: DatavizLineScene,
+    durationInFrames: 150,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {
+      title: "月度增长趋势",
+      unit: "万",
+      xLabels:
+        "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月",
+      seriesNames: "营收,利润",
+      seriesValues:
+        "210,245,280,310,295,340,365,390,420,450,510,580;65,78,92,105,98,120,135,148,165,178,210,245",
+      accentColor: COLORS.teal,
+    },
+    defaultBackgroundOpacity: 0,
+    propsSchema: {
+      title: { type: "text", label: "场景标题" },
+      unit: { type: "text", label: "单位" },
+      xLabels: { type: "text", label: "X 轴标签" },
+      seriesNames: { type: "text", label: "系列名" },
+      seriesValues: { type: "text", label: "系列数值 (分号分行)" },
+    },
+  },
+  {
+    id: "DatavizOutro",
+    name: "数据可视化 · 收尾总结",
+    description: "标题 + 渐变分隔 + 4 项关键数据 + 行动号召",
+    category: "text",
+    glyph: "OUTRO",
+    component: DatavizOutro,
+    durationInFrames: 90,
+    bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    defaultPosition: { x: 0, y: 0, scale: 1 },
+    defaultProps: {
+      title: "2026 关键成果",
+      ctaText: "THANKS FOR WATCHING",
+      stat1Label: "全年营收",
+      stat1Value: "¥4,820万",
+      stat2Label: "用户增长",
+      stat2Value: "+41.2%",
+      stat3Label: "订单总量",
+      stat3Value: "35.7万",
+      stat4Label: "满意度",
+      stat4Value: "96.8%",
+    },
+    defaultBackgroundOpacity: 0,
+    propsSchema: {
+      title: { type: "text", label: "总结标题" },
+      ctaText: { type: "text", label: "行动号召" },
+      stat1Label: { type: "text", label: "数据 1 标签" },
+      stat1Value: { type: "text", label: "数据 1 值" },
+      stat2Label: { type: "text", label: "数据 2 标签" },
+      stat2Value: { type: "text", label: "数据 2 值" },
+      stat3Label: { type: "text", label: "数据 3 标签" },
+      stat3Value: { type: "text", label: "数据 3 值" },
+      stat4Label: { type: "text", label: "数据 4 标签" },
+      stat4Value: { type: "text", label: "数据 4 值" },
     },
   },
 ];
 
-// ---------------------------------------------------------------------------
-// 预设时间轴（逐句对齐 SRT：00:00:00.133 → 00:00:19.400）
-// 竖屏 1080×1920 画布，组件居中排布于画面中下带
-// ---------------------------------------------------------------------------
-export const MOTION_TIMELINE = [
-  {
-    // 0.13s–3.2s 未来3年 / 卫浴店只有这种 / 门店能够赚钱
-    componentId: "TitleReveal",
-    startFrame: 4,
-    durationInFrames: 92,
-    position: { x: 220, y: 830, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      kicker: "卫浴行业 · 趋势判断",
-      titleLead: "未来",
-      titleNumber: "3",
-      titleTail: "年",
-      subtitle: "只有这种门店能够赚钱",
-      footerTag: "WINNING STORE MODEL",
-      accentColor: "#6ee7ff",
-      subtitleStart: 0.75,
-      exitSeconds: 3.07,
-    },
-  },
-  {
-    // 3.2s–6.4s 单纯卖货的门店只会 / 慢慢的被市场淘汰
-    componentId: "LineTrend",
-    startFrame: 96,
-    durationInFrames: 92,
-    position: { x: 260, y: 830, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      title: "单纯卖货的门店",
-      subtitle: "MARKET ELIMINATION",
-      points: "98|84|70|55|42|30",
-      xLabels: "Y1|Y2|Y3|Y4|Y5|Y6",
-      deltaLabel: "-69%",
-      note: "客流持续下滑 · 慢慢被淘汰",
-      accentColor: "#ffc247",
-      noteStart: 1.55,
-      exitSeconds: 3.07,
-    },
-  },
-  {
-    // 6.4s–9.97s 线上引流线下成交 / 才是实体店最终的出路
-    componentId: "StepFlow",
-    startFrame: 192,
-    durationInFrames: 107,
-    position: { x: 180, y: 840, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      title: "实体店的最终出路",
-      subtitle: "OMO PATH",
-      item1: "线上引流",
-      item1Note: "短视频 · 种草获客",
-      item2: "线下成交",
-      item2Note: "到店体验 · 服务转化",
-      footer: "线上引流 × 线下成交 = 破局",
-      itemStarts: "0.05|1.48",
-      accentColor: "#b79cff",
-      exitSeconds: 3.57,
-    },
-  },
-  {
-    // 9.97s–13.0s 短视频做品牌种草 / 直播做精准转化
-    componentId: "CompareSplit",
-    startFrame: 299,
-    durationInFrames: 91,
-    position: { x: 210, y: 820, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      title: "获客双引擎",
-      subtitle: "TWIN ENGINE",
-      leftTitle: "短视频",
-      leftNote: "品牌种草",
-      leftTag: "内容获客",
-      rightTitle: "直播",
-      rightNote: "精准转化",
-      rightTag: "即时成交",
-      leftColor: "#6ee7ff",
-      rightColor: "#b7f36b",
-      itemStarts: "0.05|1.51",
-      exitSeconds: 3.03,
-    },
-  },
-  {
-    // 13.0s–15.08s 客流稳定 / 客单更高
-    componentId: "BulletStack",
-    startFrame: 390,
-    durationInFrames: 62,
-    position: { x: 280, y: 850, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      title: "转型双重红利",
-      subtitle: "DIVIDENDS",
-      item1: "客流稳定",
-      item1Note: "线上蓄水 · 持续到店",
-      item2: "客单更高",
-      item2Note: "体验升级 · 连带成交",
-      itemStarts: "0.05|0.88",
-      accentColor: "#b7f36b",
-      exitSeconds: 2.07,
-    },
-  },
-  {
-    // 15.08s–16.88s 轻松突破业绩瓶颈
-    componentId: "BarChart",
-    startFrame: 452,
-    durationInFrames: 54,
-    position: { x: 260, y: 820, scale: 1 },
-    backgroundOpacity: 0.68,
-    props: {
-      title: "轻松突破业绩瓶颈",
-      subtitle: "BREAKTHROUGH",
-      bars: "38|46|52|58|66|78|96|112",
-      ceiling: 100,
-      ceilingLabel: "业绩瓶颈线 100",
-      xLabels: "Q1|Q2|Q3|Q4|Q5|Q6|Q7|Q8",
-      badgeText: "突破 +12",
-      unit: "业绩指数",
-      accentColor: "#ffd76a",
-      badgeStart: 1.15,
-      exitSeconds: 1.8,
-    },
-  },
-  {
-    // 16.88s–19.41s 紧跟趋势 / 轻松实现年入百万
-    componentId: "EndLockup",
-    startFrame: 506,
-    durationInFrames: 76,
-    position: { x: 190, y: 810, scale: 1 },
-    backgroundOpacity: 0.7,
-    props: {
-      kicker: "紧跟趋势",
-      amountPrefix: "¥",
-      amount: 100,
-      amountUnit: "万 / 年",
-      amountNote: "年入目标",
-      cta: "线上引流 × 线下成交 · 轻松实现",
-      accentColor: "#ffd76a",
-      exitSeconds: 2.53,
-    },
-  },
-];
+// Empty timeline — user requested not to populate the timeline.
+// Workbench will fall back to inserting only the first definition as a
+// single instance when the module loads, but the save→restore step below
+// brings the bathroom timeline back unchanged.
+export const MOTION_TIMELINE: never[] = [];
 
-export default TitleReveal;
+export default DatavizIntro;
