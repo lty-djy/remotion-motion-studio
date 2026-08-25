@@ -9,6 +9,7 @@
 - 导入本地视频，按视频真实时长播放，保留原声且不循环；
 - 导入自包含的 Remotion TSX 动效包，支持 `MOTION_COMPONENTS` 与 `MOTION_TIMELINE` 多组件清单；
 - 导入 Timeline v2 JSON，把固定效果、图标、图片/录屏和短音效作为独立轨道项；
+- 编排结果先进入预览清单，可逐项选择；确认后才插入，并始终保留原时间线内容；
 - 资源轨道支持预览、显隐、移动、裁剪、排序、删除，并可微调画面位置/缩放或音量/人声避让；
 - 画布内单选、框选、多选移动、缩放、复制、删除；
 - 时间轴播放头、拖动组件条、左右裁剪，最短时长 0.1 秒；
@@ -58,7 +59,7 @@ powershell -ExecutionPolicy Bypass -File .\import-to-studio.ps1 -FilePath "C:\�
 
 ## Visual Script 转时间线
 
-转换器只做确定性映射：校验组件/资源 ID，计算基础锚点、尺寸与时间，并生成可导入工作台的 Timeline v2 JSON；本阶段不包含语义判断或自动避让。
+转换器只做确定性映射：校验组件/资源 ID，计算基础锚点、尺寸与时间，并生成可载入工作台预览的 Timeline v2 JSON。载入后时间线不会立即改变，只有用户确认的项目才会插入；本阶段不包含语义判断或自动避让。
 
 ```powershell
 npm.cmd run convert:visual-script -- .\ai-motion-arranger\examples\sample-visual-script-v2.json .\ai-motion-arranger\examples\sample-timeline-v2.json

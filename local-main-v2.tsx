@@ -116,6 +116,15 @@ type TimelineJsonItem = {
   props?: Record<string, unknown>;
 };
 
+type PendingArrangement = {
+  fileName: string;
+  motionInstances: MotionInstance[];
+  resourceTracks: ResourceTrack[];
+  selectedKeys: string[];
+  qualityControlStatus: string;
+  qualityControlCheckCount: number;
+};
+
 type ShortcutAction =
   | "undo"
   | "redo"
@@ -624,6 +633,29 @@ const preventLaneOverlaps = <
   });
 };
 
+const appendClipsWithoutMovingExisting = <
+  T extends { id: string; laneId: string; startFrame: number; durationInFrames: number },
+>(existing: T[], incoming: T[]): T[] => {
+  const appended: T[] = [];
+  for (const clip of incoming) {
+    const laneClips = [...existing, ...appended]
+      .filter((candidate) => candidate.laneId === clip.laneId)
+      .sort((left, right) => left.startFrame - right.startFrame);
+    let startFrame = clip.startFrame;
+    while (true) {
+      const conflict = laneClips.find(
+        (candidate) =>
+          candidate.startFrame < startFrame + clip.durationInFrames &&
+          candidate.startFrame + candidate.durationInFrames > startFrame,
+      );
+      if (!conflict) break;
+      startFrame = conflict.startFrame + conflict.durationInFrames;
+    }
+    appended.push(startFrame === clip.startFrame ? clip : { ...clip, startFrame });
+  }
+  return [...existing, ...appended];
+};
+
 const createInstanceId = (componentId: string) => {
   instanceSequence += 1;
   return `${componentId}-${Date.now()}-${instanceSequence}`;
@@ -1105,6 +1137,8 @@ const App = () => {
     [],
   );
   const [instances, setInstances] = useState<MotionInstance[]>([]);
+  const [pendingArrangement, setPendingArrangement] =
+    useState<PendingArrangement | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState("");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [componentName, setComponentName] = useState("本地示例动效");
@@ -3283,6 +3317,12 @@ const App = () => {
       throw new Error("JSON 格式无效，无法读取编排内容。");
     }
     const parsedRecord = isRecord(parsed) ? parsed : null;
+    const qualityControl = isRecord(parsedRecord?.qualityControl)
+      ? parsedRecord.qualityControl
+      : null;
+    const qualityControlChecks = Array.isArray(qualityControl?.checks)
+      ? qualityControl.checks
+      : [];
     const rawItems = Array.isArray(parsed)
       ? parsed
       : parsedRecord
@@ -3460,7 +3500,6 @@ const App = () => {
         },
       ),
     );
-    const nextInstances = preventLaneOverlaps([...instances, ...importedInstances]);
     const orderedResourceTracks = importedResourceTracks.map((track, index) => ({
       ...track,
       trackOrder:
@@ -3468,20 +3507,100 @@ const App = () => {
           ? track.trackOrder
           : firstTrackOrder + items.length + index,
     }));
-    const nextResourceTracks = preventLaneOverlaps([
-      ...resourceTracks,
-      ...orderedResourceTracks,
-    ]);
-    setManualTimelineEndFrame((current) => Math.max(current, importTotalFrames));
+    const selectedKeys = [
+      ...importedInstances.map((instance) => `motion:${instance.id}`),
+      ...orderedResourceTracks.map((track) => `resource:${track.id}`),
+    ];
+    setPendingArrangement({
+      fileName: file.name,
+      motionInstances: importedInstances,
+      resourceTracks: orderedResourceTracks,
+      selectedKeys,
+      qualityControlStatus:
+        typeof qualityControl?.status === "string"
+          ? qualityControl.status
+          : "未提供",
+      qualityControlCheckCount: qualityControlChecks.length,
+    });
+    setNotice({
+      tone: "info",
+      text: `已生成 ${importedInstances.length} 个动效和 ${orderedResourceTracks.length} 个资源的编排预览，时间线尚未修改。`,
+    });
+  };
+
+  const togglePendingArrangementItem = (key: string) => {
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      const selected = new Set(current.selectedKeys);
+      if (selected.has(key)) selected.delete(key);
+      else selected.add(key);
+      return { ...current, selectedKeys: [...selected] };
+    });
+  };
+
+  const setAllPendingArrangementItems = (selected: boolean) => {
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        selectedKeys: selected
+          ? [
+              ...current.motionInstances.map(
+                (instance) => `motion:${instance.id}`,
+              ),
+              ...current.resourceTracks.map(
+                (track) => `resource:${track.id}`,
+              ),
+            ]
+          : [],
+      };
+    });
+  };
+
+  const applyPendingArrangement = () => {
+    if (!pendingArrangement) return;
+    const selectedKeys = new Set(pendingArrangement.selectedKeys);
+    const selectedMotionInstances = pendingArrangement.motionInstances.filter(
+      (instance) => selectedKeys.has(`motion:${instance.id}`),
+    );
+    const selectedResourceTracks = pendingArrangement.resourceTracks.filter(
+      (track) => selectedKeys.has(`resource:${track.id}`),
+    );
+    if (selectedMotionInstances.length + selectedResourceTracks.length === 0) {
+      setNotice({ tone: "info", text: "请至少选择一个编排项。" });
+      return;
+    }
+    const nextInstances = appendClipsWithoutMovingExisting(
+      instances,
+      selectedMotionInstances,
+    );
+    const nextResourceTracks = appendClipsWithoutMovingExisting(
+      resourceTracks,
+      selectedResourceTracks,
+    );
+    const selectedEndFrame = Math.max(
+      0,
+      ...selectedMotionInstances.map(
+        (instance) => instance.startFrame + instance.durationInFrames,
+      ),
+      ...selectedResourceTracks.map(
+        (track) => track.startFrame + track.durationInFrames,
+      ),
+    );
     setInstances(nextInstances);
     setResourceTracks(nextResourceTracks);
-    if (importedInstances[0]) selectOnlyInstance(importedInstances[0].id);
-    else if (orderedResourceTracks[0]) {
-      selectResourceTrack(orderedResourceTracks[0].id);
+    setManualTimelineEndFrame((current) =>
+      Math.max(current, selectedEndFrame),
+    );
+    if (selectedMotionInstances[0]) {
+      selectOnlyInstance(selectedMotionInstances[0].id);
+    } else if (selectedResourceTracks[0]) {
+      selectResourceTrack(selectedResourceTracks[0].id);
     }
+    setPendingArrangement(null);
     setNotice({
       tone: "ok",
-      text: `已从 ${file.name} 导入 ${importedInstances.length} 个动效和 ${orderedResourceTracks.length} 个资源轨道项。`,
+      text: `已确认插入 ${selectedMotionInstances.length} 个动效和 ${selectedResourceTracks.length} 个资源；原时间线内容已保留。`,
     });
   };
 
@@ -6123,10 +6242,10 @@ const App = () => {
             </button>
             <button
               onClick={() => timelineJsonInput.current?.click()}
-              title="导入 AI 生成的 JSON 编排，将当前效果库中的效果添加到时间轴"
+              title="载入内部编排结果，预览并确认后才会插入时间线"
             >
               <UploadSimple />
-              导入 JSON 编排
+              载入编排预览
             </button>
           </div>
 
@@ -7549,6 +7668,139 @@ const App = () => {
         >
           {notice.text}
         </button>
+      ) : null}
+      {pendingArrangement ? (
+        <div
+          className="export-dialog-layer arrangement-preview-layer"
+          onPointerDown={() => setPendingArrangement(null)}
+        >
+          <section
+            className="arrangement-preview-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="arrangement-preview-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <small>ARRANGEMENT PREVIEW</small>
+                <strong id="arrangement-preview-title">编排预览 · 尚未写入时间线</strong>
+                <span>{pendingArrangement.fileName}</span>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭编排预览"
+                onClick={() => setPendingArrangement(null)}
+              >
+                <X />
+              </button>
+            </header>
+
+            <div className="arrangement-preview-summary">
+              <span>
+                已选 <b>{pendingArrangement.selectedKeys.length}</b> /{" "}
+                {pendingArrangement.motionInstances.length +
+                  pendingArrangement.resourceTracks.length}
+              </span>
+              <span>
+                动效 {pendingArrangement.motionInstances.length} · 资源{" "}
+                {pendingArrangement.resourceTracks.length}
+              </span>
+              <span>
+                质检 {pendingArrangement.qualityControlStatus} ·{" "}
+                {pendingArrangement.qualityControlCheckCount} 项
+              </span>
+              <span className="preserve">原时间线将保留</span>
+            </div>
+
+            <div className="arrangement-preview-actions">
+              <button
+                type="button"
+                onClick={() => setAllPendingArrangementItems(true)}
+              >
+                全选
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllPendingArrangementItems(false)}
+              >
+                全不选
+              </button>
+            </div>
+
+            <div className="arrangement-preview-list">
+              {pendingArrangement.motionInstances.map((instance) => {
+                const key = `motion:${instance.id}`;
+                const definition = definitionMap.get(instance.componentId);
+                return (
+                  <label className="arrangement-preview-item" key={key}>
+                    <input
+                      type="checkbox"
+                      checked={pendingArrangement.selectedKeys.includes(key)}
+                      onChange={() => togglePendingArrangementItem(key)}
+                    />
+                    <i className="motion">动效</i>
+                    <span>
+                      <strong>{definition?.name ?? instance.componentId}</strong>
+                      <small>{instance.componentId}</small>
+                    </span>
+                    <time>
+                      {formatTime(instance.startFrame / fps)} ·{" "}
+                      {formatTime(instance.durationInFrames / fps)}
+                    </time>
+                  </label>
+                );
+              })}
+              {pendingArrangement.resourceTracks.map((track) => {
+                const key = `resource:${track.id}`;
+                return (
+                  <label className="arrangement-preview-item" key={key}>
+                    <input
+                      type="checkbox"
+                      checked={pendingArrangement.selectedKeys.includes(key)}
+                      onChange={() => togglePendingArrangementItem(key)}
+                    />
+                    <i className={track.kind}>
+                      {track.kind === "icon"
+                        ? "图标"
+                        : track.kind === "material"
+                          ? "素材"
+                          : "音效"}
+                    </i>
+                    <span>
+                      <strong>{track.name}</strong>
+                      <small>{track.resourceId}</small>
+                    </span>
+                    <time>
+                      {formatTime(track.startFrame / fps)} ·{" "}
+                      {formatTime(track.durationInFrames / fps)}
+                    </time>
+                  </label>
+                );
+              })}
+            </div>
+
+            <footer>
+              <span>只有勾选项会被插入，取消不会修改时间线。</span>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPendingArrangement(null)}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="arrangement-apply"
+                  disabled={pendingArrangement.selectedKeys.length === 0}
+                  onClick={applyPendingArrangement}
+                >
+                  <CheckCircle weight="fill" />确认插入所选项
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
       ) : null}
       {srtDialogOpen ? (
         <div
