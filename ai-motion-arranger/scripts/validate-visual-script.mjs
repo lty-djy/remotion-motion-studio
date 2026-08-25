@@ -8,6 +8,15 @@ import Ajv2020 from "ajv/dist/2020.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const schemaPath = join(here, "..", "visual-script.schema.json");
 const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+const resourceIndexPath = join(
+  here,
+  "..",
+  "..",
+  "public",
+  "input",
+  "resource-index.json",
+);
+const resourceIndex = JSON.parse(await readFile(resourceIndexPath, "utf8"));
 const { REGISTERED_CARDS } = await import(
   pathToFileURL(join(here, "registry-meta.mjs")).href
 );
@@ -55,6 +64,12 @@ const REQUIRED_QC_CHECKS = new Set([
   "voice-masking",
   "timeline-bounds",
 ]);
+const RESOURCE_IDS_BY_LIBRARY = new Map(
+  Object.entries(resourceIndex.libraries ?? {}).map(([library, entries]) => [
+    library,
+    new Set((Array.isArray(entries) ? entries : []).map((entry) => entry.id)),
+  ]),
+);
 
 const isRecord = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -142,6 +157,16 @@ export const validateVisualScript = (script) => {
   }
 
   const cardsById = new Map(REGISTERED_CARDS.map((card) => [card.id, card]));
+  if (script.project.resourceCatalog.root !== resourceIndex.root) {
+    errors.push(
+      `project.resourceCatalog.root 与当前资源索引不一致：${resourceIndex.root}`,
+    );
+  }
+  if (script.project.resourceCatalog.indexVersion !== resourceIndex.indexVersion) {
+    errors.push(
+      `project.resourceCatalog.indexVersion 必须为当前版本 "${resourceIndex.indexVersion}"`,
+    );
+  }
   const segmentIds = new Set();
   const intentIds = new Set();
   const expressionIds = new Set();
@@ -226,6 +251,15 @@ export const validateVisualScript = (script) => {
             `${expressionPath}.resource.library 应为 "${expectedLibrary}"（kind=${expression.kind}）`,
           );
         }
+        const resourceId = expression.resource?.resourceId;
+        if (
+          expectedLibrary &&
+          !RESOURCE_IDS_BY_LIBRARY.get(expectedLibrary)?.has(resourceId)
+        ) {
+          errors.push(
+            `${expressionPath}.resource.resourceId "${resourceId}" 不在 ${expectedLibrary} 资源索引中`,
+          );
+        }
         if (expression.component || expression.content) {
           errors.push(`${expressionPath} 资源表达不应携带 component/content`);
         }
@@ -272,12 +306,6 @@ export const validateVisualScript = (script) => {
   }
   if (qcStatus === "pending" && !qcStatuses.includes("pending")) {
     errors.push("qualityControl.status=pending 时至少一项检查必须是 pending");
-  }
-
-  if (stats.resources > 0) {
-    warnings.push(
-      `发现 ${stats.resources} 个资源表达；本阶段只校验 ID 和库类型，文件存在性将在资源索引阶段校验`,
-    );
   }
 
   return { valid: errors.length === 0, errors, warnings, stats };

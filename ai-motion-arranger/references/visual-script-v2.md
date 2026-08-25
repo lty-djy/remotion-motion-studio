@@ -31,7 +31,7 @@ Visual Script 2.0 是工作台内部协议，用户不需要手写、导入或�
 - `sfx`
 - `bgm`
 
-当前校验器只确认资源 ID 和库类型合法，不会假装文件已经存在；资源可用性将由第三步的索引器校验。
+资源清单位于 `public/input/resource-manifest.json`，技术索引位于 `public/input/resource-index.json`。Visual Script 校验器会确认索引版本、资源库类型和资源 ID 都存在；`npm.cmd run validate:resources` 则进一步确认文件、哈希、大小与媒体信息没有漂移。
 
 ## 校验
 

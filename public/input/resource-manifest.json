@@ -1,0 +1,70 @@
+{
+  "manifestVersion": "1",
+  "root": "public/input",
+  "resources": [
+    {
+      "id": "arrow",
+      "library": "icons",
+      "file": "icons/arrow.svg",
+      "label": "方向箭头",
+      "tags": ["方向", "流程", "跳转"],
+      "usage": "表示流向、下一步或因果关系"
+    },
+    {
+      "id": "code",
+      "library": "icons",
+      "file": "icons/code.svg",
+      "label": "代码符号",
+      "tags": ["代码", "开发", "自动化"],
+      "usage": "表示代码、编译或开发步骤"
+    },
+    {
+      "id": "timeline",
+      "library": "icons",
+      "file": "icons/timeline.svg",
+      "label": "时间线",
+      "tags": ["时间线", "轨道", "剪辑"],
+      "usage": "表示时间线、多轨道或自动插入"
+    },
+    {
+      "id": "speed",
+      "library": "icons",
+      "file": "icons/speed.svg",
+      "label": "速度仪表",
+      "tags": ["速度", "性能", "增长"],
+      "usage": "表示吞吐、性能、加速或效率提升"
+    },
+    {
+      "id": "impact",
+      "library": "sfx",
+      "file": "sfx/impact.wav",
+      "label": "轻冲击",
+      "tags": ["冲击", "重点", "落点"],
+      "usage": "用于核心结论或大数字的轻量落点"
+    },
+    {
+      "id": "whoosh-soft",
+      "library": "sfx",
+      "file": "sfx/whoosh-soft.wav",
+      "label": "柔和掠过",
+      "tags": ["进入", "转场", "滑动"],
+      "usage": "用于组件滑入、滑出或轻转场"
+    },
+    {
+      "id": "tick",
+      "library": "sfx",
+      "file": "sfx/tick.wav",
+      "label": "轻点按",
+      "tags": ["步骤", "勾选", "数字"],
+      "usage": "用于逐项弹出、步骤完成或微交互"
+    },
+    {
+      "id": "default-bgm",
+      "library": "bgm",
+      "file": "bgm/default-bgm.wav",
+      "label": "低强度合成氛围",
+      "tags": ["背景", "科技", "平稳"],
+      "usage": "可循环的低存在感背景底乐，需配合人声压低"
+    }
+  ]
+}

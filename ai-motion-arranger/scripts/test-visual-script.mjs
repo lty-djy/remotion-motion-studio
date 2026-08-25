@@ -28,6 +28,7 @@ if (invalidResult.valid) {
 const expectedFragments = [
   "evidenceText",
   "MadeUpEffect",
+  "missing-icon",
   "超出项目总帧数",
   "timeline-bounds",
 ];

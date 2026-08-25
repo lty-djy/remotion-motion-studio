@@ -50,6 +50,23 @@
             "collisionPolicy": "relocate",
             "zIndex": 20
           }
+        },
+        {
+          "id": "icon-invalid",
+          "intentId": "intent-metric",
+          "kind": "icon",
+          "selectionReason": "验证未登记资源会被拒绝。",
+          "enabled": true,
+          "resource": { "library": "icons", "resourceId": "missing-icon" },
+          "timing": { "startFrame": 0, "endFrame": 60, "enter": "draw", "exit": "fade" },
+          "track": "icon",
+          "layout": {
+            "anchor": "left-top",
+            "size": "small",
+            "avoid": ["face", "captions"],
+            "collisionPolicy": "relocate",
+            "zIndex": 25
+          }
         }
       ]
     }

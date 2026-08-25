@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs",
-    "prevalidate:visual-script": "npm run sync:registry",
+    "sync:resources": "node ai-motion-arranger/scripts/build-resource-index.mjs",
+    "validate:resources": "node ai-motion-arranger/scripts/validate-resource-index.mjs",
+    "prevalidate:visual-script": "npm run sync:registry && npm run sync:resources",
     "validate:visual-script": "node ai-motion-arranger/scripts/validate-visual-script.mjs",
-    "pretest:visual-script": "npm run sync:registry",
+    "pretest:visual-script": "npm run sync:registry && npm run sync:resources",
     "test:visual-script": "node ai-motion-arranger/scripts/test-visual-script.mjs",
-    "predev": "npm run sync:registry",
+    "predev": "npm run sync:registry && npm run sync:resources",
     "dev": "vite --config local-vite.config.ts",
-    "prebuild": "npm run sync:registry",
+    "prebuild": "npm run sync:registry && npm run sync:resources",
     "build": "vite build --config local-vite.config.ts",
-    "prestart": "npm run sync:registry",
+    "prestart": "npm run sync:registry && npm run sync:resources",
     "start": "vite --config local-vite.config.ts --host 127.0.0.1 --port 41735"
   },
   "dependencies": {

@@ -1,0 +1,166 @@
+{
+  "indexVersion": "1",
+  "root": "public/input",
+  "resourceCount": 8,
+  "libraries": {
+    "icons": [
+      {
+        "id": "arrow",
+        "label": "方向箭头",
+        "file": "icons/arrow.svg",
+        "url": "/input/icons/arrow.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 208,
+        "sha256": "7dbf2d1cff6bbc8880fe7cca5dd7ac938c146ab8365c27739ebe12950beaa267",
+        "tags": [
+          "方向",
+          "流程",
+          "跳转"
+        ],
+        "usage": "表示流向、下一步或因果关系",
+        "media": {
+          "viewBox": "0 0 64 64"
+        }
+      },
+      {
+        "id": "code",
+        "label": "代码符号",
+        "file": "icons/code.svg",
+        "url": "/input/icons/code.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 229,
+        "sha256": "4714168b847cd9b30d80ed854e6873980535e7ba1fe2aafa7ca0575641cc897e",
+        "tags": [
+          "代码",
+          "开发",
+          "自动化"
+        ],
+        "usage": "表示代码、编译或开发步骤",
+        "media": {
+          "viewBox": "0 0 64 64"
+        }
+      },
+      {
+        "id": "speed",
+        "label": "速度仪表",
+        "file": "icons/speed.svg",
+        "url": "/input/icons/speed.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 438,
+        "sha256": "a22e0a25756b25d3b4076edbfd9105f16b03d5f7aa5f96cdd57f86945ad0571f",
+        "tags": [
+          "速度",
+          "性能",
+          "增长"
+        ],
+        "usage": "表示吞吐、性能、加速或效率提升",
+        "media": {
+          "viewBox": "0 0 64 64"
+        }
+      },
+      {
+        "id": "timeline",
+        "label": "时间线",
+        "file": "icons/timeline.svg",
+        "url": "/input/icons/timeline.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 473,
+        "sha256": "7a3ac7f6c8dcc0ab3183c6b3381d8be5404488f04c4be257b016c00c73c65c15",
+        "tags": [
+          "时间线",
+          "轨道",
+          "剪辑"
+        ],
+        "usage": "表示时间线、多轨道或自动插入",
+        "media": {
+          "viewBox": "0 0 64 64"
+        }
+      }
+    ],
+    "materials": [],
+    "sfx": [
+      {
+        "id": "impact",
+        "label": "轻冲击",
+        "file": "sfx/impact.wav",
+        "url": "/input/sfx/impact.wav",
+        "mimeType": "audio/wav",
+        "bytes": 20204,
+        "sha256": "aa6c59d541e9c53449794429a4de4f64ff78f27a24ff23e0a3f8d3328b9bda4e",
+        "tags": [
+          "冲击",
+          "重点",
+          "落点"
+        ],
+        "usage": "用于核心结论或大数字的轻量落点",
+        "media": {
+          "durationSeconds": 0.42,
+          "sampleRate": 24000,
+          "channels": 1
+        }
+      },
+      {
+        "id": "tick",
+        "label": "轻点按",
+        "file": "sfx/tick.wav",
+        "url": "/input/sfx/tick.wav",
+        "mimeType": "audio/wav",
+        "bytes": 5804,
+        "sha256": "50e037849ea5728c9fc8dd0f63943504e2fd016ae759b104898060ecca013b5f",
+        "tags": [
+          "步骤",
+          "勾选",
+          "数字"
+        ],
+        "usage": "用于逐项弹出、步骤完成或微交互",
+        "media": {
+          "durationSeconds": 0.12,
+          "sampleRate": 24000,
+          "channels": 1
+        }
+      },
+      {
+        "id": "whoosh-soft",
+        "label": "柔和掠过",
+        "file": "sfx/whoosh-soft.wav",
+        "url": "/input/sfx/whoosh-soft.wav",
+        "mimeType": "audio/wav",
+        "bytes": 26444,
+        "sha256": "9dc9ca07911e054d84cd2379e4705092bf2d01a19bc480f67bb11712f09e608b",
+        "tags": [
+          "进入",
+          "转场",
+          "滑动"
+        ],
+        "usage": "用于组件滑入、滑出或轻转场",
+        "media": {
+          "durationSeconds": 0.55,
+          "sampleRate": 24000,
+          "channels": 1
+        }
+      }
+    ],
+    "bgm": [
+      {
+        "id": "default-bgm",
+        "label": "低强度合成氛围",
+        "file": "bgm/default-bgm.wav",
+        "url": "/input/bgm/default-bgm.wav",
+        "mimeType": "audio/wav",
+        "bytes": 288044,
+        "sha256": "deef0342b1d365f28ce567b11b81277701da83cc56247fd6654cf2fd93596a16",
+        "tags": [
+          "背景",
+          "科技",
+          "平稳"
+        ],
+        "usage": "可循环的低存在感背景底乐，需配合人声压低",
+        "media": {
+          "durationSeconds": 6,
+          "sampleRate": 24000,
+          "channels": 1
+        }
+      }
+    ]
+  }
+}

@@ -20,6 +20,9 @@ ai-motion-arranger/
 │   ├── sync-runtime-registry.mjs    # 从真实运行时 registry 同步元数据与目录
 │   ├── registry-meta.mjs            # 自动生成的技术字段，禁止手改
 │   ├── generate-card-catalog.mjs    # 自动生成 references/card-catalog.md
+│   ├── generate-built-in-audio.mjs  # 重建仓库自带的原创 WAV 资源
+│   ├── build-resource-index.mjs     # 根据真实文件生成资源技术索引
+│   ├── validate-resource-index.mjs  # 校验资源文件、哈希与索引一致性
 │   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
 │   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
 │   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
@@ -40,6 +43,17 @@ ai-motion-arranger/
 npm.cmd run validate:visual-script -- ai-motion-arranger/examples/sample-visual-script-v2.json
 npm.cmd run test:visual-script
 ```
+
+## 固定资源库
+
+AI 只能引用 [`public/input/resource-index.json`](../public/input/resource-index.json) 中存在的 `library + resourceId`。真实文件与维护规则见 [`public/input/README.md`](../public/input/README.md)。
+
+```powershell
+npm.cmd run sync:resources
+npm.cmd run validate:resources
+```
+
+`predev` / `prebuild` / `prestart` 和 Visual Script 校验前都会自动刷新索引，防止 manifest 与真实文件脱节。
 
 ## 两层架构
 
