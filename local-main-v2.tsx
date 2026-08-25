@@ -69,6 +69,11 @@ import {
   createKnownAvoidanceRegions,
 } from "./ai-motion-arranger/avoidance-layout-planner.mjs";
 import { runTimelineQualityControl } from "./ai-motion-arranger/quality-control.mjs";
+import {
+  createArrangementBatch,
+  removeArrangementBatch,
+  summarizeArrangementBatch,
+} from "./ai-motion-arranger/arrangement-batch.mjs";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -120,10 +125,14 @@ type TimelineJsonItem = {
   position?: Partial<MotionInstance["position"]>;
   backgroundOpacity?: number;
   props?: Record<string, unknown>;
+  sourceExpressionId?: string;
+  sourceIntentId?: string;
 };
 
 type PendingArrangement = {
   fileName: string;
+  batchId: string;
+  batchName: string;
   motionInstances: MotionInstance[];
   resourceTracks: ResourceTrack[];
   selectedKeys: string[];
@@ -147,6 +156,23 @@ type PendingArrangement = {
     scaledCount: number;
     unresolvedCount: number;
   };
+};
+
+type ArrangementIntentSummary = {
+  id: string;
+  label: string;
+  startFrame: number;
+  motionIds: string[];
+  resourceIds: string[];
+};
+
+type ArrangementBatchSummary = {
+  id: string;
+  name: string;
+  startFrame: number;
+  motionIds: string[];
+  resourceIds: string[];
+  intents: ArrangementIntentSummary[];
 };
 
 const QUALITY_CONTROL_LABELS: Record<string, string> = {
@@ -397,6 +423,7 @@ type ProjectSnapshot = {
   safetyGuideVisible?: boolean;
   personPlaceholderEnabled?: boolean;
   soundEnabled?: boolean;
+  activeArrangementBatchId?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -602,6 +629,18 @@ const restoreResourceTrack = (
     },
     volume: clamp(finiteNumber(track.volume, 1), 0, 1),
     voiceDucking: clamp(finiteNumber(track.voiceDucking, 0), 0, 1),
+    ...(typeof track.sourceExpressionId === "string" && track.sourceExpressionId
+      ? { sourceExpressionId: track.sourceExpressionId }
+      : {}),
+    ...(typeof track.sourceIntentId === "string" && track.sourceIntentId
+      ? { sourceIntentId: track.sourceIntentId }
+      : {}),
+    ...(typeof track.arrangementBatchId === "string" && track.arrangementBatchId
+      ? { arrangementBatchId: track.arrangementBatchId }
+      : {}),
+    ...(typeof track.arrangementBatchName === "string" && track.arrangementBatchName
+      ? { arrangementBatchName: track.arrangementBatchName }
+      : {}),
   };
 };
 
@@ -753,6 +792,21 @@ const createInstance = (
       ...defaultsFromDefinition(definition),
       ...(overrides.props ?? {}),
     },
+    ...(typeof overrides.sourceExpressionId === "string" &&
+    overrides.sourceExpressionId
+      ? { sourceExpressionId: overrides.sourceExpressionId }
+      : {}),
+    ...(typeof overrides.sourceIntentId === "string" && overrides.sourceIntentId
+      ? { sourceIntentId: overrides.sourceIntentId }
+      : {}),
+    ...(typeof overrides.arrangementBatchId === "string" &&
+    overrides.arrangementBatchId
+      ? { arrangementBatchId: overrides.arrangementBatchId }
+      : {}),
+    ...(typeof overrides.arrangementBatchName === "string" &&
+    overrides.arrangementBatchName
+      ? { arrangementBatchName: overrides.arrangementBatchName }
+      : {}),
   };
 };
 
@@ -1162,6 +1216,10 @@ const App = () => {
   const [instances, setInstances] = useState<MotionInstance[]>([]);
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
+  const [activeArrangementBatchId, setActiveArrangementBatchId] =
+    useState("");
+  const [activeArrangementIntentId, setActiveArrangementIntentId] =
+    useState("");
   const [selectedInstanceId, setSelectedInstanceId] = useState("");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [componentName, setComponentName] = useState("本地示例动效");
@@ -1459,6 +1517,17 @@ const App = () => {
     () => new Set(selectedInstanceIds),
     [selectedInstanceIds],
   );
+  const activeArrangementBatch = useMemo<ArrangementBatchSummary | null>(
+    () =>
+      activeArrangementBatchId
+        ? (summarizeArrangementBatch({
+            batchId: activeArrangementBatchId,
+            motionItems: instances,
+            resourceItems: resourceTracks,
+          }) as ArrangementBatchSummary | null)
+        : null,
+    [activeArrangementBatchId, instances, resourceTracks],
+  );
   const timelineLanes = useMemo<TimelineLane[]>(() => {
     const lanes = new Map<string, TimelineLane>();
     for (const track of videoTracks) {
@@ -1684,6 +1753,10 @@ const App = () => {
               position: savedInstance.position,
               backgroundOpacity: savedInstance.backgroundOpacity,
               props: savedInstance.props,
+              sourceExpressionId: savedInstance.sourceExpressionId,
+              sourceIntentId: savedInstance.sourceIntentId,
+              arrangementBatchId: savedInstance.arrangementBatchId,
+              arrangementBatchName: savedInstance.arrangementBatchName,
             },
           );
           return [
@@ -1909,6 +1982,10 @@ const App = () => {
           draft?.personPlaceholderEnabled !== false,
         );
         setSoundEnabled(draft?.soundEnabled !== false);
+        setActiveArrangementBatchId(
+          canRestoreDraft ? (draft?.activeArrangementBatchId ?? "") : "",
+        );
+        setActiveArrangementIntentId("");
         if (Number(draft?.timelineHeight) >= 180) {
           setTimelineHeight(Number(draft?.timelineHeight));
         }
@@ -2147,6 +2224,7 @@ const App = () => {
       version: 1,
       name: projectName.trim() || "未命名项目",
       activeComponentId,
+      activeArrangementBatchId,
       componentName,
       sourceIncludesVideo,
       videoName,
@@ -2172,6 +2250,7 @@ const App = () => {
     }),
     [
       activeComponentId,
+      activeArrangementBatchId,
       canvasOrientation,
       componentName,
       currentFrame,
@@ -3418,6 +3497,14 @@ const App = () => {
             ? undefined
             : finiteNumber(rawItem.backgroundOpacity, 0),
         props: isRecord(rawItem.props) ? rawItem.props : undefined,
+        sourceExpressionId:
+          typeof rawItem.sourceExpressionId === "string"
+            ? rawItem.sourceExpressionId
+            : undefined,
+        sourceIntentId:
+          typeof rawItem.sourceIntentId === "string"
+            ? rawItem.sourceIntentId
+            : undefined,
       };
     });
     let indexedResources = new Set<string>();
@@ -3500,6 +3587,8 @@ const App = () => {
           position: item.position,
           backgroundOpacity: item.backgroundOpacity,
           props: item.props,
+          sourceExpressionId: item.sourceExpressionId,
+          sourceIntentId: item.sourceIntentId,
         },
       ),
     );
@@ -3510,14 +3599,21 @@ const App = () => {
           ? track.trackOrder
           : firstTrackOrder + items.length + index,
     }));
+    const arrangementBatch = createArrangementBatch({
+      batchName: file.name,
+      motionItems: importedInstances,
+      resourceItems: orderedResourceTracks,
+    });
     const selectedKeys = [
-      ...importedInstances.map((instance) => `motion:${instance.id}`),
-      ...orderedResourceTracks.map((track) => `resource:${track.id}`),
+      ...arrangementBatch.motionItems.map((instance) => `motion:${instance.id}`),
+      ...arrangementBatch.resourceItems.map((track) => `resource:${track.id}`),
     ];
     setPendingArrangement({
       fileName: file.name,
-      motionInstances: importedInstances,
-      resourceTracks: orderedResourceTracks,
+      batchId: arrangementBatch.batchId,
+      batchName: arrangementBatch.batchName,
+      motionInstances: arrangementBatch.motionItems,
+      resourceTracks: arrangementBatch.resourceItems,
       selectedKeys,
       qualityControlStatus:
         typeof qualityControl?.status === "string"
@@ -3528,7 +3624,7 @@ const App = () => {
     });
     setNotice({
       tone: "info",
-      text: `已生成 ${importedInstances.length} 个动效和 ${orderedResourceTracks.length} 个资源的编排预览，时间线尚未修改。`,
+      text: `已生成 ${arrangementBatch.motionItems.length} 个动效和 ${arrangementBatch.resourceItems.length} 个资源的编排预览，时间线尚未修改。`,
     });
   };
 
@@ -3601,6 +3697,14 @@ const App = () => {
     } else if (selectedResourceTracks[0]) {
       selectResourceTrack(selectedResourceTracks[0].id);
     }
+    setActiveArrangementBatchId(pendingArrangement.batchId);
+    setActiveArrangementIntentId("");
+    seekEditorFrame(
+      Math.min(
+        ...selectedMotionInstances.map((instance) => instance.startFrame),
+        ...selectedResourceTracks.map((track) => track.startFrame),
+      ),
+    );
     setPendingArrangement(null);
     setNotice({
       tone: "ok",
@@ -5460,6 +5564,55 @@ const App = () => {
     setCurrentFrame(nextFrame);
   };
 
+  const focusArrangementIntent = (intentId: string) => {
+    if (!activeArrangementBatch) return;
+    const intent = intentId
+      ? activeArrangementBatch.intents.find((candidate) => candidate.id === intentId)
+      : null;
+    const motionIds = intent?.motionIds ?? activeArrangementBatch.motionIds;
+    const resourceIds = intent?.resourceIds ?? activeArrangementBatch.resourceIds;
+    const firstMotion = instances.find((instance) => motionIds.includes(instance.id));
+    const firstResource = resourceTracks.find((track) =>
+      resourceIds.includes(track.id),
+    );
+    setActiveArrangementIntentId(intentId);
+    if (firstMotion) selectOnlyInstance(firstMotion.id);
+    else if (firstResource) selectResourceTrack(firstResource.id);
+    seekEditorFrame(intent?.startFrame ?? activeArrangementBatch.startFrame);
+    setNotice({
+      tone: "info",
+      text: intent
+        ? `已定位“${intent.label}”语义组；点击具体轨道即可微调。`
+        : "已定位并高亮本次自动编排的全部轨道。",
+    });
+  };
+
+  const undoActiveArrangementBatch = () => {
+    if (!activeArrangementBatch) return;
+    const removed = removeArrangementBatch({
+      batchId: activeArrangementBatch.id,
+      motionItems: instances,
+      resourceItems: resourceTracks,
+    });
+    const removedIds = new Set([
+      ...activeArrangementBatch.motionIds,
+      ...activeArrangementBatch.resourceIds,
+    ]);
+    setInstances(removed.motionItems);
+    setResourceTracks(removed.resourceItems);
+    if (removedIds.has(selectedInstanceId) || removedIds.has(selectedResourceTrackId)) {
+      setSelectedInstanceId("");
+      setSelectedInstanceIds([]);
+      setSelectedResourceTrackId("");
+    }
+    setActiveArrangementBatchId("");
+    setActiveArrangementIntentId("");
+    setNotice({
+      tone: "ok",
+      text: `已撤销本次插入：移除 ${activeArrangementBatch.motionIds.length} 个动效和 ${activeArrangementBatch.resourceIds.length} 个资源，原时间线未受影响。`,
+    });
+  };
+
   const togglePlayback = () => {
     if (isPlaying) {
       playerRef.current?.pause();
@@ -6383,11 +6536,17 @@ const App = () => {
                 ({ instance, definition, stackIndex }) => {
                   const isSelected = selectedInstanceIdSet.has(instance.id);
                   const isPrimary = selectedInstanceId === instance.id;
+                  const isArrangementFocused =
+                    instance.arrangementBatchId === activeArrangementBatch?.id &&
+                    (!activeArrangementIntentId ||
+                      instance.sourceIntentId === activeArrangementIntentId);
                   return (
                     <div
                       className={`canvas-selection ${
                         isSelected ? "selected" : ""
-                      } ${isPrimary ? "primary" : ""}`}
+                      } ${isPrimary ? "primary" : ""} ${
+                        isArrangementFocused ? "arrangement-focused" : ""
+                      }`}
                       key={instance.id}
                       role="button"
                       aria-label={`选择预览组件 ${definition.name}`}
@@ -6470,7 +6629,9 @@ const App = () => {
 
           <div
             ref={timelineRef}
-            className="timeline"
+            className={`timeline ${
+              activeArrangementBatch ? "has-arrangement-focus" : ""
+            }`}
             style={{
               height: timelineHeight,
               flexBasis: timelineHeight,
@@ -6638,6 +6799,51 @@ const App = () => {
                 </button>
               </div>
             </div>
+            {activeArrangementBatch ? (
+              <div
+                className="arrangement-focus-bar"
+                aria-label="本次自动编排微调"
+              >
+                <div className="arrangement-focus-title">
+                  <strong>本次自动编排</strong>
+                  <span>
+                    {activeArrangementBatch.motionIds.length} 动效 ·{" "}
+                    {activeArrangementBatch.resourceIds.length} 资源
+                  </span>
+                </div>
+                <div className="arrangement-focus-groups">
+                  <button
+                    type="button"
+                    className={!activeArrangementIntentId ? "active" : ""}
+                    onClick={() => focusArrangementIntent("")}
+                  >
+                    全部
+                  </button>
+                  {activeArrangementBatch.intents.map((intent) => (
+                    <button
+                      type="button"
+                      className={
+                        activeArrangementIntentId === intent.id ? "active" : ""
+                      }
+                      key={intent.id}
+                      onClick={() => focusArrangementIntent(intent.id)}
+                    >
+                      {intent.label} · {formatTime(intent.startFrame / fps)}
+                    </button>
+                  ))}
+                </div>
+                <div className="arrangement-focus-actions">
+                  <button
+                    type="button"
+                    className="undo-batch"
+                    onClick={undoActiveArrangementBatch}
+                    title="只移除本次自动插入的内容"
+                  >
+                    <Trash />撤销本次插入
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div
               className="ruler"
               onClick={(event) => seekTimelineFromClientX(event.clientX)}
@@ -6866,6 +7072,12 @@ const App = () => {
                                   selectedResourceTrackId === track.id
                                     ? "selected"
                                     : ""
+                                } ${
+                                  track.arrangementBatchId === activeArrangementBatch?.id &&
+                                  (!activeArrangementIntentId ||
+                                    track.sourceIntentId === activeArrangementIntentId)
+                                    ? "arrangement-focused"
+                                    : ""
                                 }`}
                                 key={track.id}
                                 style={{
@@ -6908,11 +7120,21 @@ const App = () => {
                               instance.componentId,
                             );
                             if (!clipDefinition) return null;
+                            const isArrangementFocused =
+                              instance.arrangementBatchId ===
+                                activeArrangementBatch?.id &&
+                              (!activeArrangementIntentId ||
+                                instance.sourceIntentId ===
+                                  activeArrangementIntentId);
                             return (
                               <div
                               className={`clip ${
                                 selectedInstanceIdSet.has(instance.id)
                                   ? "selected"
+                                  : ""
+                              } ${
+                                isArrangementFocused
+                                  ? "arrangement-focused"
                                   : ""
                               }`}
                               key={instance.id}

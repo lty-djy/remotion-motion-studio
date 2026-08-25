@@ -56,6 +56,10 @@ export type MotionInstance = {
   position: MotionPosition;
   backgroundOpacity: number;
   props: Record<string, unknown>;
+  sourceExpressionId?: string;
+  sourceIntentId?: string;
+  arrangementBatchId?: string;
+  arrangementBatchName?: string;
 };
 
 export type MotionTimelinePreset = {
@@ -106,6 +110,10 @@ export type ResourceTrack = {
   };
   volume: number;
   voiceDucking: number;
+  sourceExpressionId?: string;
+  sourceIntentId?: string;
+  arrangementBatchId?: string;
+  arrangementBatchName?: string;
 };
 
 export type MotionModule = Record<string, unknown> & {

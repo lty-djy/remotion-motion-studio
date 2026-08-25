@@ -1689,6 +1689,94 @@ aside {
   height: 14px;
 }
 
+.arrangement-focus-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  margin: 5px 0 3px;
+  padding: 5px 7px;
+  border: 1px solid rgba(183, 137, 255, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(123, 80, 196, 0.14),
+    rgba(62, 151, 185, 0.08)
+  );
+}
+
+.arrangement-focus-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.arrangement-focus-title strong {
+  color: #eadfff;
+  font-size: 10px;
+}
+
+.arrangement-focus-title span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.arrangement-focus-groups {
+  display: flex;
+  min-width: 0;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.arrangement-focus-bar button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 25px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #aeb5c1;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.arrangement-focus-bar button:hover,
+.arrangement-focus-bar button.active {
+  color: #f3edff;
+  border-color: rgba(183, 137, 255, 0.56);
+  background: rgba(183, 137, 255, 0.15);
+}
+
+.arrangement-focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.arrangement-focus-actions .undo-batch {
+  color: #ffc2ca;
+  border-color: rgba(255, 92, 115, 0.3);
+  background: rgba(255, 78, 104, 0.07);
+}
+
+.arrangement-focus-actions .undo-batch:hover {
+  color: #ffe7ea;
+  border-color: rgba(255, 92, 115, 0.58);
+  background: rgba(255, 78, 104, 0.14);
+}
+
+.arrangement-focus-bar svg {
+  width: 11px;
+  height: 11px;
+}
+
 .ruler {
   position: relative;
   height: 34px;
@@ -1729,6 +1817,10 @@ aside {
   overflow-y: auto;
   overflow-x: hidden;
   cursor: crosshair;
+}
+
+.timeline.has-arrangement-focus .timeline-tracks {
+  height: calc(100% - 150px);
 }
 
 .timeline-track-row {
@@ -1787,6 +1879,18 @@ aside {
 .clip.selected {
   border-color: #8bedff;
   box-shadow: 0 0 18px rgba(101, 223, 247, 0.2);
+}
+
+.clip.arrangement-focused {
+  border-color: #c9a6ff;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 166, 255, 0.32),
+    0 0 16px rgba(160, 112, 238, 0.22);
+}
+
+.canvas-selection.arrangement-focused:not(.selected) {
+  border-color: rgba(201, 166, 255, 0.9);
+  box-shadow: 0 0 15px rgba(160, 112, 238, 0.34);
 }
 
 .timeline-video-track .track-body {
