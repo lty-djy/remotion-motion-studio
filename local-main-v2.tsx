@@ -842,7 +842,11 @@ const getRegisteredEffectPosition = (
   const canvasHeight = orientation === "portrait" ? 1920 : 1080;
   if (
     orientation === "portrait" &&
-    ["PortraitChapterRail", "PortraitKeywordBurst"].includes(definition.id)
+    [
+      "PortraitChapterRail",
+      "PortraitKeywordBurst",
+      "PortraitInfoCallout",
+    ].includes(definition.id)
   ) {
     return { ...definition.defaultPosition };
   }

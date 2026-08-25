@@ -56,6 +56,22 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "PortraitInfoCallout",
+    placement: "right",
+    bounds: [430, 230],
+    props: [
+      "eyebrow",
+      "title",
+      "detail",
+      "note",
+      "iconText",
+      "accentColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {

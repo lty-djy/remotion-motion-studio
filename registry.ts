@@ -15,6 +15,7 @@ import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryG
 import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitKeywordBurstEffectDef } from "./effects/PortraitKeywordBurst";
+import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -51,6 +52,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitChapterRailEffectDef,
 
   PortraitKeywordBurstEffectDef,
+
+  PortraitInfoCalloutEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];
