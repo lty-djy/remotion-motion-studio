@@ -3176,6 +3176,18 @@ aside {
   background: rgba(83, 219, 163, 0.07);
 }
 
+.arrangement-preview-summary .layout-ok {
+  color: #7ce2ba;
+  border-color: rgba(83, 219, 163, 0.28);
+  background: rgba(83, 219, 163, 0.07);
+}
+
+.arrangement-preview-summary .layout-warning {
+  color: #ffc46b;
+  border-color: rgba(255, 196, 107, 0.3);
+  background: rgba(255, 196, 107, 0.08);
+}
+
 .arrangement-preview-actions {
   display: flex;
   justify-content: flex-end;

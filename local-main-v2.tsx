@@ -64,6 +64,10 @@ import {
   EFFECT_REGISTRY_BY_ID,
 } from "./registry";
 import { buildSemanticSrtArrangement } from "./ai-motion-arranger/semantic-srt-arranger.mjs";
+import {
+  applyAvoidanceLayout,
+  createKnownAvoidanceRegions,
+} from "./ai-motion-arranger/avoidance-layout-planner.mjs";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -128,6 +132,13 @@ type PendingArrangement = {
     cueCount: number;
     intentCount: number;
     skippedCueCount: number;
+  };
+  layoutSummary?: {
+    obstacleLabels: string[];
+    visualCount: number;
+    repositionedCount: number;
+    scaledCount: number;
+    unresolvedCount: number;
   };
 };
 
@@ -363,6 +374,7 @@ type ProjectSnapshot = {
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
+  personPlaceholderEnabled?: boolean;
   soundEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -826,6 +838,7 @@ type StudioPreviewProps = {
   instances: MotionInstance[];
   canvasOrientation: "landscape" | "portrait";
   safetyGuideVisible: boolean;
+  personPlaceholderEnabled: boolean;
   soundEnabled: boolean;
   globalCardScale: number;
 };
@@ -840,6 +853,7 @@ const StudioPreviewComposition = ({
   instances,
   canvasOrientation,
   safetyGuideVisible,
+  personPlaceholderEnabled,
   soundEnabled,
   globalCardScale,
 }: StudioPreviewProps) => {
@@ -853,6 +867,15 @@ const StudioPreviewComposition = ({
   const activeVideoUrl =
     shownVideoTracks[0]?.url || (videoTracks.length === 0 ? videoUrl : "");
   const hasImportedVideo = videoTracks.length > 0 || Boolean(videoUrl);
+  const previewCanvas =
+    canvasOrientation === "portrait"
+      ? { width: 1080, height: 1920, orientation: "portrait" }
+      : { width: 1920, height: 1080, orientation: "landscape" };
+  const previewAvoidanceRegions = createKnownAvoidanceRegions({
+    canvas: previewCanvas,
+    includeFace: personPlaceholderEnabled,
+    includeCaptions: true,
+  });
   const orderedLayers = [
     ...shownVideoTracks.map((track) => ({
       kind: "video" as const,
@@ -1006,69 +1029,90 @@ const StudioPreviewComposition = ({
           请先导入这个组件包使用的原视频
         </AbsoluteFill>
       ) : null}
-      {safetyGuideVisible ? <div
-        data-preview-safety-guide
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 1000,
-          pointerEvents: "none",
-        }}
-      >
+      {safetyGuideVisible ? (
         <div
+          data-preview-safety-guide
+          aria-hidden="true"
           style={{
             position: "absolute",
-            top: canvasOrientation === "portrait" ? "12%" : "10%",
-            bottom: canvasOrientation === "portrait" ? "10%" : "9%",
-            left: "50%",
-            width: canvasOrientation === "portrait" ? "38%" : "24%",
-            translate: "-50% 0",
-            border: "2px dashed rgba(255,255,255,.24)",
+            inset: 0,
+            zIndex: 1000,
+            pointerEvents: "none",
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "13%",
-              width: "24%",
-              aspectRatio: "1",
-              translate: "-50% 0",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,.13)",
-              border: "1px solid rgba(255,255,255,.2)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "31%",
-              bottom: "7%",
-              width: "62%",
-              translate: "-50% 0",
-              background: "rgba(255,255,255,.105)",
-              border: "1px solid rgba(255,255,255,.16)",
-              clipPath: "polygon(23% 0,77% 0,100% 28%,84% 100%,16% 100%,0 28%)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              bottom: 16,
-              translate: "-50% 0",
-              color: "rgba(255,255,255,.34)",
-              fontSize: 16,
-              letterSpacing: ".18em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            人物安全区 · 禁止遮挡
-          </div>
+          {previewAvoidanceRegions.map((region) => (
+            <div
+              key={region.id}
+              data-avoidance-region={region.kind}
+              style={{
+                position: "absolute",
+                left: region.x,
+                top: region.y,
+                width: region.width,
+                height: region.height,
+                boxSizing: "border-box",
+                border:
+                  region.kind === "face"
+                    ? "2px dashed rgba(255,255,255,.24)"
+                    : "2px dashed rgba(85,230,255,.34)",
+                background:
+                  region.kind === "captions"
+                    ? "rgba(85,230,255,.035)"
+                    : "transparent",
+              }}
+            >
+              {region.kind === "face" ? (
+                <>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: "13%",
+                      width: "24%",
+                      aspectRatio: "1",
+                      translate: "-50% 0",
+                      borderRadius: "50%",
+                      background: "rgba(255,255,255,.13)",
+                      border: "1px solid rgba(255,255,255,.2)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: "31%",
+                      bottom: "7%",
+                      width: "62%",
+                      translate: "-50% 0",
+                      background: "rgba(255,255,255,.105)",
+                      border: "1px solid rgba(255,255,255,.16)",
+                      clipPath:
+                        "polygon(23% 0,77% 0,100% 28%,84% 100%,16% 100%,0 28%)",
+                    }}
+                  />
+                </>
+              ) : null}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  bottom: 14,
+                  translate: "-50% 0",
+                  color:
+                    region.kind === "face"
+                      ? "rgba(255,255,255,.34)"
+                      : "rgba(85,230,255,.48)",
+                  fontSize: 16,
+                  letterSpacing: ".18em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {region.label} · 自动避让
+              </div>
+            </div>
+          ))}
         </div>
-      </div> : null}
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -1174,6 +1218,8 @@ const App = () => {
     "landscape" | "portrait"
   >("landscape");
   const [safetyGuideVisible, setSafetyGuideVisible] = useState(true);
+  const [personPlaceholderEnabled, setPersonPlaceholderEnabled] =
+    useState(true);
   const [initialPanelWidths] = useState(readStoredPanelWidths);
   const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
   const [rightPanelWidth, setRightPanelWidth] = useState(initialPanelWidths.right);
@@ -1838,6 +1884,9 @@ const App = () => {
           draft?.canvasOrientation === "portrait" ? "portrait" : "landscape",
         );
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
+        setPersonPlaceholderEnabled(
+          draft?.personPlaceholderEnabled !== false,
+        );
         setSoundEnabled(draft?.soundEnabled !== false);
         if (Number(draft?.timelineHeight) >= 180) {
           setTimelineHeight(Number(draft?.timelineHeight));
@@ -2052,6 +2101,7 @@ const App = () => {
       instances: effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
+      personPlaceholderEnabled,
       soundEnabled,
       globalCardScale,
     }),
@@ -2060,6 +2110,7 @@ const App = () => {
       effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
+      personPlaceholderEnabled,
       soundEnabled,
       sourceIncludesVideo,
       videoPreviewEnabled,
@@ -2095,6 +2146,7 @@ const App = () => {
       trackHeights,
       canvasOrientation,
       safetyGuideVisible,
+      personPlaceholderEnabled,
       soundEnabled,
     }),
     [
@@ -2106,6 +2158,7 @@ const App = () => {
       projectName,
       resourceTracks,
       safetyGuideVisible,
+      personPlaceholderEnabled,
       soundEnabled,
       sourceIncludesVideo,
       theme,
@@ -2340,6 +2393,9 @@ const App = () => {
         snapshot.canvasOrientation === "portrait" ? "portrait" : "landscape",
       );
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
+      setPersonPlaceholderEnabled(
+        snapshot.personPlaceholderEnabled !== false,
+      );
       setSoundEnabled(snapshot.soundEnabled !== false);
       setTimelineHeight(
         Number(snapshot.timelineHeight) >= 180
@@ -2518,26 +2574,22 @@ const App = () => {
           "没有识别到需要视觉强化的明确语义；时间线未修改，请调整字幕内容后重试。",
         );
       }
-      semanticTimeline.motionTimeline = semanticTimeline.motionTimeline.map(
-        (item: TimelineJsonItem) => {
-          const definition = definitionMap.get(item.componentId);
-          return definition
-            ? {
-                ...item,
-                position: getRegisteredEffectPosition(
-                  definition,
-                  canvasOrientation,
-                ),
-              }
-            : item;
-        },
-      );
+      const arrangedTimeline = applyAvoidanceLayout({
+        timeline: semanticTimeline,
+        canvas,
+        componentDefinitions: arrangeableComponentIds.flatMap((componentId) => {
+          const definition = definitionMap.get(componentId);
+          return definition ? [definition] : [];
+        }),
+        includeFace: personPlaceholderEnabled,
+        includeCaptions: true,
+      });
       const baseName = (srtFileName || "字幕")
         .replace(/\.srt$/i, "")
         .replace(/[\\/:*?"<>|]/g, "-");
       await importTimelineJson(
         new File(
-          [JSON.stringify(semanticTimeline)],
+          [JSON.stringify(arrangedTimeline)],
           `${baseName}-自动语义编排.timeline.json`,
           { type: "application/json" },
         ),
@@ -2551,6 +2603,7 @@ const App = () => {
                 intentCount: analysis.intentCount,
                 skippedCueCount: analysis.skippedCueCount,
               },
+              layoutSummary: arrangedTimeline.layoutSummary,
             }
           : current,
       );
@@ -2571,7 +2624,7 @@ const App = () => {
       setSrtDialogOpen(false);
       setNotice({
         tone: "info",
-        text: `已识别 ${analysis.intentCount} 个语义意图并生成编排预览，时间线尚未修改。`,
+        text: `已识别 ${analysis.intentCount} 个语义意图并完成自动避让，生成预览但尚未修改时间线。`,
       });
     } catch (error) {
       setNotice({
@@ -6177,9 +6230,9 @@ const App = () => {
             <button
               type="button"
               className={`reference-switch ${safetyGuideVisible ? "active" : ""}`}
-              aria-label="人物安全区"
+              aria-label="安全区参考线"
               aria-pressed={safetyGuideVisible}
-              title={safetyGuideVisible ? "隐藏人物安全区" : "显示人物安全区"}
+              title={safetyGuideVisible ? "隐藏安全区参考线" : "显示安全区参考线"}
               onClick={() => setSafetyGuideVisible((visible) => !visible)}
             >
               <i />
@@ -6187,7 +6240,23 @@ const App = () => {
           </div>
           <div className="reference-switch-row">
             <span>人物占位</span>
-            <button className="reference-switch active" aria-label="人物占位"><User /><i /></button>
+            <button
+              type="button"
+              className={`reference-switch ${personPlaceholderEnabled ? "active" : ""}`}
+              aria-label="人物占位"
+              aria-pressed={personPlaceholderEnabled}
+              title={
+                personPlaceholderEnabled
+                  ? "自动编排将避开中央人物区"
+                  : "自动编排不再预留人物区"
+              }
+              onClick={() =>
+                setPersonPlaceholderEnabled((enabled) => !enabled)
+              }
+            >
+              <User />
+              <i />
+            </button>
           </div>
           <div className="reference-switch-row">
             <span>运镜分屏(缩到左)</span>
@@ -7609,6 +7678,20 @@ const App = () => {
                   字幕 {pendingArrangement.semanticSummary.cueCount} 句 · 意图{" "}
                   <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
                   {pendingArrangement.semanticSummary.skippedCueCount}
+                </span>
+              ) : null}
+              {pendingArrangement.layoutSummary ? (
+                <span
+                  className={
+                    pendingArrangement.layoutSummary.unresolvedCount > 0
+                      ? "layout-warning"
+                      : "layout-ok"
+                  }
+                >
+                  自动避让 {pendingArrangement.layoutSummary.obstacleLabels.join("+")} ·{" "}
+                  已布局 <b>{pendingArrangement.layoutSummary.visualCount}</b> · 缩放{" "}
+                  {pendingArrangement.layoutSummary.scaledCount} · 冲突{" "}
+                  {pendingArrangement.layoutSummary.unresolvedCount}
                 </span>
               ) : null}
               <span className="preserve">原时间线将保留</span>

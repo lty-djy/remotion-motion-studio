@@ -10,6 +10,7 @@ ai-motion-arranger/
 ├── README.md                # 本文件
 ├── SKILL.md                 # AI 编排器主文档（请勿手改）
 ├── semantic-srt-arranger.mjs # 工作台内置的确定性 SRT 多意图路由器
+├── avoidance-layout-planner.mjs # 已知人物/字幕安全区避让布局器
 ├── visual-script.schema.json # Visual Script 2.0 正式 JSON Schema
 ├── references/
 │   ├── card-catalog.md      # 自动生成的卡片清单（AI 只能用这里登记的 id + props）
@@ -28,6 +29,7 @@ ai-motion-arranger/
 │   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
 │   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
 │   ├── test-semantic-srt-arranger.mjs # SRT 多意图与固定资源路由回归
+│   ├── test-avoidance-layout.mjs # 横竖屏人物/字幕避让回归
 │   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
 └── examples/
     ├── README.md
@@ -50,10 +52,13 @@ npm.cmd run test:visual-script
 
 编辑台顶部“导入 SRT”现在使用 `semantic-srt-arranger.mjs` 逐句识别多个语义意图，并只引用当前真实效果库与固定资源索引中的 ID。当前确定性路由覆盖性能、流程、代码自动化、对比、完成度、覆盖率、倒计时、重点和数字指标；单句最多保留 3 个意图，避免画面过载。普通寒暄等未命中明确视觉语义的字幕会跳过，不会被强行套模板。
 
-生成结果只进入“编排预览”，默认全选但允许逐项取消；确认前不修改时间线，确认后也保留原有轨道。人物/字幕避让和自动质检仍显示为 `pending`，不属于当前阶段已经完成的能力。
+生成结果只进入“编排预览”，默认全选但允许逐项取消；确认前不修改时间线，确认后也保留原有轨道。
+
+当前布局器会读取画幅、人工开启的“人物占位”和 SRT 底部字幕安全区，按语义首选落点依次尝试换位、缩小，并避开同一时间出现的其他视觉项。这里的“人物”仍是已知中央占位区，不是真实人脸检测结果；自动质检也继续保持 `pending`，不能把布局规划描述成质检已经通过。
 
 ```powershell
 npm.cmd run test:semantic-arranger
+npm.cmd run test:avoidance-layout
 ```
 
 ## 固定资源库

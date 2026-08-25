@@ -12,6 +12,8 @@ const INTENT_RULES = [
     sfxId: "whoosh-soft",
     accentColor: "#55e6ff",
     fallbackValue: "128/s",
+    anchor: "left-center",
+    iconAnchor: "left-top",
   },
   {
     id: "process",
@@ -24,6 +26,8 @@ const INTENT_RULES = [
     sfxId: "tick",
     accentColor: "#ffbd66",
     fallbackValue: "03",
+    anchor: "right-center",
+    iconAnchor: "right-top",
   },
   {
     id: "automation",
@@ -36,6 +40,8 @@ const INTENT_RULES = [
     sfxId: "whoosh-soft",
     accentColor: "#a879ff",
     fallbackValue: "AI",
+    anchor: "left-top",
+    iconAnchor: "left-bottom",
   },
   {
     id: "comparison",
@@ -48,6 +54,8 @@ const INTENT_RULES = [
     sfxId: "impact",
     accentColor: "#a879ff",
     fallbackValue: "+42%",
+    anchor: "right-center",
+    iconAnchor: "right-top",
   },
   {
     id: "completion",
@@ -60,6 +68,8 @@ const INTENT_RULES = [
     sfxId: "impact",
     accentColor: "#8fe388",
     fallbackValue: "92%",
+    anchor: "left-center",
+    iconAnchor: "left-top",
   },
   {
     id: "coverage",
@@ -72,6 +82,8 @@ const INTENT_RULES = [
     sfxId: "tick",
     accentColor: "#55d6c2",
     fallbackValue: "68%",
+    anchor: "right-center",
+    iconAnchor: "right-top",
   },
   {
     id: "deadline",
@@ -84,6 +96,8 @@ const INTENT_RULES = [
     sfxId: "tick",
     accentColor: "#ff7e9f",
     fallbackValue: "03",
+    anchor: "left-top",
+    iconAnchor: "left-bottom",
   },
   {
     id: "emphasis",
@@ -96,6 +110,8 @@ const INTENT_RULES = [
     sfxId: "impact",
     accentColor: "#ffbd66",
     fallbackValue: "01",
+    anchor: "right-top",
+    iconAnchor: "right-bottom",
   },
   {
     id: "number",
@@ -108,6 +124,8 @@ const INTENT_RULES = [
     sfxId: "tick",
     accentColor: "#55e6ff",
     fallbackValue: "01",
+    anchor: "left-center",
+    iconAnchor: "left-top",
     generic: true,
   },
 ];
@@ -248,6 +266,11 @@ export const buildSemanticSrtArrangement = ({
         },
         sourceExpressionId: expressionId,
         sourceIntentId: intentId,
+        layoutIntent: {
+          anchor: rule.anchor,
+          avoid: ["face", "captions", "ui-safe-area"],
+          collisionPolicy: "relocate-then-scale",
+        },
       });
 
       const icon = availableResource(resourceIndex, "icons", rule.iconId);
@@ -272,6 +295,11 @@ export const buildSemanticSrtArrangement = ({
           voiceDucking: 0,
           sourceExpressionId: iconId,
           sourceIntentId: intentId,
+          layoutIntent: {
+            anchor: rule.iconAnchor,
+            avoid: ["face", "captions", "ui-safe-area"],
+            collisionPolicy: "relocate-then-scale",
+          },
         });
       }
 
