@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **25** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **32** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -40,6 +40,16 @@
 - `PortraitDecisionTagStack`：竖屏口播·优缺点标签组 — 从数据决策卡拆出的独立三标签组件，三张玻璃卡严格同宽对齐并依次滑入。（仅工作台可用；props：`enabled`、`tag1`、`tag2`、`tag3`、`symbol1`、`symbol2`、`symbol3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitStepChecklist`：竖屏口播·步骤清单卡 — 参考竖屏口播视频的后期增强段：顶部给出阶段结论，右侧三张编号步骤卡依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`step1`、`step2`、`step3`、`icon1`、`icon2`、`icon3`、`accentColor`、`successColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitRiskWarning`：竖屏口播·风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`icon1`、`icon2`、`icon3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+
+## WorkBuddy效果
+
+- `TitleReveal`：章节标题揭示 — 开场钩子：超大数字年份 + 副标题逐层揭示（仅工作台可用；props：`kicker`、`titleLead`、`titleNumber`、`titleTail`、`subtitle`、`footerTag`、`accentColor`、`subtitleStart`、`exitSeconds`）
+- `LineTrend`：折线趋势 — 风险预警：逐年下滑折线 + 跌幅徽章（仅工作台可用；props：`title`、`subtitle`、`points`、`xLabels`、`deltaLabel`、`note`、`accentColor`、`noteStart`、`exitSeconds`）
+- `StepFlow`：步骤流 — OMO 路径：线上引流 → 线下成交 双节点动画（仅工作台可用；props：`title`、`subtitle`、`item1`、`item1Note`、`item2`、`item2Note`、`footer`、`itemStarts`、`accentColor`、`exitSeconds`）
+- `CompareSplit`：左右对比卡 — 双引擎对比：短视频种草 × 直播转化（仅工作台可用；props：`title`、`subtitle`、`leftTitle`、`leftNote`、`leftTag`、`rightTitle`、`rightNote`、`rightTag`、`leftColor`、`rightColor`、`itemStarts`、`exitSeconds`）
+- `BulletStack`：逐条要点 — 转型红利：勾选动画逐条弹出（仅工作台可用；props：`title`、`subtitle`、`item1`、`item1Note`、`item2`、`item2Note`、`itemStarts`、`accentColor`、`exitSeconds`）
+- `BarChart`：柱状图 — 业绩突破：柱体增长冲破瓶颈虚线（仅工作台可用；props：`title`、`subtitle`、`bars`、`ceiling`、`ceilingLabel`、`xLabels`、`badgeText`、`unit`、`accentColor`、`badgeStart`、`exitSeconds`）
+- `EndLockup`：结尾锁定 — 行动收尾：¥100万 数字滚动 + 行动号召（仅工作台可用；props：`kicker`、`amountPrefix`、`amount`、`amountUnit`、`amountNote`、`cta`、`accentColor`、`exitSeconds`）
 
 ## 数字与指标
 

@@ -1,6 +1,6 @@
 // 此文件由 sync-runtime-registry.mjs 从运行时 registry.ts 自动生成。
 // 不要手改；请修改真实组件定义后运行 npm.cmd run sync:registry。
-export const RUNTIME_COMPONENT_COUNT = 25;
+export const RUNTIME_COMPONENT_COUNT = 32;
 export const REGISTERED_CARDS = [
   {
     "id": "ProgressRing",

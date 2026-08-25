@@ -850,6 +850,13 @@ const getRegisteredEffectPosition = (
       "PortraitDecisionTagStack",
       "PortraitStepChecklist",
       "PortraitRiskWarning",
+      "TitleReveal",
+      "LineTrend",
+      "StepFlow",
+      "CompareSplit",
+      "BulletStack",
+      "BarChart",
+      "EndLockup",
     ].includes(definition.id)
   ) {
     return { ...definition.defaultPosition };
