@@ -849,6 +849,7 @@ const getRegisteredEffectPosition = (
       "PortraitMetricDecision",
       "PortraitDecisionTagStack",
       "PortraitStepChecklist",
+      "PortraitRiskWarning",
     ].includes(definition.id)
   ) {
     return { ...definition.defaultPosition };

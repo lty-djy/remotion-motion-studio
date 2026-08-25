@@ -19,6 +19,7 @@ import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
 import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
+import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -63,6 +64,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitDecisionTagStackEffectDef,
 
   PortraitStepChecklistEffectDef,
+
+  PortraitRiskWarningEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

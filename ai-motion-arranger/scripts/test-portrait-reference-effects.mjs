@@ -127,6 +127,26 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "PortraitRiskWarning",
+    placement: "left",
+    bounds: [500, 420],
+    props: [
+      "eyebrow",
+      "title",
+      "emphasis",
+      "risk1",
+      "risk2",
+      "risk3",
+      "icon1",
+      "icon2",
+      "icon3",
+      "accentColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {
