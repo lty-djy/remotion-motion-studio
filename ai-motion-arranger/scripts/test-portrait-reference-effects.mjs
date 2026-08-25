@@ -95,6 +95,27 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "PortraitStepChecklist",
+    placement: "right",
+    bounds: [520, 420],
+    props: [
+      "eyebrow",
+      "title",
+      "subtitle",
+      "step1",
+      "step2",
+      "step3",
+      "icon1",
+      "icon2",
+      "icon3",
+      "accentColor",
+      "successColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {
