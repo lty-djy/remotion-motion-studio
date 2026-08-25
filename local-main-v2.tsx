@@ -1685,12 +1685,16 @@ const App = () => {
             category.name.toLocaleLowerCase("zh-CN").includes(query) ||
             item.name.toLocaleLowerCase("zh-CN").includes(query)),
       ),
-    })).filter(
-      (category) =>
-        category.items.length > 0 ||
-        (!query && customCatalogGroups.some((group) => group.id === category.id)) ||
-        category.name.toLocaleLowerCase("zh-CN").includes(query),
-    );
+    })).filter((category) => {
+      if (category.items.length > 0) return true;
+      const isCustomGroup = customCatalogGroups.some(
+        (group) => group.id === category.id,
+      );
+      if (!isCustomGroup) return false;
+      return (
+        !query || category.name.toLocaleLowerCase("zh-CN").includes(query)
+      );
+    });
   }, [customCatalogGroups, effectCatalog, effectSearch]);
   const visibleBuiltInEffectCount = useMemo(
     () =>
