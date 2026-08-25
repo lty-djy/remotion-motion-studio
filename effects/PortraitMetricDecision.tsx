@@ -262,12 +262,13 @@ export const PortraitMetricDecision: React.FC<Props> = ({
           return (
             <Interactive.Div
               name={`决策标签 ${index + 1}`}
+              data-decision-tag={index + 1}
               key={`${index}-${tag.text}`}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 13,
-                width: index === 1 ? 294 : 314,
+                width: 314,
                 height: 68,
                 padding: "0 18px",
                 boxSizing: "border-box",
