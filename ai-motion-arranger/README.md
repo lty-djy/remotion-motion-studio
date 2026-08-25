@@ -10,6 +10,7 @@ ai-motion-arranger/
 ├── README.md                # 本文件
 ├── SKILL.md                 # AI 编排器主文档（请勿手改）
 ├── semantic-srt-arranger.mjs # 工作台内置的确定性 SRT 多意图路由器
+├── portrait-semantic-routes.mjs # 竖屏口播 7 类语义到 8 个参考组件的结构化路由表
 ├── avoidance-layout-planner.mjs # 已知人物/字幕安全区避让布局器
 ├── quality-control.mjs       # 五项确定性自动质检器
 ├── arrangement-batch.mjs    # 插入批次、语义组摘要与整批撤销
@@ -31,6 +32,7 @@ ai-motion-arranger/
 │   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
 │   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
 │   ├── test-semantic-srt-arranger.mjs # SRT 多意图与固定资源路由回归
+│   ├── test-portrait-semantic-routes.mjs # 竖屏路由、组合、安全区与禁用项回归
 │   ├── test-avoidance-layout.mjs # 横竖屏人物/字幕避让回归
 │   ├── test-quality-control.mjs # 五项质检正反样例回归
 │   ├── test-arrangement-batch.mjs # 插入批次与原时间线保护回归
@@ -61,6 +63,16 @@ npm.cmd run test:visual-script
 确认插入后，工作台会保留每项的来源语义 ID 和本次编排批次 ID，并在时间线顶部显示“本次自动编排”微调条。用户可以按语义组定位、高亮并逐项编辑，也可以一次撤销本批插入；撤销只按批次 ID 删除新项目，不会触碰插入前的原时间线。
 
 当前布局器会读取画幅、人工开启的“人物占位”和 SRT 底部字幕安全区，按语义首选落点依次尝试换位、缩小，并避开同一时间出现的其他视觉项。布局后会自动执行人物占位遮挡、字幕区遮挡、资源有效性、音效盖人声风险、时间线/画布边界五项确定性质检，并在编排预览中逐项显示；任一项失败时禁止确认插入。
+
+### 竖屏口播语义路由表
+
+`portrait-semantic-routes.mjs` 已固定 7 类语义到 8 个竖屏参考组件的映射：章节转换、重点词、补充说明、数字决策、操作流程、风险限制、下集预告。其中数字决策允许同时选择 `PortraitMetricDecision` 与 `PortraitDecisionTagStack`，其余语义默认一个主组件。
+
+路由表同时记录组件 props 填充来源、首选/备用布局锚点、最多 3 个并行意图、人物与字幕避让、底部 20% 字幕安全区、禁止基础字幕轨道、禁止 BGM、先预览后确认以及保留原时间线。本阶段只建立可验证的路由数据，还没有替换现有 `semantic-srt-arranger.mjs` 的旧组件选择逻辑。
+
+```powershell
+npm.cmd run test:portrait-routes
+```
 
 这里的“人物”仍是已知中央占位区，不是真实人脸检测结果；关闭人物占位后该项会诚实保持“待检查”。“声音盖人声”也只是依据音量与人声闪避参数判断风险，不等同于真实响度或语音分析。
 
