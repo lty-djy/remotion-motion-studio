@@ -68,6 +68,7 @@ import {
   applyAvoidanceLayout,
   createKnownAvoidanceRegions,
 } from "./ai-motion-arranger/avoidance-layout-planner.mjs";
+import { runTimelineQualityControl } from "./ai-motion-arranger/quality-control.mjs";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -128,6 +129,12 @@ type PendingArrangement = {
   selectedKeys: string[];
   qualityControlStatus: string;
   qualityControlCheckCount: number;
+  qualityControlChecks: Array<{
+    type: string;
+    status: "pending" | "passed" | "failed";
+    message: string;
+    affectedExpressionIds: string[];
+  }>;
   semanticSummary?: {
     cueCount: number;
     intentCount: number;
@@ -140,6 +147,20 @@ type PendingArrangement = {
     scaledCount: number;
     unresolvedCount: number;
   };
+};
+
+const QUALITY_CONTROL_LABELS: Record<string, string> = {
+  "face-occlusion": "人物遮挡",
+  "caption-occlusion": "字幕遮挡",
+  "asset-availability": "资源有效性",
+  "voice-masking": "声音盖人声",
+  "timeline-bounds": "时间线边界",
+};
+
+const QUALITY_CONTROL_STATUS_LABELS: Record<string, string> = {
+  passed: "通过",
+  failed: "未通过",
+  pending: "待检查",
 };
 
 type ShortcutAction =
@@ -2574,13 +2595,22 @@ const App = () => {
           "没有识别到需要视觉强化的明确语义；时间线未修改，请调整字幕内容后重试。",
         );
       }
+      const componentDefinitions = arrangeableComponentIds.flatMap((componentId) => {
+        const definition = definitionMap.get(componentId);
+        return definition ? [definition] : [];
+      });
       const arrangedTimeline = applyAvoidanceLayout({
         timeline: semanticTimeline,
         canvas,
-        componentDefinitions: arrangeableComponentIds.flatMap((componentId) => {
-          const definition = definitionMap.get(componentId);
-          return definition ? [definition] : [];
-        }),
+        componentDefinitions,
+        includeFace: personPlaceholderEnabled,
+        includeCaptions: true,
+      });
+      const checkedTimeline = runTimelineQualityControl({
+        timeline: arrangedTimeline,
+        canvas,
+        componentDefinitions,
+        resourceIndex,
         includeFace: personPlaceholderEnabled,
         includeCaptions: true,
       });
@@ -2589,7 +2619,7 @@ const App = () => {
         .replace(/[\\/:*?"<>|]/g, "-");
       await importTimelineJson(
         new File(
-          [JSON.stringify(arrangedTimeline)],
+          [JSON.stringify(checkedTimeline)],
           `${baseName}-自动语义编排.timeline.json`,
           { type: "application/json" },
         ),
@@ -2603,7 +2633,7 @@ const App = () => {
                 intentCount: analysis.intentCount,
                 skippedCueCount: analysis.skippedCueCount,
               },
-              layoutSummary: arrangedTimeline.layoutSummary,
+              layoutSummary: checkedTimeline.layoutSummary,
             }
           : current,
       );
@@ -2624,7 +2654,7 @@ const App = () => {
       setSrtDialogOpen(false);
       setNotice({
         tone: "info",
-        text: `已识别 ${analysis.intentCount} 个语义意图并完成自动避让，生成预览但尚未修改时间线。`,
+        text: `已识别 ${analysis.intentCount} 个语义意图，完成自动避让与 ${checkedTimeline.qualityControlSummary.passedCount}/5 项质检，生成预览但尚未修改时间线。`,
       });
     } catch (error) {
       setNotice({
@@ -3270,6 +3300,32 @@ const App = () => {
     const qualityControlChecks = Array.isArray(qualityControl?.checks)
       ? qualityControl.checks
       : [];
+    const normalizedQualityControlChecks = qualityControlChecks.flatMap(
+      (rawCheck) => {
+        if (!isRecord(rawCheck)) return [];
+        const status = String(rawCheck.status ?? "pending");
+        const affectedExpressionIds = Array.isArray(
+          rawCheck.affectedExpressionIds,
+        )
+          ? rawCheck.affectedExpressionIds.filter(
+              (id): id is string => typeof id === "string" && id.length > 0,
+            )
+          : [];
+        return [
+          {
+            type: String(rawCheck.type ?? "unknown"),
+            status: (["passed", "failed", "pending"].includes(status)
+              ? status
+              : "pending") as "pending" | "passed" | "failed",
+            message:
+              typeof rawCheck.message === "string"
+                ? rawCheck.message
+                : "未提供检查说明。",
+            affectedExpressionIds,
+          },
+        ];
+      },
+    );
     const rawItems = Array.isArray(parsed)
       ? parsed
       : parsedRecord
@@ -3467,7 +3523,8 @@ const App = () => {
         typeof qualityControl?.status === "string"
           ? qualityControl.status
           : "未提供",
-      qualityControlCheckCount: qualityControlChecks.length,
+      qualityControlCheckCount: normalizedQualityControlChecks.length,
+      qualityControlChecks: normalizedQualityControlChecks,
     });
     setNotice({
       tone: "info",
@@ -7670,7 +7727,9 @@ const App = () => {
                 {pendingArrangement.resourceTracks.length}
               </span>
               <span>
-                质检 {pendingArrangement.qualityControlStatus} ·{" "}
+                质检 {QUALITY_CONTROL_STATUS_LABELS[
+                  pendingArrangement.qualityControlStatus
+                ] ?? pendingArrangement.qualityControlStatus} ·{" "}
                 {pendingArrangement.qualityControlCheckCount} 项
               </span>
               {pendingArrangement.semanticSummary ? (
@@ -7696,6 +7755,31 @@ const App = () => {
               ) : null}
               <span className="preserve">原时间线将保留</span>
             </div>
+
+            {pendingArrangement.qualityControlChecks.length > 0 ? (
+              <div className="arrangement-qc-list" aria-label="自动质检结果">
+                {pendingArrangement.qualityControlChecks.map((check) => (
+                  <div
+                    className={`arrangement-qc-item ${check.status}`}
+                    key={check.type}
+                  >
+                    <i>{QUALITY_CONTROL_LABELS[check.type] ?? check.type}</i>
+                    <span>
+                      <strong>
+                        {QUALITY_CONTROL_STATUS_LABELS[check.status] ??
+                          check.status}
+                      </strong>
+                      <small>{check.message}</small>
+                    </span>
+                    <b>
+                      {check.affectedExpressionIds.length > 0
+                        ? `${check.affectedExpressionIds.length} 项受影响`
+                        : "无异常项"}
+                    </b>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div className="arrangement-preview-actions">
               <button
@@ -7771,7 +7855,17 @@ const App = () => {
             </div>
 
             <footer>
-              <span>只有勾选项会被插入，取消不会修改时间线。</span>
+              <span
+                className={
+                  pendingArrangement.qualityControlStatus === "failed"
+                    ? "qc-blocked"
+                    : undefined
+                }
+              >
+                {pendingArrangement.qualityControlStatus === "failed"
+                  ? "质检未通过，修正失败项后才能插入。"
+                  : "只有勾选项会被插入，取消不会修改时间线。"}
+              </span>
               <div>
                 <button
                   type="button"
@@ -7782,7 +7876,10 @@ const App = () => {
                 <button
                   type="button"
                   className="arrangement-apply"
-                  disabled={pendingArrangement.selectedKeys.length === 0}
+                  disabled={
+                    pendingArrangement.selectedKeys.length === 0 ||
+                    pendingArrangement.qualityControlStatus === "failed"
+                  }
                   onClick={applyPendingArrangement}
                 >
                   <CheckCircle weight="fill" />确认插入所选项

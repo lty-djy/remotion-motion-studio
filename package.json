@@ -15,6 +15,7 @@
     "test:timeline-v2": "node ai-motion-arranger/scripts/test-timeline-v2.mjs",
     "test:semantic-arranger": "node ai-motion-arranger/scripts/test-semantic-srt-arranger.mjs",
     "test:avoidance-layout": "node ai-motion-arranger/scripts/test-avoidance-layout.mjs",
+    "test:quality-control": "node ai-motion-arranger/scripts/test-quality-control.mjs",
     "convert:visual-script": "node ai-motion-arranger/scripts/visual-script-to-timeline.mjs",
     "predev": "npm run sync:registry && npm run sync:resources",
     "dev": "vite --config local-vite.config.ts",
