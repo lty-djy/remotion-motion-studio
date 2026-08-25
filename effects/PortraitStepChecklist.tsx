@@ -196,12 +196,13 @@ export const PortraitStepChecklist: React.FC<Props> = ({
           return (
             <Interactive.Div
               name={`步骤 ${index + 1}`}
+              data-step-card={index + 1}
               key={`${index}-${step.label}`}
               style={{
                 position: "relative",
                 display: "flex",
                 alignItems: "center",
-                width: index === 1 ? 420 : 448,
+                width: 448,
                 height: 76,
                 padding: "0 20px 0 78px",
                 boxSizing: "border-box",
