@@ -72,6 +72,29 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "PortraitMetricDecision",
+    placement: "top",
+    bounds: [930, 390],
+    props: [
+      "lead",
+      "conclusion",
+      "metricLabel",
+      "value",
+      "unit",
+      "verdict",
+      "tag1",
+      "tag2",
+      "tag3",
+      "symbol1",
+      "symbol2",
+      "symbol3",
+      "accentColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {

@@ -16,6 +16,7 @@ import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncre
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitKeywordBurstEffectDef } from "./effects/PortraitKeywordBurst";
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
+import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -54,6 +55,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitKeywordBurstEffectDef,
 
   PortraitInfoCalloutEffectDef,
+
+  PortraitMetricDecisionEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

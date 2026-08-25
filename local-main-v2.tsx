@@ -846,6 +846,7 @@ const getRegisteredEffectPosition = (
       "PortraitChapterRail",
       "PortraitKeywordBurst",
       "PortraitInfoCallout",
+      "PortraitMetricDecision",
     ].includes(definition.id)
   ) {
     return { ...definition.defaultPosition };

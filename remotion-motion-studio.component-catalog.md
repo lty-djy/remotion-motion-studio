@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **21** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **22** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -36,6 +36,7 @@
 - `PortraitChapterRail`：竖屏口播·章节条 — 参考竖屏口播视频提炼的左上章节标签：强调竖线、蓝色标题和白色说明分层滑入。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`accentColor`、`textColor`、`animationSeconds`）
 - `PortraitKeywordBurst`：竖屏口播·开场大字 — 参考竖屏口播视频提炼的三段大字：从画面上方错位弹入，支持留空中间词以避开人物面部。（仅工作台可用；props：`enabled`、`word1`、`word2`、`word3`、`highlightIndex`、`accentColor`、`textColor`、`shadowColor`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `PortraitMetricDecision`：竖屏口播·数据决策卡 — 参考竖屏口播视频的 1K / 2K 决策段：左侧突出核心数字与结论，右侧依次弹出优缺点标签。（仅工作台可用；props：`enabled`、`lead`、`conclusion`、`metricLabel`、`value`、`unit`、`verdict`、`tag1`、`tag2`、`tag3`、`symbol1`、`symbol2`、`symbol3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 
 ## 数字与指标
 
