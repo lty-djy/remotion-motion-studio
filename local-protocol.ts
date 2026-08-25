@@ -80,6 +80,35 @@ export type VideoTrack = {
   visible: boolean;
 };
 
+export type ResourceTrackKind = "icon" | "material" | "sfx" | "bgm";
+
+export type ResourceTrack = {
+  id: string;
+  laneId: string;
+  trackOrder: number;
+  kind: ResourceTrackKind;
+  resourceId: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  sourceStartFrame: number;
+  sourceDurationInFrames: number;
+  startFrame: number;
+  durationInFrames: number;
+  visible: boolean;
+  position: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    zIndex: number;
+  };
+  volume: number;
+  voiceDucking: number;
+  loop: boolean;
+};
+
 export type MotionModule = Record<string, unknown> & {
   default?: React.ComponentType<Record<string, unknown>>;
   MOTION_COMPONENTS?: unknown;

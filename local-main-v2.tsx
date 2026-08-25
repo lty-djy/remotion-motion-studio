@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
-import { AbsoluteFill, Html5Video, Sequence } from "remotion";
+import { AbsoluteFill, Audio, Html5Video, Img, Sequence } from "remotion";
 import {
   ArrowCounterClockwise,
   ArrowsInLineVertical,
@@ -50,6 +50,7 @@ import {
   type MotionInstance,
   type MotionModule,
   type MotionPropSchema,
+  type ResourceTrack,
   type VideoTrack,
 } from "./local-protocol";
 import {
@@ -339,6 +340,7 @@ type ProjectSnapshot = {
   videoUrl?: string;
   videoDuration?: number;
   videoTracks?: VideoTrack[];
+  resourceTracks?: ResourceTrack[];
   instances: MotionInstance[];
   currentFrame?: number;
   theme?: "dark" | "light";
@@ -353,6 +355,7 @@ type ProjectSnapshot = {
 
 type EditHistorySnapshot = {
   videoTracks: VideoTrack[];
+  resourceTracks: ResourceTrack[];
   instances: MotionInstance[];
   soundEnabled: boolean;
 };
@@ -369,6 +372,12 @@ type TimelineLane =
       laneId: string;
       trackOrder: number;
       clips: MotionInstance[];
+    }
+  | {
+      kind: "resource";
+      laneId: string;
+      trackOrder: number;
+      clips: ResourceTrack[];
     };
 
 const cloneEditSnapshot = (snapshot: EditHistorySnapshot): EditHistorySnapshot =>
@@ -398,11 +407,13 @@ type ContextMenuState = {
     | "preview"
     | "timeline"
     | "videoTimeline"
+    | "resourceTimeline"
     | "library"
     | "libraryGroup"
     | "libraryRoot";
   instanceIds: string[];
   videoTrackId?: string;
+  resourceTrackId?: string;
   componentId?: string;
   groupId?: string;
   groupName?: string;
@@ -424,10 +435,16 @@ type MarqueeRect = {
 
 let instanceSequence = 0;
 let videoTrackSequence = 0;
+let resourceTrackSequence = 0;
 
 const createVideoTrackId = () => {
   videoTrackSequence += 1;
   return `video-${Date.now()}-${videoTrackSequence}`;
+};
+
+const createResourceTrackId = () => {
+  resourceTrackSequence += 1;
+  return `resource-${Date.now()}-${resourceTrackSequence}`;
 };
 
 const restoreVideoTrack = (
@@ -466,6 +483,69 @@ const restoreVideoTrack = (
     Math.round(Number(track.durationInFrames) || fallback.durationInFrames),
   ),
   visible: track.visible !== false,
+  };
+};
+
+const restoreResourceTrack = (
+  track: Partial<ResourceTrack>,
+  fallbackOrder = 0,
+): ResourceTrack => {
+  const id =
+    typeof track.id === "string" && track.id
+      ? track.id
+      : createResourceTrackId();
+  const kind = ["icon", "material", "sfx", "bgm"].includes(
+    String(track.kind),
+  )
+    ? (track.kind as ResourceTrack["kind"])
+    : "icon";
+  const position = track.position ?? {
+    x: 80,
+    y: 80,
+    width: kind === "icon" ? 144 : 640,
+    height: kind === "icon" ? 144 : 360,
+    scale: 1,
+    zIndex: 20,
+  };
+  return {
+    id,
+    laneId:
+      typeof track.laneId === "string" && track.laneId ? track.laneId : id,
+    trackOrder: Number.isFinite(Number(track.trackOrder))
+      ? Number(track.trackOrder)
+      : fallbackOrder,
+    kind,
+    resourceId:
+      typeof track.resourceId === "string" ? track.resourceId : "unknown",
+    name:
+      typeof track.name === "string" && track.name
+        ? track.name
+        : `资源 ${fallbackOrder + 1}`,
+    url:
+      typeof track.url === "string" && track.url.startsWith("/input/")
+        ? track.url.split("?")[0]
+        : "",
+    mimeType:
+      typeof track.mimeType === "string" ? track.mimeType : "application/octet-stream",
+    sourceStartFrame: Math.max(0, Math.round(Number(track.sourceStartFrame) || 0)),
+    sourceDurationInFrames: Math.max(
+      3,
+      Math.round(Number(track.sourceDurationInFrames) || Number(track.durationInFrames) || 3),
+    ),
+    startFrame: Math.max(0, Math.round(Number(track.startFrame) || 0)),
+    durationInFrames: Math.max(3, Math.round(Number(track.durationInFrames) || 3)),
+    visible: track.visible !== false,
+    position: {
+      x: finiteNumber(position.x, 80),
+      y: finiteNumber(position.y, 80),
+      width: Math.max(1, finiteNumber(position.width, kind === "icon" ? 144 : 640)),
+      height: Math.max(1, finiteNumber(position.height, kind === "icon" ? 144 : 360)),
+      scale: clamp(finiteNumber(position.scale, 1), 0.1, 4),
+      zIndex: Math.round(clamp(finiteNumber(position.zIndex, 20), 0, 100)),
+    },
+    volume: clamp(finiteNumber(track.volume, 1), 0, 1),
+    voiceDucking: clamp(finiteNumber(track.voiceDucking, 0), 0, 1),
+    loop: kind === "bgm" ? track.loop !== false : false,
   };
 };
 
@@ -723,6 +803,7 @@ type StudioPreviewProps = {
   includeVideo: boolean;
   sourceIncludesVideo: boolean;
   videoTracks: VideoTrack[];
+  resourceTracks: ResourceTrack[];
   definitions: MotionComponentDefinition[];
   instances: MotionInstance[];
   canvasOrientation: "landscape" | "portrait";
@@ -736,6 +817,7 @@ const StudioPreviewComposition = ({
   includeVideo,
   sourceIncludesVideo,
   videoTracks,
+  resourceTracks,
   definitions,
   instances,
   canvasOrientation,
@@ -768,6 +850,14 @@ const StudioPreviewComposition = ({
         id: instance.id,
         instance,
       })),
+    ...resourceTracks
+      .filter((track) => track.visible !== false)
+      .map((track) => ({
+        kind: "resource" as const,
+        order: track.trackOrder,
+        id: track.id,
+        track,
+      })),
   ].sort((a, b) => b.order - a.order);
 
   return (
@@ -790,6 +880,60 @@ const StudioPreviewComposition = ({
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </Sequence>
+          );
+        }
+        if (layer.kind === "resource") {
+          const track = layer.track;
+          const isAudio = track.kind === "sfx" || track.kind === "bgm";
+          const effectiveVolume = soundEnabled
+            ? track.volume * (1 - track.voiceDucking)
+            : 0;
+          if (isAudio) {
+            return (
+              <Sequence
+                key={track.id}
+                from={Math.max(0, Math.round(track.startFrame))}
+                durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+              >
+                <Audio
+                  src={track.url}
+                  trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
+                  volume={effectiveVolume}
+                  muted={!soundEnabled}
+                  loop={track.loop}
+                />
+              </Sequence>
+            );
+          }
+          const visualStyle: React.CSSProperties = {
+            position: "absolute",
+            left: track.position.x,
+            top: track.position.y,
+            width: track.position.width,
+            height: track.position.height,
+            transform: `scale(${track.position.scale})`,
+            transformOrigin: "0 0",
+            objectFit: "contain",
+            zIndex: track.position.zIndex,
+          };
+          return (
+            <Sequence
+              key={track.id}
+              from={Math.max(0, Math.round(track.startFrame))}
+              durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+            >
+              {track.mimeType.startsWith("video/") ? (
+                <Html5Video
+                  src={track.url}
+                  trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
+                  muted
+                  pauseWhenBuffering
+                  style={visualStyle}
+                />
+              ) : (
+                <Img src={track.url} style={visualStyle} />
+              )}
+            </Sequence>
           );
         }
         const instance = layer.instance;
@@ -953,8 +1097,10 @@ const App = () => {
   const [videoPreviewEnabled, setVideoPreviewEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(6);
   const [videoTracks, setVideoTracks] = useState<VideoTrack[]>([]);
+  const [resourceTracks, setResourceTracks] = useState<ResourceTrack[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
+  const [selectedResourceTrackId, setSelectedResourceTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
   const [globalCardScale, setGlobalCardScale] = useState(() => {
     const saved = localStorage.getItem("motion-studio-global-card-scale");
@@ -1122,6 +1268,11 @@ const App = () => {
       Math.max(maximum, instance.startFrame + instance.durationInFrames),
     0,
   );
+  const resourceTimelineFrames = resourceTracks.reduce(
+    (maximum, track) =>
+      Math.max(maximum, track.startFrame + track.durationInFrames),
+    0,
+  );
   const durationInFrames = Math.max(
     1,
     videoTracks.length > 0
@@ -1129,10 +1280,15 @@ const App = () => {
           videoTimelineFrames,
           Math.round(videoDuration * fps),
           instanceTimelineFrames,
+          resourceTimelineFrames,
         )
       : videoUrl
-        ? Math.max(Math.round(videoDuration * fps), instanceTimelineFrames)
-        : Math.max(sourceFrames, instanceTimelineFrames),
+        ? Math.max(
+            Math.round(videoDuration * fps),
+            instanceTimelineFrames,
+            resourceTimelineFrames,
+          )
+        : Math.max(sourceFrames, instanceTimelineFrames, resourceTimelineFrames),
     manualTimelineEndFrame,
   );
   const canvasWidth = canvasOrientation === "portrait" ? 1080 : 1920;
@@ -1209,6 +1365,8 @@ const App = () => {
   const selectedDefinition = selectedInstance
     ? definitionMap.get(selectedInstance.componentId) ?? null
     : null;
+  const selectedResourceTrack =
+    resourceTracks.find((track) => track.id === selectedResourceTrackId) ?? null;
   const selectedInstanceIdSet = useMemo(
     () => new Set(selectedInstanceIds),
     [selectedInstanceIds],
@@ -1243,12 +1401,26 @@ const App = () => {
         });
       }
     }
+    for (const track of resourceTracks) {
+      const existing = lanes.get(track.laneId);
+      if (existing?.kind === "resource") {
+        existing.clips.push(track);
+        existing.trackOrder = Math.min(existing.trackOrder, track.trackOrder);
+      } else {
+        lanes.set(track.laneId, {
+          kind: "resource",
+          laneId: track.laneId,
+          trackOrder: track.trackOrder,
+          clips: [track],
+        });
+      }
+    }
     return [...lanes.values()]
       .map((lane) => ({
         ...lane,
         clips: [...lane.clips].sort((a, b) => a.startFrame - b.startFrame),
       })) as TimelineLane[];
-  }, [instances, videoTracks]);
+  }, [instances, resourceTracks, videoTracks]);
   timelineLanes.sort((a, b) => a.trackOrder - b.trackOrder);
   const customDefinitions = useMemo(
     () =>
@@ -1348,10 +1520,19 @@ const App = () => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceIds(instanceId ? [instanceId] : []);
     if (instanceId) setSelectedVideoTrackId("");
+    if (instanceId) setSelectedResourceTrackId("");
   }, []);
 
   const selectVideoTrack = useCallback((trackId: string) => {
     setSelectedVideoTrackId(trackId);
+    setSelectedInstanceId("");
+    setSelectedInstanceIds([]);
+    if (trackId) setSelectedResourceTrackId("");
+  }, []);
+
+  const selectResourceTrack = useCallback((trackId: string) => {
+    setSelectedResourceTrackId(trackId);
+    setSelectedVideoTrackId("");
     setSelectedInstanceId("");
     setSelectedInstanceIds([]);
   }, []);
@@ -1641,6 +1822,15 @@ const App = () => {
           setTimelineHeight(Number(draft?.timelineHeight));
         }
         setTrackHeights(draft?.trackHeights ?? {});
+        setResourceTracks(
+          canRestoreDraft && Array.isArray(draft?.resourceTracks)
+            ? preventLaneOverlaps(
+                draft.resourceTracks.map((track, index) =>
+                  restoreResourceTrack(track, restoredTracks.length + index),
+                ),
+              )
+            : [],
+        );
         setActiveComponentId(state.activeComponentId ?? "");
         await loadModuleUrl(component.moduleUrl, {
           sourceIncludesVideo: Boolean(
@@ -1832,6 +2022,7 @@ const App = () => {
       includeVideo: videoPreviewEnabled,
       sourceIncludesVideo,
       videoTracks,
+      resourceTracks,
       definitions,
       instances: effectiveInstances,
       canvasOrientation,
@@ -1849,6 +2040,7 @@ const App = () => {
       videoPreviewEnabled,
       videoUrl,
       videoTracks,
+      resourceTracks,
       globalCardScale,
     ],
   );
@@ -1864,6 +2056,10 @@ const App = () => {
       videoUrl: videoUrl ? videoUrl.split("?")[0] : "",
       videoDuration,
       videoTracks: videoTracks.map((track) => ({
+        ...track,
+        url: track.url.split("?")[0],
+      })),
+      resourceTracks: resourceTracks.map((track) => ({
         ...track,
         url: track.url.split("?")[0],
       })),
@@ -1883,6 +2079,7 @@ const App = () => {
       currentFrame,
       instances,
       projectName,
+      resourceTracks,
       safetyGuideVisible,
       soundEnabled,
       sourceIncludesVideo,
@@ -1935,7 +2132,12 @@ const App = () => {
 
   useEffect(() => {
     if (!workspaceReadyRef.current) return;
-    const snapshot = cloneEditSnapshot({ videoTracks, instances, soundEnabled });
+    const snapshot = cloneEditSnapshot({
+      videoTracks,
+      resourceTracks,
+      instances,
+      soundEnabled,
+    });
     if (applyingHistoryRef.current) {
       applyingHistoryRef.current = false;
       pendingHistoryRef.current = null;
@@ -1950,14 +2152,23 @@ const App = () => {
     window.clearTimeout(historyTimerRef.current);
     historyTimerRef.current = window.setTimeout(commitPendingHistory, 220);
     return () => window.clearTimeout(historyTimerRef.current);
-  }, [commitPendingHistory, draftStatus, instances, soundEnabled, videoTracks]);
+  }, [
+    commitPendingHistory,
+    draftStatus,
+    instances,
+    resourceTracks,
+    soundEnabled,
+    videoTracks,
+  ]);
 
   const applyHistorySnapshot = useCallback((snapshot: EditHistorySnapshot) => {
     applyingHistoryRef.current = true;
     setVideoTracks(cloneEditSnapshot(snapshot).videoTracks);
+    setResourceTracks(cloneEditSnapshot(snapshot).resourceTracks);
     setInstances(cloneEditSnapshot(snapshot).instances);
     setSoundEnabled(snapshot.soundEnabled);
     setSelectedVideoTrackId("");
+    setSelectedResourceTrackId("");
     setSelectedInstanceId("");
     setSelectedInstanceIds([]);
   }, []);
@@ -2111,6 +2322,18 @@ const App = () => {
           : 230,
       );
       setTrackHeights(snapshot.trackHeights ?? {});
+      setResourceTracks(
+        Array.isArray(snapshot.resourceTracks)
+          ? preventLaneOverlaps(
+              snapshot.resourceTracks.map((track, index) =>
+                restoreResourceTrack(
+                  track,
+                  normalizedVideoTracks.length + index,
+                ),
+              ),
+            )
+          : [],
+      );
       await loadModuleUrl(data.moduleUrl, {
         sourceIncludesVideo: Boolean(
           data.sourceIncludesVideo ?? snapshot.sourceIncludesVideo,
@@ -2166,6 +2389,7 @@ const App = () => {
             0,
             ...videoTracks.map((track) => track.trackOrder),
             ...instances.map((candidate) => candidate.trackOrder),
+            ...resourceTracks.map((track) => track.trackOrder),
           ) - 1,
       },
     );
@@ -2252,6 +2476,7 @@ const App = () => {
           0,
           ...videoTracks.map((track) => track.trackOrder),
           ...instances.map((candidate) => candidate.trackOrder),
+          ...resourceTracks.map((track) => track.trackOrder),
         ) - 1;
 
       const srtEndSeconds = Math.max(
@@ -2500,6 +2725,39 @@ const App = () => {
     });
   }, []);
 
+  const toggleResourceTrackVisibility = useCallback((trackId: string) => {
+    setResourceTracks((current) => {
+      const selected = current.find((track) => track.id === trackId);
+      if (!selected) return current;
+      const laneClips = current.filter((track) => track.laneId === selected.laneId);
+      const shouldShow = laneClips.every((track) => track.visible === false);
+      return current.map((track) =>
+        track.laneId === selected.laneId
+          ? { ...track, visible: shouldShow }
+          : track,
+      );
+    });
+  }, []);
+
+  const updateResourceTrack = useCallback(
+    (
+      trackId: string,
+      updater: (track: ResourceTrack) => ResourceTrack,
+    ) => {
+      setResourceTracks((current) =>
+        current.map((track) => (track.id === trackId ? updater(track) : track)),
+      );
+    },
+    [],
+  );
+
+  const deleteResourceTrack = useCallback((trackId: string) => {
+    setResourceTracks((current) => current.filter((track) => track.id !== trackId));
+    setSelectedResourceTrackId((selected) => (selected === trackId ? "" : selected));
+    setContextMenu(null);
+    setNotice({ tone: "ok", text: "已删除资源轨道项。" });
+  }, []);
+
   const reorderTimelineLane = useCallback(
     (
       draggedLaneId: string,
@@ -2537,6 +2795,14 @@ const App = () => {
             ...instance,
             trackOrder:
               orderByLane.get(instance.laneId) ?? instance.trackOrder,
+          }))
+          .sort((a, b) => a.trackOrder - b.trackOrder),
+      );
+      setResourceTracks((current) =>
+        current
+          .map((track) => ({
+            ...track,
+            trackOrder: orderByLane.get(track.laneId) ?? track.trackOrder,
           }))
           .sort((a, b) => a.trackOrder - b.trackOrder),
       );
@@ -2619,6 +2885,7 @@ const App = () => {
         // 纵向主导 → 升级为轨道换位，同时取消片段的水平拖拽
         gesture.resolved = "vertical";
         videoTimelineDragState.current = null;
+        resourceTimelineDragState.current = null;
         timelineDragState.current = null;
         draggedLaneIdRef.current = gesture.laneId;
         laneReorderPointerRef.current = {
@@ -2868,6 +3135,7 @@ const App = () => {
           -1,
           ...videoTracks.map((candidate) => candidate.trackOrder),
           ...instances.map((candidate) => candidate.trackOrder),
+          ...resourceTracks.map((candidate) => candidate.trackOrder),
         ) + 1,
       name: file.name,
       url: data.videoUrl,
@@ -2920,6 +3188,7 @@ const App = () => {
                 0,
                 ...videoTracks.map((track) => track.trackOrder),
                 ...instances.map((candidate) => candidate.trackOrder),
+                ...resourceTracks.map((track) => track.trackOrder),
               ) - 1,
             appendOrientation: canvasOrientation,
           }
@@ -2972,27 +3241,39 @@ const App = () => {
   };
 
   const importTimelineJson = async (file: File) => {
-    if (definitions.length === 0) {
-      throw new Error("请先导入 TSX 效果包，再导入 JSON 编排。");
-    }
     let parsed: unknown;
     try {
       parsed = JSON.parse(await file.text());
     } catch {
       throw new Error("JSON 格式无效，无法读取编排内容。");
     }
+    const parsedRecord = isRecord(parsed) ? parsed : null;
     const rawItems = Array.isArray(parsed)
       ? parsed
-      : isRecord(parsed)
-        ? parsed.timeline ?? parsed.MOTION_TIMELINE ?? parsed.instances
+      : parsedRecord
+        ? parsedRecord.motionTimeline ??
+          parsedRecord.timeline ??
+          parsedRecord.MOTION_TIMELINE ??
+          parsedRecord.instances
         : undefined;
-    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    const rawResourceItems = parsedRecord?.resourceTracks;
+    const hasMotionItems = Array.isArray(rawItems) && rawItems.length > 0;
+    const hasResourceItems =
+      Array.isArray(rawResourceItems) && rawResourceItems.length > 0;
+    const motionItems = Array.isArray(rawItems) ? rawItems : [];
+    const resourceItems = Array.isArray(rawResourceItems)
+      ? rawResourceItems
+      : [];
+    if (!hasMotionItems && !hasResourceItems) {
       throw new Error(
-        "编排需是数组，或包含 timeline、MOTION_TIMELINE、instances 数组的对象。",
+        "编排需包含 motionTimeline/timeline/instances 或 resourceTracks 数组。",
       );
     }
+    if (hasMotionItems && definitions.length === 0) {
+      throw new Error("当前没有可用效果组件，无法导入动效轨道。");
+    }
 
-    const items = rawItems.map((rawItem, index): TimelineJsonItem => {
+    const items = motionItems.map((rawItem, index): TimelineJsonItem => {
       if (!isRecord(rawItem)) {
         throw new Error(`第 ${index + 1} 项必须是对象。`);
       }
@@ -3061,6 +3342,44 @@ const App = () => {
         props: isRecord(rawItem.props) ? rawItem.props : undefined,
       };
     });
+    let indexedResources = new Set<string>();
+    if (hasResourceItems) {
+      const indexResponse = await fetch("/input/resource-index.json", {
+        cache: "no-store",
+      });
+      if (!indexResponse.ok) throw new Error("无法读取固定资源索引。");
+      const resourceIndex = await indexResponse.json();
+      indexedResources = new Set(
+        Object.entries(resourceIndex.libraries ?? {}).flatMap(
+          ([library, entries]) =>
+            Array.isArray(entries)
+              ? entries.map(
+                  (entry) =>
+                    `${library}:${String(isRecord(entry) ? entry.id ?? "" : "")}`,
+                )
+              : [],
+        ),
+      );
+    }
+    const importedResourceTracks = resourceItems.map((rawTrack, index) => {
+      if (!isRecord(rawTrack)) {
+        throw new Error(`资源轨道第 ${index + 1} 项必须是对象。`);
+      }
+      const kind = String(rawTrack.kind ?? "");
+      const resourceId = String(rawTrack.resourceId ?? "");
+      const library =
+        kind === "icon"
+          ? "icons"
+          : kind === "material"
+            ? "materials"
+            : kind;
+      if (!indexedResources.has(`${library}:${resourceId}`)) {
+        throw new Error(
+          `资源轨道第 ${index + 1} 项引用的 ${library}:${resourceId} 不在当前索引中。`,
+        );
+      }
+      return restoreResourceTrack(rawTrack as Partial<ResourceTrack>, index);
+    });
     const importTotalFrames = Math.max(
       durationInFrames,
       ...items.map((item) => {
@@ -3070,13 +3389,17 @@ const App = () => {
           (item.durationInFrames ?? definition.durationInFrames)
         );
       }),
+      ...importedResourceTracks.map(
+        (track) => track.startFrame + track.durationInFrames,
+      ),
     );
     const firstTrackOrder =
       Math.min(
         0,
         ...videoTracks.map((track) => track.trackOrder),
         ...instances.map((instance) => instance.trackOrder),
-      ) - items.length;
+        ...resourceTracks.map((track) => track.trackOrder),
+      ) - items.length - importedResourceTracks.length;
     const importedInstances = items.map((item, index) =>
       createInstance(
         definitionMap.get(item.componentId)!,
@@ -3095,12 +3418,27 @@ const App = () => {
       ),
     );
     const nextInstances = preventLaneOverlaps([...instances, ...importedInstances]);
+    const orderedResourceTracks = importedResourceTracks.map((track, index) => ({
+      ...track,
+      trackOrder:
+        Number.isFinite(track.trackOrder) && track.trackOrder !== index
+          ? track.trackOrder
+          : firstTrackOrder + items.length + index,
+    }));
+    const nextResourceTracks = preventLaneOverlaps([
+      ...resourceTracks,
+      ...orderedResourceTracks,
+    ]);
     setManualTimelineEndFrame((current) => Math.max(current, importTotalFrames));
     setInstances(nextInstances);
-    selectOnlyInstance(importedInstances[0].id);
+    setResourceTracks(nextResourceTracks);
+    if (importedInstances[0]) selectOnlyInstance(importedInstances[0].id);
+    else if (orderedResourceTracks[0]) {
+      selectResourceTrack(orderedResourceTracks[0].id);
+    }
     setNotice({
       tone: "ok",
-      text: `已从 ${file.name} 导入 ${importedInstances.length} 个编排效果到时间轴。`,
+      text: `已从 ${file.name} 导入 ${importedInstances.length} 个动效和 ${orderedResourceTracks.length} 个资源轨道项。`,
     });
   };
 
@@ -3199,6 +3537,10 @@ const App = () => {
         body: JSON.stringify({
           videoSrc: videoUrl,
           videoTracks: videoTracks.map((track) => ({
+            ...track,
+            url: track.url.split("?")[0],
+          })),
+          resourceTracks: resourceTracks.map((track) => ({
             ...track,
             url: track.url.split("?")[0],
           })),
@@ -3707,6 +4049,143 @@ const App = () => {
       window.removeEventListener("pointercancel", finishVideoTimeline);
     };
   }, [durationInFrames, fps]);
+
+  const resourceTimelineDragState = useRef<{
+    mode: "move" | "left" | "right";
+    trackId: string;
+    pointerX: number;
+    startFrame: number;
+    sourceStartFrame: number;
+    sourceDurationInFrames: number;
+    durationInFrames: number;
+    loop: boolean;
+    width: number;
+  } | null>(null);
+
+  const beginResourceTimelineDrag = (
+    event: React.PointerEvent,
+    track: ResourceTrack,
+    mode: "move" | "left" | "right",
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    selectResourceTrack(track.id);
+    resourceTimelineDragState.current = {
+      mode,
+      trackId: track.id,
+      pointerX: event.clientX,
+      startFrame: track.startFrame,
+      sourceStartFrame: track.sourceStartFrame,
+      sourceDurationInFrames: track.sourceDurationInFrames,
+      durationInFrames: track.durationInFrames,
+      loop: track.loop,
+      width:
+        timelineContentWidth ||
+        event.currentTarget.closest(".track-body")?.clientWidth ||
+        1,
+    };
+  };
+
+  useEffect(() => {
+    const moveResourceTimeline = (event: PointerEvent) => {
+      const state = resourceTimelineDragState.current;
+      if (!state) return;
+      event.preventDefault();
+      const deltaFrames = Math.round(
+        ((event.clientX - state.pointerX) / state.width) * durationInFrames,
+      );
+      const minFrames = Math.max(3, Math.round(fps * 0.1));
+      setResourceTracks((current) =>
+        current.map((track) => {
+          if (track.id !== state.trackId) return track;
+          const laneNeighbors = current.filter(
+            (candidate) =>
+              candidate.id !== track.id && candidate.laneId === track.laneId,
+          );
+          const previousEnd = laneNeighbors.reduce((maximum, candidate) => {
+            const candidateEnd = candidate.startFrame + candidate.durationInFrames;
+            return candidateEnd <= state.startFrame
+              ? Math.max(maximum, candidateEnd)
+              : maximum;
+          }, 0);
+          const originalEnd = state.startFrame + state.durationInFrames;
+          const nextStart = laneNeighbors.reduce(
+            (minimum, candidate) =>
+              candidate.startFrame >= originalEnd
+                ? Math.min(minimum, candidate.startFrame)
+                : minimum,
+            Number.POSITIVE_INFINITY,
+          );
+          if (state.mode === "move") {
+            const startFrame = Math.max(previousEnd, state.startFrame + deltaFrames);
+            const limitedStart = Number.isFinite(nextStart)
+              ? Math.min(startFrame, nextStart - state.durationInFrames)
+              : startFrame;
+            setManualTimelineEndFrame((currentEnd) =>
+              Math.max(currentEnd, limitedStart + state.durationInFrames),
+            );
+            return { ...track, startFrame: limitedStart };
+          }
+          if (state.mode === "left") {
+            const rightFrame = state.startFrame + state.durationInFrames;
+            const minimumStart = Math.max(
+              previousEnd,
+              0,
+              state.loop
+                ? 0
+                : state.startFrame - state.sourceStartFrame,
+            );
+            const startFrame = clamp(
+              state.startFrame + deltaFrames,
+              minimumStart,
+              rightFrame - minFrames,
+            );
+            const sourceDelta = startFrame - state.startFrame;
+            return {
+              ...track,
+              startFrame,
+              sourceStartFrame: state.loop
+                ? Math.max(0, state.sourceStartFrame + sourceDelta) %
+                  state.sourceDurationInFrames
+                : state.sourceStartFrame + sourceDelta,
+              durationInFrames: rightFrame - startFrame,
+            };
+          }
+          const maximumDuration = Number.isFinite(nextStart)
+            ? nextStart - state.startFrame
+            : Number.MAX_SAFE_INTEGER;
+          const sourceLimit = state.loop
+            ? maximumDuration
+            : Math.min(
+                maximumDuration,
+                state.sourceDurationInFrames - state.sourceStartFrame,
+              );
+          const duration = clamp(
+            state.durationInFrames + deltaFrames,
+            minFrames,
+            sourceLimit,
+          );
+          setManualTimelineEndFrame((currentEnd) =>
+            Math.max(currentEnd, state.startFrame + duration),
+          );
+          return { ...track, durationInFrames: duration };
+        }),
+      );
+    };
+    const finishResourceTimeline = () => {
+      resourceTimelineDragState.current = null;
+    };
+    window.addEventListener("pointermove", moveResourceTimeline, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", finishResourceTimeline);
+    window.addEventListener("pointercancel", finishResourceTimeline);
+    return () => {
+      window.removeEventListener("pointermove", moveResourceTimeline);
+      window.removeEventListener("pointerup", finishResourceTimeline);
+      window.removeEventListener("pointercancel", finishResourceTimeline);
+    };
+  }, [durationInFrames, fps, selectResourceTrack]);
 
   const timelineDragState = useRef<{
     mode: "move" | "left" | "right";
@@ -4480,6 +4959,22 @@ const App = () => {
     });
   };
 
+  const showResourceTrackMenu = (
+    event: React.MouseEvent,
+    trackId: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    selectResourceTrack(trackId);
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 174),
+      y: Math.min(event.clientY, window.innerHeight - 92),
+      source: "resourceTimeline",
+      instanceIds: [],
+      resourceTrackId: trackId,
+    });
+  };
+
   const openEffectInCodeEditor = async (componentId: string) => {
     setContextMenu(null);
     try {
@@ -4749,6 +5244,7 @@ const App = () => {
             -1,
             ...videoTracks.map((track) => track.trackOrder),
             ...instances.map((candidate) => candidate.trackOrder),
+            ...resourceTracks.map((track) => track.trackOrder),
           ) +
           index +
           1,
@@ -4925,6 +5421,17 @@ const App = () => {
               selectedTrack?.visible === false ? "显示" : "隐藏"
             }。`,
           });
+        } else if (selectedResourceTrackId) {
+          const selectedTrack = resourceTracks.find(
+            (track) => track.id === selectedResourceTrackId,
+          );
+          toggleResourceTrackVisibility(selectedResourceTrackId);
+          setNotice({
+            tone: "ok",
+            text: `${selectedTrack?.name ?? "资源轨道"}已${
+              selectedTrack?.visible === false ? "显示" : "隐藏"
+            }。`,
+          });
         } else if (selectionIds.length > 0) {
           const selectedTracks = instances.filter((instance) =>
             selectionIds.includes(instance.id),
@@ -4944,6 +5451,9 @@ const App = () => {
       if (action === "duplicate") duplicateInstances(selectionIds);
       if (action === "delete") {
         if (selectedVideoTrackId) removeVideoTrack(selectedVideoTrackId);
+        else if (selectedResourceTrackId) {
+          deleteResourceTrack(selectedResourceTrackId);
+        }
         else deleteInstances(selectionIds);
       }
       if (action === "regionIn") {
@@ -4989,13 +5499,16 @@ const App = () => {
     regionOutFrame,
     selectedInstanceId,
     selectedInstanceIds,
+    selectedResourceTrackId,
     selectedVideoTrackId,
     shortcutPanelOpen,
     shortcuts,
     toggleMotionTrackVisibility,
+    toggleResourceTrackVisibility,
     toggleVideoTrackVisibility,
     redoEdit,
     undoEdit,
+    resourceTracks,
     videoTracks,
   ]);
 
@@ -5655,7 +6168,8 @@ const App = () => {
         <section className="workspace">
           <div className="workspace-toolbar">
             <span>
-              {canvasWidth} × {canvasHeight} · {fps} FPS · {instances.length} 个实例
+              {canvasWidth} × {canvasHeight} · {fps} FPS · {instances.length} 个动效 ·{" "}
+              {resourceTracks.length} 个资源
             </span>
             <span>{formatTime(timelineSeconds)}</span>
           </div>
@@ -5881,7 +6395,7 @@ const App = () => {
                   </span>
                 ) : null}
                 <span className="timeline-card-count">
-                  <b>{instances.length}</b>/50
+                  动效 <b>{instances.length}</b> · 资源 <b>{resourceTracks.length}</b>
                 </span>
               </div>
               <div className="timeline-height-controls" aria-label="时间轴显示大小">
@@ -5984,16 +6498,22 @@ const App = () => {
                 const laneSelected =
                   lane.kind === "video"
                     ? lane.clips.some((clip) => clip.id === selectedVideoTrackId)
-                    : lane.clips.some((clip) =>
-                        selectedInstanceIdSet.has(clip.id),
-                      );
+                    : lane.kind === "resource"
+                      ? lane.clips.some(
+                          (clip) => clip.id === selectedResourceTrackId,
+                        )
+                      : lane.clips.some((clip) =>
+                          selectedInstanceIdSet.has(clip.id),
+                        );
                 const definition =
                   lane.kind === "motion"
                     ? definitionMap.get(firstClip.componentId)
                     : null;
                 if (lane.kind === "motion" && !definition) return null;
                 const laneName =
-                  lane.kind === "video" ? firstClip.name : definition!.name;
+                  lane.kind === "video" || lane.kind === "resource"
+                    ? firstClip.name
+                    : definition!.name;
                 const laneTrackHeight = trackHeights[lane.laneId] ?? 42;
                 const isDragging = laneDrop?.draggedLaneId === lane.laneId;
                 const isDropTarget =
@@ -6005,7 +6525,9 @@ const App = () => {
                     className={`timeline-track-row ${
                       lane.kind === "video"
                         ? "timeline-video-track"
-                        : "motion-timeline-track"
+                        : lane.kind === "resource"
+                          ? `resource-timeline-track resource-${firstClip.kind}`
+                          : "motion-timeline-track"
                     } ${laneHidden ? "is-hidden" : ""} ${isDragging ? "is-dragging" : ""} ${isDropBefore ? "is-drop-before" : ""} ${isDropAfter ? "is-drop-after" : ""}`}
                     key={lane.laneId}
                     data-lane-id={lane.laneId}
@@ -6031,13 +6553,20 @@ const App = () => {
                         }
                         aria-pressed={!laneHidden}
                         aria-label={`${laneHidden ? "显示" : "隐藏"}${
-                          lane.kind === "video" ? "视频" : "动效"
+                          lane.kind === "video"
+                            ? "视频"
+                            : lane.kind === "resource"
+                              ? "资源"
+                              : "动效"
                         }轨道 ${laneName}`}
                         title={`${laneHidden ? "显示" : "隐藏"}轨道（V）`}
                         onClick={() => {
                           if (lane.kind === "video") {
                             selectVideoTrack(firstClip.id);
                             toggleVideoTrackVisibility(firstClip.id);
+                          } else if (lane.kind === "resource") {
+                            selectResourceTrack(firstClip.id);
+                            toggleResourceTrackVisibility(firstClip.id);
                           } else {
                             selectOnlyInstance(firstClip.id);
                             toggleMotionTrackVisibility(
@@ -6060,6 +6589,9 @@ const App = () => {
                           if (lane.kind === "video") {
                             selectVideoTrack(firstClip.id);
                             seekEditorFrame(firstClip.startFrame);
+                          } else if (lane.kind === "resource") {
+                            selectResourceTrack(firstClip.id);
+                            seekEditorFrame(firstClip.startFrame);
                           } else {
                             selectOnlyInstance(firstClip.id);
                           }
@@ -6067,6 +6599,12 @@ const App = () => {
                       >
                         {lane.kind === "video" ? (
                           <VideoCamera weight="fill" />
+                        ) : lane.kind === "resource" ? (
+                          firstClip.kind === "sfx" || firstClip.kind === "bgm" ? (
+                            <SpeakerHigh weight="fill" />
+                          ) : (
+                            <SelectionForeground weight="fill" />
+                          )
                         ) : null}
                         <span>{String(laneIndex + 1).padStart(2, "0")}</span>
                       </button>
@@ -6148,7 +6686,51 @@ const App = () => {
                               />
                             </div>
                           ))
-                        : lane.clips.map((instance) => {
+                        : lane.kind === "resource"
+                          ? lane.clips.map((track) => (
+                              <div
+                                className={`clip resource-clip resource-${track.kind} ${
+                                  selectedResourceTrackId === track.id
+                                    ? "selected"
+                                    : ""
+                                }`}
+                                key={track.id}
+                                style={{
+                                  left: `${(track.startFrame / durationInFrames) * 100}%`,
+                                  width: `${(track.durationInFrames / durationInFrames) * 100}%`,
+                                }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  selectResourceTrack(track.id);
+                                }}
+                                onPointerDown={(event) =>
+                                  beginResourceTimelineDrag(event, track, "move")
+                                }
+                                onContextMenu={(event) =>
+                                  showResourceTrackMenu(event, track.id)
+                                }
+                                title="拖动移动；拖动两侧调整时长；右键删除"
+                              >
+                                <button
+                                  className="clip-handle left"
+                                  onPointerDown={(event) =>
+                                    beginResourceTimelineDrag(event, track, "left")
+                                  }
+                                  aria-label={`调整 ${track.name} 开始时间`}
+                                />
+                                <span title={track.name}>
+                                  {track.kind.toUpperCase()} · {track.name}
+                                </span>
+                                <button
+                                  className="clip-handle right"
+                                  onPointerDown={(event) =>
+                                    beginResourceTimelineDrag(event, track, "right")
+                                  }
+                                  aria-label={`调整 ${track.name} 结束时间`}
+                                />
+                              </div>
+                            ))
+                          : lane.clips.map((instance) => {
                             const clipDefinition = definitionMap.get(
                               instance.componentId,
                             );
@@ -6195,7 +6777,7 @@ const App = () => {
                               />
                               </div>
                             );
-                          })}
+                            })}
                       </div>
                     </div>
                   </div>
@@ -6259,7 +6841,9 @@ const App = () => {
           <header className="reference-inspector-head">
             <small>
               单卡参数 <i>·</i>{" "}
-              {selectedInstance
+              {selectedResourceTrack
+                ? `RESOURCE · ${selectedResourceTrack.kind.toUpperCase()}`
+                : selectedInstance
                 ? `CARD-${String(
                     instances.findIndex(
                       (instance) => instance.id === selectedInstance.id,
@@ -6269,9 +6853,13 @@ const App = () => {
             </small>
             <div>
               <SlidersHorizontal weight="fill" />
-              <strong>{selectedDefinition?.name ?? "未选择效果"}</strong>
+              <strong>
+                {selectedResourceTrack?.name ?? selectedDefinition?.name ?? "未选择效果"}
+              </strong>
               <span>
-                {selectedDefinition?.description ?? "从时间轴或效果库选择一个组件"}
+                {selectedResourceTrack
+                  ? `${selectedResourceTrack.kind.toUpperCase()} · ${selectedResourceTrack.resourceId}`
+                  : selectedDefinition?.description ?? "从时间轴或效果库选择一个组件"}
               </span>
             </div>
           </header>
@@ -6305,7 +6893,205 @@ const App = () => {
                 </div>
               </div>
             </section>
-            {selectedInstance && selectedDefinition ? (
+            {selectedResourceTrack ? (
+              <>
+                {selectedResourceTrack.kind === "icon" ||
+                selectedResourceTrack.kind === "material" ? (
+                  <section className="reference-inspector-section">
+                    <div className="reference-section-title">
+                      <strong>资源位置</strong><small>POSITION</small>
+                    </div>
+                    <div className="dynamic-prop-fields">
+                      <div className="reference-range-group">
+                        <div className="reference-range-head">
+                          <label>水平位置</label>
+                          <b>{Math.round(selectedResourceTrack.position.x)}px</b>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={Math.max(0, canvasWidth)}
+                          step={1}
+                          value={clamp(
+                            Math.round(selectedResourceTrack.position.x),
+                            0,
+                            Math.max(0, canvasWidth),
+                          )}
+                          onChange={(event) =>
+                            updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                              ...track,
+                              position: {
+                                ...track.position,
+                                x: Number(event.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="reference-range-group">
+                        <div className="reference-range-head">
+                          <label>垂直位置</label>
+                          <b>{Math.round(selectedResourceTrack.position.y)}px</b>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={Math.max(0, canvasHeight)}
+                          step={1}
+                          value={clamp(
+                            Math.round(selectedResourceTrack.position.y),
+                            0,
+                            Math.max(0, canvasHeight),
+                          )}
+                          onChange={(event) =>
+                            updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                              ...track,
+                              position: {
+                                ...track.position,
+                                y: Number(event.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="reference-range-group">
+                        <div className="reference-range-head">
+                          <label>资源缩放</label>
+                          <b>{Math.round(selectedResourceTrack.position.scale * 100)}%</b>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={300}
+                          step={1}
+                          value={Math.round(selectedResourceTrack.position.scale * 100)}
+                          onChange={(event) =>
+                            updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                              ...track,
+                              position: {
+                                ...track.position,
+                                scale: Number(event.target.value) / 100,
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="reference-inspector-section">
+                    <div className="reference-section-title">
+                      <strong>音频参数</strong><small>AUDIO</small>
+                    </div>
+                    <div className="dynamic-prop-fields">
+                      <div className="reference-range-group">
+                        <div className="reference-range-head">
+                          <label>音量</label>
+                          <b>{Math.round(selectedResourceTrack.volume * 100)}%</b>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={Math.round(selectedResourceTrack.volume * 100)}
+                          onChange={(event) =>
+                            updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                              ...track,
+                              volume: Number(event.target.value) / 100,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="reference-range-group">
+                        <div className="reference-range-head">
+                          <label>人声避让</label>
+                          <b>{Math.round(selectedResourceTrack.voiceDucking * 100)}%</b>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={Math.round(selectedResourceTrack.voiceDucking * 100)}
+                          onChange={(event) =>
+                            updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                              ...track,
+                              voiceDucking: Number(event.target.value) / 100,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </section>
+                )}
+                <section className="reference-inspector-section">
+                  <div className="reference-section-title">
+                    <strong>时间范围</strong><small>TIMING</small>
+                  </div>
+                  <div className="dynamic-prop-fields">
+                    <label className="prop-field">
+                      <span>开始时间(秒)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={(selectedResourceTrack.startFrame / fps).toFixed(1)}
+                        onChange={(event) => {
+                          const nextStart = Math.max(
+                            0,
+                            Math.round(Number(event.target.value) * fps),
+                          );
+                          updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                            ...track,
+                            startFrame: nextStart,
+                          }));
+                          setManualTimelineEndFrame((current) =>
+                            Math.max(
+                              current,
+                              nextStart + selectedResourceTrack.durationInFrames,
+                            ),
+                          );
+                        }}
+                      />
+                    </label>
+                    <label className="prop-field">
+                      <span>资源时长(秒)</span>
+                      <input
+                        type="number"
+                        min={3 / fps}
+                        step={0.1}
+                        value={(selectedResourceTrack.durationInFrames / fps).toFixed(1)}
+                        onChange={(event) => {
+                          const requestedFrames = Math.max(
+                            3,
+                            Math.round(Number(event.target.value) * fps),
+                          );
+                          const nextDuration = selectedResourceTrack.loop
+                            ? requestedFrames
+                            : Math.min(
+                                requestedFrames,
+                                selectedResourceTrack.sourceDurationInFrames -
+                                  selectedResourceTrack.sourceStartFrame,
+                              );
+                          updateResourceTrack(selectedResourceTrack.id, (track) => ({
+                            ...track,
+                            durationInFrames: nextDuration,
+                          }));
+                          setManualTimelineEndFrame((current) =>
+                            Math.max(
+                              current,
+                              selectedResourceTrack.startFrame + nextDuration,
+                            ),
+                          );
+                        }}
+                      />
+                    </label>
+                  </div>
+                </section>
+              </>
+            ) : null}
+            {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
               <section className="reference-inspector-section">
                 <div className="reference-section-title">
                   <strong>独立位置微调</strong><small>POSITION</small>
@@ -6394,9 +7180,9 @@ const App = () => {
                 </div>
               </section>
             ) : null}
-            {!selectedInstance || !selectedDefinition ? (
+            {selectedResourceTrack ? null : !selectedInstance || !selectedDefinition ? (
               <div className="reference-inspector-empty">
-                在时间轴中选择组件后，可在这里修改参数。
+                在时间轴中选择组件或资源后，可在这里修改参数。
               </div>
             ) : (
               <>
@@ -7035,6 +7821,19 @@ const App = () => {
                   }
                 >
                   删除视频片段（S）
+                </button>
+              </>
+            ) : contextMenu.source === "resourceTimeline" ? (
+              <>
+                <small>资源轨道片段</small>
+                <button
+                  className="delete-action"
+                  onClick={() =>
+                    contextMenu.resourceTrackId &&
+                    deleteResourceTrack(contextMenu.resourceTrackId)
+                  }
+                >
+                  删除资源片段（S）
                 </button>
               </>
             ) : contextMenu.source === "library" ? (

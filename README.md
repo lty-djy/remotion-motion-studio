@@ -8,6 +8,8 @@
 
 - 导入本地视频，按视频真实时长播放，保留原声且不循环；
 - 导入自包含的 Remotion TSX 动效包，支持 `MOTION_COMPONENTS` 与 `MOTION_TIMELINE` 多组件清单；
+- 导入 Timeline v2 JSON，把固定效果、图标、图片/录屏、音效和 BGM 作为独立轨道项；
+- 资源轨道支持预览、显隐、移动、裁剪、排序、删除，并可微调画面位置/缩放或音量/人声避让；
 - 画布内单选、框选、多选移动、缩放、复制、删除；
 - 时间轴播放头、拖动组件条、左右裁剪，最短时长 0.1 秒；
 - 根据参数协议编辑文字、数值、颜色、开关、位置、缩放和背景透明度；
@@ -47,10 +49,21 @@ powershell -ExecutionPolicy Bypass -File .\import-to-studio.ps1 -FilePath "C:\�
 - `local-builtins.tsx`：内置组件目录；
 - `local-protocol.ts`：清单协议解析与兼容层；
 - `local-render-entry-v2.tsx`：导出 MP4 的 Remotion 入口；
+- `public/input/resource-index.json`：固定资源 ID 到本地 URL、MIME、哈希和媒体信息的索引；
+- `ai-motion-arranger/scripts/visual-script-to-timeline.mjs`：Visual Script 2.0 到 Timeline v2 的确定性转换器；
 - `local-imported/active.tsx`：首次启动时可见的基础示例组件；
 - `remotion-motion-studio.*`：AI 生成动效的协议、模板和组件目录。
 
 运行后自动产生的 `local-media/`、`local-components/`、`local-projects/`、`local-state.json` 和 `outputs/renders/` 都是你的本机数据，不应提交到公开仓库。
+
+## Visual Script 转时间线
+
+转换器只做确定性映射：校验组件/资源 ID，计算基础锚点、尺寸与时间，并生成可导入工作台的 Timeline v2 JSON；本阶段不包含语义判断或自动避让。
+
+```powershell
+npm.cmd run convert:visual-script -- .\ai-motion-arranger\examples\sample-visual-script-v2.json .\ai-motion-arranger\examples\sample-timeline-v2.json
+npm.cmd run test:timeline-v2
+```
 
 ## 开源包内容与限制
 

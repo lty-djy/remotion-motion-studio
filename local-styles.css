@@ -1920,6 +1920,62 @@ aside {
   background: rgba(101, 223, 247, 0.08);
 }
 
+.resource-timeline-track .track-body {
+  background: rgba(183, 137, 255, 0.055);
+}
+
+.resource-timeline-track .motion-track-controls {
+  color: #cdb4ff;
+  border-color: rgba(183, 137, 255, 0.38);
+  background: rgba(183, 137, 255, 0.07);
+}
+
+.resource-timeline-track .motion-track-controls.active {
+  color: #efe5ff;
+  border-color: rgba(202, 168, 255, 0.82);
+  background: rgba(183, 137, 255, 0.13);
+}
+
+.resource-clip {
+  min-width: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-color: rgba(192, 151, 255, 0.78);
+  color: #f2eaff;
+  background:
+    linear-gradient(90deg, rgba(132, 76, 220, 0.42), rgba(78, 117, 218, 0.34)),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 8px,
+      rgba(255, 255, 255, 0.04) 8px,
+      rgba(255, 255, 255, 0.04) 9px
+    );
+}
+
+.resource-clip.resource-sfx {
+  border-color: rgba(255, 174, 80, 0.82);
+  color: #fff0d7;
+  background: linear-gradient(90deg, rgba(210, 111, 24, 0.42), rgba(154, 73, 160, 0.35));
+}
+
+.resource-clip.resource-bgm {
+  border-color: rgba(99, 220, 174, 0.82);
+  color: #e2fff5;
+  background: linear-gradient(90deg, rgba(25, 150, 111, 0.42), rgba(40, 112, 183, 0.35));
+}
+
+.resource-timeline-track.is-hidden .track-body,
+.resource-timeline-track.is-hidden .resource-clip {
+  opacity: 0.38;
+}
+
+.resource-timeline-track.is-hidden .motion-track-controls {
+  color: #746d80;
+  border-color: rgba(135, 120, 150, 0.25);
+  background: rgba(110, 95, 125, 0.05);
+}
+
 .motion-track-toggle,
 .motion-track-select {
   min-width: 0;

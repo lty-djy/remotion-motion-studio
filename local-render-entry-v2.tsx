@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
   AbsoluteFill,
+  Audio,
   Composition,
+  Img,
   OffthreadVideo,
   Sequence,
   continueRender,
@@ -15,6 +17,7 @@ import {
   getNumberExport,
   type MotionInstance,
   type MotionModule,
+  type ResourceTrack,
   type VideoTrack,
 } from "./local-protocol";
 import { mergeWithBuiltInDefinitions } from "./local-builtins";
@@ -44,6 +47,7 @@ const definitionMap = new Map(
 type RenderProps = {
   videoSrc?: string;
   videoTracks?: VideoTrack[];
+  resourceTracks?: ResourceTrack[];
   sourceIncludesVideo?: boolean;
   instances?: MotionInstance[];
   timelineDurationInFrames?: number;
@@ -90,6 +94,7 @@ const WaitForFonts = () => {
 const MultiComponentRender = ({
   videoSrc = "",
   videoTracks = [],
+  resourceTracks = [],
   sourceIncludesVideo = false,
   instances = [],
   transparent = false,
@@ -114,7 +119,15 @@ const MultiComponentRender = ({
         id: instance.id,
         instance,
       })),
-  ].sort((a, b) => a.order - b.order);
+    ...resourceTracks
+      .filter((track) => track.visible !== false)
+      .map((track) => ({
+        kind: "resource" as const,
+        order: track.trackOrder,
+        id: track.id,
+        track,
+      })),
+  ].sort((a, b) => b.order - a.order);
   return <AbsoluteFill
     style={transparent ? undefined : { backgroundColor: "#05070a" }}
   >
@@ -137,6 +150,59 @@ const MultiComponentRender = ({
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         </Sequence>
+        );
+      }
+      if (layer.kind === "resource") {
+        const track = layer.track;
+        const isAudio = track.kind === "sfx" || track.kind === "bgm";
+        const effectiveVolume = soundEnabled
+          ? track.volume * (1 - track.voiceDucking)
+          : 0;
+        if (isAudio) {
+          return (
+            <Sequence
+              key={track.id}
+              from={Math.max(0, Math.round(track.startFrame))}
+              durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+            >
+              <Audio
+                src={track.url}
+                trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
+                volume={effectiveVolume}
+                muted={!soundEnabled}
+                loop={track.loop}
+              />
+            </Sequence>
+          );
+        }
+        const visualStyle: React.CSSProperties = {
+          position: "absolute",
+          left: track.position.x,
+          top: track.position.y,
+          width: track.position.width,
+          height: track.position.height,
+          transform: `scale(${track.position.scale})`,
+          transformOrigin: "0 0",
+          objectFit: "contain",
+          zIndex: track.position.zIndex,
+        };
+        return (
+          <Sequence
+            key={track.id}
+            from={Math.max(0, Math.round(track.startFrame))}
+            durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
+          >
+            {track.mimeType.startsWith("video/") ? (
+              <OffthreadVideo
+                src={track.url}
+                trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
+                muted
+                style={visualStyle}
+              />
+            ) : (
+              <Img src={track.url} style={visualStyle} />
+            )}
+          </Sequence>
         );
       }
       const instance = layer.instance;
@@ -193,6 +259,7 @@ const Root = () => (
     defaultProps={{
       videoSrc: "",
       videoTracks: [],
+      resourceTracks: [],
       sourceIncludesVideo: false,
       instances: [],
       timelineDurationInFrames: sourceDurationInFrames,

@@ -10,8 +10,8 @@
         "file": "icons/arrow.svg",
         "url": "/input/icons/arrow.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 208,
-        "sha256": "7dbf2d1cff6bbc8880fe7cca5dd7ac938c146ab8365c27739ebe12950beaa267",
+        "bytes": 203,
+        "sha256": "550b80d5d3e7580f8b265f36fb2d22fe77d784a79dabe9293cbc27bea01624d5",
         "tags": [
           "方向",
           "流程",
@@ -28,8 +28,8 @@
         "file": "icons/code.svg",
         "url": "/input/icons/code.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 229,
-        "sha256": "4714168b847cd9b30d80ed854e6873980535e7ba1fe2aafa7ca0575641cc897e",
+        "bytes": 224,
+        "sha256": "894b82c320bcd8998fefe963385998a5042d96f4e695a9e5b9cda87ed2fb4090",
         "tags": [
           "代码",
           "开发",
@@ -46,8 +46,8 @@
         "file": "icons/speed.svg",
         "url": "/input/icons/speed.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 438,
-        "sha256": "a22e0a25756b25d3b4076edbfd9105f16b03d5f7aa5f96cdd57f86945ad0571f",
+        "bytes": 418,
+        "sha256": "fb10941730687cb71a04d2fd106f73dee4225b6a261ad4d153ca49f2cc15ac49",
         "tags": [
           "速度",
           "性能",
@@ -64,8 +64,8 @@
         "file": "icons/timeline.svg",
         "url": "/input/icons/timeline.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 473,
-        "sha256": "7a3ac7f6c8dcc0ab3183c6b3381d8be5404488f04c4be257b016c00c73c65c15",
+        "bytes": 453,
+        "sha256": "854011b8ee865585b307f45f6c9885a0c15ebd3acfa39b7d5a26a4ddb652bad3",
         "tags": [
           "时间线",
           "轨道",

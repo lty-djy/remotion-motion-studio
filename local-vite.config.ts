@@ -253,6 +253,7 @@ type ProjectSnapshot = {
     durationInFrames: number;
     visible: boolean;
   }>;
+  resourceTracks?: unknown[];
   instances: unknown[];
   currentFrame?: number;
   theme?: "dark" | "light";
@@ -360,7 +361,14 @@ const removeEffectFromSavedTimelines = async (componentId: string) => {
             "utf8",
           );
         }
-        return { ...project, instanceCount: instances.length };
+        return {
+          ...project,
+          instanceCount:
+            instances.length +
+            (Array.isArray(snapshot.resourceTracks)
+              ? snapshot.resourceTracks.length
+              : 0),
+        };
       } catch {
         return project;
       }
@@ -586,6 +594,88 @@ const normalizeProjectSnapshot = (
                   ? Math.max(3, Math.round(durationInFrames))
                   : 3,
               visible: track.visible !== false,
+            },
+          ];
+        })
+      : [],
+    resourceTracks: Array.isArray(input.resourceTracks)
+      ? input.resourceTracks.slice(0, 500).flatMap((track, index) => {
+          if (!track || typeof track !== "object") return [];
+          const record = track as Record<string, unknown>;
+          const kind = ["icon", "material", "sfx", "bgm"].includes(
+            String(record.kind),
+          )
+            ? String(record.kind)
+            : "";
+          const url =
+            typeof record.url === "string" ? record.url.split("?")[0] : "";
+          if (!kind || !url.startsWith("/input/")) return [];
+          const id =
+            typeof record.id === "string" && record.id
+              ? record.id.slice(0, 160)
+              : `resource-${Date.now()}-${index + 1}`;
+          const position =
+            record.position &&
+            typeof record.position === "object" &&
+            !Array.isArray(record.position)
+              ? (record.position as Record<string, unknown>)
+              : {};
+          const numberOr = (value: unknown, fallback: number) => {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : fallback;
+          };
+          return [
+            {
+              id,
+              laneId:
+                typeof record.laneId === "string" && record.laneId
+                  ? record.laneId.slice(0, 160)
+                  : id,
+              trackOrder: numberOr(record.trackOrder, index),
+              kind,
+              resourceId:
+                typeof record.resourceId === "string"
+                  ? record.resourceId.slice(0, 120)
+                  : "unknown",
+              name:
+                typeof record.name === "string" && record.name
+                  ? record.name.slice(0, 260)
+                  : `资源轨道 ${index + 1}`,
+              url,
+              mimeType:
+                typeof record.mimeType === "string"
+                  ? record.mimeType.slice(0, 120)
+                  : "application/octet-stream",
+              sourceStartFrame: Math.max(
+                0,
+                Math.round(numberOr(record.sourceStartFrame, 0)),
+              ),
+              sourceDurationInFrames: Math.max(
+                3,
+                Math.round(numberOr(record.sourceDurationInFrames, 3)),
+              ),
+              startFrame: Math.max(0, Math.round(numberOr(record.startFrame, 0))),
+              durationInFrames: Math.max(
+                3,
+                Math.round(numberOr(record.durationInFrames, 3)),
+              ),
+              visible: record.visible !== false,
+              position: {
+                x: numberOr(position.x, 80),
+                y: numberOr(position.y, 80),
+                width: Math.max(1, numberOr(position.width, kind === "icon" ? 144 : 640)),
+                height: Math.max(1, numberOr(position.height, kind === "icon" ? 144 : 360)),
+                scale: Math.max(0.1, Math.min(4, numberOr(position.scale, 1))),
+                zIndex: Math.round(
+                  Math.max(0, Math.min(100, numberOr(position.zIndex, 20))),
+                ),
+              },
+              volume: Math.max(0, Math.min(1, numberOr(record.volume, 1))),
+              voiceDucking: Math.max(
+                0,
+                Math.min(1, numberOr(record.voiceDucking, 0)),
+              ),
+              loop: kind === "bgm" && record.loop !== false,
             },
           ];
         })
@@ -1163,7 +1253,8 @@ const localApi = (): Plugin => {
             updatedAt: snapshot.updatedAt,
             videoName: snapshot.videoName ?? "未导入视频",
             componentName: snapshot.componentName ?? "内置组件",
-            instanceCount: snapshot.instances.length,
+            instanceCount:
+              snapshot.instances.length + (snapshot.resourceTracks?.length ?? 0),
           };
           const projectHistory = [
             item,
@@ -1511,6 +1602,19 @@ const localApi = (): Plugin => {
                 : inputProps.videoSrc,
             videoTracks: Array.isArray(inputProps.videoTracks)
               ? inputProps.videoTracks.map((track) => {
+                  if (!track || typeof track !== "object") return track;
+                  const record = track as Record<string, unknown>;
+                  return {
+                    ...record,
+                    url:
+                      typeof record.url === "string" && record.url.startsWith("/")
+                        ? `http://127.0.0.1:41735${record.url}`
+                        : record.url,
+                  };
+                })
+              : [],
+            resourceTracks: Array.isArray(inputProps.resourceTracks)
+              ? inputProps.resourceTracks.map((track) => {
                   if (!track || typeof track !== "object") return track;
                   const record = track as Record<string, unknown>;
                   return {
