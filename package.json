@@ -13,6 +13,7 @@
     "test:visual-script": "node ai-motion-arranger/scripts/test-visual-script.mjs",
     "pretest:timeline-v2": "npm run sync:registry && npm run sync:resources",
     "test:timeline-v2": "node ai-motion-arranger/scripts/test-timeline-v2.mjs",
+    "test:semantic-arranger": "node ai-motion-arranger/scripts/test-semantic-srt-arranger.mjs",
     "convert:visual-script": "node ai-motion-arranger/scripts/visual-script-to-timeline.mjs",
     "predev": "npm run sync:registry && npm run sync:resources",
     "dev": "vite --config local-vite.config.ts",

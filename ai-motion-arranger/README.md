@@ -9,6 +9,7 @@
 ai-motion-arranger/
 ├── README.md                # 本文件
 ├── SKILL.md                 # AI 编排器主文档（请勿手改）
+├── semantic-srt-arranger.mjs # 工作台内置的确定性 SRT 多意图路由器
 ├── visual-script.schema.json # Visual Script 2.0 正式 JSON Schema
 ├── references/
 │   ├── card-catalog.md      # 自动生成的卡片清单（AI 只能用这里登记的 id + props）
@@ -26,6 +27,7 @@ ai-motion-arranger/
 │   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
 │   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
 │   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
+│   ├── test-semantic-srt-arranger.mjs # SRT 多意图与固定资源路由回归
 │   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
 └── examples/
     ├── README.md
@@ -42,6 +44,16 @@ ai-motion-arranger/
 ```powershell
 npm.cmd run validate:visual-script -- ai-motion-arranger/examples/sample-visual-script-v2.json
 npm.cmd run test:visual-script
+```
+
+## 工作台内置 SRT 自动编排
+
+编辑台顶部“导入 SRT”现在使用 `semantic-srt-arranger.mjs` 逐句识别多个语义意图，并只引用当前真实效果库与固定资源索引中的 ID。当前确定性路由覆盖性能、流程、代码自动化、对比、完成度、覆盖率、倒计时、重点和数字指标；单句最多保留 3 个意图，避免画面过载。普通寒暄等未命中明确视觉语义的字幕会跳过，不会被强行套模板。
+
+生成结果只进入“编排预览”，默认全选但允许逐项取消；确认前不修改时间线，确认后也保留原有轨道。人物/字幕避让和自动质检仍显示为 `pending`，不属于当前阶段已经完成的能力。
+
+```powershell
+npm.cmd run test:semantic-arranger
 ```
 
 ## 固定资源库
@@ -143,19 +155,8 @@ npm.cmd run validate:resources
 
 ## 接入到工作台
 
-工作台现有的导入入口是：
+用户入口已经内置为：
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/import-to-studio.ps1 -FilePath package.tsx
-```
+`导入 SRT → 多意图语义分析 → 自动选择效果/图标/SFX → 编排预览 → 勾选确认 → 保留原时间线插入`
 
-本 Skill 输出的 manifest JSON 经过 `scripts/manifest-to-tsx.mjs` 编译后调用同一接口，**工作台代码零改动**。
-
-后续如果需要一键 "SRT → 入工作台"，可加一个：
-
-```bash
-# examples/sample-srt.srt → ai-motion-arranger manifest 编排 → package.tsx → 工作台激活
-node scripts/srt-to-studio.mjs examples/sample-srt.srt
-```
-
-这是一个一站式入口脚本，方便但不必要。本目录先专注编排 SKILL 本身。
+Visual Script、时间线 JSON 和资源索引都作为内部实现细节，不要求用户手写或手动导入。旧的 manifest → TSX 编译链仍可用于离线批量编排和兼容已有工具。

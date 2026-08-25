@@ -63,6 +63,7 @@ import {
   AI_ARRANGEABLE_COMPONENT_IDS,
   EFFECT_REGISTRY_BY_ID,
 } from "./registry";
+import { buildSemanticSrtArrangement } from "./ai-motion-arranger/semantic-srt-arranger.mjs";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -123,6 +124,11 @@ type PendingArrangement = {
   selectedKeys: string[];
   qualityControlStatus: string;
   qualityControlCheckCount: number;
+  semanticSummary?: {
+    cueCount: number;
+    intentCount: number;
+    skippedCueCount: number;
+  };
 };
 
 type ShortcutAction =
@@ -770,13 +776,6 @@ type SrtEntry = {
   text: string;
 };
 
-type SrtBoard = {
-  entries: SrtEntry[];
-  startMs: number;
-  endMs: number;
-  text: string;
-};
-
 const parseSrtTimestamp = (raw: string) => {
   const match = raw
     .trim()
@@ -815,47 +814,6 @@ const parseSrt = (content: string): SrtEntry[] => {
     });
   }
   return entries;
-};
-
-const SRT_SEMANTIC_PAUSE_MS = 350;
-
-const groupSrtBoards = (entries: SrtEntry[]): SrtBoard[] => {
-  const boards: SrtBoard[] = [];
-  let current: SrtEntry[] = [];
-  const flush = () => {
-    if (current.length === 0) return;
-    boards.push({
-      entries: current,
-      startMs: current[0].startMs,
-      endMs: current[current.length - 1].endMs,
-      text: current.map((entry) => entry.text).join(""),
-    });
-    current = [];
-  };
-  for (const entry of entries) {
-    current.push(entry);
-    const text = current.map((item) => item.text).join("");
-    const trimmedLength = text.replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g, "").length;
-    const endsSentence = /[。！？!?…；;：:]$/.test(entry.text.trim());
-    const isShort = trimmedLength < 6;
-    if (endsSentence && !isShort) flush();
-    else if (trimmedLength >= 18) flush();
-  }
-  flush();
-  return boards;
-};
-
-const SRT_ACCENT_CYCLE = [
-  "#65dff7",
-  "#8877ff",
-  "#ffc46b",
-  "#7dffb0",
-  "#ff8fab",
-];
-
-const firstNumberInText = (text: string) => {
-  const match = text.match(/\d+(?:[.,]\d+)?\s*(?:%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒)?/);
-  return match ? match[0].replace(/\s+/g, "") : null;
 };
 
 type StudioPreviewProps = {
@@ -1185,9 +1143,11 @@ const App = () => {
   const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
   const [srtGenerating, setSrtGenerating] = useState(false);
   const [srtResult, setSrtResult] = useState<{
-    cardCount: number;
-    reminderCount: number;
-    boardCount: number;
+    cueCount: number;
+    intentCount: number;
+    motionCount: number;
+    resourceCount: number;
+    skippedCueCount: number;
     messages: string[];
   } | null>(null);
   const srtInput = useRef<HTMLInputElement>(null);
@@ -2522,167 +2482,101 @@ const App = () => {
     }
   };
 
-  const generateSrtTimeline = () => {
+  const generateSrtTimeline = async () => {
     if (srtEntries.length === 0) {
       setNotice({ tone: "info", text: "请先选择一个 SRT 文件。" });
       return;
     }
     setSrtGenerating(true);
     try {
-      const boards = groupSrtBoards(srtEntries);
-      const messages: string[] = [];
-      const nextInstances: MotionInstance[] = [];
-      let cardCount = 0;
       const arrangeableComponentIds = AI_ARRANGEABLE_COMPONENT_IDS.filter(
         (componentId) => definitionMap.has(componentId),
       );
       if (arrangeableComponentIds.length === 0) {
         throw new Error("当前效果库没有已开放给 AI 编排的真实组件。");
       }
-      // 语义板必须拿到比视频更小的序号（低序号绘制在最上层），否则整组被视频遮挡
-      let trackOrder =
-        Math.min(
-          0,
-          ...videoTracks.map((track) => track.trackOrder),
-          ...instances.map((candidate) => candidate.trackOrder),
-          ...resourceTracks.map((track) => track.trackOrder),
-        ) - 1;
-
+      const resourceResponse = await fetch("/input/resource-index.json", {
+        cache: "no-store",
+      });
+      if (!resourceResponse.ok) throw new Error("无法读取固定资源索引。");
+      const resourceIndex = await resourceResponse.json();
+      const canvas =
+        canvasOrientation === "portrait"
+          ? { width: 1080, height: 1920, orientation: "portrait" }
+          : { width: 1920, height: 1080, orientation: "landscape" };
+      const semanticTimeline = buildSemanticSrtArrangement({
+        entries: srtEntries,
+        fps,
+        durationInFrames,
+        canvas,
+        availableComponentIds: arrangeableComponentIds,
+        resourceIndex,
+      });
+      const analysis = semanticTimeline.semanticAnalysis;
+      if (analysis.motionCount + analysis.resourceCount === 0) {
+        throw new Error(
+          "没有识别到需要视觉强化的明确语义；时间线未修改，请调整字幕内容后重试。",
+        );
+      }
+      semanticTimeline.motionTimeline = semanticTimeline.motionTimeline.map(
+        (item: TimelineJsonItem) => {
+          const definition = definitionMap.get(item.componentId);
+          return definition
+            ? {
+                ...item,
+                position: getRegisteredEffectPosition(
+                  definition,
+                  canvasOrientation,
+                ),
+              }
+            : item;
+        },
+      );
+      const baseName = (srtFileName || "字幕")
+        .replace(/\.srt$/i, "")
+        .replace(/[\\/:*?"<>|]/g, "-");
+      await importTimelineJson(
+        new File(
+          [JSON.stringify(semanticTimeline)],
+          `${baseName}-自动语义编排.timeline.json`,
+          { type: "application/json" },
+        ),
+      );
+      setPendingArrangement((current) =>
+        current
+          ? {
+              ...current,
+              semanticSummary: {
+                cueCount: analysis.cueCount,
+                intentCount: analysis.intentCount,
+                skippedCueCount: analysis.skippedCueCount,
+              },
+            }
+          : current,
+      );
+      setSrtResult({
+        cueCount: analysis.cueCount,
+        intentCount: analysis.intentCount,
+        motionCount: analysis.motionCount,
+        resourceCount: analysis.resourceCount,
+        skippedCueCount: analysis.skippedCueCount,
+        messages: analysis.messages,
+      });
       const srtEndSeconds = Math.max(
         ...srtEntries.map((entry) => entry.endMs),
       ) / 1000;
       if (srtEndSeconds * fps > durationInFrames) {
         setVideoDuration((current) => Math.max(current, srtEndSeconds + 1));
       }
-
-      boards.forEach((board, boardIndex) => {
-        const definition =
-          definitionMap.get(
-            arrangeableComponentIds[boardIndex % arrangeableComponentIds.length],
-          ) ?? definitionMap.get(arrangeableComponentIds[0]);
-        if (!definition) {
-          messages.push(`第 ${boardIndex + 1} 板：找不到可用卡片，已跳过。`);
-          return;
-        }
-        const accent = SRT_ACCENT_CYCLE[boardIndex % SRT_ACCENT_CYCLE.length];
-        const number = firstNumberInText(board.text);
-        const segments = board.text
-          .split(/[，,。！？!?…；;：:\s]+/)
-          .filter(Boolean);
-        const startFrame = Math.round((board.startMs / 1000) * fps);
-        const boardFrames = Math.max(
-          24,
-          Math.round(((board.endMs - board.startMs) / 1000) * fps),
-        );
-        const boardAnimationSeconds = Math.min(
-          3,
-          Math.max(0.8, Number(((boardFrames / fps) * 0.45).toFixed(2))),
-        );
-        const totalFramesForInstance = Math.max(
-          durationInFrames,
-          Math.round((srtEndSeconds + 1) * fps),
-        );
-        const instance = createInstance(
-          definition,
-          startFrame,
-          totalFramesForInstance,
-          {
-            durationInFrames: boardFrames,
-            position: getRegisteredEffectPosition(
-              definition,
-              canvasOrientation,
-            ),
-            trackOrder: trackOrder--,
-            props: {
-              title:
-                board.text.length > 16
-                  ? `${board.text.slice(0, 16)}…`
-                  : board.text,
-              subtitle: `SRT 语义板 ${boardIndex + 1}`,
-              value: number ?? segments[0] ?? "—",
-              item1: segments[1] ?? segments[0] ?? "关键节点一",
-              item2: segments[2] ?? segments[1] ?? "关键节点二",
-              item3: segments[3] ?? segments[2] ?? "关键节点三",
-              accentColor: accent,
-              secondaryColor: "#7a7d84",
-              animationSeconds: boardAnimationSeconds,
-            },
-          },
-        );
-        nextInstances.push(instance);
-        cardCount += 1;
-        if (!number) {
-          messages.push(
-            `第 ${boardIndex + 1} 板未识别到数字，已用关键词代替核心数值。`,
-          );
-        }
-        if (boardFrames < 45) {
-          messages.push(`第 ${boardIndex + 1} 板时长偏短，动画节奏已压缩。`);
-        }
-      });
-
-      const captionDefinition = definitionMap.get("SrtSemanticCaptions");
-      if (captionDefinition && srtEntries.length > 0) {
-        const cuesPayload = srtEntries.map((entry, index) => ({
-          index: index + 1,
-          start: Number((entry.startMs / 1000).toFixed(3)),
-          end: Number((entry.endMs / 1000).toFixed(3)),
-          text: entry.text,
-        }));
-        const captionStartFrame = Math.round(
-          (srtEntries[0].startMs / 1000) * fps,
-        );
-        const captionFrames = Math.max(
-          3,
-          Math.round(srtEndSeconds * fps) - captionStartFrame,
-        );
-        nextInstances.push(
-          createInstance(
-            captionDefinition,
-            captionStartFrame,
-            captionFrames,
-            {
-              position: getRegisteredEffectPosition(
-                captionDefinition,
-                canvasOrientation,
-              ),
-              trackOrder: trackOrder--,
-              props: {
-                enabled: true,
-                cuesJson: JSON.stringify(cuesPayload),
-                accentMode: "auto",
-                showRail: true,
-              },
-            },
-          ),
-        );
-        messages.push("已叠加 1 条逐句语义字幕轨（底部常驻，14 句逐句驱动）。");
-      }
-
-      const mergedEntries = srtEntries.length - boards.length;
-      if (mergedEntries > 0) {
-        messages.push(
-          `${srtEntries.length} 条字幕合并为 ${boards.length} 块语义板。`,
-        );
-      }
-
-      setInstances(nextInstances);
-      setSelectedInstanceId(nextInstances[0]?.id ?? "");
-      setSelectedInstanceIds(nextInstances[0] ? [nextInstances[0].id] : []);
-      setSrtResult({
-        cardCount,
-        reminderCount: messages.length,
-        boardCount: boards.length,
-        messages,
-      });
+      setSrtDialogOpen(false);
       setNotice({
-        tone: "ok",
-        text: `生成成功：${cardCount} 个动效片段 · ${messages.length} 条提醒。`,
+        tone: "info",
+        text: `已识别 ${analysis.intentCount} 个语义意图并生成编排预览，时间线尚未修改。`,
       });
     } catch (error) {
       setNotice({
         tone: "error",
-        text: error instanceof Error ? error.message : "时间轴生成失败",
+        text: error instanceof Error ? error.message : "语义编排生成失败",
       });
     } finally {
       setSrtGenerating(false);
@@ -7710,6 +7604,13 @@ const App = () => {
                 质检 {pendingArrangement.qualityControlStatus} ·{" "}
                 {pendingArrangement.qualityControlCheckCount} 项
               </span>
+              {pendingArrangement.semanticSummary ? (
+                <span>
+                  字幕 {pendingArrangement.semanticSummary.cueCount} 句 · 意图{" "}
+                  <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
+                  {pendingArrangement.semanticSummary.skippedCueCount}
+                </span>
+              ) : null}
               <span className="preserve">原时间线将保留</span>
             </div>
 
@@ -7742,7 +7643,13 @@ const App = () => {
                     <i className="motion">动效</i>
                     <span>
                       <strong>{definition?.name ?? instance.componentId}</strong>
-                      <small>{instance.componentId}</small>
+                      <small>
+                        {instance.componentId}
+                        {typeof instance.props.title === "string" &&
+                        instance.props.title
+                          ? ` · ${instance.props.title}`
+                          : ""}
+                      </small>
                     </span>
                     <time>
                       {formatTime(instance.startFrame / fps)} ·{" "}
@@ -7814,7 +7721,7 @@ const App = () => {
             <header>
               <div className="srt-dialog-title">
                 <small>05 / SRT ORCHESTRATOR</small>
-                <strong>字幕语义匹配 · 覆盖当前时间轴</strong>
+                <strong>字幕语义分析 · 生成编排预览</strong>
               </div>
               <button aria-label="关闭" onClick={() => setSrtDialogOpen(false)}>
                 <X />
@@ -7829,8 +7736,8 @@ const App = () => {
               </span>
               {srtResult ? (
                 <b>
-                  {srtResult.boardCount} 块语义板 · {srtResult.cardCount} 个动效片段 ·{" "}
-                  {srtResult.reminderCount} 条提醒
+                  {srtResult.cueCount} 句 · {srtResult.intentCount} 个意图 ·{" "}
+                  {srtResult.motionCount} 个动效 · {srtResult.resourceCount} 个资源
                 </b>
               ) : null}
             </div>
@@ -7847,7 +7754,7 @@ const App = () => {
                   <UploadSimple weight="bold" />
                   <strong>点击选择 SRT 文件</strong>
                   <span>
-                    选择后将按语义分段生成动效时间轴，并覆盖当前时间轴上的全部动效片段。
+                    选择后将逐句识别多个语义意图，自动匹配效果、图标和音效；先预览确认，不会直接修改时间线。
                   </span>
                 </button>
               ) : (
@@ -7883,7 +7790,7 @@ const App = () => {
                 disabled={srtGenerating || srtEntries.length === 0}
                 onClick={generateSrtTimeline}
               >
-                {srtGenerating ? "生成中…" : "生成时间轴"}
+                {srtGenerating ? "分析中…" : "生成编排预览"}
               </button>
             </footer>
           </section>
