@@ -24,6 +24,7 @@ import {
   FolderOpen,
   FrameCorners,
   Keyboard,
+  MagicWand,
   MagnifyingGlass,
   Minus,
   MoonStars,
@@ -77,6 +78,25 @@ import {
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
+
+type AiArrangementStage =
+  | "idle"
+  | "reading"
+  | "analyzing"
+  | "layout"
+  | "quality"
+  | "preview";
+
+const AI_ARRANGEMENT_STEPS: Array<{
+  id: Exclude<AiArrangementStage, "idle">;
+  label: string;
+}> = [
+  { id: "reading", label: "读取字幕" },
+  { id: "analyzing", label: "语义分析" },
+  { id: "layout", label: "自动布局" },
+  { id: "quality", label: "自动质检" },
+  { id: "preview", label: "生成预览" },
+];
 
 const DEFAULT_CODE_TEMPLATE = `import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
@@ -1265,6 +1285,9 @@ const App = () => {
   const [srtFileName, setSrtFileName] = useState("");
   const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
   const [srtGenerating, setSrtGenerating] = useState(false);
+  const [aiArrangementStage, setAiArrangementStage] =
+    useState<AiArrangementStage>("idle");
+  const [aiArrangementError, setAiArrangementError] = useState("");
   const [srtResult, setSrtResult] = useState<{
     cueCount: number;
     intentCount: number;
@@ -2603,8 +2626,15 @@ const App = () => {
 
   const openVideoPicker = () => videoInput.current?.click();
 
-  const openSrtOrchestrator = () => {
+  const openAiArrangement = () => {
+    if (srtGenerating) return;
+    setAiArrangementError("");
     setSrtDialogOpen(true);
+    if (srtEntries.length === 0) {
+      setAiArrangementStage("idle");
+      return;
+    }
+    void generateSrtTimeline(srtEntries, srtFileName);
   };
 
   const openSrtPicker = () => srtInput.current?.click();
@@ -2613,38 +2643,56 @@ const App = () => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    setSrtDialogOpen(true);
+    setSrtGenerating(true);
+    setAiArrangementStage("reading");
+    setAiArrangementError("");
+    setSrtResult(null);
     try {
       const content = await file.text();
       const entries = parseSrt(content);
       if (entries.length === 0) {
-        setNotice({
-          tone: "error",
-          text: "SRT 解析失败：没有识别到有效字幕条目。",
-        });
-        return;
+        throw new Error("SRT 解析失败：没有识别到有效字幕条目。");
       }
       setSrtFileName(file.name);
       setSrtEntries(entries);
-      setSrtResult(null);
       setNotice({
         tone: "ok",
-        text: `已解析 ${file.name}：${entries.length} 条字幕。`,
+        text: `已读取 ${file.name}：${entries.length} 条字幕，正在自动编排。`,
       });
+      setSrtGenerating(false);
+      await generateSrtTimeline(entries, file.name);
     } catch (error) {
+      const message = error instanceof Error ? error.message : "SRT 文件读取失败";
+      setAiArrangementError(message);
       setNotice({
         tone: "error",
-        text: error instanceof Error ? error.message : "SRT 文件读取失败",
+        text: message,
       });
+      setSrtGenerating(false);
     }
   };
 
-  const generateSrtTimeline = async () => {
-    if (srtEntries.length === 0) {
+  async function generateSrtTimeline(
+    entriesOverride: SrtEntry[] = srtEntries,
+    fileNameOverride = srtFileName,
+  ) {
+    if (entriesOverride.length === 0) {
       setNotice({ tone: "info", text: "请先选择一个 SRT 文件。" });
       return;
     }
+    const showStage = async (stage: Exclude<AiArrangementStage, "idle">) => {
+      setAiArrangementStage(stage);
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    };
+    setSrtDialogOpen(true);
     setSrtGenerating(true);
+    setAiArrangementError("");
+    setSrtResult(null);
     try {
+      await showStage("analyzing");
       const arrangeableComponentIds = AI_ARRANGEABLE_COMPONENT_IDS.filter(
         (componentId) => definitionMap.has(componentId),
       );
@@ -2661,7 +2709,7 @@ const App = () => {
           ? { width: 1080, height: 1920, orientation: "portrait" }
           : { width: 1920, height: 1080, orientation: "landscape" };
       const semanticTimeline = buildSemanticSrtArrangement({
-        entries: srtEntries,
+        entries: entriesOverride,
         fps,
         durationInFrames,
         canvas,
@@ -2678,6 +2726,7 @@ const App = () => {
         const definition = definitionMap.get(componentId);
         return definition ? [definition] : [];
       });
+      await showStage("layout");
       const arrangedTimeline = applyAvoidanceLayout({
         timeline: semanticTimeline,
         canvas,
@@ -2685,6 +2734,7 @@ const App = () => {
         includeFace: personPlaceholderEnabled,
         includeCaptions: true,
       });
+      await showStage("quality");
       const checkedTimeline = runTimelineQualityControl({
         timeline: arrangedTimeline,
         canvas,
@@ -2693,7 +2743,8 @@ const App = () => {
         includeFace: personPlaceholderEnabled,
         includeCaptions: true,
       });
-      const baseName = (srtFileName || "字幕")
+      await showStage("preview");
+      const baseName = (fileNameOverride || "字幕")
         .replace(/\.srt$/i, "")
         .replace(/[\\/:*?"<>|]/g, "-");
       await importTimelineJson(
@@ -2725,7 +2776,7 @@ const App = () => {
         messages: analysis.messages,
       });
       const srtEndSeconds = Math.max(
-        ...srtEntries.map((entry) => entry.endMs),
+        ...entriesOverride.map((entry) => entry.endMs),
       ) / 1000;
       if (srtEndSeconds * fps > durationInFrames) {
         setVideoDuration((current) => Math.max(current, srtEndSeconds + 1));
@@ -2736,14 +2787,16 @@ const App = () => {
         text: `已识别 ${analysis.intentCount} 个语义意图，完成自动避让与 ${checkedTimeline.qualityControlSummary.passedCount}/5 项质检，生成预览但尚未修改时间线。`,
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : "语义编排生成失败";
+      setAiArrangementError(message);
       setNotice({
         tone: "error",
-        text: error instanceof Error ? error.message : "语义编排生成失败",
+        text: message,
       });
     } finally {
       setSrtGenerating(false);
     }
-  };
+  }
 
   const handleVideoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -6129,7 +6182,15 @@ const App = () => {
             {soundEnabled ? <SpeakerHigh /> : <SpeakerSlash />}
             {soundEnabled ? "声音" : "静音"}
           </button>
-          <button onClick={openSrtOrchestrator}><UploadSimple />导入 SRT</button>
+          <button
+            className={srtGenerating ? "ai-arrange-entry running" : "ai-arrange-entry"}
+            disabled={srtGenerating}
+            onClick={openAiArrangement}
+            title={srtEntries.length > 0 ? "使用已加载字幕一键重新编排" : "选择字幕并自动编排"}
+          >
+            <MagicWand weight="fill" />
+            {srtGenerating ? "自动编排中…" : "AI 自动编排"}
+          </button>
           <button><FilmSlate />示例</button>
           <button onClick={openVideoPicker}><UploadSimple />导入视频</button>
           <button
@@ -8114,7 +8175,9 @@ const App = () => {
       {srtDialogOpen ? (
         <div
           className="export-dialog-layer"
-          onPointerDown={() => setSrtDialogOpen(false)}
+          onPointerDown={() => {
+            if (!srtGenerating) setSrtDialogOpen(false);
+          }}
         >
           <section
             className="srt-dialog"
@@ -8122,13 +8185,43 @@ const App = () => {
           >
             <header>
               <div className="srt-dialog-title">
-                <small>05 / SRT ORCHESTRATOR</small>
-                <strong>字幕语义分析 · 生成编排预览</strong>
+                <small>AI AUTO ARRANGE</small>
+                <strong>字幕驱动的自动视觉编排</strong>
               </div>
-              <button aria-label="关闭" onClick={() => setSrtDialogOpen(false)}>
+              <button
+                aria-label="关闭"
+                disabled={srtGenerating}
+                onClick={() => setSrtDialogOpen(false)}
+              >
                 <X />
               </button>
             </header>
+
+            <div className="ai-arrangement-progress" role="status" aria-live="polite">
+              {AI_ARRANGEMENT_STEPS.map((step, index) => {
+                const activeIndex = AI_ARRANGEMENT_STEPS.findIndex(
+                  (candidate) => candidate.id === aiArrangementStage,
+                );
+                const state =
+                  activeIndex > index
+                    ? "done"
+                    : activeIndex === index
+                      ? aiArrangementError
+                        ? "error"
+                        : "active"
+                      : "pending";
+                return (
+                  <div className={`ai-arrangement-step ${state}`} key={step.id}>
+                    <i>{state === "done" ? "✓" : index + 1}</i>
+                    <span>{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {aiArrangementError ? (
+              <div className="ai-arrangement-error">{aiArrangementError}</div>
+            ) : null}
 
             <div className="srt-dialog-meta">
               <span>
@@ -8156,7 +8249,9 @@ const App = () => {
                   <UploadSimple weight="bold" />
                   <strong>点击选择 SRT 文件</strong>
                   <span>
-                    选择后将逐句识别多个语义意图，自动匹配效果、图标和音效；先预览确认，不会直接修改时间线。
+                    {videoUrl || videoTracks.length > 0
+                      ? "已检测到当前视频。选择对应 SRT 后会立即完成语义分析、选效果、布局和质检；视频自动转字幕后续接入。"
+                      : "选择后立即完成语义分析、选效果、布局和质检；先生成预览，不会直接修改时间线。"}
                   </span>
                 </button>
               ) : (
@@ -8187,13 +8282,28 @@ const App = () => {
             ) : null}
 
             <footer>
-              <button
-                className="srt-dialog-confirm"
-                disabled={srtGenerating || srtEntries.length === 0}
-                onClick={generateSrtTimeline}
-              >
-                {srtGenerating ? "分析中…" : "生成编排预览"}
-              </button>
+              {srtEntries.length > 0 ? (
+                <button
+                  className="srt-dialog-pick"
+                  disabled={srtGenerating}
+                  onClick={openSrtPicker}
+                >
+                  <UploadSimple />重新选择 SRT
+                </button>
+              ) : null}
+              {srtEntries.length > 0 ? (
+                <button
+                  className="srt-dialog-confirm"
+                  disabled={srtGenerating}
+                  onClick={() => void generateSrtTimeline()}
+                >
+                  {srtGenerating
+                    ? `${AI_ARRANGEMENT_STEPS.find((step) => step.id === aiArrangementStage)?.label ?? "自动编排"}中…`
+                    : aiArrangementError
+                      ? "重试自动编排"
+                      : "重新运行自动编排"}
+                </button>
+              ) : null}
             </footer>
           </section>
         </div>

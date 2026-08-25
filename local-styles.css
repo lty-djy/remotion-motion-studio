@@ -456,6 +456,25 @@ main.is-resizing-sidebar * {
   font-weight: 800;
 }
 
+.studio-actions button.ai-arrange-entry {
+  min-width: 108px;
+  color: #dffbff;
+  background: linear-gradient(135deg, rgba(32, 177, 207, 0.2), rgba(99, 102, 241, 0.2));
+  box-shadow: inset 0 -2px #68e8ff;
+  font-weight: 700;
+}
+
+.studio-actions button.ai-arrange-entry:hover:not(:disabled) {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(32, 177, 207, 0.32), rgba(99, 102, 241, 0.32));
+}
+
+.studio-actions button.ai-arrange-entry.running {
+  color: #9feeff;
+  cursor: wait;
+  opacity: 0.78;
+}
+
 .studio-actions button.shortcut-entry {
   min-width: 78px;
   color: #b2b4ba;
@@ -3599,6 +3618,81 @@ aside {
   color: var(--text);
 }
 
+.srt-dialog > header > button:disabled {
+  cursor: wait;
+  opacity: 0.3;
+}
+
+.ai-arrangement-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ai-arrangement-step {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 10px;
+}
+
+.ai-arrangement-step i {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: Consolas, monospace;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.ai-arrangement-step span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-arrangement-step.done {
+  border-color: rgba(71, 213, 151, 0.24);
+  color: #9ef1c9;
+  background: rgba(71, 213, 151, 0.06);
+}
+
+.ai-arrangement-step.active {
+  border-color: rgba(104, 232, 255, 0.5);
+  color: #dffbff;
+  background: rgba(104, 232, 255, 0.09);
+  box-shadow: inset 0 -2px #68e8ff;
+}
+
+.ai-arrangement-step.error {
+  border-color: rgba(255, 99, 124, 0.5);
+  color: #ffb4c0;
+  background: rgba(255, 78, 104, 0.09);
+  box-shadow: inset 0 -2px #ff637c;
+}
+
+.ai-arrangement-error {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 99, 124, 0.35);
+  border-radius: 8px;
+  color: #ffb4c0;
+  background: rgba(255, 78, 104, 0.08);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .srt-dialog-meta {
   display: flex;
   align-items: center;
@@ -3743,6 +3837,11 @@ aside {
 
 .srt-dialog > footer button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.srt-dialog > footer button:disabled {
+  cursor: wait;
+  opacity: 0.45;
 }
 
 .srt-dialog-pick {
