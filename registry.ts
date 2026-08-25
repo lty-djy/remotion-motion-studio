@@ -13,6 +13,8 @@ import { SoftTeachingStepRailEffectDef } from "./effects/SoftTeachingStepRail";
 import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
 import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryGrid";
 import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
+import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
+import { PortraitKeywordBurstEffectDef } from "./effects/PortraitKeywordBurst";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -45,6 +47,10 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   SoftTeachingLibraryGridEffectDef,
 
   SoftTeachingIncrementBadgeEffectDef,
+
+  PortraitChapterRailEffectDef,
+
+  PortraitKeywordBurstEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

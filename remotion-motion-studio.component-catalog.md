@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **18** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **20** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -30,6 +30,11 @@
 - `SoftTeachingGlassPanel`：柔和教学玻璃面板 — 人物口播上方的半透明信息面板，适合标题、英文标签和三项解释。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
 - `SoftTeachingLibraryGrid`：柔和教学动效库卡槽 — 低对比紫色卡槽矩阵，可指定一格高亮，表达动效库或能力模块新增。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`columns`、`highlightIndex`、`accentColor`、`animationSeconds`）
 - `SoftTeachingIncrementBadge`：柔和教学 +1 反馈 — 卡槽高亮后出现的 +1 反馈徽章，用于新增、完成或收集动作。（仅工作台可用；props：`enabled`、`value`、`label`、`accentColor`、`animationSeconds`）
+
+## 竖屏口播信息层
+
+- `PortraitChapterRail`：竖屏口播·章节条 — 参考竖屏口播视频提炼的左上章节标签：强调竖线、蓝色标题和白色说明分层滑入。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`accentColor`、`textColor`、`animationSeconds`）
+- `PortraitKeywordBurst`：竖屏口播·开场大字 — 参考竖屏口播视频提炼的三段大字：从画面上方错位弹入，支持留空中间词以避开人物面部。（仅工作台可用；props：`enabled`、`word1`、`word2`、`word3`、`highlightIndex`、`accentColor`、`textColor`、`shadowColor`、`animationSeconds`）
 
 ## 数字与指标
 

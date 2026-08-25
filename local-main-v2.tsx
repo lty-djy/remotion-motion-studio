@@ -840,6 +840,12 @@ const getRegisteredEffectPosition = (
   }
   const canvasWidth = orientation === "portrait" ? 1080 : 1920;
   const canvasHeight = orientation === "portrait" ? 1920 : 1080;
+  if (
+    orientation === "portrait" &&
+    ["PortraitChapterRail", "PortraitKeywordBurst"].includes(definition.id)
+  ) {
+    return { ...definition.defaultPosition };
+  }
   if (registeredEffect.placement === "top") {
     return { x: 0, y: 0, scale: canvasWidth / definition.bounds.width };
   }
