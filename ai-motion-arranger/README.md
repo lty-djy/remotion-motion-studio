@@ -9,21 +9,36 @@
 ai-motion-arranger/
 ├── README.md                # 本文件
 ├── SKILL.md                 # AI 编排器主文档（请勿手改）
+├── visual-script.schema.json # Visual Script 2.0 正式 JSON Schema
 ├── references/
 │   ├── card-catalog.md      # 自动生成的卡片清单（AI 只能用这里登记的 id + props）
 │   ├── palette.md           # 语义色板（AI 只能用这里登记的 token）
-│   └── design-tokens.md     # 顶层设计令牌：theme（基调）/ skin（配色）/ style（骨架）/ font（字体）
+│   ├── design-tokens.md     # 顶层设计令牌：theme（基调）/ skin（配色）/ style（骨架）/ font（字体）
+│   └── visual-script-v2.md  # 2.0 协议边界与校验说明
 ├── scripts/
 │   ├── arranger-overlay.json        # 编排层注释（人类可读的语义）
 │   ├── sync-runtime-registry.mjs    # 从真实运行时 registry 同步元数据与目录
 │   ├── registry-meta.mjs            # 自动生成的技术字段，禁止手改
 │   ├── generate-card-catalog.mjs    # 自动生成 references/card-catalog.md
 │   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
+│   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
+│   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
 │   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
 └── examples/
     ├── README.md
     ├── sample-srt.srt
-    └── sample-manifest.json
+    ├── sample-manifest.json
+    ├── sample-visual-script-v2.json
+    └── invalid-visual-script-v2.json
+```
+
+## Visual Script 2.0
+
+`manifest 1.0` 继续服务现有 Board/Card 编译链路。新增的 Visual Script 2.0 是最终自动编排流程的上层内部协议，已覆盖一句多意图、多类视听表达、分段风格、避让布局、质检和确认后应用。详见 [`references/visual-script-v2.md`](references/visual-script-v2.md)。
+
+```powershell
+npm.cmd run validate:visual-script -- ai-motion-arranger/examples/sample-visual-script-v2.json
+npm.cmd run test:visual-script
 ```
 
 ## 两层架构

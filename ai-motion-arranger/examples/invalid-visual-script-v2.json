@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "2.0",
+  "generatedBy": "validator-negative-test",
+  "project": {
+    "fps": 30,
+    "durationInFrames": 90,
+    "canvas": { "width": 1920, "height": 1080, "orientation": "landscape" },
+    "resourceCatalog": { "root": "public/input", "indexVersion": "1" }
+  },
+  "segments": [
+    {
+      "id": "segment-001",
+      "source": {
+        "cueIds": ["srt:1"],
+        "transcript": "吞吐提升了百分之四十二。",
+        "startFrame": 0,
+        "endFrame": 90
+      },
+      "intents": [
+        {
+          "id": "intent-metric",
+          "type": "metric",
+          "summary": "错误样例",
+          "evidenceText": "原文里不存在的证据",
+          "priority": "primary"
+        }
+      ],
+      "style": {
+        "stylePackId": "test-pack",
+        "theme": "dark",
+        "skin": "tech-cyan",
+        "surface": "glass",
+        "font": "sans",
+        "rhythm": "single"
+      },
+      "expressions": [
+        {
+          "id": "effect-invalid",
+          "intentId": "intent-metric",
+          "kind": "effect",
+          "selectionReason": "验证不存在的组件会被拒绝。",
+          "enabled": true,
+          "component": { "componentId": "MadeUpEffect", "props": {} },
+          "timing": { "startFrame": 0, "endFrame": 120, "enter": "cut", "exit": "cut" },
+          "track": "motion",
+          "layout": {
+            "anchor": "left-center",
+            "size": "medium",
+            "avoid": ["face", "captions"],
+            "collisionPolicy": "relocate",
+            "zIndex": 20
+          }
+        }
+      ]
+    }
+  ],
+  "qualityControl": {
+    "status": "pending",
+    "checks": [
+      { "type": "face-occlusion", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "caption-occlusion", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "asset-availability", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "voice-masking", "status": "pending", "affectedExpressionIds": [] }
+    ]
+  },
+  "applyPolicy": {
+    "previewBeforeApply": true,
+    "requireUserConfirmation": true,
+    "existingTimeline": "preserve"
+  }
+}

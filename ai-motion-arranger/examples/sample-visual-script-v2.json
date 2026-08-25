@@ -1,0 +1,283 @@
+{
+  "schemaVersion": "2.0",
+  "generatedBy": "ai-motion-arranger/2",
+  "project": {
+    "fps": 30,
+    "durationInFrames": 300,
+    "canvas": {
+      "width": 1920,
+      "height": 1080,
+      "orientation": "landscape"
+    },
+    "resourceCatalog": {
+      "root": "public/input",
+      "indexVersion": "1"
+    }
+  },
+  "segments": [
+    {
+      "id": "segment-001",
+      "source": {
+        "cueIds": ["srt:1"],
+        "transcript": "推理吞吐提升了百分之四十二，延迟压到二十毫秒以内。",
+        "startFrame": 0,
+        "endFrame": 150
+      },
+      "intents": [
+        {
+          "id": "intent-throughput",
+          "type": "metric",
+          "summary": "突出吞吐提升 42%",
+          "evidenceText": "推理吞吐提升了百分之四十二",
+          "priority": "primary",
+          "keywords": ["吞吐", "42%"]
+        },
+        {
+          "id": "intent-latency",
+          "type": "comparison",
+          "summary": "强调延迟已经压到 20ms 以内",
+          "evidenceText": "延迟压到二十毫秒以内",
+          "priority": "supporting",
+          "keywords": ["延迟", "20ms"]
+        }
+      ],
+      "style": {
+        "stylePackId": "performance-hud",
+        "theme": "dark",
+        "skin": "tech-cyan",
+        "surface": "glass",
+        "font": "mono-tech",
+        "rhythm": "staggered"
+      },
+      "expressions": [
+        {
+          "id": "effect-throughput",
+          "intentId": "intent-throughput",
+          "kind": "effect",
+          "selectionReason": "翻牌数字能直接强化 42% 的增长结果。",
+          "enabled": true,
+          "component": {
+            "componentId": "FlipCounter",
+            "props": {
+              "title": "推理吞吐",
+              "subtitle": "VS LAST GEN",
+              "value": "42%",
+              "item1": "较上代增长",
+              "item2": "",
+              "item3": "",
+              "animationSeconds": 1.2,
+              "accentColor": "cyan",
+              "secondaryColor": "info"
+            }
+          },
+          "timing": {
+            "startFrame": 0,
+            "endFrame": 95,
+            "enter": "scale",
+            "exit": "fade",
+            "staggerGroup": "metric-reveal"
+          },
+          "track": "motion",
+          "layout": {
+            "anchor": "left-center",
+            "size": "large",
+            "avoid": ["face", "captions", "material-focus"],
+            "collisionPolicy": "relocate",
+            "zIndex": 30,
+            "maxScaleReduction": 0.25
+          }
+        },
+        {
+          "id": "icon-speed",
+          "intentId": "intent-throughput",
+          "kind": "icon",
+          "selectionReason": "速度图标作为辅助提示，不重复承载数字。",
+          "enabled": true,
+          "resource": {
+            "library": "icons",
+            "resourceId": "speed"
+          },
+          "timing": {
+            "startFrame": 8,
+            "endFrame": 95,
+            "enter": "draw",
+            "exit": "fade"
+          },
+          "track": "icon",
+          "layout": {
+            "anchor": "left-top",
+            "size": "small",
+            "avoid": ["face", "captions"],
+            "collisionPolicy": "scale-down",
+            "zIndex": 35,
+            "maxScaleReduction": 0.2
+          }
+        },
+        {
+          "id": "sfx-throughput",
+          "intentId": "intent-throughput",
+          "kind": "sfx",
+          "selectionReason": "轻微 whoosh 配合主数字进入，保持人声优先。",
+          "enabled": true,
+          "resource": {
+            "library": "sfx",
+            "resourceId": "whoosh-soft"
+          },
+          "timing": {
+            "startFrame": 0,
+            "endFrame": 24,
+            "enter": "cut",
+            "exit": "fade"
+          },
+          "track": "sfx",
+          "audio": {
+            "volume": 0.32,
+            "voiceDucking": 0.7,
+            "fadeInFrames": 0,
+            "fadeOutFrames": 8
+          }
+        },
+        {
+          "id": "effect-latency",
+          "intentId": "intent-latency",
+          "kind": "effect",
+          "selectionReason": "双向指标条适合表现压缩前后的延迟差距。",
+          "enabled": true,
+          "component": {
+            "componentId": "DualMetricBar",
+            "props": {
+              "title": "延迟对比",
+              "subtitle": "LATENCY",
+              "value": "20ms",
+              "item1": "优化前 38ms",
+              "item2": "现在 <20ms",
+              "item3": "",
+              "animationSeconds": 1.1,
+              "accentColor": "violet",
+              "secondaryColor": "support-neutral"
+            }
+          },
+          "timing": {
+            "startFrame": 72,
+            "endFrame": 150,
+            "enter": "rise",
+            "exit": "fade"
+          },
+          "track": "motion",
+          "layout": {
+            "anchor": "right-center",
+            "size": "medium",
+            "avoid": ["face", "captions", "material-focus"],
+            "collisionPolicy": "relocate",
+            "zIndex": 30,
+            "maxScaleReduction": 0.25
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment-002",
+      "source": {
+        "cueIds": ["srt:2", "srt:3"],
+        "transcript": "完成度已经突破九成，复杂信息现在一眼就能看懂。",
+        "startFrame": 150,
+        "endFrame": 300
+      },
+      "intents": [
+        {
+          "id": "intent-conclusion",
+          "type": "conclusion",
+          "summary": "用完成度指标收束结论",
+          "evidenceText": "完成度已经突破九成",
+          "priority": "primary",
+          "keywords": ["完成度", "九成"]
+        }
+      ],
+      "style": {
+        "stylePackId": "summary-teaching",
+        "theme": "light",
+        "skin": "soft-teaching-violet",
+        "surface": "teaching-overlay",
+        "font": "sans",
+        "rhythm": "single"
+      },
+      "expressions": [
+        {
+          "id": "effect-conclusion",
+          "intentId": "intent-conclusion",
+          "kind": "effect",
+          "selectionReason": "环形进度适合承载超过九成的完成度结论。",
+          "enabled": true,
+          "component": {
+            "componentId": "ProgressRing",
+            "props": {
+              "title": "整体完成度",
+              "subtitle": "OVERALL",
+              "value": "92%",
+              "item1": "信息更清晰",
+              "item2": "节奏更紧凑",
+              "item3": "仍可人工微调",
+              "animationSeconds": 1.4,
+              "accentColor": "violet",
+              "secondaryColor": "support-neutral"
+            }
+          },
+          "timing": {
+            "startFrame": 150,
+            "endFrame": 292,
+            "enter": "draw",
+            "exit": "fade"
+          },
+          "track": "motion",
+          "layout": {
+            "anchor": "right-center",
+            "size": "large",
+            "avoid": ["face", "captions"],
+            "collisionPolicy": "relocate",
+            "zIndex": 30,
+            "maxScaleReduction": 0.2
+          }
+        },
+        {
+          "id": "bgm-summary",
+          "intentId": "intent-conclusion",
+          "kind": "bgm",
+          "selectionReason": "轻背景音乐只负责收束情绪，并主动压低避免盖住人声。",
+          "enabled": true,
+          "resource": {
+            "library": "bgm",
+            "resourceId": "default-bgm"
+          },
+          "timing": {
+            "startFrame": 150,
+            "endFrame": 300,
+            "enter": "fade",
+            "exit": "fade"
+          },
+          "track": "bgm",
+          "audio": {
+            "volume": 0.18,
+            "voiceDucking": 0.55,
+            "fadeInFrames": 20,
+            "fadeOutFrames": 24
+          }
+        }
+      ]
+    }
+  ],
+  "qualityControl": {
+    "status": "pending",
+    "checks": [
+      { "type": "face-occlusion", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "caption-occlusion", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "asset-availability", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "voice-masking", "status": "pending", "affectedExpressionIds": [] },
+      { "type": "timeline-bounds", "status": "pending", "affectedExpressionIds": [] }
+    ]
+  },
+  "applyPolicy": {
+    "previewBeforeApply": true,
+    "requireUserConfirmation": true,
+    "existingTimeline": "preserve"
+  }
+}

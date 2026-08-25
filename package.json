@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs",
+    "prevalidate:visual-script": "npm run sync:registry",
+    "validate:visual-script": "node ai-motion-arranger/scripts/validate-visual-script.mjs",
+    "pretest:visual-script": "npm run sync:registry",
+    "test:visual-script": "node ai-motion-arranger/scripts/test-visual-script.mjs",
     "predev": "npm run sync:registry",
     "dev": "vite --config local-vite.config.ts",
     "prebuild": "npm run sync:registry",
@@ -24,6 +28,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
     "esbuild": "0.28.1",
     "typescript": "5.9.3"
   }
