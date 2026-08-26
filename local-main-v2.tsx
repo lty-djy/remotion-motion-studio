@@ -7659,9 +7659,63 @@ const App = () => {
             {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
               <section className="reference-inspector-section">
                 <div className="reference-section-title">
-                  <strong>独立位置微调</strong><small>POSITION</small>
+                  <strong>独立大小与位置</strong><small>SIZE · POSITION</small>
                 </div>
                 <div className="dynamic-prop-fields">
+                  <div className="reference-range-group">
+                    <div className="reference-range-head">
+                      <label>独立大小</label>
+                      <b>{Math.round(selectedInstance.position.scale * 100)}%</b>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.1}
+                      max={3}
+                      step={0.01}
+                      value={clamp(selectedInstance.position.scale, 0.1, 3)}
+                      title="只缩放当前选中组件，与全局整体大小相乘"
+                      onChange={(event) => {
+                        const nextScale = Number(event.target.value);
+                        const nextMaxX = Math.max(
+                          0,
+                          Math.round(
+                            canvasWidth -
+                              selectedDefinition.bounds.width * nextScale,
+                          ),
+                        );
+                        const nextMinX = Math.min(
+                          0,
+                          Math.round(
+                            canvasWidth -
+                              selectedDefinition.bounds.width * nextScale,
+                          ),
+                        );
+                        const nextMaxY = Math.max(
+                          0,
+                          Math.round(
+                            canvasHeight -
+                              selectedDefinition.bounds.height * nextScale,
+                          ),
+                        );
+                        const nextMinY = Math.min(
+                          0,
+                          Math.round(
+                            canvasHeight -
+                              selectedDefinition.bounds.height * nextScale,
+                          ),
+                        );
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          position: {
+                            ...instance.position,
+                            scale: nextScale,
+                            x: clamp(instance.position.x, nextMinX, nextMaxX),
+                            y: clamp(instance.position.y, nextMinY, nextMaxY),
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>水平位置</label>
@@ -7669,7 +7723,14 @@ const App = () => {
                     </div>
                     <input
                       type="range"
-                      min={0}
+                      min={Math.min(
+                        0,
+                        Math.round(
+                          canvasWidth -
+                            selectedDefinition.bounds.width *
+                              selectedInstance.position.scale,
+                        ),
+                      )}
                       max={Math.max(
                         0,
                         Math.round(
@@ -7681,7 +7742,14 @@ const App = () => {
                       step={1}
                       value={clamp(
                         Math.round(selectedInstance.position.x),
-                        0,
+                        Math.min(
+                          0,
+                          Math.round(
+                            canvasWidth -
+                              selectedDefinition.bounds.width *
+                                selectedInstance.position.scale,
+                          ),
+                        ),
                         Math.max(
                           0,
                           Math.round(
@@ -7709,7 +7777,14 @@ const App = () => {
                     </div>
                     <input
                       type="range"
-                      min={0}
+                      min={Math.min(
+                        0,
+                        Math.round(
+                          canvasHeight -
+                            selectedDefinition.bounds.height *
+                              selectedInstance.position.scale,
+                        ),
+                      )}
                       max={Math.max(
                         0,
                         Math.round(
@@ -7721,7 +7796,14 @@ const App = () => {
                       step={1}
                       value={clamp(
                         Math.round(selectedInstance.position.y),
-                        0,
+                        Math.min(
+                          0,
+                          Math.round(
+                            canvasHeight -
+                              selectedDefinition.bounds.height *
+                                selectedInstance.position.scale,
+                          ),
+                        ),
                         Math.max(
                           0,
                           Math.round(
