@@ -65,6 +65,21 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
   for (const patternSource of route.match.patternSources) {
     new RegExp(patternSource, "iu");
   }
+  if (
+    !Number.isFinite(route.match.minimumScore) ||
+    route.match.minimumScore < 1
+  ) {
+    throw new Error(`${route.id} 缺少有效的最低命中分数。`);
+  }
+  for (const signal of [
+    ...(route.match.boosts ?? []),
+    ...(route.match.suppressors ?? []),
+  ]) {
+    new RegExp(signal.patternSource, "iu");
+    if (!signal.label || !Number.isFinite(signal.weight) || signal.weight <= 0) {
+      throw new Error(`${route.id} 存在无效的加减分信号。`);
+    }
+  }
   if (route.components.filter((component) => component.role === "primary").length !== 1) {
     throw new Error(`${route.id} 必须且只能有一个主组件。`);
   }

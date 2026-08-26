@@ -1,4 +1,4 @@
-export const PORTRAIT_ROUTE_TABLE_VERSION = "1.0";
+export const PORTRAIT_ROUTE_TABLE_VERSION = "1.1";
 
 export const PORTRAIT_ROUTING_POLICY = Object.freeze({
   orientation: "portrait",
@@ -36,7 +36,11 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     priority: 70,
     match: {
       anyKeywords: ["接下来", "下一步", "下面", "进入", "首先来看", "第二部分", "最后一部分"],
-      patternSources: ["(?:接下来|下一步|进入).{0,8}(?:部分|环节|阶段|内容)"],
+      patternSources: [
+        "(?:接下来|下一步|进入).{0,8}(?:部分|环节|阶段|内容)",
+        "^(?:未来|今后|接下来)(?:\\d+|一|二|三|四|五|十|几)年",
+      ],
+      minimumScore: 1,
     },
     resources: { iconId: "arrow", sfxId: "whoosh-soft", iconAnchor: "left-top" },
     components: [
@@ -67,7 +71,13 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     priority: 60,
     match: {
       anyKeywords: ["重点", "核心", "关键", "记住", "最重要", "本质", "就是"],
-      patternSources: ["(?:重点|核心|关键)(?:是|在于|就是)?"],
+      patternSources: [
+        "(?:重点|核心|关键)(?:是|在于|就是)?",
+        "只有.{1,24}才(?:能|会|是|可以)?",
+        "只有.{1,24}(?:能|会|可以|值得|适合)",
+        "才是.{0,18}(?:出路|关键|核心|答案|选择|方向)",
+      ],
+      minimumScore: 2,
     },
     resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "right-top" },
     components: [
@@ -102,6 +112,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     match: {
       anyKeywords: ["例如", "比如", "这里", "可以使用", "推荐使用", "工具", "软件", "方法"],
       patternSources: ["(?:例如|比如|推荐使用|可以使用).{1,18}"],
+      minimumScore: 1,
     },
     resources: { iconId: "code", sfxId: "whoosh-soft", iconAnchor: "right-top" },
     components: [
@@ -140,6 +151,27 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
         "\\d+(?:[.,]\\d+)?\\s*(?:%|％|万|亿|倍|k|K|元|年|秒)?",
         "(?:相比|对比|选择|推荐).{0,18}",
       ],
+      boosts: [
+        {
+          label: "中文数量级",
+          patternSource: "(?:十万|百万|千万|上亿|过亿|破亿)",
+          weight: 3,
+        },
+        {
+          label: "收益结果",
+          patternSource:
+            "(?=.*(?:稳定|更高|更低|提升|增长|突破|实现|达成))(?=.*(?:客流|客单|利润|业绩|成本|效率|销量|收入|百万|千万))",
+          weight: 3,
+        },
+      ],
+      suppressors: [
+        {
+          label: "仅为未来时间范围",
+          patternSource: "^(?:未来|今后)(?:\\d+|一|二|三|四|五|十|几)年",
+          weight: 4,
+        },
+      ],
+      minimumScore: 2,
     },
     resources: { iconId: "speed", sfxId: "tick", iconAnchor: "right-top" },
     components: [
@@ -198,7 +230,11 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     priority: 80,
     match: {
       anyKeywords: ["首先", "然后", "接着", "最后", "第一步", "第二步", "第三步", "流程", "步骤"],
-      patternSources: ["(?:首先|第一步).{0,24}(?:然后|第二步|接着|最后)"],
+      patternSources: [
+        "(?:首先|第一步).{0,24}(?:然后|第二步|接着|最后)",
+        "[^，,。]{1,14}做[^，,。]{1,14}[，,][^，,。]{1,14}做[^，,。]{1,14}",
+      ],
+      minimumScore: 2,
     },
     resources: { iconId: "timeline", sfxId: "tick", iconAnchor: "left-top" },
     components: [
@@ -237,8 +273,19 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     label: "风险与限制",
     priority: 100,
     match: {
-      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常"],
-      patternSources: ["(?:但是|不过|注意).{0,28}(?:不能|风险|错误|失真|异常|限制)"],
+      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常", "淘汰", "亏损", "下滑"],
+      patternSources: [
+        "(?:但是|不过|注意).{0,28}(?:不能|风险|错误|失真|异常|限制)",
+        "(?:只会|将会|可能会|容易|导致).{0,24}(?:淘汰|亏损|下滑|失败|流失|下降)",
+      ],
+      suppressors: [
+        {
+          label: "已解决负面结果",
+          patternSource: "(?:突破|解决|摆脱|避免).{0,10}(?:瓶颈|风险|问题|亏损|下滑)",
+          weight: 4,
+        },
+      ],
+      minimumScore: 2,
     },
     resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "right-top" },
     components: [
@@ -278,6 +325,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     match: {
       anyKeywords: ["下期", "下一期", "下次", "关注", "点赞", "收藏", "评论", "记得关注"],
       patternSources: ["(?:下期|下一期|下次).{0,24}", "(?:点个|记得|欢迎)?关注"],
+      minimumScore: 1,
     },
     resources: { iconId: "arrow", sfxId: "whoosh-soft", iconAnchor: "left-top" },
     components: [

@@ -195,6 +195,107 @@ if (
   throw new Error("竖屏语义编排没有使用相邻字幕合并结果或丢失来源字幕索引");
 }
 
+const sentencePatternInput = {
+  ...portraitInput,
+  durationInFrames: 720,
+  entries: [
+    {
+      index: 1,
+      startMs: 0,
+      endMs: 3000,
+      text: "未来3年，卫浴店只有这种门店能够赚钱",
+    },
+    {
+      index: 2,
+      startMs: 3600,
+      endMs: 6200,
+      text: "单纯卖货的门店只会慢慢被市场淘汰",
+    },
+    {
+      index: 3,
+      startMs: 6800,
+      endMs: 9400,
+      text: "线上引流线下成交，才是实体店最终的出路",
+    },
+    {
+      index: 4,
+      startMs: 10000,
+      endMs: 12600,
+      text: "短视频做品牌种草，直播做精准转化",
+    },
+    {
+      index: 5,
+      startMs: 13200,
+      endMs: 16600,
+      text: "客流稳定，客单更高，轻松突破业绩瓶颈",
+    },
+    {
+      index: 6,
+      startMs: 17200,
+      endMs: 20200,
+      text: "紧跟趋势，轻松实现年入百万",
+    },
+  ],
+};
+const sentencePatternResult = buildSemanticSrtArrangement(sentencePatternInput);
+const routeIdsByCue = new Map(
+  sentencePatternResult.semanticAnalysis.cueAnalyses.map((cue) => [
+    cue.cueIndex,
+    cue.intents.map((intent) => intent.id.replace(/^intent-\d+-/u, "")),
+  ]),
+);
+const expectRoutes = (cueIndex, expected, forbidden = []) => {
+  const actual = routeIdsByCue.get(cueIndex) ?? [];
+  for (const routeId of expected) {
+    if (!actual.includes(routeId)) {
+      throw new Error(`通用句式 ${cueIndex} 没有命中 ${routeId}：${actual.join(",")}`);
+    }
+  }
+  for (const routeId of forbidden) {
+    if (actual.includes(routeId)) {
+      throw new Error(`通用句式 ${cueIndex} 不应命中 ${routeId}`);
+    }
+  }
+};
+expectRoutes(1, ["chapter-transition", "keyword-emphasis"], ["metric-decision"]);
+expectRoutes(2, ["risk-boundary"]);
+expectRoutes(3, ["keyword-emphasis"]);
+expectRoutes(4, ["process-steps"]);
+expectRoutes(5, ["metric-decision"], ["risk-boundary"]);
+expectRoutes(6, ["metric-decision"]);
+const firstCueItems = sentencePatternResult.motionTimeline.filter((item) =>
+  ["intent-001-chapter-transition", "intent-001-keyword-emphasis"].includes(
+    item.sourceIntentId,
+  ),
+);
+if (
+  firstCueItems.length !== 2 ||
+  firstCueItems[0].startFrame + firstCueItems[0].durationInFrames >
+    firstCueItems[1].startFrame
+) {
+  throw new Error("同一字幕的多个竖屏意图没有按顺序播放");
+}
+const millionMetric = sentencePatternResult.motionTimeline.find(
+  (item) =>
+    item.componentId === "PortraitMetricDecision" &&
+    item.sourceIntentId === "intent-006-metric-decision",
+);
+if (millionMetric?.props?.value !== "100" || millionMetric.props.unit !== "万") {
+  throw new Error("中文数量级“百万”没有转换成可展示的 100 万指标");
+}
+if (
+  !sentencePatternResult.semanticAnalysis.cueAnalyses.every((cue) =>
+    cue.intents.every(
+      (intent) =>
+        Number.isFinite(intent.score) &&
+        intent.score >= intent.minimumScore &&
+        intent.signals.length > 0,
+    ),
+  )
+) {
+  throw new Error("句式评分没有保留分数、阈值和命中信号");
+}
+
 process.stdout.write(
   `✓ SRT 语义编排通过：landscapeMotion=${first.motionTimeline.length} portraitMotion=${portraitFirst.motionTimeline.length} portraitIntents=${portraitFirst.semanticAnalysis.intentCount} captions=forbidden bgm=forbidden\n`,
 );

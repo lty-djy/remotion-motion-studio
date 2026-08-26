@@ -177,6 +177,20 @@ const spanForIntent = (startFrame, endFrame, index, count) => {
   };
 };
 
+const spanForPortraitIntent = (startFrame, endFrame, index, count) => {
+  if (count === 1) return { startFrame, endFrame };
+  const cueFrames = Math.max(count * 3, endFrame - startFrame);
+  const slotStart = Math.round(startFrame + (cueFrames * index) / count);
+  const slotEnd =
+    index === count - 1
+      ? endFrame
+      : Math.round(startFrame + (cueFrames * (index + 1)) / count);
+  return {
+    startFrame: Math.max(startFrame, slotStart),
+    endFrame: Math.max(slotStart + 3, Math.min(endFrame, slotEnd)),
+  };
+};
+
 const iconPosition = (canvas, index) => {
   const portrait = canvas.orientation === "portrait";
   const size = portrait ? 132 : 118;
@@ -400,9 +414,43 @@ const buildLegacySemanticSrtArrangement = ({
   };
 };
 
-const portraitRouteMatches = (route, text) =>
-  route.match.anyKeywords.some((keyword) => text.includes(keyword)) ||
-  route.match.patternSources.some((source) => new RegExp(source, "iu").test(text));
+const portraitRouteMatchResult = (route, text) => {
+  let score = 0;
+  const signals = [];
+  const matchedKeywords = route.match.anyKeywords.filter((keyword) =>
+    text.includes(keyword),
+  );
+  for (const keyword of matchedKeywords) {
+    score += 1;
+    signals.push({ type: "keyword", label: keyword, weight: 1 });
+  }
+  for (const patternSource of route.match.patternSources) {
+    if (!new RegExp(patternSource, "iu").test(text)) continue;
+    score += 2;
+    signals.push({ type: "pattern", label: patternSource, weight: 2 });
+  }
+  for (const boost of route.match.boosts ?? []) {
+    if (!new RegExp(boost.patternSource, "iu").test(text)) continue;
+    score += boost.weight;
+    signals.push({ type: "boost", label: boost.label, weight: boost.weight });
+  }
+  for (const suppressor of route.match.suppressors ?? []) {
+    if (!new RegExp(suppressor.patternSource, "iu").test(text)) continue;
+    score -= suppressor.weight;
+    signals.push({
+      type: "suppressor",
+      label: suppressor.label,
+      weight: -suppressor.weight,
+    });
+  }
+  const minimumScore = route.match.minimumScore ?? 1;
+  return {
+    matched: signals.some((signal) => signal.weight > 0) && score >= minimumScore,
+    score,
+    minimumScore,
+    signals,
+  };
+};
 
 const uniqueText = (values) =>
   [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
@@ -426,7 +474,9 @@ const sequenceFragments = (text) => {
 };
 
 const riskFragments = (text) => {
-  const tail = text.replace(/^.*?(?:但是|不过|注意)[，,:：]?/u, "");
+  const tail = text
+    .replace(/^.*?(?:但是|不过|注意)[，,:：]?/u, "")
+    .replace(/^.*?(?:只会|将会|可能会|容易|导致)[，,:：]?/u, "");
   return uniqueText(
     tail
       .split(/[、，,。；;]|(?:以及|并且|同时|和)/u)
@@ -443,8 +493,24 @@ const metricFromText = (text) => {
   const match = text.match(
     /([+-]?\d+(?:[.,]\d+)?)\s*(%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒|ms|fps)?/u,
   );
-  return match
-    ? { raw: match[0].replace(/\s+/g, ""), value: match[1], unit: match[2] ?? "" }
+  if (match) {
+    return {
+      raw: match[0].replace(/\s+/g, ""),
+      value: match[1],
+      unit: match[2] ?? "",
+    };
+  }
+  const chineseMagnitude = text.match(/(十万|百万|千万|上亿|过亿|破亿)/u)?.[1];
+  const magnitudeValues = {
+    十万: { value: "10", unit: "万" },
+    百万: { value: "100", unit: "万" },
+    千万: { value: "1000", unit: "万" },
+    上亿: { value: "1", unit: "亿+" },
+    过亿: { value: "1", unit: "亿+" },
+    破亿: { value: "1", unit: "亿+" },
+  };
+  return chineseMagnitude
+    ? { raw: chineseMagnitude, ...magnitudeValues[chineseMagnitude] }
     : { raw: "", value: "", unit: "" };
 };
 
@@ -493,12 +559,14 @@ const portraitContext = ({ route, text, timing, fps }) => {
     .replace(/(?:记得|点个|欢迎)?(?:关注|点赞|收藏|评论).*$/u, "")
     .replace(/^介绍/u, "")
     .trim();
-  const chapterTopic = text
-    .replace(/^(?:接下来|下一步|下面|进入|首先来看)[，,:：]?/u, "")
-    .trim();
+  const chapterTopic = /^(?:未来|今后)(?:\d+|一|二|三|四|五|十|几)年/u.test(text)
+    ? fragments[0]
+    : text
+        .replace(/^(?:接下来|下一步|下面|进入|首先来看)[，,:：]?/u, "")
+        .trim();
   const riskTopic = text
     .replace(/^.*?(?:但是|不过|注意)[，,:：]?/u, "")
-    .split(/(?:不能|不等于|无法|不会)/u)[0]
+    .split(/(?:不能|不等于|无法|不会|只会|将会|可能会|容易|导致)/u)[0]
     .trim();
   const routeLabels = {
     "chapter-transition": "章节提示",
@@ -620,20 +688,31 @@ const buildPortraitSemanticSrtArrangement = ({
   };
 
   for (const entry of entries) {
-    const matched = PORTRAIT_SEMANTIC_ROUTES.filter(
-      (route) =>
-        route.components.some((component) => componentIds.has(component.componentId)) &&
-        portraitRouteMatches(route, entry.text),
-    ).sort((left, right) => right.priority - left.priority);
+    const matched = PORTRAIT_SEMANTIC_ROUTES.flatMap((route) => {
+      if (!route.components.some((component) => componentIds.has(component.componentId))) {
+        return [];
+      }
+      const matchResult = portraitRouteMatchResult(route, entry.text);
+      return matchResult.matched ? [{ route, matchResult }] : [];
+    }).sort(
+      (left, right) =>
+        right.route.priority - left.route.priority ||
+        right.matchResult.score - left.matchResult.score,
+    );
     const selectedRoutes = matched.slice(0, PORTRAIT_ROUTING_POLICY.maxIntentsPerCue);
     const startFrame = Math.max(0, Math.round((entry.startMs / 1000) * fps));
     const endFrame = Math.max(startFrame + 3, Math.round((entry.endMs / 1000) * fps));
     const detected = [];
 
-    selectedRoutes.forEach((route, routeIndex) => {
+    selectedRoutes.forEach(({ route, matchResult }, routeIndex) => {
       const sequence = String(entry.index).padStart(3, "0");
       const intentId = `intent-${sequence}-${route.id}`;
-      const timing = spanForIntent(startFrame, endFrame, routeIndex, selectedRoutes.length);
+      const timing = spanForPortraitIntent(
+        startFrame,
+        endFrame,
+        routeIndex,
+        selectedRoutes.length,
+      );
       const context = portraitContext({ route, text: entry.text, timing, fps });
       const createdMotionIds = [];
 
@@ -734,6 +813,9 @@ const buildPortraitSemanticSrtArrangement = ({
         label: route.label,
         componentId: createdMotionIds[0],
         componentIds: createdMotionIds,
+        score: matchResult.score,
+        minimumScore: matchResult.minimumScore,
+        signals: matchResult.signals,
       });
       intentCount += 1;
     });
