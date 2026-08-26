@@ -3758,13 +3758,38 @@ const App = () => {
       setNotice({ tone: "info", text: "请至少选择一个编排项。" });
       return;
     }
+    // 编排项统一插入到轨道列表最上方（人物主轨道之上）：
+    // trackOrder 越小行越靠上、图层越靠前，批次内保持原有相对顺序
+    const arrangementOrderBase =
+      Math.min(
+        0,
+        ...videoTracks.map((track) => track.trackOrder),
+        ...instances.map((candidate) => candidate.trackOrder),
+        ...resourceTracks.map((candidate) => candidate.trackOrder),
+      ) -
+      selectedMotionInstances.length -
+      selectedResourceTracks.length;
+    const arrangementRankById = new Map<string, number>();
+    [...selectedMotionInstances, ...selectedResourceTracks]
+      .sort((left, right) => left.trackOrder - right.trackOrder)
+      .forEach((clip, index) => arrangementRankById.set(clip.id, index));
+    const withArrangementTrackOrders = <
+      T extends { id: string; trackOrder: number },
+    >(
+      clips: T[],
+    ): T[] =>
+      clips.map((clip) => ({
+        ...clip,
+        trackOrder:
+          arrangementOrderBase + (arrangementRankById.get(clip.id) ?? 0),
+      }));
     const nextInstances = appendClipsWithoutMovingExisting(
       instances,
-      selectedMotionInstances,
+      withArrangementTrackOrders(selectedMotionInstances),
     );
     const nextResourceTracks = appendClipsWithoutMovingExisting(
       resourceTracks,
-      selectedResourceTracks,
+      withArrangementTrackOrders(selectedResourceTracks),
     );
     const selectedEndFrame = Math.max(
       0,
@@ -8187,23 +8212,23 @@ const App = () => {
                 }
               >
                 {pendingArrangement.qualityControlStatus === "failed"
-                  ? "质检未通过，修正失败项后才能插入。"
+                  ? "质检未通过，仍可插入所选项；失败项已列出，插入后请人工调整。"
                   : "只有勾选项会被插入，取消不会修改时间线。"}
               </span>
               <div>
                 <button
                   type="button"
-                  onClick={() => setPendingArrangement(null)}
+                  onClick={() => {
+                    setPendingArrangement(null);
+                    setSrtDialogOpen(true);
+                  }}
                 >
                   取消
                 </button>
                 <button
                   type="button"
                   className="arrangement-apply"
-                  disabled={
-                    pendingArrangement.selectedKeys.length === 0 ||
-                    pendingArrangement.qualityControlStatus === "failed"
-                  }
+                  disabled={pendingArrangement.selectedKeys.length === 0}
                   onClick={applyPendingArrangement}
                 >
                   <CheckCircle weight="fill" />确认插入所选项
