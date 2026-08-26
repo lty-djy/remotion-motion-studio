@@ -38,6 +38,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["接下来", "下一步", "下面", "进入", "首先来看", "第二部分", "最后一部分"],
       patternSources: ["(?:接下来|下一步|进入).{0,8}(?:部分|环节|阶段|内容)"],
     },
+    resources: { iconId: "arrow", sfxId: "whoosh-soft", iconAnchor: "left-top" },
     components: [
       {
         componentId: "PortraitChapterRail",
@@ -54,6 +55,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "center-top",
           fallbackAnchors: ["left-top", "right-top"],
           size: "medium",
+          preferredScale: 1,
         },
       },
     ],
@@ -67,6 +69,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["重点", "核心", "关键", "记住", "最重要", "本质", "就是"],
       patternSources: ["(?:重点|核心|关键)(?:是|在于|就是)?"],
     },
+    resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "right-top" },
     components: [
       {
         componentId: "PortraitKeywordBurst",
@@ -86,6 +89,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "center-top",
           fallbackAnchors: ["left-top", "right-top"],
           size: "large",
+          preferredScale: 0.72,
         },
       },
     ],
@@ -99,6 +103,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["例如", "比如", "这里", "可以使用", "推荐使用", "工具", "软件", "方法"],
       patternSources: ["(?:例如|比如|推荐使用|可以使用).{1,18}"],
     },
+    resources: { iconId: "code", sfxId: "whoosh-soft", iconAnchor: "right-top" },
     components: [
       {
         componentId: "PortraitInfoCallout",
@@ -119,6 +124,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "right-top",
           fallbackAnchors: ["left-top", "right-center", "left-center"],
           size: "medium",
+          preferredScale: 0.72,
         },
       },
     ],
@@ -135,6 +141,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
         "(?:相比|对比|选择|推荐).{0,18}",
       ],
     },
+    resources: { iconId: "speed", sfxId: "tick", iconAnchor: "right-top" },
     components: [
       {
         componentId: "PortraitMetricDecision",
@@ -156,6 +163,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "left-top",
           fallbackAnchors: ["right-top", "left-center"],
           size: "large",
+          preferredScale: 0.64,
         },
       },
       {
@@ -178,6 +186,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "right-center",
           fallbackAnchors: ["right-top", "left-center"],
           size: "medium",
+          preferredScale: 0.82,
         },
       },
     ],
@@ -191,6 +200,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["首先", "然后", "接着", "最后", "第一步", "第二步", "第三步", "流程", "步骤"],
       patternSources: ["(?:首先|第一步).{0,24}(?:然后|第二步|接着|最后)"],
     },
+    resources: { iconId: "timeline", sfxId: "tick", iconAnchor: "left-top" },
     components: [
       {
         componentId: "PortraitStepChecklist",
@@ -216,6 +226,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "right-top",
           fallbackAnchors: ["left-top", "right-center", "left-center"],
           size: "large",
+          preferredScale: 0.62,
         },
       },
     ],
@@ -229,6 +240,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常"],
       patternSources: ["(?:但是|不过|注意).{0,28}(?:不能|风险|错误|失真|异常|限制)"],
     },
+    resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "right-top" },
     components: [
       {
         componentId: "PortraitRiskWarning",
@@ -253,6 +265,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "left-top",
           fallbackAnchors: ["right-top", "left-center", "right-center"],
           size: "large",
+          preferredScale: 0.64,
         },
       },
     ],
@@ -266,6 +279,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       anyKeywords: ["下期", "下一期", "下次", "关注", "点赞", "收藏", "评论", "记得关注"],
       patternSources: ["(?:下期|下一期|下次).{0,24}", "(?:点个|记得|欢迎)?关注"],
     },
+    resources: { iconId: "arrow", sfxId: "whoosh-soft", iconAnchor: "left-top" },
     components: [
       {
         componentId: "PortraitNextEpisodeCta",
@@ -287,6 +301,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           anchor: "right-top",
           fallbackAnchors: ["left-top", "right-center"],
           size: "medium",
+          preferredScale: 0.78,
         },
       },
     ],

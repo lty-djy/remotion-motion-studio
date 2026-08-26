@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { applyAvoidanceLayout, createKnownAvoidanceRegions } from "../avoidance-layout-planner.mjs";
 import { runTimelineQualityControl } from "../quality-control.mjs";
 import { buildSemanticSrtArrangement } from "../semantic-srt-arranger.mjs";
-import { REGISTERED_CARDS } from "./registry-meta.mjs";
+import { PORTRAIT_ROUTE_COMPONENT_IDS } from "../portrait-semantic-routes.mjs";
+import { loadRuntimeRegistry } from "./load-runtime-registry.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const resourceIndex = JSON.parse(
@@ -15,6 +16,7 @@ const resourceIndex = JSON.parse(
     "utf8",
   ),
 );
+const runtimeCards = await loadRuntimeRegistry();
 const canvas = { width: 1080, height: 1920, orientation: "portrait" };
 const baseTimeline = buildSemanticSrtArrangement({
   entries: [
@@ -28,20 +30,20 @@ const baseTimeline = buildSemanticSrtArrangement({
   fps: 30,
   durationInFrames: 180,
   canvas,
-  availableComponentIds: REGISTERED_CARDS.map((card) => card.id),
+  availableComponentIds: PORTRAIT_ROUTE_COMPONENT_IDS,
   resourceIndex,
 });
 const arranged = applyAvoidanceLayout({
   timeline: baseTimeline,
   canvas,
-  componentDefinitions: REGISTERED_CARDS,
+  componentDefinitions: runtimeCards,
   includeFace: true,
   includeCaptions: true,
 });
 const checked = runTimelineQualityControl({
   timeline: arranged,
   canvas,
-  componentDefinitions: REGISTERED_CARDS,
+  componentDefinitions: runtimeCards,
   resourceIndex,
   includeFace: true,
   includeCaptions: true,
@@ -60,7 +62,7 @@ if (
 const pending = runTimelineQualityControl({
   timeline: arranged,
   canvas,
-  componentDefinitions: REGISTERED_CARDS,
+  componentDefinitions: runtimeCards,
   resourceIndex,
   includeFace: false,
   includeCaptions: true,
@@ -76,7 +78,7 @@ if (
 }
 
 const unsafe = structuredClone(arranged);
-const definitions = new Map(REGISTERED_CARDS.map((card) => [card.id, card]));
+const definitions = new Map(runtimeCards.map((card) => [card.id, card]));
 const regions = createKnownAvoidanceRegions({
   canvas,
   includeFace: true,
@@ -105,7 +107,7 @@ unsafe.resourceTracks.at(-1).durationInFrames = 8;
 const failed = runTimelineQualityControl({
   timeline: unsafe,
   canvas,
-  componentDefinitions: REGISTERED_CARDS,
+  componentDefinitions: runtimeCards,
   resourceIndex,
   includeFace: true,
   includeCaptions: true,

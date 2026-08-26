@@ -65,6 +65,7 @@ import {
   EFFECT_REGISTRY_BY_ID,
 } from "./registry";
 import { buildSemanticSrtArrangement } from "./ai-motion-arranger/semantic-srt-arranger.mjs";
+import { PORTRAIT_ROUTE_COMPONENT_IDS } from "./ai-motion-arranger/portrait-semantic-routes.mjs";
 import {
   applyAvoidanceLayout,
   createKnownAvoidanceRegions,
@@ -2719,7 +2720,11 @@ const App = () => {
     setSrtResult(null);
     try {
       await showStage("analyzing");
-      const arrangeableComponentIds = AI_ARRANGEABLE_COMPONENT_IDS.filter(
+      const semanticComponentIds =
+        canvasOrientation === "portrait"
+          ? PORTRAIT_ROUTE_COMPONENT_IDS
+          : AI_ARRANGEABLE_COMPONENT_IDS;
+      const arrangeableComponentIds = semanticComponentIds.filter(
         (componentId) => definitionMap.has(componentId),
       );
       if (arrangeableComponentIds.length === 0) {
@@ -8276,7 +8281,7 @@ const App = () => {
                   <strong>点击选择 SRT 文件</strong>
                   <span>
                     {videoUrl || videoTracks.length > 0
-                      ? "已检测到当前视频。选择对应 SRT 后会立即完成语义分析、选效果、布局和质检；视频自动转字幕后续接入。"
+                      ? "已检测到当前视频。选择对应 SRT 后会立即完成语义分析、选效果、布局和质检。"
                       : "选择后立即完成语义分析、选效果、布局和质检；先生成预览，不会直接修改时间线。"}
                   </span>
                 </button>

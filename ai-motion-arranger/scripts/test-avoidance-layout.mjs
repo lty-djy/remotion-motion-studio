@@ -9,13 +9,16 @@ import {
   rectanglesOverlap,
 } from "../avoidance-layout-planner.mjs";
 import { buildSemanticSrtArrangement } from "../semantic-srt-arranger.mjs";
+import { PORTRAIT_ROUTE_COMPONENT_IDS } from "../portrait-semantic-routes.mjs";
+import { loadRuntimeRegistry } from "./load-runtime-registry.mjs";
 import { REGISTERED_CARDS } from "./registry-meta.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const resourceIndex = JSON.parse(
   await readFile(join(here, "..", "..", "public", "input", "resource-index.json"), "utf8"),
 );
-const definitions = new Map(REGISTERED_CARDS.map((card) => [card.id, card]));
+const runtimeCards = await loadRuntimeRegistry();
+const definitions = new Map(runtimeCards.map((card) => [card.id, card]));
 const validateCanvas = (canvas) => {
   const timeline = buildSemanticSrtArrangement({
     entries: [
@@ -29,13 +32,16 @@ const validateCanvas = (canvas) => {
     fps: 30,
     durationInFrames: 180,
     canvas,
-    availableComponentIds: REGISTERED_CARDS.map((card) => card.id),
+    availableComponentIds:
+      canvas.orientation === "portrait"
+        ? PORTRAIT_ROUTE_COMPONENT_IDS
+        : REGISTERED_CARDS.map((card) => card.id),
     resourceIndex,
   });
   const arranged = applyAvoidanceLayout({
     timeline,
     canvas,
-    componentDefinitions: REGISTERED_CARDS,
+    componentDefinitions: runtimeCards,
     includeFace: true,
     includeCaptions: true,
   });

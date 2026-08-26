@@ -1,3 +1,8 @@
+import {
+  PORTRAIT_ROUTING_POLICY,
+  PORTRAIT_SEMANTIC_ROUTES,
+} from "./portrait-semantic-routes.mjs";
+
 const MAX_INTENTS_PER_CUE = 3;
 
 const INTENT_RULES = [
@@ -196,7 +201,7 @@ const qualityControl = () => ({
   ],
 });
 
-export const buildSemanticSrtArrangement = ({
+const buildLegacySemanticSrtArrangement = ({
   entries,
   fps,
   durationInFrames,
@@ -390,3 +395,391 @@ export const buildSemanticSrtArrangement = ({
     resourceTracks,
   };
 };
+
+const portraitRouteMatches = (route, text) =>
+  route.match.anyKeywords.some((keyword) => text.includes(keyword)) ||
+  route.match.patternSources.some((source) => new RegExp(source, "iu").test(text));
+
+const uniqueText = (values) =>
+  [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+
+const listFragments = (text) =>
+  uniqueText(
+    text
+      .split(/[，,。！？!?…；;：:、]|(?:以及|并且|同时|而且)/u)
+      .map((part) => part.trim())
+      .filter((part) => part.length > 1),
+  );
+
+const sequenceFragments = (text) => {
+  const markerSource = "(?:首先|第一步|然后|第二步|接着|第三步|最后)";
+  const hasMarker = new RegExp(markerSource, "u").test(text);
+  const parts = text
+    .split(new RegExp(`${markerSource}[，,:：]?`, "u"))
+    .map((part) => part.replace(/[。！？!?；;]+$/u, "").trim())
+    .filter(Boolean);
+  return uniqueText(hasMarker ? parts.slice(1) : listFragments(text));
+};
+
+const riskFragments = (text) => {
+  const tail = text.replace(/^.*?(?:但是|不过|注意)[，,:：]?/u, "");
+  return uniqueText(
+    tail
+      .split(/[、，,。；;]|(?:以及|并且|同时|和)/u)
+      .map((part) =>
+        part
+          .replace(/^(?:它|这|高清放大)?(?:不能|无法|不会)(?:修复|解决|避免)?/u, "")
+          .trim(),
+      )
+      .filter((part) => part.length > 1),
+  );
+};
+
+const metricFromText = (text) => {
+  const match = text.match(
+    /([+-]?\d+(?:[.,]\d+)?)\s*(%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒|ms|fps)?/u,
+  );
+  return match
+    ? { raw: match[0].replace(/\s+/g, ""), value: match[1], unit: match[2] ?? "" }
+    : { raw: "", value: "", unit: "" };
+};
+
+const portraitStyleForRoute = (routeId) => {
+  const accents = {
+    "chapter-transition": "#168CFF",
+    "keyword-emphasis": "#168CFF",
+    "info-callout": "#168CFF",
+    "metric-decision": "#14E6A1",
+    "process-steps": "#168CFF",
+    "risk-boundary": "#FF493D",
+    "next-episode-cta": "#168CFF",
+  };
+  return {
+    accentColor: accents[routeId] ?? "#168CFF",
+    secondaryColor: "#14E6A1",
+    successColor: "#14E6A1",
+    warningColor: "#FF493D",
+    panelColor: "#111318",
+    textColor: "#FFFFFF",
+    shadowColor: "#000000",
+  };
+};
+
+const iconTextForId = (iconId) =>
+  ({ arrow: "↗", code: "</>", speed: "↗", timeline: "▣" })[iconId] ?? "✦";
+
+const portraitContext = ({ route, text, timing, fps }) => {
+  const fragments = listFragments(text);
+  const metric = metricFromText(text);
+  const matchedKeywords = route.match.anyKeywords.filter((keyword) =>
+    text.includes(keyword),
+  );
+  const keywords = uniqueText([...matchedKeywords, ...fragments]).slice(0, 3);
+  const labels = fragments
+    .map((part) =>
+      part.replace(/^(?:接下来|下一步|下面|进入|相比|对比)[，,:：]?/u, "").trim(),
+    )
+    .filter(Boolean)
+    .slice(0, 3);
+  const steps = sequenceFragments(text).slice(0, 3);
+  const risks = riskFragments(text).slice(0, 3);
+  const englishTitle = text.match(/\b[A-Za-z][A-Za-z0-9-]{1,18}\b/u)?.[0] ?? "";
+  const ctaTopic = text
+    .replace(/(?:下期|下一期|下次)/gu, "")
+    .replace(/(?:记得|点个|欢迎)?(?:关注|点赞|收藏|评论).*$/u, "")
+    .replace(/^介绍/u, "")
+    .trim();
+  const chapterTopic = text
+    .replace(/^(?:接下来|下一步|下面|进入|首先来看)[，,:：]?/u, "")
+    .trim();
+  const riskTopic = text
+    .replace(/^.*?(?:但是|不过|注意)[，,:：]?/u, "")
+    .split(/(?:不能|不等于|无法|不会)/u)[0]
+    .trim();
+  const routeLabels = {
+    "chapter-transition": "章节提示",
+    "keyword-emphasis": "重点",
+    "info-callout": "补充说明",
+    "metric-decision": "推荐方案",
+    "process-steps": "执行流程",
+    "risk-boundary": "使用边界",
+    "next-episode-cta": "下期",
+  };
+  const topics = {
+    "chapter-transition": shorten(chapterTopic || fragments[0] || text, 16),
+    "keyword-emphasis": shorten(keywords[0] || text, 10),
+    "info-callout": shorten(fragments[0] || text, 14),
+    "metric-decision": shorten(text, 18),
+    "process-steps": "操作步骤",
+    "risk-boundary": shorten(riskTopic || fragments[0] || "风险提醒", 12),
+    "next-episode-cta": englishTitle || shorten(ctaTopic || "下集预告", 12),
+  };
+  const detail =
+    route.id === "next-episode-cta"
+      ? shorten(ctaTopic.replace(englishTitle, "").trim() || "自动剪辑", 14)
+      : shorten(fragments[1] || fragments[0] || text, 20);
+  const animationSeconds = Math.max(
+    0.4,
+    Math.min(1.6, Number(((timing.endFrame - timing.startFrame) / fps / 2).toFixed(2))),
+  );
+  const symbolSet =
+    route.id === "risk-boundary"
+      ? ["×", "!", "⌁"]
+      : route.id === "process-steps"
+        ? ["▣", "✦", "↗"]
+        : ["↗", "✓", "✦"];
+  const style = portraitStyleForRoute(route.id);
+
+  return {
+    segment: {
+      label: routeLabels[route.id] ?? route.label,
+      topic: topics[route.id] ?? shorten(text, 14),
+      detail,
+      note: shorten(fragments[2] || "", 18),
+    },
+    intent: {
+      conclusion:
+        route.id === "risk-boundary"
+          ? "≠ 万能修复"
+          : route.id === "metric-decision"
+            ? shorten(text, 18)
+            : detail,
+      keywords: { 1: keywords[0] ?? "", 2: keywords[1] ?? "", 3: keywords[2] ?? "" },
+      highlightIndex: Math.min(2, Math.max(1, keywords.length)),
+      metric: {
+        label: "核心数据",
+        value: metric.value,
+        unit: metric.unit,
+        verdict: /更推荐|推荐/u.test(text)
+          ? "更推荐"
+          : /更快|更低|更高|更好/u.exec(text)?.[0] ?? "重点数据",
+      },
+      labels: { 1: labels[0] ?? "", 2: labels[1] ?? "", 3: labels[2] ?? "" },
+      steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
+      risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
+      symbols: { 1: symbolSet[0], 2: symbolSet[1], 3: symbolSet[2] },
+      cta: /关注/u.test(text)
+        ? "点个关注"
+        : /点赞/u.test(text)
+          ? "欢迎点赞"
+          : /收藏/u.test(text)
+            ? "记得收藏"
+            : "关注下期",
+    },
+    resource: { iconText: iconTextForId(route.resources?.iconId) },
+    style,
+    timing: { animationSeconds },
+    evidence: { keywordCount: keywords.length, labelCount: labels.length, stepCount: steps.length, riskCount: risks.length, metricFound: Boolean(metric.raw) },
+  };
+};
+
+const valueAtPath = (record, path) =>
+  path.split(".").reduce((value, key) => value?.[key], record);
+
+const propsFromBindings = (bindings, context) =>
+  Object.fromEntries(
+    Object.entries(bindings).flatMap(([propName, sourcePath]) => {
+      const value = valueAtPath(context, sourcePath);
+      return value === undefined || value === null ? [] : [[propName, value]];
+    }),
+  );
+
+const activationAllows = (activation, context) => {
+  if (activation === "when-keywords-present") return context.evidence.keywordCount > 0;
+  if (activation === "when-metric-present") return context.evidence.metricFound;
+  if (activation === "when-supporting-labels-present") return context.evidence.labelCount >= 2;
+  if (activation === "when-two-or-more-steps-present") return context.evidence.stepCount >= 2;
+  return true;
+};
+
+const buildPortraitSemanticSrtArrangement = ({
+  entries,
+  fps,
+  durationInFrames,
+  canvas,
+  availableComponentIds,
+  resourceIndex,
+}) => {
+  const componentIds = new Set(availableComponentIds);
+  const motionTimeline = [];
+  const resourceTracks = [];
+  const cueAnalyses = [];
+  const messages = [];
+  let intentCount = 0;
+  let trackOrder = 0;
+
+  for (const entry of entries) {
+    const matched = PORTRAIT_SEMANTIC_ROUTES.filter(
+      (route) =>
+        route.components.some((component) => componentIds.has(component.componentId)) &&
+        portraitRouteMatches(route, entry.text),
+    ).sort((left, right) => right.priority - left.priority);
+    const selectedRoutes = matched.slice(0, PORTRAIT_ROUTING_POLICY.maxIntentsPerCue);
+    const startFrame = Math.max(0, Math.round((entry.startMs / 1000) * fps));
+    const endFrame = Math.max(startFrame + 3, Math.round((entry.endMs / 1000) * fps));
+    const detected = [];
+
+    selectedRoutes.forEach((route, routeIndex) => {
+      const sequence = String(entry.index).padStart(3, "0");
+      const intentId = `intent-${sequence}-${route.id}`;
+      const timing = spanForIntent(startFrame, endFrame, routeIndex, selectedRoutes.length);
+      const context = portraitContext({ route, text: entry.text, timing, fps });
+      const createdMotionIds = [];
+
+      route.components.forEach((selection, componentIndex) => {
+        if (
+          !componentIds.has(selection.componentId) ||
+          !activationAllows(selection.activation, context)
+        ) {
+          return;
+        }
+        const expressionId = `effect-${sequence}-${route.id}-${componentIndex + 1}`;
+        const supportingOffset = selection.role === "supporting" ? Math.min(6, Math.max(0, timing.endFrame - timing.startFrame - 3)) : 0;
+        const componentStart = timing.startFrame + supportingOffset;
+        motionTimeline.push({
+          componentId: selection.componentId,
+          startFrame: componentStart,
+          durationInFrames: Math.max(3, timing.endFrame - componentStart),
+          laneId: `motion-${sequence}-${route.id}-${componentIndex + 1}`,
+          trackOrder: trackOrder++,
+          visible: true,
+          sourceStartFrame: 0,
+          backgroundOpacity: 0,
+          props: propsFromBindings(selection.propBindings, context),
+          sourceExpressionId: expressionId,
+          sourceIntentId: intentId,
+          layoutIntent: {
+            anchor: selection.layout.anchor,
+            fallbackAnchors: selection.layout.fallbackAnchors,
+            preferredScale: selection.layout.preferredScale,
+            avoid: PORTRAIT_ROUTING_POLICY.layout.avoid,
+            collisionPolicy: PORTRAIT_ROUTING_POLICY.layout.collisionPolicy,
+          },
+        });
+        createdMotionIds.push(selection.componentId);
+      });
+
+      if (createdMotionIds.length === 0) return;
+
+      const icon = availableResource(resourceIndex, "icons", route.resources?.iconId);
+      if (icon && selectedRoutes.length === 1 && createdMotionIds.length === 1) {
+        const iconId = `icon-${sequence}-${route.id}`;
+        resourceTracks.push({
+          id: `resource-${iconId}`,
+          laneId: iconId,
+          trackOrder: trackOrder++,
+          kind: "icon",
+          resourceId: icon.id,
+          name: `${icon.label} · ${route.label}`,
+          url: icon.url,
+          mimeType: icon.mimeType,
+          sourceStartFrame: 0,
+          sourceDurationInFrames: timing.endFrame - timing.startFrame,
+          startFrame: Math.min(timing.endFrame - 3, timing.startFrame + 3),
+          durationInFrames: Math.max(3, timing.endFrame - Math.min(timing.endFrame - 3, timing.startFrame + 3)),
+          visible: true,
+          position: iconPosition(canvas, routeIndex),
+          volume: 1,
+          voiceDucking: 0,
+          sourceExpressionId: iconId,
+          sourceIntentId: intentId,
+          layoutIntent: {
+            anchor: route.resources.iconAnchor,
+            avoid: PORTRAIT_ROUTING_POLICY.layout.avoid,
+            collisionPolicy: PORTRAIT_ROUTING_POLICY.layout.collisionPolicy,
+          },
+        });
+      }
+
+      const sfx = availableResource(resourceIndex, "sfx", route.resources?.sfxId);
+      if (sfx) {
+        const sfxId = `sfx-${sequence}-${route.id}`;
+        const audioFrames = Math.max(3, Math.round(Number(sfx.media?.durationSeconds ?? 0.2) * fps));
+        resourceTracks.push({
+          id: `resource-${sfxId}`,
+          laneId: sfxId,
+          trackOrder: trackOrder++,
+          kind: "sfx",
+          resourceId: sfx.id,
+          name: `${sfx.label} · ${route.label}`,
+          url: sfx.url,
+          mimeType: sfx.mimeType,
+          sourceStartFrame: 0,
+          sourceDurationInFrames: audioFrames,
+          startFrame: timing.startFrame,
+          durationInFrames: Math.min(audioFrames, timing.endFrame - timing.startFrame),
+          visible: true,
+          position: { x: 0, y: 0, width: 1, height: 1, scale: 1, zIndex: 0 },
+          volume: 0.28,
+          voiceDucking: 0.72,
+          sourceExpressionId: sfxId,
+          sourceIntentId: intentId,
+        });
+      }
+
+      detected.push({
+        id: intentId,
+        type: route.intentType,
+        label: route.label,
+        componentId: createdMotionIds[0],
+        componentIds: createdMotionIds,
+      });
+      intentCount += 1;
+    });
+
+    if (matched.length > selectedRoutes.length) {
+      messages.push(
+        `字幕 ${entry.index} 命中 ${matched.length} 个竖屏语义，仅保留优先级最高的 ${PORTRAIT_ROUTING_POLICY.maxIntentsPerCue} 个，避免画面过载。`,
+      );
+    }
+    if (detected.length === 0) {
+      messages.push(`字幕 ${entry.index} 未发现需要视觉强化的明确语义，已保留口播但不添加效果。`);
+    }
+    cueAnalyses.push({
+      cueIndex: entry.index,
+      text: entry.text,
+      startFrame,
+      endFrame,
+      intents: detected,
+    });
+  }
+
+  const matchedCueCount = cueAnalyses.filter((cue) => cue.intents.length > 0).length;
+  const skippedCueCount = cueAnalyses.length - matchedCueCount;
+  const maxEndFrame = Math.max(
+    durationInFrames,
+    ...entries.map((entry) => Math.round((entry.endMs / 1000) * fps)),
+  );
+  const semanticAnalysis = {
+    routingProfile: "portrait-v1",
+    cueCount: entries.length,
+    matchedCueCount,
+    skippedCueCount,
+    intentCount,
+    motionCount: motionTimeline.length,
+    resourceCount: resourceTracks.length,
+    cueAnalyses,
+    messages,
+  };
+
+  return {
+    timelineVersion: "2.0",
+    generatedBy: "semantic-srt-arranger/portrait-1",
+    project: {
+      fps,
+      durationInFrames: maxEndFrame,
+      canvas,
+      resourceCatalog: { root: "public/input", indexVersion: String(resourceIndex?.indexVersion ?? "1") },
+    },
+    semanticAnalysis,
+    qualityControl: qualityControl(),
+    applyPolicy: PORTRAIT_ROUTING_POLICY.applyPolicy,
+    motionTimeline,
+    resourceTracks,
+  };
+};
+
+export const buildSemanticSrtArrangement = (input) =>
+  input.canvas?.orientation === "portrait"
+    ? buildPortraitSemanticSrtArrangement(input)
+    : buildLegacySemanticSrtArrangement(input);

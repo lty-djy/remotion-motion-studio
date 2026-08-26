@@ -173,7 +173,12 @@ export const applyAvoidanceLayout = ({
   const motionTimeline = timeline.motionTimeline.map((item) => {
     const definition = definitions.get(item.componentId);
     if (!definition) return item;
-    const preferredScale = canvas.orientation === "portrait" ? 0.42 : 0.72;
+    const requestedScale = Number(item.layoutIntent?.preferredScale);
+    const preferredScale = Number.isFinite(requestedScale)
+      ? clamp(requestedScale, 0.3, 1.2)
+      : canvas.orientation === "portrait"
+        ? 0.42
+        : 0.72;
     const timing = {
       startFrame: item.startFrame,
       endFrame: item.startFrame + item.durationInFrames,

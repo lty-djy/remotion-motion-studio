@@ -1,39 +1,24 @@
 #!/usr/bin/env node
 
-import { build } from "esbuild";
-import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   PORTRAIT_ROUTE_COMPONENT_IDS,
   PORTRAIT_ROUTING_POLICY,
   PORTRAIT_SEMANTIC_ROUTES,
 } from "../portrait-semantic-routes.mjs";
+import { loadRuntimeRegistry } from "./load-runtime-registry.mjs";
 
 const root = resolve(import.meta.dirname, "..", "..");
-const registryPath = resolve(root, "registry.ts");
-const result = await build({
-  entryPoints: [registryPath],
-  bundle: true,
-  platform: "node",
-  format: "cjs",
-  packages: "external",
-  write: false,
-  logLevel: "silent",
-});
-const code = result.outputFiles[0]?.text;
-if (!code) throw new Error("无法编译运行时效果库。");
-const module = { exports: {} };
-const require = createRequire(registryPath);
-new Function(
-  "module",
-  "exports",
-  "require",
-  "__filename",
-  "__dirname",
-  code,
-)(module, module.exports, require, registryPath, root);
-
-const registry = module.exports.EFFECT_REGISTRY;
+const resourceIndex = JSON.parse(
+  await readFile(resolve(root, "public", "input", "resource-index.json"), "utf8"),
+);
+const indexedResources = new Set(
+  Object.entries(resourceIndex.libraries).flatMap(([library, entries]) =>
+    entries.map((entry) => `${library}:${entry.id}`),
+  ),
+);
+const registry = await loadRuntimeRegistry();
 const definitions = new Map(registry.map((definition) => [definition.id, definition]));
 const expectedComponentIds = [
   "PortraitChapterRail",
@@ -83,6 +68,12 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
   if (route.components.filter((component) => component.role === "primary").length !== 1) {
     throw new Error(`${route.id} 必须且只能有一个主组件。`);
   }
+  if (
+    !indexedResources.has(`icons:${route.resources?.iconId}`) ||
+    !indexedResources.has(`sfx:${route.resources?.sfxId}`)
+  ) {
+    throw new Error(`${route.id} 引用了固定资源索引之外的图标或音效。`);
+  }
 
   for (const selection of route.components) {
     const definition = definitions.get(selection.componentId);
@@ -104,6 +95,13 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
       !selection.layout.fallbackAnchors.every((anchor) => allowedAnchors.has(anchor))
     ) {
       throw new Error(`${route.id} 使用了不支持的备用布局锚点。`);
+    }
+    if (
+      !Number.isFinite(selection.layout.preferredScale) ||
+      selection.layout.preferredScale < 0.3 ||
+      selection.layout.preferredScale > 1.2
+    ) {
+      throw new Error(`${route.id} 的首选缩放不在 0.3–1.2 范围内。`);
     }
   }
 }
