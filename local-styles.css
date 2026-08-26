@@ -3241,17 +3241,19 @@ aside {
 
 .arrangement-preview-dialog > header small {
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 2px;
 }
 
 .arrangement-preview-dialog > header strong {
-  font-size: 15px;
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .arrangement-preview-dialog > header span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .arrangement-preview-dialog > header > button {
@@ -3286,7 +3288,8 @@ aside {
   border-radius: 7px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.035);
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .arrangement-preview-summary b {
@@ -3324,7 +3327,7 @@ aside {
 
 .arrangement-qc-item {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -3336,7 +3339,7 @@ aside {
 
 .arrangement-qc-item > i {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -3349,14 +3352,15 @@ aside {
 
 .arrangement-qc-item strong,
 .arrangement-qc-item > b {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
 }
 
 .arrangement-qc-item small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3405,7 +3409,7 @@ aside {
   border-radius: 7px;
   color: #a9dce5;
   background: rgba(104, 232, 255, 0.05);
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -3452,7 +3456,7 @@ aside {
   border-radius: 5px;
   color: #9feeff;
   background: rgba(104, 232, 255, 0.09);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
   text-align: center;
 }
@@ -3481,7 +3485,8 @@ aside {
 
 .arrangement-preview-item strong {
   overflow: hidden;
-  font-size: 11px;
+  font-size: 14px;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3489,7 +3494,8 @@ aside {
 .arrangement-preview-item small,
 .arrangement-preview-item time {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
+  line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3507,7 +3513,8 @@ aside {
 
 .arrangement-preview-dialog > footer > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .arrangement-preview-dialog > footer > div {
@@ -3524,7 +3531,7 @@ aside {
   border-radius: 8px;
   color: var(--text);
   background: rgba(255, 255, 255, 0.05);
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
