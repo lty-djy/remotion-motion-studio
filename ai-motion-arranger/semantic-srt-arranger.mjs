@@ -2,6 +2,10 @@ import {
   PORTRAIT_ROUTING_POLICY,
   PORTRAIT_SEMANTIC_ROUTES,
 } from "./portrait-semantic-routes.mjs";
+import {
+  mergeSrtEntriesForSemanticAnalysis,
+  summarizeSrtSemanticMerge,
+} from "./srt-semantic-merger.mjs";
 
 const MAX_INTENTS_PER_CUE = 3;
 
@@ -608,6 +612,13 @@ const buildPortraitSemanticSrtArrangement = ({
   let intentCount = 0;
   let trackOrder = 0;
 
+  const sourceCueLabel = (entry) => {
+    const indices = entry.sourceCueIndices ?? [entry.index];
+    return indices.length === 1
+      ? String(indices[0])
+      : `${indices[0]}–${indices.at(-1)}`;
+  };
+
   for (const entry of entries) {
     const matched = PORTRAIT_SEMANTIC_ROUTES.filter(
       (route) =>
@@ -729,14 +740,15 @@ const buildPortraitSemanticSrtArrangement = ({
 
     if (matched.length > selectedRoutes.length) {
       messages.push(
-        `字幕 ${entry.index} 命中 ${matched.length} 个竖屏语义，仅保留优先级最高的 ${PORTRAIT_ROUTING_POLICY.maxIntentsPerCue} 个，避免画面过载。`,
+        `语义段 ${sourceCueLabel(entry)} 命中 ${matched.length} 个竖屏语义，仅保留优先级最高的 ${PORTRAIT_ROUTING_POLICY.maxIntentsPerCue} 个，避免画面过载。`,
       );
     }
     if (detected.length === 0) {
-      messages.push(`字幕 ${entry.index} 未发现需要视觉强化的明确语义，已保留口播但不添加效果。`);
+      messages.push(`语义段 ${sourceCueLabel(entry)} 未发现需要视觉强化的明确语义，已保留口播但不添加效果。`);
     }
     cueAnalyses.push({
       cueIndex: entry.index,
+      sourceCueIndices: entry.sourceCueIndices ?? [entry.index],
       text: entry.text,
       startFrame,
       endFrame,
@@ -753,8 +765,11 @@ const buildPortraitSemanticSrtArrangement = ({
   const semanticAnalysis = {
     routingProfile: "portrait-v1",
     cueCount: entries.length,
+    semanticSegmentCount: entries.length,
     matchedCueCount,
+    matchedSegmentCount: matchedCueCount,
     skippedCueCount,
+    skippedSegmentCount: skippedCueCount,
     intentCount,
     motionCount: motionTimeline.length,
     resourceCount: resourceTracks.length,
@@ -779,7 +794,26 @@ const buildPortraitSemanticSrtArrangement = ({
   };
 };
 
+const buildMergedPortraitSemanticSrtArrangement = (input) => {
+  const semanticEntries = mergeSrtEntriesForSemanticAnalysis(input.entries);
+  const mergeSummary = summarizeSrtSemanticMerge(input.entries, semanticEntries);
+  const timeline = buildPortraitSemanticSrtArrangement({
+    ...input,
+    entries: semanticEntries,
+  });
+  return {
+    ...timeline,
+    semanticAnalysis: {
+      ...timeline.semanticAnalysis,
+      cueCount: mergeSummary.sourceCueCount,
+      semanticSegmentCount: mergeSummary.semanticSegmentCount,
+      mergedCueCount: mergeSummary.mergedCueCount,
+      mergePolicy: "adjacent-context-v1",
+    },
+  };
+};
+
 export const buildSemanticSrtArrangement = (input) =>
   input.canvas?.orientation === "portrait"
-    ? buildPortraitSemanticSrtArrangement(input)
+    ? buildMergedPortraitSemanticSrtArrangement(input)
     : buildLegacySemanticSrtArrangement(input);

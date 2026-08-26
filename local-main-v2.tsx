@@ -167,6 +167,7 @@ type PendingArrangement = {
   }>;
   semanticSummary?: {
     cueCount: number;
+    semanticSegmentCount?: number;
     intentCount: number;
     skippedCueCount: number;
   };
@@ -1313,6 +1314,7 @@ const App = () => {
   const [aiArrangementError, setAiArrangementError] = useState("");
   const [srtResult, setSrtResult] = useState<{
     cueCount: number;
+    semanticSegmentCount?: number;
     intentCount: number;
     motionCount: number;
     resourceCount: number;
@@ -2791,6 +2793,7 @@ const App = () => {
               ...current,
               semanticSummary: {
                 cueCount: analysis.cueCount,
+                semanticSegmentCount: analysis.semanticSegmentCount,
                 intentCount: analysis.intentCount,
                 skippedCueCount: analysis.skippedCueCount,
               },
@@ -2800,6 +2803,7 @@ const App = () => {
       );
       setSrtResult({
         cueCount: analysis.cueCount,
+        semanticSegmentCount: analysis.semanticSegmentCount,
         intentCount: analysis.intentCount,
         motionCount: analysis.motionCount,
         resourceCount: analysis.resourceCount,
@@ -8048,9 +8052,15 @@ const App = () => {
               </span>
               {pendingArrangement.semanticSummary ? (
                 <span>
-                  字幕 {pendingArrangement.semanticSummary.cueCount} 句 · 意图{" "}
+                  字幕 {pendingArrangement.semanticSummary.cueCount} 句
+                  {pendingArrangement.semanticSummary.semanticSegmentCount &&
+                  pendingArrangement.semanticSummary.semanticSegmentCount !==
+                    pendingArrangement.semanticSummary.cueCount
+                    ? ` → ${pendingArrangement.semanticSummary.semanticSegmentCount} 个语义段`
+                    : ""}{" "}
+                  · 意图{" "}
                   <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
-                  {pendingArrangement.semanticSummary.skippedCueCount}
+                  {pendingArrangement.semanticSummary.skippedCueCount} 段
                 </span>
               ) : null}
               {pendingArrangement.layoutSummary ? (
@@ -8262,7 +8272,12 @@ const App = () => {
               </span>
               {srtResult ? (
                 <b>
-                  {srtResult.cueCount} 句 · {srtResult.intentCount} 个意图 ·{" "}
+                  {srtResult.cueCount} 句
+                  {srtResult.semanticSegmentCount &&
+                  srtResult.semanticSegmentCount !== srtResult.cueCount
+                    ? ` → ${srtResult.semanticSegmentCount} 个语义段`
+                    : ""}{" "}
+                  · {srtResult.intentCount} 个意图 ·{" "}
                   {srtResult.motionCount} 个动效 · {srtResult.resourceCount} 个资源
                 </b>
               ) : null}

@@ -19,6 +19,7 @@
     "test:arrangement-batch": "node ai-motion-arranger/scripts/test-arrangement-batch.mjs",
     "test:portrait-effects": "node ai-motion-arranger/scripts/test-portrait-reference-effects.mjs",
     "test:portrait-routes": "node ai-motion-arranger/scripts/test-portrait-semantic-routes.mjs",
+    "test:srt-merge": "node ai-motion-arranger/scripts/test-srt-semantic-merger.mjs",
     "convert:visual-script": "node ai-motion-arranger/scripts/visual-script-to-timeline.mjs",
     "predev": "npm run sync:registry && npm run sync:resources",
     "dev": "vite --config local-vite.config.ts",

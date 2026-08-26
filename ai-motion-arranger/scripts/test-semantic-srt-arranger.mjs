@@ -121,6 +121,12 @@ if (JSON.stringify(portraitFirst) !== JSON.stringify(portraitSecond)) {
 if (portraitFirst.semanticAnalysis.routingProfile !== "portrait-v1") {
   throw new Error("竖屏字幕没有进入新的语义路由表");
 }
+if (
+  portraitFirst.semanticAnalysis.cueCount !== portraitInput.entries.length ||
+  portraitFirst.semanticAnalysis.semanticSegmentCount !== portraitInput.entries.length
+) {
+  throw new Error("互不承接的竖屏字幕不应被错误合并");
+}
 const portraitComponentIds = new Set(
   portraitFirst.motionTimeline.map((item) => item.componentId),
 );
@@ -170,6 +176,23 @@ if (
   )
 ) {
   throw new Error("竖屏语义编排引用了固定资源索引之外的资源");
+}
+
+const mergedContext = buildSemanticSrtArrangement({
+  ...portraitInput,
+  entries: [
+    { index: 1, startMs: 0, endMs: 800, text: "未来3年" },
+    { index: 2, startMs: 800, endMs: 1800, text: "卫浴店只有这种" },
+    { index: 3, startMs: 1800, endMs: 3000, text: "门店能够赚钱" },
+  ],
+});
+if (
+  mergedContext.semanticAnalysis.cueCount !== 3 ||
+  mergedContext.semanticAnalysis.semanticSegmentCount !== 1 ||
+  JSON.stringify(mergedContext.semanticAnalysis.cueAnalyses[0]?.sourceCueIndices) !==
+    JSON.stringify([1, 2, 3])
+) {
+  throw new Error("竖屏语义编排没有使用相邻字幕合并结果或丢失来源字幕索引");
 }
 
 process.stdout.write(
