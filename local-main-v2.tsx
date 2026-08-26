@@ -2901,6 +2901,53 @@ const App = () => {
     });
   };
 
+  const clearAllTimelineTracks = async () => {
+    if (
+      videoTracks.length === 0 &&
+      instances.length === 0 &&
+      resourceTracks.length === 0
+    ) {
+      setNotice({ tone: "info", text: "时间轴已经是空的。" });
+      return;
+    }
+    const mediaUrls = [
+      ...new Set(
+        videoTracks
+          .map((track) => track.url.split("?")[0])
+          .filter(Boolean),
+      ),
+    ];
+    for (const url of mediaUrls) {
+      try {
+        await fetch(url, { method: "DELETE" });
+      } catch {
+        // 单个本地媒体清理失败不阻塞清空
+      }
+    }
+    setVideoTracks([]);
+    setInstances([]);
+    setResourceTracks([]);
+    setSelectedVideoTrackId("");
+    setSelectedResourceTrackId("");
+    setSelectedInstanceId("");
+    setSelectedInstanceIds([]);
+    setActiveArrangementBatchId("");
+    setActiveArrangementIntentId("");
+    setVideoUrl("");
+    setVideoPreviewEnabled(false);
+    setVideoName("尚未导入视频");
+    setVideoDuration(6);
+    setManualTimelineEndFrame(0);
+    seekEditorFrame(0);
+    setContextMenu(null);
+    setNotice({
+      tone: "ok",
+      text: mediaUrls.length
+        ? "已清空时间轴所有轨道，并清理本地视频文件。"
+        : "已清空时间轴所有轨道。",
+    });
+  };
+
   const toggleVideoTrackVisibility = useCallback((trackId: string) => {
     setVideoTracks((current) => {
       const selected = current.find((track) => track.id === trackId);
@@ -6251,7 +6298,12 @@ const App = () => {
             <MagicWand weight="fill" />
             {srtGenerating ? "自动编排中…" : "AI 自动编排"}
           </button>
-          <button><FilmSlate />示例</button>
+          <button
+            onClick={clearAllTimelineTracks}
+            title="清空时间轴所有轨道（视频、动效、资源）"
+          >
+            <Trash />清空
+          </button>
           <button onClick={openVideoPicker}><UploadSimple />导入视频</button>
           <button
             className="export-action"
