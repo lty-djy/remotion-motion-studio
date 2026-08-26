@@ -2,6 +2,7 @@
 // 仅定义共用视觉与节奏；未来效果组件按需 import，不直接注册到效果库。
 export const SOFT_TEACHING = {
   overlay: "rgba(20, 18, 31, 0.46)",
+  overlaySolid: "rgba(20, 18, 31, 1)",
   overlayDeep: "rgba(14, 13, 23, 0.68)",
   glass: "rgba(132, 122, 214, 0.12)",
   glassStrong: "rgba(139, 130, 230, 0.27)",

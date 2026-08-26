@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   title?: string;
   subtitle?: string;
   accentColor?: string;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export const PortraitChapterRail: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   title = "卫浴行业",
   subtitle = "未来 3 年门店趋势",
@@ -29,7 +31,7 @@ export const PortraitChapterRail: React.FC<Props> = ({
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(8, Math.round(animationSeconds * fps));
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -48,6 +50,7 @@ export const PortraitChapterRail: React.FC<Props> = ({
         }),
       }}
     >
+
       <Interactive.Div
         name="章节强调线"
         style={{

@@ -893,6 +893,25 @@ main.is-resizing-sidebar * {
   margin: 2px 0 8px;
 }
 
+.reference-inspector-section .single-export-action {
+  height: 42px;
+  color: #ff6a48;
+  background: #211a19;
+  border-color: #493029;
+  font-weight: 700;
+}
+
+.reference-inspector-section .single-export-action:hover:not(:disabled) {
+  color: #ffffff;
+  background: #ff4b25;
+  border-color: #ff4b25;
+}
+
+.reference-inspector-section .single-export-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .reference-split-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 64px;

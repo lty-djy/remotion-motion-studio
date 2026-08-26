@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   eyebrow?: string;
   title?: string;
   subtitle?: string;
@@ -27,6 +28,7 @@ type Props = {
 };
 
 export const PortraitStepChecklist: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   eyebrow = "成片之后",
   title = "再做高清增强",
@@ -53,7 +55,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
     { label: step3, icon: icon3, color: successColor },
   ];
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -73,6 +75,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
         }),
       }}
     >
+
       <Interactive.Div
         name="步骤阶段标题"
         style={{
@@ -207,12 +210,12 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                 padding: "0 20px 0 78px",
                 boxSizing: "border-box",
                 overflow: "visible",
-                border: "1px solid rgba(255, 255, 255, 0.11)",
+                border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.11)" : "1px solid transparent",
                 borderRadius: 16,
                 color: textColor,
-                backgroundColor: `color-mix(in srgb, ${panelColor} 86%, transparent)`,
-                boxShadow: "0 14px 28px rgba(0, 0, 0, 0.36)",
-                backdropFilter: "blur(14px)",
+                backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(86 * bgFactor)}%, transparent)`,
+                boxShadow: bgFactor > 0 ? "0 14px 28px rgba(0, 0, 0, 0.36)" : "none",
+                backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
                 opacity: interpolate(frame, [startFrame, endFrame], [0, 1], {
                   easing: Easing.bezier(0.16, 1, 0.3, 1),
                   extrapolateLeft: "clamp",

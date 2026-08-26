@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   lead?: string;
   conclusion?: string;
   metricLabel?: string;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export const PortraitMetricDecision: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   lead = "推荐方案",
   conclusion = "先 1K，后高清放大",
@@ -39,7 +41,7 @@ export const PortraitMetricDecision: React.FC<Props> = ({
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(12, Math.round(animationSeconds * fps));
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -59,6 +61,7 @@ export const PortraitMetricDecision: React.FC<Props> = ({
         }),
       }}
     >
+
       <Interactive.Div
         name="决策结论"
         style={{
@@ -210,12 +213,12 @@ export const PortraitMetricDecision: React.FC<Props> = ({
             alignItems: "center",
             minHeight: 42,
             padding: "0 16px",
-            border: `1px solid color-mix(in srgb, ${accentColor} 58%, transparent)`,
+            border: bgFactor > 0 ? `1px solid color-mix(in srgb, ${accentColor} 58%, transparent)` : "1px solid transparent",
             borderRadius: 10,
             color: textColor,
-            backgroundColor: `color-mix(in srgb, ${panelColor} 82%, transparent)`,
-            boxShadow: "0 10px 22px rgba(0, 0, 0, 0.28)",
-            backdropFilter: "blur(12px)",
+            backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(82 * bgFactor)}%, transparent)`,
+            boxShadow: bgFactor > 0 ? "0 10px 22px rgba(0, 0, 0, 0.28)" : "none",
+            backdropFilter: bgFactor > 0 ? "blur(12px)" : undefined,
             fontSize: 25,
             fontWeight: 900,
             lineHeight: 1,

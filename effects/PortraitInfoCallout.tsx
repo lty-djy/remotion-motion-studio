@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   eyebrow?: string;
   title?: string;
   detail?: string;
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export const PortraitInfoCallout: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   eyebrow = "先准备好",
   title = "两类核心素材",
@@ -37,7 +39,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(10, Math.round(animationSeconds * fps));
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -56,6 +58,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
         }),
       }}
     >
+
       <Interactive.Div
         name="信息卡引导词"
         style={{
@@ -140,11 +143,11 @@ export const PortraitInfoCallout: React.FC<Props> = ({
           padding: "0 22px",
           boxSizing: "border-box",
           overflow: "hidden",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
           borderRadius: 18,
-          backgroundColor: `color-mix(in srgb, ${panelColor} 84%, transparent)`,
-          boxShadow: "0 16px 30px rgba(0, 0, 0, 0.34)",
-          backdropFilter: "blur(14px)",
+          backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(84 * bgFactor)}%, transparent)`,
+          boxShadow: bgFactor > 0 ? "0 16px 30px rgba(0, 0, 0, 0.34)" : "none",
+          backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
           opacity: interpolate(frame, [enterFrames * 0.34, enterFrames], [0, 1], {
             easing: Easing.bezier(0.16, 1, 0.3, 1),
             extrapolateLeft: "clamp",

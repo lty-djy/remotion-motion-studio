@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   eyebrow?: string;
   title?: string;
   emphasis?: string;
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export const PortraitRiskWarning: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   eyebrow = "使用边界",
   title = "高清放大",
@@ -51,7 +53,7 @@ export const PortraitRiskWarning: React.FC<Props> = ({
     { text: risk3, icon: icon3 },
   ];
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -66,6 +68,7 @@ export const PortraitRiskWarning: React.FC<Props> = ({
         pointerEvents: "none",
       }}
     >
+
       <Interactive.Div
         name="风险结论"
         style={{
@@ -186,12 +189,12 @@ export const PortraitRiskWarning: React.FC<Props> = ({
                 padding: "0 18px",
                 boxSizing: "border-box",
                 overflow: "hidden",
-                border: `1px solid color-mix(in srgb, ${accentColor} 34%, rgba(255, 255, 255, 0.08))`,
+                border: bgFactor > 0 ? `1px solid color-mix(in srgb, ${accentColor} 34%, rgba(255, 255, 255, 0.08))` : "1px solid transparent",
                 borderRadius: 15,
                 color: textColor,
-                backgroundColor: `color-mix(in srgb, ${panelColor} 88%, transparent)`,
-                boxShadow: "0 14px 28px rgba(0, 0, 0, 0.36)",
-                backdropFilter: "blur(14px)",
+                backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(88 * bgFactor)}%, transparent)`,
+                boxShadow: bgFactor > 0 ? "0 14px 28px rgba(0, 0, 0, 0.36)" : "none",
+                backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
                 opacity: interpolate(frame, [startFrame, endFrame], [0, 1], {
                   easing: Easing.bezier(0.16, 1, 0.3, 1),
                   extrapolateLeft: "clamp",

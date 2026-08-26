@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   eyebrow?: string;
   title?: string;
   subtitle?: string;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export const PortraitNextEpisodeCta: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   eyebrow = "下期",
   title = "Codex",
@@ -39,7 +41,7 @@ export const PortraitNextEpisodeCta: React.FC<Props> = ({
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(14, Math.round(animationSeconds * fps));
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -54,6 +56,7 @@ export const PortraitNextEpisodeCta: React.FC<Props> = ({
         pointerEvents: "none",
       }}
     >
+
       <Interactive.Div
         name="下集预告标题"
         style={{
@@ -166,12 +169,12 @@ export const PortraitNextEpisodeCta: React.FC<Props> = ({
           height: 64,
           boxSizing: "border-box",
           overflow: "hidden",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
           borderRadius: 15,
           color: textColor,
-          backgroundColor: `color-mix(in srgb, ${panelColor} 90%, transparent)`,
-          boxShadow: "0 15px 28px rgba(0, 0, 0, 0.42)",
-          backdropFilter: "blur(14px)",
+          backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(90 * bgFactor)}%, transparent)`,
+          boxShadow: bgFactor > 0 ? "0 15px 28px rgba(0, 0, 0, 0.42)" : "none",
+          backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
           opacity: interpolate(
             frame,
             [enterFrames * 0.42, enterFrames * 1.12],

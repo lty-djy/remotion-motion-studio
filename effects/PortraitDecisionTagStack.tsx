@@ -10,6 +10,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   tag1?: string;
   tag2?: string;
   tag3?: string;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export const PortraitDecisionTagStack: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   tag1 = "速度更快",
   tag2 = "成本更低",
@@ -45,7 +47,7 @@ export const PortraitDecisionTagStack: React.FC<Props> = ({
     { text: tag3, symbol: symbol3 },
   ];
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -64,6 +66,7 @@ export const PortraitDecisionTagStack: React.FC<Props> = ({
         pointerEvents: "none",
       }}
     >
+
       {tags.map((tag, index) => {
         const startFrame = index * staggerFrames;
         const endFrame = startFrame + enterFrames * 0.68;
@@ -81,12 +84,12 @@ export const PortraitDecisionTagStack: React.FC<Props> = ({
               padding: "0 18px",
               boxSizing: "border-box",
               overflow: "hidden",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid transparent",
               borderRadius: 15,
               color: textColor,
-              backgroundColor: `color-mix(in srgb, ${panelColor} 86%, transparent)`,
-              boxShadow: "0 13px 25px rgba(0, 0, 0, 0.34)",
-              backdropFilter: "blur(14px)",
+              backgroundColor: `color-mix(in srgb, ${panelColor} ${Math.round(86 * bgFactor)}%, transparent)`,
+              boxShadow: bgFactor > 0 ? "0 13px 25px rgba(0, 0, 0, 0.34)" : "none",
+              backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
               opacity: interpolate(frame, [startFrame, endFrame], [0, 1], {
                 easing: Easing.bezier(0.16, 1, 0.3, 1),
                 extrapolateLeft: "clamp",

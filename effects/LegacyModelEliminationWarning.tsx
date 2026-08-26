@@ -11,6 +11,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enabled?: boolean;
+  backgroundOpacity?: number;
   kicker?: string;
   title?: string;
   subtitle?: string;
@@ -28,6 +29,7 @@ const clamp = {
 };
 
 export const LegacyModelEliminationWarning: React.FC<Props> = ({
+  backgroundOpacity = 0,
   enabled = true,
   kicker = "OLD MODEL · WARNING",
   title = "单纯卖货",
@@ -56,7 +58,7 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
     config: { damping: 17, stiffness: 220, mass: 0.65 },
   });
 
-  if (!enabled) return null;
+  const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
   return (
     <Interactive.Div
@@ -81,6 +83,7 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
         pointerEvents: "none",
       }}
     >
+
       <Interactive.Div
         name="警告标签"
         style={{
@@ -109,11 +112,11 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
           padding: "26px 28px",
           boxSizing: "border-box",
           overflow: "hidden",
-          border: `1px solid ${accentColor}66`,
+          border: bgFactor > 0 ? `1px solid ${accentColor}66` : "1px solid transparent",
           borderRadius: 15,
-          background: `linear-gradient(180deg, color-mix(in srgb, ${panelColor} 96%, white 4%), color-mix(in srgb, ${panelColor} 92%, black 8%))`,
-          boxShadow: `0 16px 40px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 0 22px ${accentColor}14`,
-          backdropFilter: "blur(16px)",
+          background: bgFactor > 0 ? `linear-gradient(180deg, color-mix(in srgb, ${panelColor} ${Math.round(96 * bgFactor)}%, white 4%), color-mix(in srgb, ${panelColor} ${Math.round(92 * bgFactor)}%, black 8%))` : "transparent",
+          boxShadow: bgFactor > 0 ? `0 16px 40px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 0 22px ${accentColor}14` : "none",
+          backdropFilter: bgFactor > 0 ? "blur(16px)" : undefined,
         }}
       >
         <div

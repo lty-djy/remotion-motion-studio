@@ -809,7 +809,7 @@ const createInstance = (
       ...definition.defaultPosition,
       ...(overrides.position ?? {}),
     },
-    backgroundOpacity: clamp(overrides.backgroundOpacity ?? 0, 0, 1),
+    backgroundOpacity: clamp(overrides.backgroundOpacity ?? 1, 0, 1),
     props: {
       ...defaultsFromDefinition(definition),
       ...(overrides.props ?? {}),
@@ -3941,6 +3941,59 @@ const App = () => {
     }
   };
 
+  const pollRenderJob = async (jobId: string) => {
+    while (true) {
+      const statusResponse = await fetch(
+        `/api/render-status?jobId=${encodeURIComponent(jobId)}`,
+        { cache: "no-store" },
+      );
+      const statusData = await statusResponse.json();
+      if (!statusResponse.ok) {
+        throw new Error(statusData.error ?? "读取渲染进度失败");
+      }
+      const nextProgress: RenderProgressState = {
+        jobId,
+        status: statusData.status,
+        stage: statusData.stage ?? "正在渲染",
+        progress: clamp(Number(statusData.progress) || 0, 0, 1),
+        renderedFrames: Math.max(0, Number(statusData.renderedFrames) || 0),
+        encodedFrames: Math.max(0, Number(statusData.encodedFrames) || 0),
+        totalFrames: Math.max(1, Number(statusData.totalFrames) || 1),
+        estimatedRemainingMs:
+          Number.isFinite(Number(statusData.estimatedRemainingMs)) &&
+          Number(statusData.estimatedRemainingMs) > 0
+            ? Number(statusData.estimatedRemainingMs)
+            : null,
+      };
+      setRenderProgress(nextProgress);
+
+      if (nextProgress.status === "completed") {
+        if (!statusData.result) {
+          throw new Error("渲染完成，但本地服务没有返回输出文件");
+        }
+        const result = statusData.result;
+        setRenderResult(result);
+        setNotice({
+          tone:
+            result.mode === "transparent" && result.alphaVerified === false
+              ? "error"
+              : "ok",
+          text:
+            result.mode === "transparent" && result.alphaVerified === false
+              ? `导出完成，但 ffprobe 未检测到 Alpha 通道：${result.fileName}`
+              : result.mode === "transparent"
+                ? `透明导出完成：${result.savedTo ?? result.fileName}（ffprobe 已确认 Alpha 通道）`
+                : `实时预览 MOV 导出完成：${result.savedTo ?? result.fileName}`,
+        });
+        return result;
+      }
+      if (nextProgress.status === "failed") {
+        throw new Error(statusData.error ?? "本机渲染失败");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+  };
+
   const renderVideo = async () => {
     const outputDir = exportDirDraft.trim();
     const fileName = exportFileNameDraft.trim() || defaultExportFileName();
@@ -3996,57 +4049,73 @@ const App = () => {
       if (!response.ok) throw new Error(data.error ?? "渲染失败");
       const jobId = String(data.jobId ?? "");
       if (!jobId) throw new Error("本地服务没有返回渲染任务编号");
+      await pollRenderJob(jobId);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "渲染失败",
+      });
+    } finally {
+      setRendering(false);
+    }
+  };
 
-      while (true) {
-        const statusResponse = await fetch(
-          `/api/render-status?jobId=${encodeURIComponent(jobId)}`,
-          { cache: "no-store" },
-        );
-        const statusData = await statusResponse.json();
-        if (!statusResponse.ok) {
-          throw new Error(statusData.error ?? "读取渲染进度失败");
-        }
-        const nextProgress: RenderProgressState = {
-          jobId,
-          status: statusData.status,
-          stage: statusData.stage ?? "正在渲染",
-          progress: clamp(Number(statusData.progress) || 0, 0, 1),
-          renderedFrames: Math.max(0, Number(statusData.renderedFrames) || 0),
-          encodedFrames: Math.max(0, Number(statusData.encodedFrames) || 0),
-          totalFrames: Math.max(1, Number(statusData.totalFrames) || 1),
-          estimatedRemainingMs:
-            Number.isFinite(Number(statusData.estimatedRemainingMs)) &&
-            Number(statusData.estimatedRemainingMs) > 0
-              ? Number(statusData.estimatedRemainingMs)
-              : null,
-        };
-        setRenderProgress(nextProgress);
-
-        if (nextProgress.status === "completed") {
-          if (!statusData.result) {
-            throw new Error("渲染完成，但本地服务没有返回输出文件");
-          }
-          const result = statusData.result;
-          setRenderResult(result);
-          setNotice({
-            tone:
-              result.mode === "transparent" && result.alphaVerified === false
-                ? "error"
-                : "ok",
-            text:
-              result.mode === "transparent" && result.alphaVerified === false
-                ? `导出完成，但 ffprobe 未检测到 Alpha 通道：${result.fileName}`
-                : result.mode === "transparent"
-                  ? `透明导出完成：${result.savedTo ?? result.fileName}（ffprobe 已确认 Alpha 通道）`
-                  : `实时预览 MOV 导出完成：${result.savedTo ?? result.fileName}`,
-          });
-          break;
-        }
-        if (nextProgress.status === "failed") {
-          throw new Error(statusData.error ?? "本机渲染失败");
-        }
-        await new Promise((resolve) => setTimeout(resolve, 750));
-      }
+  const exportInstanceTransparentMov = async () => {
+    if (!selectedInstance || !selectedDefinition) return;
+    if (selectedInstance.visible === false) {
+      setNotice({ tone: "error", text: "当前组件处于隐藏状态，请先显示后再导出。" });
+      return;
+    }
+    const outputDir = localStorage.getItem("export-folder-path") ?? "";
+    if (!outputDir) {
+      setNotice({
+        tone: "error",
+        text: "请先在顶部导出对话框里选择一次输出文件夹，之后即可一键导出单个组件。",
+      });
+      openExportDialog();
+      return;
+    }
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const fileName = `${selectedDefinition.name}-透明导出-${now.getFullYear()}${pad(
+      now.getMonth() + 1,
+    )}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(
+      now.getSeconds(),
+    )}.mov`;
+    setRendering(true);
+    setRenderProgress(null);
+    setRenderResult(null);
+    setNotice({
+      tone: "info",
+      text: `正在单独导出「${selectedDefinition.name}」透明 MOV（仅该组件、无背景视频）…`,
+    });
+    try {
+      const response = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoSrc: "",
+          videoTracks: [],
+          resourceTracks: [],
+          sourceIncludesVideo: false,
+          soundEnabled: false,
+          instances: [{ ...selectedInstance, startFrame: 0 }],
+          timelineDurationInFrames: Math.max(
+            3,
+            selectedInstance.durationInFrames,
+          ),
+          canvasWidth,
+          canvasHeight,
+          transparent: true,
+          outputDir,
+          fileName,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "渲染失败");
+      const jobId = String(data.jobId ?? "");
+      if (!jobId) throw new Error("本地服务没有返回渲染任务编号");
+      await pollRenderJob(jobId);
     } catch (error) {
       setNotice({
         tone: "error",
@@ -7825,6 +7894,73 @@ const App = () => {
                     />
                   </div>
                 </div>
+              </section>
+            ) : null}
+            {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
+              <section className="reference-inspector-section">
+                <div className="reference-section-title">
+                  <strong>卡片底色</strong><small>OPACITY</small>
+                </div>
+                <div className="dynamic-prop-fields">
+                  <label className="reference-checkline">
+                    <input
+                      type="checkbox"
+                      checked={selectedInstance.backgroundOpacity > 0}
+                      onChange={(event) =>
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          backgroundOpacity: event.target.checked ? 1 : 0,
+                        }))
+                      }
+                    />
+                    <span>显示卡片底色</span>
+                  </label>
+                  <div className="reference-range-group">
+                    <div className="reference-range-head">
+                      <label>底色透明度</label>
+                      <b>
+                        {Math.round(
+                          clamp(selectedInstance.backgroundOpacity, 0, 1) * 100,
+                        )}
+                        %
+                      </b>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={clamp(selectedInstance.backgroundOpacity, 0, 1)}
+                      title="只调整当前选中组件的卡片底色：100% 为原设计底色，0% 为完全透明"
+                      onChange={(event) =>
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          backgroundOpacity: clamp(
+                            Number(event.target.value),
+                            0,
+                            1,
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+            {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
+              <section className="reference-inspector-section">
+                <div className="reference-section-title">
+                  <strong>单组件导出</strong><small>EXPORT</small>
+                </div>
+                <button
+                  className="reference-wide-button single-export-action"
+                  disabled={rendering}
+                  onClick={exportInstanceTransparentMov}
+                  title="只渲染当前选中组件：透明底 ProRes 4444 MOV，可直接拖入剪映"
+                >
+                  <DownloadSimple />
+                  导出透明 MOV
+                </button>
               </section>
             ) : null}
             {selectedResourceTrack ? null : !selectedInstance || !selectedDefinition ? (
