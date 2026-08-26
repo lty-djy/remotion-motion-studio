@@ -9,7 +9,7 @@ import { FlowPipelineEffectDef } from "./effects/FlowPipeline";
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
 import { TerminalStepHeroEffectDef } from "./effects/TerminalStepHero";
-import { SoftTeachingStepRailEffectDef } from "./effects/SoftTeachingStepRail";
+
 import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
 import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryGrid";
 import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
@@ -46,9 +46,6 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   TerminalPanelEffectDef,
 
   TerminalStepHeroEffectDef,
-
-  SoftTeachingStepRailEffectDef,
-
   SoftTeachingGlassPanelEffectDef,
 
   SoftTeachingLibraryGridEffectDef,

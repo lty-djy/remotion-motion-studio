@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -5356,7 +5356,7 @@ const App = () => {
       selectOnlyInstance(instanceId);
     }
     setContextMenu({
-      x: Math.min(event.clientX, window.innerWidth - 174),
+      x: Math.min(event.clientX, window.innerWidth - 190),
       y: Math.min(event.clientY, window.innerHeight - 118),
       source,
       instanceIds,
@@ -5371,7 +5371,7 @@ const App = () => {
     event.stopPropagation();
     selectVideoTrack(trackId);
     setContextMenu({
-      x: Math.min(event.clientX, window.innerWidth - 174),
+      x: Math.min(event.clientX, window.innerWidth - 190),
       y: Math.min(event.clientY, window.innerHeight - 92),
       source: "videoTimeline",
       instanceIds: [],
@@ -5387,7 +5387,7 @@ const App = () => {
     event.stopPropagation();
     selectResourceTrack(trackId);
     setContextMenu({
-      x: Math.min(event.clientX, window.innerWidth - 174),
+      x: Math.min(event.clientX, window.innerWidth - 190),
       y: Math.min(event.clientY, window.innerHeight - 92),
       source: "resourceTimeline",
       instanceIds: [],
@@ -5423,7 +5423,7 @@ const App = () => {
     event.preventDefault();
     event.stopPropagation();
     setContextMenu({
-      x: Math.min(event.clientX, window.innerWidth - 186),
+      x: Math.min(event.clientX, window.innerWidth - 200),
       y: Math.min(event.clientY, window.innerHeight - 82),
       source: "library",
       instanceIds: [],
@@ -8748,7 +8748,7 @@ const App = () => {
                 <small>效果库</small>
                 {contextMenu.componentId ? (
                   <button
-                    className="copy-action"
+                    className="code-action"
                     onClick={() =>
                       contextMenu.componentId &&
                       openEffectInCodeEditor(contextMenu.componentId)
@@ -8759,7 +8759,7 @@ const App = () => {
                 ) : null}
                 {contextMenu.componentId ? (
                   <button
-                    className="copy-action"
+                    className="move-action"
                     onClick={() =>
                       contextMenu.componentId &&
                       openMoveEffectDialog(contextMenu.componentId)
@@ -8780,7 +8780,7 @@ const App = () => {
             ) : contextMenu.source === "libraryGroup" ? (
               <>
                 <small>{contextMenu.groupName ?? "效果分组"}</small>
-                <button className="copy-action" onClick={openNewGroupDialog}>
+                <button className="create-action" onClick={openNewGroupDialog}>
                   新建分组
                 </button>
                 {contextMenu.groupId &&
@@ -8816,10 +8816,10 @@ const App = () => {
               </>
             ) : contextMenu.source === "libraryRoot" ? (
               <>
-                <small>效果库分组</small>
-                <button className="copy-action" onClick={openNewGroupDialog}>
-                  新建分组
-                </button>
+              <small>效果库分组</small>
+              <button className="create-action" onClick={openNewGroupDialog}>
+                新建分组
+              </button>
               </>
             ) : (
               <>

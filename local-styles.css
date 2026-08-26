@@ -540,18 +540,18 @@ main.is-resizing-sidebar * {
 .effect-library-header small {
   color: #ff4b25;
   font-family: Consolas, monospace;
-  font-size: 8px;
+  font-size: 13px;
   letter-spacing: 0.24em;
 }
 
 .effect-library-header strong {
   color: #f1f1f3;
-  font-size: 16px;
+  font-size: 22px;
 }
 
 .effect-library-header > b {
-  min-width: 34px;
-  height: 24px;
+  min-width: 40px;
+  height: 29px;
   display: grid;
   place-items: center;
   color: #ff6a48;
@@ -559,7 +559,7 @@ main.is-resizing-sidebar * {
   border: 1px solid #493029;
   border-radius: 3px;
   font-family: Consolas, monospace;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .effect-library-search {
@@ -593,7 +593,7 @@ main.is-resizing-sidebar * {
   outline: 0;
   color: #e7e7e9;
   background: transparent;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .effect-library-search input::placeholder {
@@ -606,7 +606,7 @@ main.is-resizing-sidebar * {
   padding: 3px 1px 9px;
   color: #676970;
   font-family: Consolas, "SFMono-Regular", monospace;
-  font-size: 9px;
+  font-size: 14px;
   letter-spacing: 0.06em;
 }
 
@@ -624,7 +624,7 @@ main.is-resizing-sidebar * {
 
 .category-toggle {
   width: 100%;
-  height: 38px;
+  height: 46px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -632,7 +632,7 @@ main.is-resizing-sidebar * {
   border: 0;
   color: #a6a8ad;
   background: transparent;
-  font-size: 11px;
+  font-size: 16px;
   text-align: left;
   cursor: pointer;
 }
@@ -650,7 +650,7 @@ main.is-resizing-sidebar * {
 .category-toggle b {
   color: #666970;
   font-family: Consolas, monospace;
-  font-size: 9px;
+  font-size: 14px;
 }
 
 .category-toggle svg {
@@ -687,11 +687,11 @@ main.is-resizing-sidebar * {
 .effect-library-item-main {
   min-width: 0;
   flex: 1;
-  min-height: 48px;
+  min-height: 58px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 6px;
+  gap: 10px;
+  padding: 7px;
   border: 0;
   color: #c9cacf;
   background: transparent;
@@ -709,9 +709,9 @@ main.is-resizing-sidebar * {
 }
 
 .effect-library-item-main > i {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   display: grid;
   place-items: center;
   color: #ff6a48;
@@ -719,7 +719,7 @@ main.is-resizing-sidebar * {
   border: 1px solid #3a3740;
   border-radius: 3px;
   font-family: Consolas, monospace;
-  font-size: 9px;
+  font-size: 12px;
   font-style: normal;
 }
 
@@ -766,19 +766,19 @@ main.is-resizing-sidebar * {
 }
 
 .effect-library-items strong {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 650;
 }
 
 .effect-library-items small {
   color: #6f7178;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .effect-library-empty {
   padding: 44px 0;
   color: #666970;
-  font-size: 11px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -3154,8 +3154,8 @@ aside {
 .component-context-menu {
   position: fixed;
   z-index: 111;
-  width: 142px;
-  padding: 7px;
+  width: 168px;
+  padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 10px;
   background: rgba(17, 22, 31, 0.98);
@@ -3167,15 +3167,15 @@ aside {
   display: block;
   padding: 4px 6px 7px;
   color: #8994a3;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .component-context-menu button {
   width: 100%;
-  padding: 8px 9px;
+  padding: 9px 10px;
   border-radius: 7px;
   text-align: left;
-  font-size: 9px;
+  font-size: 13px;
 }
 
 .component-context-menu .copy-action {
@@ -3185,6 +3185,33 @@ aside {
 
 .component-context-menu .copy-action:hover {
   background: rgba(101, 223, 247, 0.18);
+}
+
+.component-context-menu .code-action {
+  color: var(--cyan);
+  background: rgba(101, 223, 247, 0.1);
+}
+
+.component-context-menu .code-action:hover {
+  background: rgba(101, 223, 247, 0.18);
+}
+
+.component-context-menu .move-action {
+  color: #ffc46b;
+  background: rgba(255, 178, 66, 0.12);
+}
+
+.component-context-menu .move-action:hover {
+  background: rgba(255, 178, 66, 0.2);
+}
+
+.component-context-menu .create-action {
+  color: #8fe388;
+  background: rgba(110, 227, 118, 0.11);
+}
+
+.component-context-menu .create-action:hover {
+  background: rgba(110, 227, 118, 0.19);
 }
 
 .component-context-menu .group-rename-action {
