@@ -21,6 +21,7 @@ import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTag
 import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
+import { LegacyModelEliminationWarningEffectDef } from "./effects/LegacyModelEliminationWarning";
 import { WORKBUDDY_EFFECT_DEFS } from "./effects/WorkBuddyCards";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
@@ -70,6 +71,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitRiskWarningEffectDef,
 
   PortraitNextEpisodeCtaEffectDef,
+
+  LegacyModelEliminationWarningEffectDef,
 
   ...WORKBUDDY_EFFECT_DEFS,
 
