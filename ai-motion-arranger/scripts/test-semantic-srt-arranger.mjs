@@ -209,7 +209,7 @@ const sentencePatternInput = {
       index: 1,
       startMs: 0,
       endMs: 3000,
-      text: "未来3年，卫浴店只有这种门店能够赚钱",
+      text: "未来3年，传统门店只会被市场淘汰",
     },
     {
       index: 2,
@@ -263,9 +263,9 @@ const expectRoutes = (cueIndex, expected, forbidden = []) => {
     }
   }
 };
-expectRoutes(1, ["chapter-transition", "keyword-emphasis"], ["metric-decision"]);
+expectRoutes(1, ["chapter-transition", "risk-boundary"], ["metric-decision"]);
 expectRoutes(2, ["risk-boundary"]);
-expectRoutes(3, ["keyword-emphasis"]);
+expectRoutes(3, []);
 expectRoutes(4, ["process-steps"]);
 expectRoutes(5, ["metric-decision"], ["risk-boundary"]);
 expectRoutes(6, ["metric-decision"]);
@@ -317,7 +317,7 @@ if (
   throw new Error("规避淘汰或主动淘汰旧设备时误用了淘汰警告动画");
 }
 const firstCueItems = sentencePatternResult.motionTimeline.filter((item) =>
-  ["intent-001-chapter-transition", "intent-001-keyword-emphasis"].includes(
+  ["intent-001-chapter-transition", "intent-001-risk-boundary"].includes(
     item.sourceIntentId,
   ),
 );

@@ -22,7 +22,6 @@ const registry = await loadRuntimeRegistry();
 const definitions = new Map(registry.map((definition) => [definition.id, definition]));
 const expectedComponentIds = [
   "PortraitChapterRail",
-  "PortraitKeywordBurst",
   "PortraitInfoCallout",
   "PortraitMetricDecision",
   "PortraitDecisionTagStack",
@@ -39,10 +38,10 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 7) {
-  throw new Error("竖屏语义路由必须保持 7 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 6) {
+  throw new Error("竖屏语义路由必须保持 6 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 7) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 6) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
@@ -125,7 +124,6 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
 
 const representativeCues = new Map([
   ["chapter-transition", "下一步进入制作环节。"],
-  ["keyword-emphasis", "这里最核心的就是自动化。"],
   ["info-callout", "比如可以使用这个增强工具。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],

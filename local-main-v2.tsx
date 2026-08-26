@@ -846,7 +846,6 @@ const getRegisteredEffectPosition = (
     orientation === "portrait" &&
     [
       "PortraitChapterRail",
-      "PortraitKeywordBurst",
       "PortraitInfoCallout",
       "PortraitMetricDecision",
       "PortraitDecisionTagStack",

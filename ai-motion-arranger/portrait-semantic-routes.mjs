@@ -65,46 +65,6 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     ],
   },
   {
-    id: "keyword-emphasis",
-    intentType: "emphasis",
-    label: "重点词强化",
-    priority: 60,
-    match: {
-      anyKeywords: ["重点", "核心", "关键", "记住", "最重要", "本质", "就是"],
-      patternSources: [
-        "(?:重点|核心|关键)(?:是|在于|就是)?",
-        "只有.{1,24}才(?:能|会|是|可以)?",
-        "只有.{1,24}(?:能|会|可以|值得|适合)",
-        "才是.{0,18}(?:出路|关键|核心|答案|选择|方向)",
-      ],
-      minimumScore: 2,
-    },
-    resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "right-top" },
-    components: [
-      {
-        componentId: "PortraitKeywordBurst",
-        role: "primary",
-        activation: "when-keywords-present",
-        propBindings: {
-          word1: "intent.keywords.1",
-          word2: "intent.keywords.2",
-          word3: "intent.keywords.3",
-          highlightIndex: "intent.highlightIndex",
-          accentColor: "style.accentColor",
-          textColor: "style.textColor",
-          shadowColor: "style.shadowColor",
-          animationSeconds: "timing.animationSeconds",
-        },
-        layout: {
-          anchor: "center-top",
-          fallbackAnchors: ["left-top", "right-top"],
-          size: "large",
-          preferredScale: 0.72,
-        },
-      },
-    ],
-  },
-  {
     id: "info-callout",
     intentType: "instruction",
     label: "补充说明",

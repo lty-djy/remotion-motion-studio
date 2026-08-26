@@ -64,16 +64,16 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
       data-effect="LegacyModelEliminationWarning"
       style={{
         position: "relative",
-        width: 900,
-        height: 420,
+        width: 560,
+        height: 310,
         color: textColor,
         fontFamily:
           'Inter, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif',
         opacity: intro,
-        translate: `${interpolate(intro, [0, 1], [-34, 0], clamp)}px ${interpolate(
+        translate: `${interpolate(intro, [0, 1], [-26, 0], clamp)}px ${interpolate(
           intro,
           [0, 1],
-          [20, 0],
+          [16, 0],
           clamp,
         )}px`,
         scale: interpolate(intro, [0, 1], [0.975, 1], clamp),
@@ -89,10 +89,10 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
           left: 0,
           color: warningColor,
           fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
-          fontSize: 16,
+          fontSize: 13,
           fontWeight: 850,
           lineHeight: 1,
-          letterSpacing: 2.2,
+          letterSpacing: 1.8,
         }}
       >
         {kicker}
@@ -102,17 +102,17 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
         name="淘汰对象面板"
         style={{
           position: "absolute",
-          top: 45,
+          top: 33,
           left: 0,
-          width: 880,
-          height: 198,
-          padding: "36px 38px",
+          width: 548,
+          height: 148,
+          padding: "26px 28px",
           boxSizing: "border-box",
           overflow: "hidden",
           border: `1px solid ${accentColor}66`,
-          borderRadius: 19,
+          borderRadius: 15,
           background: `linear-gradient(180deg, color-mix(in srgb, ${panelColor} 96%, white 4%), color-mix(in srgb, ${panelColor} 92%, black 8%))`,
-          boxShadow: `0 20px 52px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 0 26px ${accentColor}14`,
+          boxShadow: `0 16px 40px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 0 22px ${accentColor}14`,
           backdropFilter: "blur(16px)",
         }}
       >
@@ -120,10 +120,10 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
           style={{
             overflow: "hidden",
             color: textColor,
-            fontSize: 72,
+            fontSize: 54,
             fontWeight: 950,
             lineHeight: 1,
-            letterSpacing: -2.2,
+            letterSpacing: -1.6,
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
@@ -132,14 +132,14 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
         </div>
         <div
           style={{
-            marginTop: 18,
+            marginTop: 14,
             overflow: "hidden",
             color: accentColor,
             fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
-            fontSize: 16,
+            fontSize: 13,
             fontWeight: 850,
             lineHeight: 1,
-            letterSpacing: 2.2,
+            letterSpacing: 1.8,
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
@@ -151,23 +151,23 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
           name="删除线"
           style={{
             position: "absolute",
-            top: 91,
-            left: 28,
+            top: 68,
+            left: 21,
             width: interpolate(
               frame,
               [strikeStartFrame, strikeEndFrame],
-              [0, 405],
+              [0, 296],
               {
                 ...clamp,
                 easing: Easing.out(Easing.cubic),
               },
             ),
-            height: 8,
+            height: 6,
             borderRadius: 99,
             backgroundColor: warningColor,
             rotate: "-6deg",
             transformOrigin: "0% 50%",
-            boxShadow: `0 0 18px ${warningColor}88`,
+            boxShadow: `0 0 14px ${warningColor}88`,
           }}
         />
       </Interactive.Div>
@@ -176,30 +176,30 @@ export const LegacyModelEliminationWarning: React.FC<Props> = ({
         name="淘汰印章"
         style={{
           position: "absolute",
-          top: 277,
+          top: 205,
           left: 0,
           display: "inline-flex",
           alignItems: "center",
-          maxWidth: 650,
-          minHeight: 94,
-          padding: "18px 25px",
+          maxWidth: 420,
+          minHeight: 72,
+          padding: "14px 20px",
           boxSizing: "border-box",
           overflow: "hidden",
           border: `3px solid ${warningColor}`,
-          borderRadius: 12,
+          borderRadius: 10,
           color: warningColor,
           backgroundColor: `color-mix(in srgb, ${panelColor} 34%, transparent)`,
-          fontSize: 48,
+          fontSize: 37,
           fontWeight: 950,
           lineHeight: 1,
-          letterSpacing: 3,
+          letterSpacing: 2.4,
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           rotate: "-3deg",
           scale: interpolate(stamp, [0, 1], [1.22, 1], clamp),
           opacity: stamp,
           transformOrigin: "50% 50%",
-          boxShadow: `0 0 28px ${warningColor}44`,
+          boxShadow: `0 0 22px ${warningColor}44`,
           backdropFilter: "blur(8px)",
         }}
       >
@@ -221,7 +221,7 @@ export const LegacyModelEliminationWarningEffectDef: EffectDef = {
   component:
     LegacyModelEliminationWarning as React.ComponentType<Record<string, unknown>>,
   durationInFrames: 96,
-  bounds: { x: 0, y: 0, width: 900, height: 420 },
+  bounds: { x: 0, y: 0, width: 560, height: 310 },
   defaultPosition: { x: 58, y: 455, scale: 1 },
   defaultProps: {
     enabled: true,

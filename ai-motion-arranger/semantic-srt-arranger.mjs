@@ -503,10 +503,15 @@ const isEliminationWarning = (text) => {
 };
 
 const eliminationDetails = (text) => {
-  const forwardSubject = text.match(
+  // 逗号后的"慢慢的/逐渐"等状语会让主语提取落到副词上，先剥离再匹配
+  const cleanedText = text.replace(
+    /[，,]\s*(?:慢慢|逐渐|最终|早晚|一步步|渐渐)的?/gu,
+    "",
+  );
+  const forwardSubject = cleanedText.match(
     /(?:^|[，,。；;：:])([^，,。；;：:]{1,24}?)(?:的(?:门店|商家|品牌))?(?:只会|将会|会|正在|逐渐|慢慢|最终|早晚|已经|正|仍会|还会)?(?:慢慢|逐渐|最终)?(?:被|遭到)?(?:市场|行业|时代|用户)?(?:淘汰|抛弃|取代|淘汰出局|出局|过时|落后|不再适用|不再有效|失去竞争力)/u,
   )?.[1];
-  const reverseSubject = text.match(
+  const reverseSubject = cleanedText.match(
     /(?:市场|行业|时代|用户).{0,12}(?:正在|将|会|逐渐|开始)?(?:淘汰|抛弃|取代)([^，,。；;：:]{1,24})/u,
   )?.[1];
   const subject = (forwardSubject || reverseSubject || "旧方案")
@@ -567,7 +572,6 @@ const metricFromText = (text) => {
 const portraitStyleForRoute = (routeId) => {
   const accents = {
     "chapter-transition": "#168CFF",
-    "keyword-emphasis": "#168CFF",
     "info-callout": "#168CFF",
     "metric-decision": "#14E6A1",
     "process-steps": "#168CFF",
@@ -625,7 +629,6 @@ const portraitContext = ({ route, text, timing, fps }) => {
     .trim();
   const routeLabels = {
     "chapter-transition": "章节提示",
-    "keyword-emphasis": "重点",
     "info-callout": "补充说明",
     "metric-decision": "推荐方案",
     "process-steps": "执行流程",
@@ -634,7 +637,6 @@ const portraitContext = ({ route, text, timing, fps }) => {
   };
   const topics = {
     "chapter-transition": shorten(chapterTopic || fragments[0] || text, 16),
-    "keyword-emphasis": shorten(keywords[0] || text, 10),
     "info-callout": shorten(fragments[0] || text, 14),
     "metric-decision": shorten(text, 18),
     "process-steps": "操作步骤",
@@ -672,7 +674,7 @@ const portraitContext = ({ route, text, timing, fps }) => {
             ? shorten(text, 18)
             : detail,
       keywords: { 1: keywords[0] ?? "", 2: keywords[1] ?? "", 3: keywords[2] ?? "" },
-      highlightIndex: Math.min(2, Math.max(1, keywords.length)),
+      highlightIndex: Math.min(3, Math.max(1, keywords.length)),
       metric: {
         label: "核心数据",
         value: metric.value,

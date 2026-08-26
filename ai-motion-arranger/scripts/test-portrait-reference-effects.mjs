@@ -42,21 +42,6 @@ const expected = [
     props: ["title", "subtitle", "accentColor", "textColor", "animationSeconds"],
   },
   {
-    id: "PortraitKeywordBurst",
-    placement: "top",
-    bounds: [940, 260],
-    props: [
-      "word1",
-      "word2",
-      "word3",
-      "highlightIndex",
-      "accentColor",
-      "textColor",
-      "shadowColor",
-      "animationSeconds",
-    ],
-  },
-  {
     id: "PortraitInfoCallout",
     placement: "right",
     bounds: [430, 230],

@@ -14,7 +14,6 @@ import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPane
 import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryGrid";
 import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
-import { PortraitKeywordBurstEffectDef } from "./effects/PortraitKeywordBurst";
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
@@ -57,8 +56,6 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   SoftTeachingIncrementBadgeEffectDef,
 
   PortraitChapterRailEffectDef,
-
-  PortraitKeywordBurstEffectDef,
 
   PortraitInfoCalloutEffectDef,
 

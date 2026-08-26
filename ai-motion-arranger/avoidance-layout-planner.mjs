@@ -187,7 +187,13 @@ export const applyAvoidanceLayout = ({
       candidateFactory: (width, height) =>
         motionAnchors(canvas, width, height),
       preferredAnchor: item.layoutIntent?.anchor ?? "left-center",
-      scales: [preferredScale, preferredScale * 0.9, preferredScale * 0.8],
+      scales: [
+        preferredScale,
+        preferredScale * 0.9,
+        preferredScale * 0.8,
+        preferredScale * 0.7,
+        preferredScale * 0.58,
+      ],
       baseWidth: definition.bounds.width,
       baseHeight: definition.bounds.height,
       timing,
