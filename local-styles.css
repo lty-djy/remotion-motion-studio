@@ -3215,10 +3215,11 @@ aside {
 .arrangement-preview-dialog {
   display: flex;
   flex-direction: column;
-  width: 680px;
-  max-width: calc(100vw - 40px);
-  max-height: min(82vh, 760px);
-  padding: 18px;
+  width: 920px;
+  height: min(90vh, 900px);
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 22px;
   border: 1px solid rgba(104, 232, 255, 0.28);
   border-radius: 16px;
   color: var(--text);
@@ -3544,6 +3545,14 @@ aside {
 }
 
 @media (max-width: 760px) {
+  .arrangement-preview-dialog {
+    width: calc(100vw - 20px);
+    height: min(94vh, 900px);
+    max-width: none;
+    max-height: calc(100vh - 20px);
+    padding: 14px;
+  }
+
   .arrangement-qc-list {
     grid-template-columns: 1fr;
   }
