@@ -106,9 +106,15 @@ const portraitInput = {
       endMs: 19600,
       text: "下期介绍Codex自动剪辑，记得关注。",
     },
+    {
+      index: 6,
+      startMs: 19800,
+      endMs: 22800,
+      text: "单纯卖货的门店只会慢慢被市场淘汰。",
+    },
   ],
   fps: 30,
-  durationInFrames: 600,
+  durationInFrames: 720,
   canvas: { width: 1080, height: 1920, orientation: "portrait" },
   availableComponentIds: PORTRAIT_ROUTE_COMPONENT_IDS,
   resourceIndex,
@@ -263,6 +269,53 @@ expectRoutes(3, ["keyword-emphasis"]);
 expectRoutes(4, ["process-steps"]);
 expectRoutes(5, ["metric-decision"], ["risk-boundary"]);
 expectRoutes(6, ["metric-decision"]);
+const eliminationItem = sentencePatternResult.motionTimeline.find(
+  (item) => item.sourceIntentId === "intent-002-risk-boundary",
+);
+if (
+  eliminationItem?.componentId !== "LegacyModelEliminationWarning" ||
+  eliminationItem.props.title !== "单纯卖货" ||
+  eliminationItem.props.stampText !== "市场淘汰" ||
+  sentencePatternResult.motionTimeline.some(
+    (item) =>
+      item.sourceIntentId === "intent-002-risk-boundary" &&
+      item.componentId === "PortraitRiskWarning",
+  )
+) {
+  throw new Error("市场淘汰语义没有互斥选择新警告动画或文案提取错误");
+}
+
+const riskVariantResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 540,
+  entries: [
+    { index: 1, startMs: 0, endMs: 2600, text: "旧方案已经过时，不再适合现在的市场" },
+    { index: 2, startMs: 3000, endMs: 5600, text: "但是要注意，它不能修复错误口型" },
+    { index: 3, startMs: 6000, endMs: 8600, text: "为了避免被市场淘汰，我们必须升级服务" },
+    { index: 4, startMs: 9000, endMs: 11600, text: "我们已经淘汰旧设备，效率更高" },
+  ],
+});
+const variantComponents = new Map(
+  riskVariantResult.semanticAnalysis.cueAnalyses.map((cue) => [
+    cue.cueIndex,
+    cue.intents.flatMap((intent) => intent.componentIds),
+  ]),
+);
+if (!variantComponents.get(1)?.includes("LegacyModelEliminationWarning")) {
+  throw new Error("旧方案过时的同义表达没有选择淘汰警告动画");
+}
+if (
+  !variantComponents.get(2)?.includes("PortraitRiskWarning") ||
+  variantComponents.get(2)?.includes("LegacyModelEliminationWarning")
+) {
+  throw new Error("一般风险提醒没有继续使用原风险卡");
+}
+if (
+  variantComponents.get(3)?.includes("LegacyModelEliminationWarning") ||
+  variantComponents.get(4)?.includes("LegacyModelEliminationWarning")
+) {
+  throw new Error("规避淘汰或主动淘汰旧设备时误用了淘汰警告动画");
+}
 const firstCueItems = sentencePatternResult.motionTimeline.filter((item) =>
   ["intent-001-chapter-transition", "intent-001-keyword-emphasis"].includes(
     item.sourceIntentId,

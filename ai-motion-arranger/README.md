@@ -66,7 +66,7 @@ npm.cmd run test:visual-script
 
 ### 竖屏口播语义路由表
 
-`portrait-semantic-routes.mjs` 已固定 7 类语义到 8 个竖屏参考组件的映射：章节转换、重点词、补充说明、数字决策、操作流程、风险限制、下集预告。其中数字决策允许同时选择 `PortraitMetricDecision` 与 `PortraitDecisionTagStack`，其余语义默认一个主组件。
+`portrait-semantic-routes.mjs` 已固定 7 类语义到 9 个竖屏参考组件的映射：章节转换、重点词、补充说明、数字决策、操作流程、风险限制、下集预告。其中数字决策允许同时选择 `PortraitMetricDecision` 与 `PortraitDecisionTagStack`；风险限制会在一般风险卡与旧方案淘汰警告之间互斥选择，只有明确表达“过时、淘汰、出局、不再适用或被取代”时才使用淘汰警告。
 
 路由表同时记录组件 props 填充来源、首选/备用布局锚点、最多 3 个并行意图、人物与字幕避让、底部 20% 字幕安全区、禁止基础字幕轨道、禁止 BGM、先预览后确认以及保留原时间线。本阶段只建立可验证的路由数据，还没有替换现有 `semantic-srt-arranger.mjs` 的旧组件选择逻辑。
 

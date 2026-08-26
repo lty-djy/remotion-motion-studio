@@ -489,6 +489,56 @@ const riskFragments = (text) => {
   );
 };
 
+const isEliminationWarning = (text) => {
+  if (
+    /(?:为了)?(?:避免|防止|摆脱).{0,8}(?:被)?(?:市场|行业|时代|用户)?(?:淘汰|抛弃|取代|出局|过时)/u.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  return /(?:单纯|只靠|只会|仍在|还在|依赖|传统|旧(?:模式|方案|做法|打法|产品|技术)?|原有).{0,24}(?:被(?:市场|行业|时代|用户)?淘汰|淘汰出局|出局|过时|落后|不再适用|不再有效|被取代|失去竞争力)|(?:市场|行业|时代|用户).{0,12}(?:正在|将|会|逐渐|开始)?(?:淘汰|抛弃|取代).{0,20}(?:单纯|只靠|只会|传统|旧|原有)/u.test(
+    text,
+  );
+};
+
+const eliminationDetails = (text) => {
+  const forwardSubject = text.match(
+    /(?:^|[，,。；;：:])([^，,。；;：:]{1,24}?)(?:的(?:门店|商家|品牌))?(?:只会|将会|会|正在|逐渐|慢慢|最终|早晚|已经|正|仍会|还会)?(?:慢慢|逐渐|最终)?(?:被|遭到)?(?:市场|行业|时代|用户)?(?:淘汰|抛弃|取代|淘汰出局|出局|过时|落后|不再适用|不再有效|失去竞争力)/u,
+  )?.[1];
+  const reverseSubject = text.match(
+    /(?:市场|行业|时代|用户).{0,12}(?:正在|将|会|逐渐|开始)?(?:淘汰|抛弃|取代)([^，,。；;：:]{1,24})/u,
+  )?.[1];
+  const subject = (forwardSubject || reverseSubject || "旧方案")
+    .replace(/^(?:这种|这样的|仍在|还在|继续)/u, "")
+    .replace(/的(?:门店|商家|品牌)$/u, "")
+    .replace(/^(?:只会|只靠)/u, "")
+    .trim();
+  const verdict = /市场淘汰|被市场淘汰/u.test(text)
+    ? "市场淘汰"
+    : /不再适用|不再有效/u.test(text)
+      ? "不再适用"
+      : /过时/u.test(text)
+        ? "已经过时"
+        : /取代/u.test(text)
+          ? "被取代"
+          : /出局/u.test(text)
+            ? "淘汰出局"
+            : /失去竞争力/u.test(text)
+              ? "失去竞争力"
+              : /落后/u.test(text)
+                ? "已经落后"
+                : "淘汰警告";
+  return {
+    kicker: "OLD MODEL · WARNING",
+    subject: shorten(subject || "旧方案", 12),
+    subtitle: /卖货|产品/u.test(subject)
+      ? "PRODUCT-ONLY STORE"
+      : "OUTDATED APPROACH",
+    verdict,
+  };
+};
+
 const metricFromText = (text) => {
   const match = text.match(
     /([+-]?\d+(?:[.,]\d+)?)\s*(%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒|ms|fps)?/u,
@@ -529,6 +579,8 @@ const portraitStyleForRoute = (routeId) => {
     secondaryColor: "#14E6A1",
     successColor: "#14E6A1",
     warningColor: "#FF493D",
+    eliminationAccentColor: "#FFB735",
+    eliminationPanelColor: "#080F19",
     panelColor: "#111318",
     textColor: "#FFFFFF",
     shadowColor: "#000000",
@@ -553,6 +605,9 @@ const portraitContext = ({ route, text, timing, fps }) => {
     .slice(0, 3);
   const steps = sequenceFragments(text).slice(0, 3);
   const risks = riskFragments(text).slice(0, 3);
+  const eliminationWarning =
+    route.id === "risk-boundary" && isEliminationWarning(text);
+  const elimination = eliminationDetails(text);
   const englishTitle = text.match(/\b[A-Za-z][A-Za-z0-9-]{1,18}\b/u)?.[0] ?? "";
   const ctaTopic = text
     .replace(/(?:下期|下一期|下次)/gu, "")
@@ -629,6 +684,7 @@ const portraitContext = ({ route, text, timing, fps }) => {
       labels: { 1: labels[0] ?? "", 2: labels[1] ?? "", 3: labels[2] ?? "" },
       steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
       risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
+      elimination,
       symbols: { 1: symbolSet[0], 2: symbolSet[1], 3: symbolSet[2] },
       cta: /关注/u.test(text)
         ? "点个关注"
@@ -641,7 +697,7 @@ const portraitContext = ({ route, text, timing, fps }) => {
     resource: { iconText: iconTextForId(route.resources?.iconId) },
     style,
     timing: { animationSeconds },
-    evidence: { keywordCount: keywords.length, labelCount: labels.length, stepCount: steps.length, riskCount: risks.length, metricFound: Boolean(metric.raw) },
+    evidence: { keywordCount: keywords.length, labelCount: labels.length, stepCount: steps.length, riskCount: risks.length, metricFound: Boolean(metric.raw), eliminationWarning },
   };
 };
 
@@ -661,6 +717,8 @@ const activationAllows = (activation, context) => {
   if (activation === "when-metric-present") return context.evidence.metricFound;
   if (activation === "when-supporting-labels-present") return context.evidence.labelCount >= 2;
   if (activation === "when-two-or-more-steps-present") return context.evidence.stepCount >= 2;
+  if (activation === "when-elimination-warning") return context.evidence.eliminationWarning;
+  if (activation === "unless-elimination-warning") return !context.evidence.eliminationWarning;
   return true;
 };
 
@@ -751,7 +809,9 @@ const buildPortraitSemanticSrtArrangement = ({
 
       if (createdMotionIds.length === 0) return;
 
-      const icon = availableResource(resourceIndex, "icons", route.resources?.iconId);
+      const icon = context.evidence.eliminationWarning
+        ? null
+        : availableResource(resourceIndex, "icons", route.resources?.iconId);
       if (icon && selectedRoutes.length === 1 && createdMotionIds.length === 1) {
         const iconId = `icon-${sequence}-${route.id}`;
         resourceTracks.push({

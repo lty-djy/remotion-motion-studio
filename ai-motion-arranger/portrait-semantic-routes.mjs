@@ -1,4 +1,4 @@
-export const PORTRAIT_ROUTE_TABLE_VERSION = "1.1";
+export const PORTRAIT_ROUTE_TABLE_VERSION = "1.2";
 
 export const PORTRAIT_ROUTING_POLICY = Object.freeze({
   orientation: "portrait",
@@ -273,15 +273,22 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     label: "风险与限制",
     priority: 100,
     match: {
-      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常", "淘汰", "亏损", "下滑"],
+      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常", "淘汰", "亏损", "下滑", "过时", "落后", "出局", "取代", "不再适用", "旧模式", "旧方案", "传统模式"],
       patternSources: [
         "(?:但是|不过|注意).{0,28}(?:不能|风险|错误|失真|异常|限制)",
         "(?:只会|将会|可能会|容易|导致).{0,24}(?:淘汰|亏损|下滑|失败|流失|下降)",
+        "(?:单纯|只靠|只会|仍在|还在|依赖|传统|旧(?:模式|方案|做法|打法|产品|技术)?|原有).{0,24}(?:被(?:市场|行业|时代|用户)?淘汰|淘汰出局|出局|过时|落后|不再适用|不再有效|被取代|失去竞争力)",
+        "(?:市场|行业|时代|用户).{0,12}(?:正在|将|会|逐渐|开始)?(?:淘汰|抛弃|取代).{0,20}(?:单纯|只靠|只会|传统|旧|原有)",
       ],
       suppressors: [
         {
           label: "已解决负面结果",
           patternSource: "(?:突破|解决|摆脱|避免).{0,10}(?:瓶颈|风险|问题|亏损|下滑)",
+          weight: 4,
+        },
+        {
+          label: "主动规避淘汰结果",
+          patternSource: "(?:为了)?(?:避免|防止|摆脱).{0,8}(?:被)?(?:市场|行业|时代|用户)?(?:淘汰|抛弃|取代|出局|过时)",
           weight: 4,
         },
       ],
@@ -292,7 +299,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
       {
         componentId: "PortraitRiskWarning",
         role: "primary",
-        activation: "always",
+        activation: "unless-elimination-warning",
         propBindings: {
           eyebrow: "segment.label",
           title: "segment.topic",
@@ -305,6 +312,28 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
           icon3: "intent.symbols.3",
           accentColor: "style.warningColor",
           panelColor: "style.panelColor",
+          textColor: "style.textColor",
+          animationSeconds: "timing.animationSeconds",
+        },
+        layout: {
+          anchor: "left-top",
+          fallbackAnchors: ["right-top", "left-center", "right-center"],
+          size: "large",
+          preferredScale: 0.64,
+        },
+      },
+      {
+        componentId: "LegacyModelEliminationWarning",
+        role: "alternative",
+        activation: "when-elimination-warning",
+        propBindings: {
+          kicker: "intent.elimination.kicker",
+          title: "intent.elimination.subject",
+          subtitle: "intent.elimination.subtitle",
+          stampText: "intent.elimination.verdict",
+          warningColor: "style.warningColor",
+          accentColor: "style.eliminationAccentColor",
+          panelColor: "style.eliminationPanelColor",
           textColor: "style.textColor",
           animationSeconds: "timing.animationSeconds",
         },

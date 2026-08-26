@@ -28,6 +28,7 @@ const expectedComponentIds = [
   "PortraitDecisionTagStack",
   "PortraitStepChecklist",
   "PortraitRiskWarning",
+  "LegacyModelEliminationWarning",
   "PortraitNextEpisodeCta",
 ];
 const allowedAnchors = new Set([
@@ -95,8 +96,9 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
     if (!definition) {
       throw new Error(`${route.id} 引用了不存在的组件 ${selection.componentId}。`);
     }
-    if (definition.catalogGroup !== "竖屏口播信息层") {
-      throw new Error(`${selection.componentId} 不属于竖屏口播信息层。`);
+    const allowedGroups = new Set(["竖屏口播信息层", "风险提醒"]);
+    if (!allowedGroups.has(definition.catalogGroup)) {
+      throw new Error(`${selection.componentId} 不属于允许的语义效果分组。`);
     }
     for (const propName of Object.keys(selection.propBindings ?? {})) {
       if (!definition.propsSchema?.[propName]) {
@@ -152,6 +154,22 @@ if (
   )
 ) {
   throw new Error("数字决策路由必须支持主数据卡与辅助标签组组合。");
+}
+
+const riskRoute = PORTRAIT_SEMANTIC_ROUTES.find(
+  (route) => route.id === "risk-boundary",
+);
+if (
+  riskRoute?.components[0]?.componentId !== "PortraitRiskWarning" ||
+  riskRoute.components[0]?.activation !== "unless-elimination-warning" ||
+  !riskRoute.components.some(
+    (component) =>
+      component.componentId === "LegacyModelEliminationWarning" &&
+      component.role === "alternative" &&
+      component.activation === "when-elimination-warning",
+  )
+) {
+  throw new Error("风险路由没有建立一般风险卡与淘汰警告的互斥分流。");
 }
 
 if (
