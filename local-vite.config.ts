@@ -23,6 +23,7 @@ const rootDir = resolve(".");
 const activeComponentPath = join(rootDir, "local-imported", "active.tsx");
 const componentStoreDir = join(rootDir, "local-components");
 const mediaDir = join(rootDir, "local-media");
+const mediaTempDir = join(mediaDir, "temp");
 const projectDir = join(rootDir, "local-projects");
 const renderDir = join(rootDir, "outputs", "renders");
 const renderEntry = join(rootDir, "local-render-entry-v2.tsx");
@@ -1126,6 +1127,7 @@ const localApi = (): Plugin => {
   },
   configureServer(server) {
     mkdirSync(mediaDir, { recursive: true });
+    mkdirSync(mediaTempDir, { recursive: true });
     mkdirSync(projectDir, { recursive: true });
     mkdirSync(renderDir, { recursive: true });
     mkdirSync(componentStoreDir, { recursive: true });
@@ -1464,9 +1466,9 @@ const localApi = (): Plugin => {
               .replace(/^-+|-+$/g, "")
               .slice(0, 48) || "media";
           const storedName = `${Date.now()}-${slug}${extension}`;
-          const filePath = join(mediaDir, storedName);
+          const filePath = join(mediaTempDir, storedName);
           await writeFile(filePath, body);
-          const mediaUrl = `/api/media/${basename(filePath)}`;
+          const mediaUrl = `/api/media/temp/${basename(filePath)}`;
           sendJson(res, 200, {
             ok: true,
             filename: basename(inputName),
@@ -1526,7 +1528,10 @@ const localApi = (): Plugin => {
             sendJson(res, 400, { ok: false, error: "媒体文件名无效" });
             return;
           }
-          const target = join(mediaDir, name);
+          const targetDir = url.pathname.startsWith("/api/media/temp/")
+            ? mediaTempDir
+            : mediaDir;
+          const target = join(targetDir, name);
           if (req.method === "DELETE") {
             const alreadyDeleted = !existsSync(target);
             if (!alreadyDeleted) await unlink(target);

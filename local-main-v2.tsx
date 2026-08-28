@@ -234,6 +234,7 @@ const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
 const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
 const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
 const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
+const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 278;
 const MIN_LEFT_PANEL_WIDTH = 210;
@@ -332,6 +333,10 @@ type EffectMoveTarget = {
   componentId: string;
   effectName: string;
   currentGroupId: string;
+};
+type EffectRenameTarget = {
+  componentId: string;
+  effectName: string;
 };
 const loadCustomCatalogGroups = (): CustomCatalogGroup[] => {
   try {
@@ -537,6 +542,26 @@ let resourceTrackSequence = 0;
 const createVideoTrackId = () => {
   videoTrackSequence += 1;
   return `video-${Date.now()}-${videoTrackSequence}`;
+};
+
+const loadEffectNameOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(EFFECT_NAME_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([componentId, name]) =>
+              Boolean(componentId) &&
+              typeof name === "string" &&
+              Boolean(name.trim()),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
 };
 
 const createResourceTrackId = () => {
@@ -1391,6 +1416,12 @@ const App = () => {
   const [effectGroupAssignments, setEffectGroupAssignments] = useState(
     loadEffectGroupAssignments,
   );
+  const [effectNameOverrides, setEffectNameOverrides] = useState(
+    loadEffectNameOverrides,
+  );
+  const [effectRenameTarget, setEffectRenameTarget] =
+    useState<EffectRenameTarget | null>(null);
+  const [effectNameDraft, setEffectNameDraft] = useState("");
   const [effectMoveTarget, setEffectMoveTarget] =
     useState<EffectMoveTarget | null>(null);
   const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
@@ -1550,8 +1581,16 @@ const App = () => {
   }, [trackViewportWidth, durationInFrames, fps]);
 
   const definitionMap = useMemo(
-    () => new Map(definitions.map((definition) => [definition.id, definition])),
-    [definitions],
+    () =>
+      new Map(
+        definitions.map((definition) => [
+          definition.id,
+          effectNameOverrides[definition.id]
+            ? { ...definition, name: effectNameOverrides[definition.id] }
+            : definition,
+        ]),
+      ),
+    [definitions, effectNameOverrides],
   );
   const selectedInstance =
     instances.find((instance) => instance.id === selectedInstanceId) ?? null;
@@ -1647,7 +1686,8 @@ const App = () => {
         .filter((item) => definitionMap.has(item.ids[0]))
         .map((item) => {
           sourceByComponentId.set(item.ids[0], group.id);
-          return item;
+          const renamed = effectNameOverrides[item.ids[0]];
+          return renamed ? { ...item, name: renamed } : item;
         }),
     );
     for (const item of items) {
@@ -1663,7 +1703,10 @@ const App = () => {
       const targetGroupId = effectGroupAssignments[definition.id];
       const target = groups.find((group) => group.id === targetGroupId);
       if (target) {
-        target.items.push({ ids: [definition.id], name: definition.name });
+        target.items.push({
+          ids: [definition.id],
+          name: effectNameOverrides[definition.id] ?? definition.name,
+        });
       }
     }
     return groups;
@@ -1672,6 +1715,7 @@ const App = () => {
     customDefinitions,
     definitionMap,
     effectGroupAssignments,
+    effectNameOverrides,
   ]);
   const catalogDefinitionMap = useMemo(() => {
     const resolved = new Map<string, MotionComponentDefinition>();
@@ -1722,8 +1766,10 @@ const App = () => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
     );
-    return customDefinitions.filter((definition) => !groupedIds.has(definition.id));
-  }, [customDefinitions, effectCatalog]);
+    return customDefinitions
+      .filter((definition) => !groupedIds.has(definition.id))
+      .map((definition) => definitionMap.get(definition.id) ?? definition);
+  }, [customDefinitions, definitionMap, effectCatalog]);
   const selectOnlyInstance = useCallback((instanceId: string) => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceIds(instanceId ? [instanceId] : []);
@@ -1884,6 +1930,13 @@ const App = () => {
       } else {
         const nextInstances = preventLaneOverlaps(
           hasRestoredInstances ? restoredInstances : presetInstances,
+        ).map((instance) =>
+          instance.componentId === "QuickSetupProof" && instance.position.x < 0
+            ? {
+                ...instance,
+                position: { ...instance.position, x: 0 },
+              }
+            : instance,
         );
         if (
           !hasRestoredInstances &&
@@ -5493,7 +5546,7 @@ const App = () => {
     event.stopPropagation();
     setContextMenu({
       x: Math.min(event.clientX, window.innerWidth - 200),
-      y: Math.min(event.clientY, window.innerHeight - 82),
+      y: Math.min(event.clientY, window.innerHeight - 180),
       source: "library",
       instanceIds: [],
       componentId,
@@ -5666,6 +5719,13 @@ const App = () => {
         window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
         return next;
       });
+      setEffectNameOverrides((current) => {
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([componentId]) => !idSet.has(componentId)),
+        );
+        window.localStorage.setItem(EFFECT_NAME_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
       if (isCustomGroup) {
         setCustomCatalogGroups((current) => {
           const next = current.filter((group) => group.id !== groupId);
@@ -5706,6 +5766,12 @@ const App = () => {
         const next = { ...current };
         delete next[componentId];
         window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setEffectNameOverrides((current) => {
+        const next = { ...current };
+        delete next[componentId];
+        window.localStorage.setItem(EFFECT_NAME_STORAGE_KEY, JSON.stringify(next));
         return next;
       });
       setNotice({ tone: "ok", text: "已删除效果源码及全部时间轴实例。" });
@@ -5764,6 +5830,39 @@ const App = () => {
 
   const deleteInstances = (instanceIds: string[]) => {
     const idSet = new Set(instanceIds);
+    const removedInstances = instances.filter((instance) =>
+      idSet.has(instance.id),
+    );
+    const remainingTempMediaUrls = new Set(
+      instances
+        .filter((instance) => !idSet.has(instance.id))
+        .map((instance) =>
+          typeof instance.props.mediaUrl === "string"
+            ? instance.props.mediaUrl.split("?")[0]
+            : "",
+        )
+        .filter((url) => url.startsWith("/api/media/temp/")),
+    );
+    const removableTempMediaUrls = [
+      ...new Set(
+        removedInstances
+          .filter((instance) =>
+            ["MediaSpotlightCard", "MaterialCard"].includes(
+              instance.componentId,
+            ),
+          )
+          .map((instance) =>
+            typeof instance.props.mediaUrl === "string"
+              ? instance.props.mediaUrl.split("?")[0]
+              : "",
+          )
+          .filter(
+            (url) =>
+              url.startsWith("/api/media/temp/") &&
+              !remainingTempMediaUrls.has(url),
+          ),
+      ),
+    ];
     setInstances((current) => {
       const next = current.filter((instance) => !idSet.has(instance.id));
       setSelectedInstanceIds((selectedIds) => {
@@ -5783,7 +5882,43 @@ const App = () => {
       });
       return next;
     });
+    for (const url of removableTempMediaUrls) {
+      void fetch(url, { method: "DELETE" }).catch(() => {
+        // 轨道已删除，单个临时文件清理失败不阻塞编辑。
+      });
+    }
     setContextMenu(null);
+  };
+
+  const openRenameEffectDialog = (componentId: string) => {
+    const definition = definitionMap.get(componentId);
+    setContextMenu(null);
+    if (!definition) {
+      setNotice({ tone: "error", text: "未找到该效果。" });
+      return;
+    }
+    setEffectRenameTarget({
+      componentId,
+      effectName: definition.name,
+    });
+    setEffectNameDraft(definition.name);
+  };
+
+  const renameEffect = () => {
+    const name = effectNameDraft.trim().slice(0, 40);
+    if (!name || !effectRenameTarget) return;
+    const previousName = effectRenameTarget.effectName;
+    setEffectNameOverrides((current) => {
+      const next = { ...current, [effectRenameTarget.componentId]: name };
+      window.localStorage.setItem(EFFECT_NAME_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setEffectRenameTarget(null);
+    setEffectNameDraft("");
+    setNotice({
+      tone: "ok",
+      text: `已将“${previousName}”重命名为“${name}”。`,
+    });
   };
 
   const seekEditorFrame = (frame: number) => {
@@ -6066,15 +6201,16 @@ const App = () => {
     const label = schema.label ?? key;
     if (
       key === "mediaUrl" &&
-      selectedDefinition?.id === "MediaSpotlightCard"
+      ["MediaSpotlightCard", "MaterialCard"].includes(
+        selectedDefinition?.id ?? "",
+      )
     ) {
       const handleMediaUpload = async (
         event: React.ChangeEvent<HTMLInputElement>,
       ) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append("file", file);
+        const previousMediaUrl = String(value ?? "").split("?")[0];
         const res = await fetch("/api/upload-media", {
           method: "POST",
           headers: { "x-file-name": encodeURIComponent(file.name) },
@@ -6087,7 +6223,19 @@ const App = () => {
           if (data.mediaType) {
             updateSelectedProp("mediaType", data.mediaType);
           }
+          const nextMediaUrl = String(data.mediaUrl ?? "").split("?")[0];
+          if (
+            previousMediaUrl.startsWith("/api/media/temp/") &&
+            previousMediaUrl !== nextMediaUrl
+          ) {
+            try {
+              await fetch(previousMediaUrl, { method: "DELETE" });
+            } catch {
+              // 新素材已经可用，旧临时文件清理失败不阻塞替换。
+            }
+          }
         }
+        event.target.value = "";
       };
       return (
         <label className="prop-field" key={key}>
@@ -7809,13 +7957,16 @@ const App = () => {
                               selectedDefinition.bounds.width * nextScale,
                           ),
                         );
-                        const nextMinX = Math.min(
-                          0,
-                          Math.round(
-                            canvasWidth -
-                              selectedDefinition.bounds.width * nextScale,
-                          ),
-                        );
+                        const nextMinX =
+                          selectedDefinition.id === "QuickSetupProof"
+                            ? 0
+                            : Math.min(
+                                0,
+                                Math.round(
+                                  canvasWidth -
+                                    selectedDefinition.bounds.width * nextScale,
+                                ),
+                              );
                         const nextMaxY = Math.max(
                           0,
                           Math.round(
@@ -7849,14 +8000,18 @@ const App = () => {
                     </div>
                     <input
                       type="range"
-                      min={Math.min(
-                        0,
-                        Math.round(
-                          canvasWidth -
-                            selectedDefinition.bounds.width *
-                              selectedInstance.position.scale,
-                        ),
-                      )}
+                      min={
+                        selectedDefinition.id === "QuickSetupProof"
+                          ? 0
+                          : Math.min(
+                              0,
+                              Math.round(
+                                canvasWidth -
+                                  selectedDefinition.bounds.width *
+                                    selectedInstance.position.scale,
+                              ),
+                            )
+                      }
                       max={Math.max(
                         0,
                         Math.round(
@@ -7868,14 +8023,16 @@ const App = () => {
                       step={1}
                       value={clamp(
                         Math.round(selectedInstance.position.x),
-                        Math.min(
-                          0,
-                          Math.round(
-                            canvasWidth -
-                              selectedDefinition.bounds.width *
-                                selectedInstance.position.scale,
-                          ),
-                        ),
+                        selectedDefinition.id === "QuickSetupProof"
+                          ? 0
+                          : Math.min(
+                              0,
+                              Math.round(
+                                canvasWidth -
+                                  selectedDefinition.bounds.width *
+                                    selectedInstance.position.scale,
+                              ),
+                            ),
                         Math.max(
                           0,
                           Math.round(
@@ -8300,6 +8457,61 @@ const App = () => {
                 <Trash />
                 确认删除
               </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {effectRenameTarget ? (
+        <div
+          className="shortcut-dialog-backdrop"
+          onPointerDown={() => setEffectRenameTarget(null)}
+        >
+          <section
+            className="shortcut-dialog group-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-effect-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span>
+                  <strong id="rename-effect-title">重命名效果组件</strong>
+                  <small>只修改工作台显示名称，组件 ID 和源码保持不变</small>
+                </span>
+              </div>
+              <button onClick={() => setEffectRenameTarget(null)}>
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <label htmlFor="rename-effect-name">组件名称</label>
+              <input
+                id="rename-effect-name"
+                autoFocus
+                maxLength={40}
+                value={effectNameDraft}
+                onChange={(event) => setEffectNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") renameEffect();
+                  if (event.key === "Escape") setEffectRenameTarget(null);
+                }}
+                placeholder="输入新的组件名称"
+              />
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button onClick={() => setEffectRenameTarget(null)}>取消</button>
+                <button
+                  className="shortcut-save"
+                  disabled={!effectNameDraft.trim()}
+                  onClick={renameEffect}
+                >
+                  保存名称
+                </button>
+              </div>
             </footer>
           </section>
         </div>
@@ -8940,6 +9152,17 @@ const App = () => {
             ) : contextMenu.source === "library" ? (
               <>
                 <small>效果库</small>
+                {contextMenu.componentId ? (
+                  <button
+                    className="group-rename-action"
+                    onClick={() =>
+                      contextMenu.componentId &&
+                      openRenameEffectDialog(contextMenu.componentId)
+                    }
+                  >
+                    重命名组件
+                  </button>
+                ) : null}
                 {contextMenu.componentId ? (
                   <button
                     className="code-action"

@@ -536,11 +536,12 @@ export const StepFlow: React.FC<StepFlowProps> = ({
 
   const nodeStyle = (p: number, fromX: number): React.CSSProperties => ({
     position: "absolute",
-    top: 96,
+    top: 94,
+    left: 24,
     width: 286,
-    height: 152,
+    height: 148,
     boxSizing: "border-box",
-    padding: "22px 24px",
+    padding: "16px 20px",
     borderRadius: 20,
     background: `linear-gradient(160deg, ${accentColor}22, rgba(255,255,255,${0.05 * Math.max(alpha, 0.4)}))`,
     border: `1px solid ${accentColor}${p > 0.5 ? "66" : "22"}`,
@@ -571,20 +572,34 @@ export const StepFlow: React.FC<StepFlowProps> = ({
           left: 36,
           top: 30,
           right: 36,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto",
+          alignItems: "center",
+          columnGap: 24,
           opacity: 0.12 + 0.88 * headerIn,
           transform: `translateY(${(1 - headerIn) * 12}px)`,
         }}
       >
-        <span style={{ fontSize: 32, fontWeight: 750 }}>{title}</span>
+        <span
+          style={{
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 30,
+            fontWeight: 750,
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </span>
         <span
           style={{
             fontSize: 18,
             fontWeight: 700,
             letterSpacing: "0.22em",
             color: accentColor,
+            whiteSpace: "nowrap",
           }}
         >
           {subtitle}
@@ -592,8 +607,8 @@ export const StepFlow: React.FC<StepFlowProps> = ({
       </div>
 
       <div style={nodeStyle(node1, -46)}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <svg width="32" height="32" viewBox="0 0 40 40">
             <rect
               x="2"
               y="7"
@@ -608,7 +623,7 @@ export const StepFlow: React.FC<StepFlowProps> = ({
           </svg>
           <span
             style={{
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: 800,
               letterSpacing: "0.2em",
               color: accentColor,
@@ -619,15 +634,29 @@ export const StepFlow: React.FC<StepFlowProps> = ({
         </div>
         <div
           style={{
-            marginTop: 10,
-            fontSize: 38,
+            marginTop: 6,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 34,
             fontWeight: 800,
+            lineHeight: 1.15,
             textShadow: "0 3px 14px rgba(0,0,0,0.55)",
           }}
         >
           {item1}
         </div>
-        <div style={{ marginTop: 4, fontSize: 20, color: INK_SOFT }}>
+        <div
+          style={{
+            marginTop: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 18,
+            lineHeight: 1.3,
+            color: INK_SOFT,
+          }}
+        >
           {item1Note}
         </div>
       </div>
@@ -636,7 +665,7 @@ export const StepFlow: React.FC<StepFlowProps> = ({
         style={{
           position: "absolute",
           left: 322,
-          top: 148,
+          top: 144,
           width: 76,
           height: 48,
           opacity: Math.min(node1, node2) > 0.55 ? 1 : 0,
@@ -663,8 +692,8 @@ export const StepFlow: React.FC<StepFlowProps> = ({
       </div>
 
       <div style={{ ...nodeStyle(node2, 46), left: 410 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <svg width="32" height="32" viewBox="0 0 40 40">
             <path
               d="M5 14 L5 9 Q5 5 9 5 L31 5 Q35 5 35 9 L35 14 Z"
               fill="none"
@@ -685,7 +714,7 @@ export const StepFlow: React.FC<StepFlowProps> = ({
           </svg>
           <span
             style={{
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: 800,
               letterSpacing: "0.2em",
               color: accentColor,
@@ -696,15 +725,29 @@ export const StepFlow: React.FC<StepFlowProps> = ({
         </div>
         <div
           style={{
-            marginTop: 10,
-            fontSize: 38,
+            marginTop: 6,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 34,
             fontWeight: 800,
+            lineHeight: 1.15,
             textShadow: "0 3px 14px rgba(0,0,0,0.55)",
           }}
         >
           {item2}
         </div>
-        <div style={{ marginTop: 4, fontSize: 20, color: INK_SOFT }}>
+        <div
+          style={{
+            marginTop: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 18,
+            lineHeight: 1.3,
+            color: INK_SOFT,
+          }}
+        >
           {item2Note}
         </div>
       </div>
@@ -713,7 +756,8 @@ export const StepFlow: React.FC<StepFlowProps> = ({
         style={{
           position: "absolute",
           left: 36,
-          bottom: 22,
+          right: 36,
+          bottom: 18,
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -725,6 +769,7 @@ export const StepFlow: React.FC<StepFlowProps> = ({
           style={{
             width: 26,
             height: 4,
+            flex: "0 0 auto",
             borderRadius: 2,
             background: accentColor,
             boxShadow: `0 0 12px ${accentColor}`,
@@ -732,8 +777,13 @@ export const StepFlow: React.FC<StepFlowProps> = ({
         />
         <span
           style={{
-            fontSize: 24,
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 21,
             fontWeight: 700,
+            lineHeight: 1.25,
             textShadow: "0 3px 14px rgba(0,0,0,0.55)",
           }}
         >

@@ -10,7 +10,7 @@ import {
 } from "remotion";
 import type { EffectDef } from "../registry";
 
-type Props = {
+export type MediaSpotlightCardProps = {
   enabled?: boolean;
   backgroundOpacity?: number;
   mediaUrl?: string;
@@ -22,6 +22,11 @@ type Props = {
   textColor?: string;
   cornerRadius?: number;
   fit?: "cover" | "contain";
+  mediaPositionX?: number;
+  mediaPositionY?: number;
+  showCaption?: boolean;
+  showEyebrow?: boolean;
+  showAccentMarker?: boolean;
   animationSeconds?: number;
 };
 
@@ -31,7 +36,7 @@ const isVideoType = (url: string, mediaType?: string) => {
   return /\.(mp4|mov|webm|m4v|ogg)$/i.test(url);
 };
 
-export const MediaSpotlightCard: React.FC<Props> = ({
+export const MediaSpotlightCard: React.FC<MediaSpotlightCardProps> = ({
   backgroundOpacity = 0,
   enabled = true,
   mediaUrl = "",
@@ -43,6 +48,11 @@ export const MediaSpotlightCard: React.FC<Props> = ({
   textColor = "#FFFFFF",
   cornerRadius = 20,
   fit = "cover",
+  mediaPositionX = 50,
+  mediaPositionY = 50,
+  showCaption = true,
+  showEyebrow = true,
+  showAccentMarker = true,
   animationSeconds = 0.8,
 }) => {
   const frame = useCurrentFrame();
@@ -97,7 +107,8 @@ export const MediaSpotlightCard: React.FC<Props> = ({
       }}
     >
       {/* 引导词 */}
-      <Interactive.Div
+      {showEyebrow ? (
+        <Interactive.Div
         name="媒体引导词"
         style={{
           display: "inline-block",
@@ -118,7 +129,8 @@ export const MediaSpotlightCard: React.FC<Props> = ({
         }}
       >
         {eyebrow}
-      </Interactive.Div>
+        </Interactive.Div>
+      ) : null}
 
       {/* 卡片主体 */}
       <Interactive.Div
@@ -126,7 +138,7 @@ export const MediaSpotlightCard: React.FC<Props> = ({
         style={{
           position: "relative",
           width: 480,
-          height: 408,
+          height: showEyebrow ? 408 : 480,
           borderRadius: cornerRadius,
           overflow: "hidden",
           border: bgFactor > 0
@@ -164,6 +176,7 @@ export const MediaSpotlightCard: React.FC<Props> = ({
                   width: "100%",
                   height: "100%",
                   objectFit: fit,
+                  objectPosition: `${mediaPositionX}% ${mediaPositionY}%`,
                 }}
               />
             ) : (
@@ -173,6 +186,7 @@ export const MediaSpotlightCard: React.FC<Props> = ({
                   width: "100%",
                   height: "100%",
                   objectFit: fit,
+                  objectPosition: `${mediaPositionX}% ${mediaPositionY}%`,
                 }}
               />
             )
@@ -203,7 +217,8 @@ export const MediaSpotlightCard: React.FC<Props> = ({
         </Interactive.Div>
 
         {/* 底部渐变遮罩 + 字幕 */}
-        <Interactive.Div
+        {showCaption ? (
+          <Interactive.Div
           name="媒体字幕条"
           style={{
             position: "absolute",
@@ -238,10 +253,12 @@ export const MediaSpotlightCard: React.FC<Props> = ({
           >
             {caption}
           </div>
-        </Interactive.Div>
+          </Interactive.Div>
+        ) : null}
 
         {/* 左上角强调角标 */}
-        <Interactive.Div
+        {showAccentMarker ? (
+          <Interactive.Div
           name="强调角标"
           style={{
             position: "absolute",
@@ -258,7 +275,8 @@ export const MediaSpotlightCard: React.FC<Props> = ({
               extrapolateRight: "clamp",
             }),
           }}
-        />
+          />
+        ) : null}
       </Interactive.Div>
     </Interactive.Div>
   );
@@ -287,6 +305,8 @@ export const MediaSpotlightCardEffectDef: EffectDef = {
     textColor: "#FFFFFF",
     cornerRadius: 20,
     fit: "cover",
+    mediaPositionX: 50,
+    mediaPositionY: 50,
     animationSeconds: 0.8,
   },
   propsSchema: {
@@ -322,6 +342,22 @@ export const MediaSpotlightCardEffectDef: EffectDef = {
         { label: "裁剪填充", value: "cover" },
         { label: "完整显示", value: "contain" },
       ],
+    },
+    mediaPositionX: {
+      type: "number",
+      label: "裁剪水平位置(%)",
+      default: 50,
+      min: 0,
+      max: 100,
+      step: 1,
+    },
+    mediaPositionY: {
+      type: "number",
+      label: "裁剪垂直位置(%)",
+      default: 50,
+      min: 0,
+      max: 100,
+      step: 1,
     },
     animationSeconds: {
       type: "number",

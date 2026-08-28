@@ -149,6 +149,25 @@ const expected = [
       "animationSeconds",
     ],
   },
+  {
+    id: "QuickSetupProof",
+    placement: "top",
+    bounds: [700, 245],
+    positionX: 0,
+    props: [
+      "title",
+      "kicker",
+      "tag1",
+      "tag2",
+      "checkmark",
+      "accentColor",
+      "warningColor",
+      "strikeColor",
+      "panelColor",
+      "textColor",
+      "animationSeconds",
+    ],
+  },
 ];
 
 for (const expectation of expected) {
@@ -159,6 +178,12 @@ for (const expectation of expected) {
   }
   if (definition.placement !== expectation.placement) {
     throw new Error(`${expectation.id} 默认落点错误。`);
+  }
+  if (
+    typeof expectation.positionX === "number" &&
+    definition.defaultPosition?.x !== expectation.positionX
+  ) {
+    throw new Error(`${expectation.id} 默认水平位置错误。`);
   }
   if (
     definition.bounds?.width !== expectation.bounds[0] ||
