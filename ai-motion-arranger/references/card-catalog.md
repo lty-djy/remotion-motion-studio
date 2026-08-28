@@ -8,31 +8,11 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：8 张
+**当前卡片总数**：6 张
 **覆盖分组**：1 个（数字与指标）
-**registry 集合**：8 个 id
-**overlay 集合**：8 个 id
+**registry 集合**：6 个 id
+**overlay 集合**：6 个 id
 ## 数字与指标
-
-### `ProgressRing`
-
-**角色**：hero-metric  
-**画布落点**：left  
-**推荐调色板**：cyan / violet / lime  
-**何时使用**：口播里 '完成率 X%' + 三条文字补充。  
-**视觉/语义**：环形进度，3 行补充说明在右。适合表达完成度 + 3 条关键说明。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 百分比（0-100 字符串）
-- `item1` — 补充说明一
-- `item2` — 补充说明二
-- `item3` — 补充说明三
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
 
 ### `Countdown`
 
@@ -90,26 +70,6 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `item1` — A 侧标签 + 数字（用 item1 表达 A）
 - `item2` — B 侧标签 + 数字（用 item2 表达 B）
 - `item3` — 补充说明（可留空）
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
-
-### `FlipCounter`
-
-**角色**：anchor  
-**画布落点**：center-stage  
-**推荐调色板**：cyan / amber / violet  
-**何时使用**：口播里 '已经有 X 用户' / '数量突破 Y 万'。  
-**视觉/语义**：机械翻牌数字。适合表达大整数（千、万、亿）。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 数量字符串（含千分位）
-- `item1` — 补充说明一
-- `item2` — 补充说明二
-- `item3` — 补充说明三
 - `animationSeconds` — 动画时长
 - `accentColor` — accent token
 - `secondaryColor` — support token
@@ -175,8 +135,8 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：8
-- overlay 条目数：8
+- registry 条目数：6
+- overlay 条目数：6
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

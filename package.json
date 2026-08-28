@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "generate:icons": "node ai-motion-arranger/scripts/generate-built-in-icons.mjs",
     "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs",
     "sync:resources": "node ai-motion-arranger/scripts/build-resource-index.mjs",
     "validate:resources": "node ai-motion-arranger/scripts/validate-resource-index.mjs",

@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **32** 个组件，其中 **8** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **31** 个组件，其中 **6** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -27,7 +27,6 @@
 ## 柔和教学紫
 
 - `SoftTeachingGlassPanel`：柔和教学玻璃面板 — 人物口播上方的半透明信息面板，适合标题、英文标签和三项解释。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
-- `SoftTeachingIncrementBadge`：柔和教学 +1 反馈 — 卡槽高亮后出现的 +1 反馈徽章，用于新增、完成或收集动作。（仅工作台可用；props：`enabled`、`value`、`label`、`accentColor`、`animationSeconds`）
 
 ## 竖屏口播信息层
 
@@ -38,6 +37,7 @@
 - `PortraitStepChecklist`：竖屏口播·步骤清单卡 — 参考竖屏口播视频的后期增强段：顶部给出阶段结论，右侧三张编号步骤卡依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`step1`、`step2`、`step3`、`icon1`、`icon2`、`icon3`、`accentColor`、`successColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitRiskWarning`：竖屏口播·风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`icon1`、`icon2`、`icon3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitNextEpisodeCta`：竖屏口播·下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）
 
 ## 风险提醒
 
@@ -45,7 +45,8 @@
 
 ## 媒体展示组件
 
-- `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`animationSeconds`）
+- `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
+- `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 
 ## WorkBuddy效果
 
@@ -59,11 +60,9 @@
 
 ## 数字与指标
 
-- `ProgressRing`：环形进度 — 环形完成率和阶段反馈 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `Countdown`：倒计时 — 倒计时和阶段切换 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `DualMetricBar`：双向指标差异 — 双向指标差异和竞争关系 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
-- `FlipCounter`：翻牌数字 — 机械翻牌式核心数字 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `WaveformMetric`：波形指标 — 连续波形和实时吞吐读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `LiquidGauge`：液态仪表 — 液态填充式完成率仪表 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `RadialTicks`：HUD 刻度环 — 科技 HUD 刻度与中心读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）

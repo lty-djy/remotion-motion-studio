@@ -80,6 +80,26 @@ import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
 
+type IconResource = {
+  id: string;
+  label: string;
+  url: string;
+  mimeType: string;
+  tags: string[];
+  usage: string;
+  category: string;
+  accent: string;
+};
+
+const ICON_CATEGORY_ORDER = [
+  "内容与素材",
+  "自动化与流程",
+  "状态与数据",
+  "商务与教育",
+  "沟通与传播",
+  "表达与强调",
+];
+
 type AiArrangementStage =
   | "idle"
   | "reading"
@@ -1397,13 +1417,20 @@ const App = () => {
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
-    useState<"editor" | "effects" | "code">("editor");
+    useState<"editor" | "effects" | "icons" | "code">("editor");
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
   const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
   const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
     Math.max(160, Math.min(440, window.innerHeight - 245)),
   );
   const [effectSearch, setEffectSearch] = useState("");
+  const [iconSearch, setIconSearch] = useState("");
+  const [iconResources, setIconResources] = useState<IconResource[]>([]);
+  const [iconLibraryError, setIconLibraryError] = useState("");
+  const [openIconCategories, setOpenIconCategories] = useState<string[]>([
+    "内容与素材",
+    "状态与数据",
+  ]);
   const [customCatalogGroups, setCustomCatalogGroups] = useState(
     loadCustomCatalogGroups,
   );
@@ -1458,6 +1485,41 @@ const App = () => {
     },
     [],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/input/resource-index.json", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("无法读取图标资源索引");
+        return response.json();
+      })
+      .then((index) => {
+        if (cancelled) return;
+        const icons = Array.isArray(index?.libraries?.icons)
+          ? index.libraries.icons
+          : [];
+        setIconResources(
+          icons.filter(
+            (icon: unknown): icon is IconResource =>
+              Boolean(icon) &&
+              typeof icon === "object" &&
+              typeof (icon as IconResource).id === "string" &&
+              typeof (icon as IconResource).url === "string",
+          ),
+        );
+        setIconLibraryError("");
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setIconLibraryError(
+            error instanceof Error ? error.message : "图标库加载失败",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setActiveComponentId = useCallback((id: string) => {
     activeComponentIdRef.current = id;
@@ -1761,6 +1823,46 @@ const App = () => {
         0,
       ),
     [filteredEffectCatalog],
+  );
+  const filteredIconCatalog = useMemo(() => {
+    const query = iconSearch.trim().toLocaleLowerCase("zh-CN");
+    const categories = new Map<
+      string,
+      { name: string; accent: string; items: IconResource[] }
+    >();
+    for (const category of ICON_CATEGORY_ORDER) {
+      categories.set(category, { name: category, accent: "#4f9dff", items: [] });
+    }
+    for (const icon of iconResources) {
+      const category = icon.category || "表达与强调";
+      const searchable = [
+        icon.id,
+        icon.label,
+        icon.usage,
+        category,
+        ...(Array.isArray(icon.tags) ? icon.tags : []),
+      ]
+        .join(" ")
+        .toLocaleLowerCase("zh-CN");
+      if (query && !searchable.includes(query)) continue;
+      const group = categories.get(category) ?? {
+        name: category,
+        accent: icon.accent || "#4f9dff",
+        items: [],
+      };
+      group.accent = icon.accent || group.accent;
+      group.items.push(icon);
+      categories.set(category, group);
+    }
+    return [...categories.values()].filter((category) => category.items.length > 0);
+  }, [iconResources, iconSearch]);
+  const visibleIconCount = useMemo(
+    () =>
+      filteredIconCatalog.reduce(
+        (total, category) => total + category.items.length,
+        0,
+      ),
+    [filteredIconCatalog],
   );
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
@@ -2685,6 +2787,49 @@ const App = () => {
     setInstances((current) => [...current, instance]);
     selectOnlyInstance(instance.id);
     setNotice({ tone: "ok", text: `已添加 ${definition.name} 到时间轴。` });
+  };
+
+  const addIconResource = (icon: IconResource) => {
+    const id = createResourceTrackId();
+    const iconSize = canvasOrientation === "portrait" ? 168 : 132;
+    const clipDuration = Math.max(3, Math.round(fps * 3));
+    const track: ResourceTrack = {
+      id,
+      laneId: id,
+      trackOrder:
+        Math.min(
+          0,
+          ...videoTracks.map((candidate) => candidate.trackOrder),
+          ...instances.map((candidate) => candidate.trackOrder),
+          ...resourceTracks.map((candidate) => candidate.trackOrder),
+        ) - 1,
+      kind: "icon",
+      resourceId: icon.id,
+      name: icon.label,
+      url: icon.url,
+      mimeType: icon.mimeType || "image/svg+xml",
+      sourceStartFrame: 0,
+      sourceDurationInFrames: clipDuration,
+      startFrame: currentFrame,
+      durationInFrames: clipDuration,
+      visible: true,
+      position: {
+        x: Math.round((canvasWidth - iconSize) / 2),
+        y: canvasOrientation === "portrait" ? 250 : 110,
+        width: iconSize,
+        height: iconSize,
+        scale: 1,
+        zIndex: 20,
+      },
+      volume: 1,
+      voiceDucking: 0,
+    };
+    setResourceTracks((current) => [...current, track]);
+    selectResourceTrack(track.id);
+    setManualTimelineEndFrame((current) =>
+      Math.max(current, track.startFrame + track.durationInFrames),
+    );
+    setNotice({ tone: "ok", text: `已添加图标“${icon.label}”到时间轴。` });
   };
 
   const toggleCanvasOrientation = () => {
@@ -6460,6 +6605,12 @@ const App = () => {
             效果库
           </button>
           <button
+            className={activeWorkspace === "icons" ? "active" : ""}
+            onClick={() => setActiveWorkspace("icons")}
+          >
+            图标库
+          </button>
+          <button
             className={activeWorkspace === "code" ? "active" : ""}
             onClick={() => {
               setActiveWorkspace("code");
@@ -6795,6 +6946,89 @@ const App = () => {
                     ))}
                   </div>
                 </section>
+              ) : null}
+            </div>
+          ) : activeWorkspace === "icons" ? (
+            <div className="icon-library-panel">
+              <header className="icon-library-header">
+                <div>
+                  <small>REAL ICONS</small>
+                  <strong>真实图标库</strong>
+                  <span>可直接渲染进成片</span>
+                </div>
+                <b>{visibleIconCount}</b>
+              </header>
+
+              <label className="effect-library-search icon-library-search">
+                <MagnifyingGlass />
+                <input
+                  type="search"
+                  value={iconSearch}
+                  onChange={(event) => setIconSearch(event.target.value)}
+                  placeholder="搜索图标、语义或用途"
+                />
+              </label>
+
+              <div className="icon-library-summary">
+                <span>{iconResources.length} 个内置图标</span>
+                <span>{filteredIconCatalog.length} 个分类</span>
+              </div>
+
+              {iconLibraryError ? (
+                <div className="effect-library-empty">{iconLibraryError}</div>
+              ) : null}
+
+              <div className="icon-library-catalog">
+                {filteredIconCatalog.map((category) => {
+                  const isOpen =
+                    Boolean(iconSearch.trim()) ||
+                    openIconCategories.includes(category.name);
+                  return (
+                    <section
+                      className="icon-library-category"
+                      key={category.name}
+                      style={{ "--icon-accent": category.accent } as React.CSSProperties}
+                    >
+                      <button
+                        className={isOpen ? "icon-category-toggle open" : "icon-category-toggle"}
+                        onClick={() =>
+                          setOpenIconCategories((current) =>
+                            current.includes(category.name)
+                              ? current.filter((name) => name !== category.name)
+                              : [...current, category.name],
+                          )
+                        }
+                      >
+                        <span>{category.name}</span>
+                        <b>{category.items.length}</b>
+                        <CaretDown />
+                      </button>
+                      {isOpen ? (
+                        <div className="icon-library-grid">
+                          {category.items.map((icon) => (
+                            <button
+                              className="icon-library-card"
+                              key={icon.id}
+                              onClick={() => addIconResource(icon)}
+                              title={`${icon.usage}；单击添加到时间轴`}
+                            >
+                              <i>
+                                <img src={icon.url} alt="" />
+                              </i>
+                              <strong>{icon.label}</strong>
+                              <small>{icon.id}</small>
+                              <Plus />
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {!iconLibraryError && filteredIconCatalog.length === 0 ? (
+                <div className="effect-library-empty">没有匹配的图标</div>
               ) : null}
             </div>
           ) : (

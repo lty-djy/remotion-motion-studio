@@ -1,7 +1,7 @@
 {
   "indexVersion": "1",
   "root": "public/input",
-  "resourceCount": 7,
+  "resourceCount": 51,
   "libraries": {
     "icons": [
       {
@@ -10,16 +10,239 @@
         "file": "icons/arrow.svg",
         "url": "/input/icons/arrow.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 203,
-        "sha256": "550b80d5d3e7580f8b265f36fb2d22fe77d784a79dabe9293cbc27bea01624d5",
+        "bytes": 261,
+        "sha256": "d2bdd26b71e9a9a8cfd21e73a74c7a7684e40b7d0f91a9744a99f4cbae117c59",
         "tags": [
+          "表达与强调",
           "方向",
           "流程",
           "跳转"
         ],
         "usage": "表示流向、下一步或因果关系",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
         "media": {
-          "viewBox": "0 0 64 64"
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "bank",
+        "label": "机构",
+        "file": "icons/bank.svg",
+        "url": "/input/icons/bank.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 417,
+        "sha256": "304dbc05b51bb6d30bb900844542a831215568ac298c42c496c4b70701df374b",
+        "tags": [
+          "商务与教育",
+          "机构",
+          "金融"
+        ],
+        "usage": "表示机构、金融或公共组织",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "bell",
+        "label": "通知",
+        "file": "icons/bell.svg",
+        "url": "/input/icons/bell.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 444,
+        "sha256": "d6c9ebbe51805c705d26392a656ac4202633456be092560437474687aeeef02c",
+        "tags": [
+          "沟通与传播",
+          "通知",
+          "提醒"
+        ],
+        "usage": "表示通知、提醒或待处理事件",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "brain",
+        "label": "智能分析",
+        "file": "icons/brain.svg",
+        "url": "/input/icons/brain.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 890,
+        "sha256": "ef3525de15e1f254856d303be66334245fa7f9e863b36f3cf21534bb6fb82ae6",
+        "tags": [
+          "自动化与流程",
+          "智能",
+          "分析"
+        ],
+        "usage": "表示语义理解、推理或智能分析",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "broadcast",
+        "label": "直播",
+        "file": "icons/broadcast.svg",
+        "url": "/input/icons/broadcast.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 744,
+        "sha256": "e0896177de967e0b3879104e80f90d5e3ae98fb74f68a7227c6c925aa00adfbe",
+        "tags": [
+          "沟通与传播",
+          "直播",
+          "广播"
+        ],
+        "usage": "表示直播、广播或实时信号",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "buildings",
+        "label": "企业",
+        "file": "icons/buildings.svg",
+        "url": "/input/icons/buildings.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 499,
+        "sha256": "0a0d7a094c0a350ce0230d6bec289313ba7e70ed2e6146e0f26619c1c931c1fc",
+        "tags": [
+          "商务与教育",
+          "企业",
+          "组织"
+        ],
+        "usage": "表示企业、公司或组织机构",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "calendar",
+        "label": "日历",
+        "file": "icons/calendar.svg",
+        "url": "/input/icons/calendar.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 594,
+        "sha256": "869e919be58c9894016adba8ce9549884a12c5e19799f27d5acf1b81329fa505",
+        "tags": [
+          "商务与教育",
+          "日期",
+          "计划"
+        ],
+        "usage": "表示日期、排期或事件计划",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "chart-bar",
+        "label": "柱状图",
+        "file": "icons/chart-bar.svg",
+        "url": "/input/icons/chart-bar.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 326,
+        "sha256": "e8d38ea238132bee17d7d7aed4a913395af3e4c3857a238546d9a9c87024691a",
+        "tags": [
+          "状态与数据",
+          "数据",
+          "图表"
+        ],
+        "usage": "表示统计数据、对比或指标",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "chat",
+        "label": "对话",
+        "file": "icons/chat.svg",
+        "url": "/input/icons/chat.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 485,
+        "sha256": "11b0bfac414ff8d02fffdc9265ef439b6327c6b0c9b28545a04fe98953d00c2c",
+        "tags": [
+          "沟通与传播",
+          "对话",
+          "观点"
+        ],
+        "usage": "表示对话、观点或消息内容",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "check-circle",
+        "label": "完成",
+        "file": "icons/check-circle.svg",
+        "url": "/input/icons/check-circle.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 383,
+        "sha256": "14b3587a4b632a18705e3d4667f4b58e8aead5278836d47d537656d845718223",
+        "tags": [
+          "状态与数据",
+          "完成",
+          "成功"
+        ],
+        "usage": "表示完成、成功或已确认",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "clipboard",
+        "label": "清单",
+        "file": "icons/clipboard.svg",
+        "url": "/input/icons/clipboard.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 515,
+        "sha256": "73232495e37860bac2b692c905cadc74952fb439da19789e3bd3a8b1d22e4b2f",
+        "tags": [
+          "商务与教育",
+          "清单",
+          "记录"
+        ],
+        "usage": "表示记录、任务清单或检查表",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "cloud-upload",
+        "label": "上传云端",
+        "file": "icons/cloud-upload.svg",
+        "url": "/input/icons/cloud-upload.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 514,
+        "sha256": "b00c5f384c924281dfa9afa179b39461101c5c997ab79ed8bc0c35e9d89566ba",
+        "tags": [
+          "内容与素材",
+          "上传",
+          "云端"
+        ],
+        "usage": "表示上传、同步或提交到云端",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
         }
       },
       {
@@ -28,16 +251,499 @@
         "file": "icons/code.svg",
         "url": "/input/icons/code.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 224,
-        "sha256": "894b82c320bcd8998fefe963385998a5042d96f4e695a9e5b9cda87ed2fb4090",
+        "bytes": 495,
+        "sha256": "2b6de2a4f1e3f0ca6da00f5179f09254313227e694be211f84fd8845d7b6a59d",
         "tags": [
+          "表达与强调",
           "代码",
           "开发",
           "自动化"
         ],
         "usage": "表示代码、编译或开发步骤",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
         "media": {
-          "viewBox": "0 0 64 64"
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "cpu",
+        "label": "算力",
+        "file": "icons/cpu.svg",
+        "url": "/input/icons/cpu.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 585,
+        "sha256": "80b43370bcb057dcad2ee11aef329eac688136272ca4effb969a1e82328acdc9",
+        "tags": [
+          "自动化与流程",
+          "芯片",
+          "计算"
+        ],
+        "usage": "表示计算、处理器或模型推理",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "credit-card",
+        "label": "支付",
+        "file": "icons/credit-card.svg",
+        "url": "/input/icons/credit-card.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 398,
+        "sha256": "b1ef120839547b935bfc0063577314d6b8eae22f73257cdc258769df0ce7db37",
+        "tags": [
+          "商务与教育",
+          "支付",
+          "费用"
+        ],
+        "usage": "表示支付、费用或订阅方案",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "envelope",
+        "label": "邮件",
+        "file": "icons/envelope.svg",
+        "url": "/input/icons/envelope.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 380,
+        "sha256": "0875d6c0d2f60da6834f0ef84c5e24b1d3e603a14e5247ca118443f7c08dc23a",
+        "tags": [
+          "沟通与传播",
+          "邮件",
+          "消息"
+        ],
+        "usage": "表示邮件、私信或消息投递",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "file-text",
+        "label": "文档",
+        "file": "icons/file-text.svg",
+        "url": "/input/icons/file-text.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 460,
+        "sha256": "9e238011a216bccb42437833815ee4d18ac15f6b4cebf62eb17e946ab18815c9",
+        "tags": [
+          "内容与素材",
+          "文件",
+          "内容"
+        ],
+        "usage": "表示文档、脚本或文字资料",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "folder-open",
+        "label": "文件夹",
+        "file": "icons/folder-open.svg",
+        "url": "/input/icons/folder-open.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 467,
+        "sha256": "f252e483a2af88a1bf2ecf8834fa3533ef3b52040f17e50ed4d3c8e733e2cea9",
+        "tags": [
+          "内容与素材",
+          "目录",
+          "项目"
+        ],
+        "usage": "表示目录、项目文件或打开资源",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "graduation-cap",
+        "label": "教育",
+        "file": "icons/graduation-cap.svg",
+        "url": "/input/icons/graduation-cap.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 698,
+        "sha256": "b6b9d2db7b4783da6320458ae7b340419356c75754d8b564299faa2331789566",
+        "tags": [
+          "商务与教育",
+          "教育",
+          "学习"
+        ],
+        "usage": "表示课程、教育或学习成果",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "hash",
+        "label": "数字标签",
+        "file": "icons/hash.svg",
+        "url": "/input/icons/hash.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 556,
+        "sha256": "e971a793c2dd59bcffaf16252aa469af6c44de768bd07f8b9f149e626090869f",
+        "tags": [
+          "状态与数据",
+          "数字",
+          "标签"
+        ],
+        "usage": "表示编号、话题或关键数字",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "image",
+        "label": "图片",
+        "file": "icons/image.svg",
+        "url": "/input/icons/image.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 444,
+        "sha256": "d10a299df3fa83974d5023ede029fff5c00cb6657053180636b77dc79e702236",
+        "tags": [
+          "内容与素材",
+          "图片",
+          "素材"
+        ],
+        "usage": "表示单张图片或视觉素材",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "images",
+        "label": "图片组",
+        "file": "icons/images.svg",
+        "url": "/input/icons/images.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 545,
+        "sha256": "a1208782c4a6e35740e553ce654f6188046105a45320bbc321e8db7aace79379",
+        "tags": [
+          "内容与素材",
+          "相册",
+          "素材组"
+        ],
+        "usage": "表示多张图片、图库或素材集合",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "lightbulb",
+        "label": "灵感",
+        "file": "icons/lightbulb.svg",
+        "url": "/input/icons/lightbulb.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 748,
+        "sha256": "b195ba3dac49670dde4f40a8c715e8b76733ca19f245f57de26dea61f7c876b2",
+        "tags": [
+          "表达与强调",
+          "灵感",
+          "建议"
+        ],
+        "usage": "表示灵感、方法或解决思路",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "lightning",
+        "label": "闪电",
+        "file": "icons/lightning.svg",
+        "url": "/input/icons/lightning.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 420,
+        "sha256": "e3d93e8ae8a444d17b620a766bec73235f41346991e322f8bf062a1bb80cf75d",
+        "tags": [
+          "自动化与流程",
+          "快速",
+          "触发"
+        ],
+        "usage": "表示快速执行、触发或即时响应",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "link",
+        "label": "链接",
+        "file": "icons/link.svg",
+        "url": "/input/icons/link.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 734,
+        "sha256": "4d33389260cdbfa45c299f7e40fa3f43d94d954360a9d9dc641320f92f4c3923",
+        "tags": [
+          "自动化与流程",
+          "连接",
+          "关联"
+        ],
+        "usage": "表示链接、关联或依赖关系",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "list-checks",
+        "label": "任务完成",
+        "file": "icons/list-checks.svg",
+        "url": "/input/icons/list-checks.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 611,
+        "sha256": "d406fda77eb6b7d0fdb1e59d29ebbe1f288aa386466d8b978566ef22659e0dd0",
+        "tags": [
+          "商务与教育",
+          "任务",
+          "步骤"
+        ],
+        "usage": "表示步骤清单、任务或逐项完成",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "megaphone",
+        "label": "传播",
+        "file": "icons/megaphone.svg",
+        "url": "/input/icons/megaphone.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 545,
+        "sha256": "186402c4a47f0b106052b5e99f42c54721d02736a28e6cbbfcc97c368ffa6ad0",
+        "tags": [
+          "沟通与传播",
+          "传播",
+          "公告"
+        ],
+        "usage": "表示宣传、公告或内容传播",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "microphone",
+        "label": "口播",
+        "file": "icons/microphone.svg",
+        "url": "/input/icons/microphone.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 406,
+        "sha256": "96c1d5c7d3743edcfc00eae20269a738ec2752b80751b94b0a9bb88be78d768a",
+        "tags": [
+          "沟通与传播",
+          "口播",
+          "声音"
+        ],
+        "usage": "表示口播、录音或语音内容",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "monitor-upload",
+        "label": "屏幕上传",
+        "file": "icons/monitor-upload.svg",
+        "url": "/input/icons/monitor-upload.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 506,
+        "sha256": "e9d08a4f407dc85c23f54cd2c90769154cacd66dd3df5e8fda3e3bad77231b43",
+        "tags": [
+          "内容与素材",
+          "屏幕",
+          "导出"
+        ],
+        "usage": "表示屏幕内容、上传或导出",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "network",
+        "label": "网络",
+        "file": "icons/network.svg",
+        "url": "/input/icons/network.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 536,
+        "sha256": "0c6b8e2c63d6ed5b13c9fc222662c754c168b524741e6f6f16a41f08ee20ba4d",
+        "tags": [
+          "自动化与流程",
+          "网络",
+          "节点"
+        ],
+        "usage": "表示节点关系、系统网络或拓扑",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "paper-plane",
+        "label": "发送",
+        "file": "icons/paper-plane.svg",
+        "url": "/input/icons/paper-plane.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 473,
+        "sha256": "b16b855e9b4ba4bd48d41faa5fc0c64c568acf4620161d047f35ff578248b55a",
+        "tags": [
+          "沟通与传播",
+          "发送",
+          "分享"
+        ],
+        "usage": "表示发送、分享或消息投递",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "phone",
+        "label": "电话",
+        "file": "icons/phone.svg",
+        "url": "/input/icons/phone.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 753,
+        "sha256": "c26f0f2bbad849af264105fc76a560bedbec0ebd8cfff678ea51aec221e62516",
+        "tags": [
+          "沟通与传播",
+          "电话",
+          "联系"
+        ],
+        "usage": "表示电话、联系或客户沟通",
+        "category": "沟通与传播",
+        "accent": "#a776f7",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "quote",
+        "label": "观点",
+        "file": "icons/quote.svg",
+        "url": "/input/icons/quote.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 444,
+        "sha256": "2f4ace516b902aef595ad75ba1cd0f6735712c645adf30ab06fc8bda4d3956ec",
+        "tags": [
+          "表达与强调",
+          "观点",
+          "引用"
+        ],
+        "usage": "表示观点、引用或重点原话",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "robot",
+        "label": "机器人",
+        "file": "icons/robot.svg",
+        "url": "/input/icons/robot.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 596,
+        "sha256": "dcf0b231f09ad2179b1dec4ef681ecaba20fe4a095021e0be8d7b3f6883d33f1",
+        "tags": [
+          "自动化与流程",
+          "AI",
+          "自动化"
+        ],
+        "usage": "表示 AI 助手、机器人或自动执行",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "route",
+        "label": "路径",
+        "file": "icons/route.svg",
+        "url": "/input/icons/route.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 340,
+        "sha256": "9ee75dbc0a2e02bbc24290a61e70b1add9990ca30f80f7ffd7df426a345b3c81",
+        "tags": [
+          "自动化与流程",
+          "路径",
+          "路由"
+        ],
+        "usage": "表示流程路径、路由或执行顺序",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "scan",
+        "label": "扫描识别",
+        "file": "icons/scan.svg",
+        "url": "/input/icons/scan.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 530,
+        "sha256": "cc7ae4d2c95deaa0c5138b766eb9ff7cd4a746704e3096c1be19866286ec4983",
+        "tags": [
+          "状态与数据",
+          "扫描",
+          "识别"
+        ],
+        "usage": "表示扫描、识别或定位目标",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "seal-check",
+        "label": "认证通过",
+        "file": "icons/seal-check.svg",
+        "url": "/input/icons/seal-check.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 2010,
+        "sha256": "104f9f9185529e579d55ef805392c255b4591db57f457368aef3298adb3be3e8",
+        "tags": [
+          "状态与数据",
+          "认证",
+          "通过"
+        ],
+        "usage": "表示认证、审核通过或可靠结论",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
         }
       },
       {
@@ -46,16 +752,59 @@
         "file": "icons/speed.svg",
         "url": "/input/icons/speed.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 418,
-        "sha256": "fb10941730687cb71a04d2fd106f73dee4225b6a261ad4d153ca49f2cc15ac49",
+        "bytes": 543,
+        "sha256": "057302dae6a01b074057effd102b06afc7be5ced5d1774482b96e9333034d7ee",
         "tags": [
+          "表达与强调",
           "速度",
           "性能",
           "增长"
         ],
         "usage": "表示吞吐、性能、加速或效率提升",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
         "media": {
-          "viewBox": "0 0 64 64"
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "target",
+        "label": "目标",
+        "file": "icons/target.svg",
+        "url": "/input/icons/target.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 387,
+        "sha256": "15f3eada842d7ead1f7c8f8d3f14400adb70e919fff2655765cf7f35eb6c43af",
+        "tags": [
+          "表达与强调",
+          "目标",
+          "定位"
+        ],
+        "usage": "表示目标、聚焦或命中关键点",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "text-align-left",
+        "label": "文本排版",
+        "file": "icons/text-align-left.svg",
+        "url": "/input/icons/text-align-left.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 336,
+        "sha256": "1959bd5a4a24bebc08ab18933b83beb48e1343bc6136fbc99bc3d0846f5268d2",
+        "tags": [
+          "内容与素材",
+          "文本",
+          "段落"
+        ],
+        "usage": "表示文本内容、段落或左对齐排版",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
         }
       },
       {
@@ -64,16 +813,159 @@
         "file": "icons/timeline.svg",
         "url": "/input/icons/timeline.svg",
         "mimeType": "image/svg+xml",
-        "bytes": 453,
-        "sha256": "854011b8ee865585b307f45f6c9885a0c15ebd3acfa39b7d5a26a4ddb652bad3",
+        "bytes": 373,
+        "sha256": "ed283b6e25ba09c20e15f5d6ea764d6704d35ebe56da34a9997d2547b0ddb5a3",
         "tags": [
+          "表达与强调",
           "时间线",
           "轨道",
           "剪辑"
         ],
         "usage": "表示时间线、多轨道或自动插入",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
         "media": {
-          "viewBox": "0 0 64 64"
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "title",
+        "label": "标题",
+        "file": "icons/title.svg",
+        "url": "/input/icons/title.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 346,
+        "sha256": "bafd5dbafd14b25b1f9dc38b675a5e78aa877253ddb36863b9e04540ae903b8f",
+        "tags": [
+          "表达与强调",
+          "标题",
+          "主题"
+        ],
+        "usage": "表示标题、主题或章节开场",
+        "category": "表达与强调",
+        "accent": "#4f9dff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "trend-up",
+        "label": "增长趋势",
+        "file": "icons/trend-up.svg",
+        "url": "/input/icons/trend-up.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 336,
+        "sha256": "16a8d48f88449eb578d6c0bdabc52cdc0cad43765aa5479f002127387094c46d",
+        "tags": [
+          "状态与数据",
+          "增长",
+          "趋势"
+        ],
+        "usage": "表示增长、上升或正向趋势",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "users",
+        "label": "团队",
+        "file": "icons/users.svg",
+        "url": "/input/icons/users.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 733,
+        "sha256": "71eabc3872d8a9067304d2111efb5c70bb3218225ddd33a46f7600120c39bc03",
+        "tags": [
+          "商务与教育",
+          "用户",
+          "团队"
+        ],
+        "usage": "表示多人、团队或用户群体",
+        "category": "商务与教育",
+        "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "video-camera",
+        "label": "视频",
+        "file": "icons/video-camera.svg",
+        "url": "/input/icons/video-camera.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 396,
+        "sha256": "0e632844e087cf946ee6fdc3597c65462503301d67c5e7e0d3e27fa3f04bcdd2",
+        "tags": [
+          "内容与素材",
+          "视频",
+          "拍摄"
+        ],
+        "usage": "表示视频片段、拍摄或摄像内容",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "warning",
+        "label": "警告",
+        "file": "icons/warning.svg",
+        "url": "/input/icons/warning.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 587,
+        "sha256": "b21ea65797b71d8fa97d57aecbb04aa6ec4f1d16825cf86c782c392ef435e30a",
+        "tags": [
+          "状态与数据",
+          "警告",
+          "风险"
+        ],
+        "usage": "表示风险、注意事项或异常状态",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "workflow",
+        "label": "工作流",
+        "file": "icons/workflow.svg",
+        "url": "/input/icons/workflow.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 465,
+        "sha256": "b5494d5e72fb59e84888e8242abb5a12edd47cee3ec8ce6ec612df20ce7726bc",
+        "tags": [
+          "自动化与流程",
+          "工作流",
+          "连接"
+        ],
+        "usage": "表示自动化工作流或节点连接",
+        "category": "自动化与流程",
+        "accent": "#27c4e8",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "x-circle",
+        "label": "失败",
+        "file": "icons/x-circle.svg",
+        "url": "/input/icons/x-circle.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 448,
+        "sha256": "b402db1e9f25d7d97612e1cae257951765ce3283bc378fa171f5512af03816ce",
+        "tags": [
+          "状态与数据",
+          "失败",
+          "错误"
+        ],
+        "usage": "表示失败、错误或不可用",
+        "category": "状态与数据",
+        "accent": "#20d7a0",
+        "media": {
+          "viewBox": "0 0 256 256"
         }
       }
     ],

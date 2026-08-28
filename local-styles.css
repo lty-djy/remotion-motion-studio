@@ -782,6 +782,217 @@ main.is-resizing-sidebar * {
   text-align: center;
 }
 
+.icon-library-panel {
+  min-height: 100%;
+  padding-bottom: 24px;
+}
+
+.icon-library-header {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #26303c;
+}
+
+.icon-library-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.icon-library-header small {
+  color: #2f8cff;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}
+
+.icon-library-header strong {
+  color: #f4f7fb;
+  font-size: 21px;
+}
+
+.icon-library-header span {
+  color: #687380;
+  font-size: 11px;
+}
+
+.icon-library-header > b {
+  min-width: 42px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #67adff;
+  background: #111d2b;
+  border: 1px solid #245890;
+  border-radius: 15px;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 14px;
+}
+
+.icon-library-search {
+  margin-top: 14px;
+  border-color: #26394c;
+  background: #111923;
+}
+
+.icon-library-search:focus-within {
+  border-color: #2f8cff;
+  box-shadow: 0 0 0 1px #173e68;
+}
+
+.icon-library-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 1px 10px;
+  color: #617084;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 11px;
+}
+
+.icon-library-catalog {
+  display: grid;
+  gap: 9px;
+}
+
+.icon-library-category {
+  --icon-accent: #4f9dff;
+  overflow: hidden;
+  background: #111721;
+  border: 1px solid color-mix(in srgb, var(--icon-accent) 28%, #26303c);
+  border-radius: 8px;
+}
+
+.icon-category-toggle {
+  width: 100%;
+  height: 38px;
+  display: grid;
+  grid-template-columns: 1fr auto 14px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  color: #d7dde6;
+  background: #141c28;
+  text-align: left;
+  cursor: pointer;
+}
+
+.icon-category-toggle span {
+  color: var(--icon-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.icon-category-toggle b {
+  min-width: 23px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  color: #798596;
+  background: #0d131c;
+  border-radius: 10px;
+  font: 11px Consolas, monospace;
+}
+
+.icon-category-toggle svg {
+  width: 13px;
+  color: #667386;
+  transition: transform 140ms ease;
+}
+
+.icon-category-toggle.open svg {
+  transform: rotate(180deg);
+}
+
+.icon-library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 8px;
+  border-top: 1px solid #202b39;
+}
+
+.icon-library-card {
+  min-width: 0;
+  min-height: 104px;
+  position: relative;
+  display: grid;
+  grid-template-rows: 48px auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 6px 8px;
+  overflow: hidden;
+  border: 1px solid #263347;
+  border-radius: 7px;
+  color: #cfd7e3;
+  background: #0d1320;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.icon-library-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--icon-accent);
+  background: #121c2b;
+}
+
+.icon-library-card:focus-visible {
+  outline: 2px solid var(--icon-accent);
+  outline-offset: 2px;
+}
+
+.icon-library-card i {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--icon-accent) 12%, #101824);
+  border: 1px solid color-mix(in srgb, var(--icon-accent) 20%, #233044);
+  border-radius: 50%;
+}
+
+.icon-library-card img {
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+}
+
+.icon-library-card strong,
+.icon-library-card small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-library-card strong {
+  font-size: 12px;
+}
+
+.icon-library-card small {
+  color: #596679;
+  font: 9px Consolas, "SFMono-Regular", monospace;
+}
+
+.icon-library-card > svg {
+  width: 12px;
+  height: 12px;
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  color: #4c5a6c;
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease;
+}
+
+.icon-library-card:hover > svg {
+  color: var(--icon-accent);
+  opacity: 1;
+}
+
 .effect-library-imported {
   margin-top: 18px;
 }

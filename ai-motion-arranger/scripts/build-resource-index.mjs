@@ -131,6 +131,14 @@ const validateManifestEntry = (entry, index, seenIds, seenFiles) => {
   if (typeof entry.usage !== "string" || !entry.usage.trim()) {
     throw new Error(`${tag}.usage 不能为空`);
   }
+  if (entry.library === "icons") {
+    if (typeof entry.category !== "string" || !entry.category.trim()) {
+      throw new Error(`${tag}.category 不能为空`);
+    }
+    if (typeof entry.accent !== "string" || !/^#[0-9a-f]{6}$/i.test(entry.accent)) {
+      throw new Error(`${tag}.accent 必须是 6 位十六进制颜色`);
+    }
+  }
 };
 
 export const createResourceIndex = async () => {
@@ -166,6 +174,8 @@ export const createResourceIndex = async () => {
       sha256: createHash("sha256").update(buffer).digest("hex"),
       tags: [...new Set(entry.tags.map((tag) => String(tag).trim()).filter(Boolean))],
       usage: entry.usage.trim(),
+      ...(entry.category ? { category: entry.category.trim() } : {}),
+      ...(entry.accent ? { accent: entry.accent } : {}),
       ...(media ? { media } : {}),
     });
   }

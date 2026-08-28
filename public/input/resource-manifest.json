@@ -3,11 +3,606 @@
   "root": "public/input",
   "resources": [
     {
+      "id": "text-align-left",
+      "library": "icons",
+      "file": "icons/text-align-left.svg",
+      "label": "文本排版",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "文本",
+        "段落"
+      ],
+      "usage": "表示文本内容、段落或左对齐排版"
+    },
+    {
+      "id": "file-text",
+      "library": "icons",
+      "file": "icons/file-text.svg",
+      "label": "文档",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "文件",
+        "内容"
+      ],
+      "usage": "表示文档、脚本或文字资料"
+    },
+    {
+      "id": "image",
+      "library": "icons",
+      "file": "icons/image.svg",
+      "label": "图片",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "图片",
+        "素材"
+      ],
+      "usage": "表示单张图片或视觉素材"
+    },
+    {
+      "id": "images",
+      "library": "icons",
+      "file": "icons/images.svg",
+      "label": "图片组",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "相册",
+        "素材组"
+      ],
+      "usage": "表示多张图片、图库或素材集合"
+    },
+    {
+      "id": "video-camera",
+      "library": "icons",
+      "file": "icons/video-camera.svg",
+      "label": "视频",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "视频",
+        "拍摄"
+      ],
+      "usage": "表示视频片段、拍摄或摄像内容"
+    },
+    {
+      "id": "folder-open",
+      "library": "icons",
+      "file": "icons/folder-open.svg",
+      "label": "文件夹",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "目录",
+        "项目"
+      ],
+      "usage": "表示目录、项目文件或打开资源"
+    },
+    {
+      "id": "cloud-upload",
+      "library": "icons",
+      "file": "icons/cloud-upload.svg",
+      "label": "上传云端",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "上传",
+        "云端"
+      ],
+      "usage": "表示上传、同步或提交到云端"
+    },
+    {
+      "id": "monitor-upload",
+      "library": "icons",
+      "file": "icons/monitor-upload.svg",
+      "label": "屏幕上传",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "屏幕",
+        "导出"
+      ],
+      "usage": "表示屏幕内容、上传或导出"
+    },
+    {
+      "id": "robot",
+      "library": "icons",
+      "file": "icons/robot.svg",
+      "label": "机器人",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "AI",
+        "自动化"
+      ],
+      "usage": "表示 AI 助手、机器人或自动执行"
+    },
+    {
+      "id": "brain",
+      "library": "icons",
+      "file": "icons/brain.svg",
+      "label": "智能分析",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "智能",
+        "分析"
+      ],
+      "usage": "表示语义理解、推理或智能分析"
+    },
+    {
+      "id": "cpu",
+      "library": "icons",
+      "file": "icons/cpu.svg",
+      "label": "算力",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "芯片",
+        "计算"
+      ],
+      "usage": "表示计算、处理器或模型推理"
+    },
+    {
+      "id": "workflow",
+      "library": "icons",
+      "file": "icons/workflow.svg",
+      "label": "工作流",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "工作流",
+        "连接"
+      ],
+      "usage": "表示自动化工作流或节点连接"
+    },
+    {
+      "id": "route",
+      "library": "icons",
+      "file": "icons/route.svg",
+      "label": "路径",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "路径",
+        "路由"
+      ],
+      "usage": "表示流程路径、路由或执行顺序"
+    },
+    {
+      "id": "network",
+      "library": "icons",
+      "file": "icons/network.svg",
+      "label": "网络",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "网络",
+        "节点"
+      ],
+      "usage": "表示节点关系、系统网络或拓扑"
+    },
+    {
+      "id": "link",
+      "library": "icons",
+      "file": "icons/link.svg",
+      "label": "链接",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "连接",
+        "关联"
+      ],
+      "usage": "表示链接、关联或依赖关系"
+    },
+    {
+      "id": "lightning",
+      "library": "icons",
+      "file": "icons/lightning.svg",
+      "label": "闪电",
+      "category": "自动化与流程",
+      "accent": "#27c4e8",
+      "tags": [
+        "自动化与流程",
+        "快速",
+        "触发"
+      ],
+      "usage": "表示快速执行、触发或即时响应"
+    },
+    {
+      "id": "warning",
+      "library": "icons",
+      "file": "icons/warning.svg",
+      "label": "警告",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "警告",
+        "风险"
+      ],
+      "usage": "表示风险、注意事项或异常状态"
+    },
+    {
+      "id": "seal-check",
+      "library": "icons",
+      "file": "icons/seal-check.svg",
+      "label": "认证通过",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "认证",
+        "通过"
+      ],
+      "usage": "表示认证、审核通过或可靠结论"
+    },
+    {
+      "id": "check-circle",
+      "library": "icons",
+      "file": "icons/check-circle.svg",
+      "label": "完成",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "完成",
+        "成功"
+      ],
+      "usage": "表示完成、成功或已确认"
+    },
+    {
+      "id": "x-circle",
+      "library": "icons",
+      "file": "icons/x-circle.svg",
+      "label": "失败",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "失败",
+        "错误"
+      ],
+      "usage": "表示失败、错误或不可用"
+    },
+    {
+      "id": "chart-bar",
+      "library": "icons",
+      "file": "icons/chart-bar.svg",
+      "label": "柱状图",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "数据",
+        "图表"
+      ],
+      "usage": "表示统计数据、对比或指标"
+    },
+    {
+      "id": "trend-up",
+      "library": "icons",
+      "file": "icons/trend-up.svg",
+      "label": "增长趋势",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "增长",
+        "趋势"
+      ],
+      "usage": "表示增长、上升或正向趋势"
+    },
+    {
+      "id": "hash",
+      "library": "icons",
+      "file": "icons/hash.svg",
+      "label": "数字标签",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "数字",
+        "标签"
+      ],
+      "usage": "表示编号、话题或关键数字"
+    },
+    {
+      "id": "scan",
+      "library": "icons",
+      "file": "icons/scan.svg",
+      "label": "扫描识别",
+      "category": "状态与数据",
+      "accent": "#20d7a0",
+      "tags": [
+        "状态与数据",
+        "扫描",
+        "识别"
+      ],
+      "usage": "表示扫描、识别或定位目标"
+    },
+    {
+      "id": "users",
+      "library": "icons",
+      "file": "icons/users.svg",
+      "label": "团队",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "用户",
+        "团队"
+      ],
+      "usage": "表示多人、团队或用户群体"
+    },
+    {
+      "id": "buildings",
+      "library": "icons",
+      "file": "icons/buildings.svg",
+      "label": "企业",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "企业",
+        "组织"
+      ],
+      "usage": "表示企业、公司或组织机构"
+    },
+    {
+      "id": "bank",
+      "library": "icons",
+      "file": "icons/bank.svg",
+      "label": "机构",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "机构",
+        "金融"
+      ],
+      "usage": "表示机构、金融或公共组织"
+    },
+    {
+      "id": "graduation-cap",
+      "library": "icons",
+      "file": "icons/graduation-cap.svg",
+      "label": "教育",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "教育",
+        "学习"
+      ],
+      "usage": "表示课程、教育或学习成果"
+    },
+    {
+      "id": "calendar",
+      "library": "icons",
+      "file": "icons/calendar.svg",
+      "label": "日历",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "日期",
+        "计划"
+      ],
+      "usage": "表示日期、排期或事件计划"
+    },
+    {
+      "id": "credit-card",
+      "library": "icons",
+      "file": "icons/credit-card.svg",
+      "label": "支付",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "支付",
+        "费用"
+      ],
+      "usage": "表示支付、费用或订阅方案"
+    },
+    {
+      "id": "clipboard",
+      "library": "icons",
+      "file": "icons/clipboard.svg",
+      "label": "清单",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "清单",
+        "记录"
+      ],
+      "usage": "表示记录、任务清单或检查表"
+    },
+    {
+      "id": "list-checks",
+      "library": "icons",
+      "file": "icons/list-checks.svg",
+      "label": "任务完成",
+      "category": "商务与教育",
+      "accent": "#f2b93d",
+      "tags": [
+        "商务与教育",
+        "任务",
+        "步骤"
+      ],
+      "usage": "表示步骤清单、任务或逐项完成"
+    },
+    {
+      "id": "chat",
+      "library": "icons",
+      "file": "icons/chat.svg",
+      "label": "对话",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "对话",
+        "观点"
+      ],
+      "usage": "表示对话、观点或消息内容"
+    },
+    {
+      "id": "megaphone",
+      "library": "icons",
+      "file": "icons/megaphone.svg",
+      "label": "传播",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "传播",
+        "公告"
+      ],
+      "usage": "表示宣传、公告或内容传播"
+    },
+    {
+      "id": "bell",
+      "library": "icons",
+      "file": "icons/bell.svg",
+      "label": "通知",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "通知",
+        "提醒"
+      ],
+      "usage": "表示通知、提醒或待处理事件"
+    },
+    {
+      "id": "envelope",
+      "library": "icons",
+      "file": "icons/envelope.svg",
+      "label": "邮件",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "邮件",
+        "消息"
+      ],
+      "usage": "表示邮件、私信或消息投递"
+    },
+    {
+      "id": "phone",
+      "library": "icons",
+      "file": "icons/phone.svg",
+      "label": "电话",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "电话",
+        "联系"
+      ],
+      "usage": "表示电话、联系或客户沟通"
+    },
+    {
+      "id": "microphone",
+      "library": "icons",
+      "file": "icons/microphone.svg",
+      "label": "口播",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "口播",
+        "声音"
+      ],
+      "usage": "表示口播、录音或语音内容"
+    },
+    {
+      "id": "broadcast",
+      "library": "icons",
+      "file": "icons/broadcast.svg",
+      "label": "直播",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "直播",
+        "广播"
+      ],
+      "usage": "表示直播、广播或实时信号"
+    },
+    {
+      "id": "paper-plane",
+      "library": "icons",
+      "file": "icons/paper-plane.svg",
+      "label": "发送",
+      "category": "沟通与传播",
+      "accent": "#a776f7",
+      "tags": [
+        "沟通与传播",
+        "发送",
+        "分享"
+      ],
+      "usage": "表示发送、分享或消息投递"
+    },
+    {
+      "id": "title",
+      "library": "icons",
+      "file": "icons/title.svg",
+      "label": "标题",
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "标题",
+        "主题"
+      ],
+      "usage": "表示标题、主题或章节开场"
+    },
+    {
+      "id": "quote",
+      "library": "icons",
+      "file": "icons/quote.svg",
+      "label": "观点",
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "观点",
+        "引用"
+      ],
+      "usage": "表示观点、引用或重点原话"
+    },
+    {
       "id": "arrow",
       "library": "icons",
       "file": "icons/arrow.svg",
       "label": "方向箭头",
-      "tags": ["方向", "流程", "跳转"],
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "方向",
+        "流程",
+        "跳转"
+      ],
       "usage": "表示流向、下一步或因果关系"
     },
     {
@@ -15,7 +610,14 @@
       "library": "icons",
       "file": "icons/code.svg",
       "label": "代码符号",
-      "tags": ["代码", "开发", "自动化"],
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "代码",
+        "开发",
+        "自动化"
+      ],
       "usage": "表示代码、编译或开发步骤"
     },
     {
@@ -23,7 +625,14 @@
       "library": "icons",
       "file": "icons/timeline.svg",
       "label": "时间线",
-      "tags": ["时间线", "轨道", "剪辑"],
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "时间线",
+        "轨道",
+        "剪辑"
+      ],
       "usage": "表示时间线、多轨道或自动插入"
     },
     {
@@ -31,15 +640,54 @@
       "library": "icons",
       "file": "icons/speed.svg",
       "label": "速度仪表",
-      "tags": ["速度", "性能", "增长"],
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "速度",
+        "性能",
+        "增长"
+      ],
       "usage": "表示吞吐、性能、加速或效率提升"
+    },
+    {
+      "id": "target",
+      "library": "icons",
+      "file": "icons/target.svg",
+      "label": "目标",
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "目标",
+        "定位"
+      ],
+      "usage": "表示目标、聚焦或命中关键点"
+    },
+    {
+      "id": "lightbulb",
+      "library": "icons",
+      "file": "icons/lightbulb.svg",
+      "label": "灵感",
+      "category": "表达与强调",
+      "accent": "#4f9dff",
+      "tags": [
+        "表达与强调",
+        "灵感",
+        "建议"
+      ],
+      "usage": "表示灵感、方法或解决思路"
     },
     {
       "id": "impact",
       "library": "sfx",
       "file": "sfx/impact.wav",
       "label": "轻冲击",
-      "tags": ["冲击", "重点", "落点"],
+      "tags": [
+        "冲击",
+        "重点",
+        "落点"
+      ],
       "usage": "用于核心结论或大数字的轻量落点"
     },
     {
@@ -47,7 +695,11 @@
       "library": "sfx",
       "file": "sfx/whoosh-soft.wav",
       "label": "柔和掠过",
-      "tags": ["进入", "转场", "滑动"],
+      "tags": [
+        "进入",
+        "转场",
+        "滑动"
+      ],
       "usage": "用于组件滑入、滑出或轻转场"
     },
     {
@@ -55,7 +707,11 @@
       "library": "sfx",
       "file": "sfx/tick.wav",
       "label": "轻点按",
-      "tags": ["步骤", "勾选", "数字"],
+      "tags": [
+        "步骤",
+        "勾选",
+        "数字"
+      ],
       "usage": "用于逐项弹出、步骤完成或微交互"
     }
   ]

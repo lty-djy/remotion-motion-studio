@@ -1,30 +1,5 @@
 [
   {
-    "id": "ProgressRing",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "left",
-    "purpose": "环形进度，3 行补充说明在右。适合表达完成度 + 3 条关键说明。",
-    "whenToUse": "口播里 '完成率 X%' + 三条文字补充。",
-    "role": "hero-metric",
-    "preferredPalettes": [
-      "cyan",
-      "violet",
-      "lime"
-    ],
-    "propsFieldSemantics": {
-      "title": "标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "百分比（0-100 字符串）",
-      "item1": "补充说明一",
-      "item2": "补充说明二",
-      "item3": "补充说明三",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
     "id": "Countdown",
     "catalogGroup": "数字与指标",
     "category": "metric",
@@ -94,31 +69,6 @@
       "item1": "A 侧标签 + 数字（用 item1 表达 A）",
       "item2": "B 侧标签 + 数字（用 item2 表达 B）",
       "item3": "补充说明（可留空）",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
-    "id": "FlipCounter",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "center-stage",
-    "purpose": "机械翻牌数字。适合表达大整数（千、万、亿）。",
-    "whenToUse": "口播里 '已经有 X 用户' / '数量突破 Y 万'。",
-    "role": "anchor",
-    "preferredPalettes": [
-      "cyan",
-      "amber",
-      "violet"
-    ],
-    "propsFieldSemantics": {
-      "title": "标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "数量字符串（含千分位）",
-      "item1": "补充说明一",
-      "item2": "补充说明二",
-      "item3": "补充说明三",
       "animationSeconds": "动画时长",
       "accentColor": "accent token",
       "secondaryColor": "support token"
