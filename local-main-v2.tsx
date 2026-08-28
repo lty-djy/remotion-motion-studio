@@ -177,6 +177,11 @@ type PendingArrangement = {
   motionInstances: MotionInstance[];
   resourceTracks: ResourceTrack[];
   selectedKeys: string[];
+  lockedSegmentIds: string[];
+  componentCandidatesBySegment: Record<
+    string,
+    ArrangementComponentCandidate[]
+  >;
   qualityControlStatus: string;
   qualityControlCheckCount: number;
   qualityControlChecks: Array<{
@@ -190,6 +195,8 @@ type PendingArrangement = {
     semanticSegmentCount?: number;
     intentCount: number;
     skippedCueCount: number;
+    repeatedAvoidedCount?: number;
+    supportingSuppressedCount?: number;
   };
   layoutSummary?: {
     obstacleLabels: string[];
@@ -199,6 +206,44 @@ type PendingArrangement = {
     unresolvedCount: number;
   };
 };
+
+type ArrangementComponentCandidate = {
+  componentId: string;
+  rank: number;
+  reason: string;
+  props: Record<string, unknown>;
+};
+
+type PendingArrangementSegment = {
+  id: string;
+  motionInstances: MotionInstance[];
+  resourceTracks: ResourceTrack[];
+  startFrame: number;
+  endFrame: number;
+};
+
+type ArrangementComponentPicker = {
+  mode: "replace" | "add";
+  segmentId: string;
+  instanceId?: string;
+};
+
+const getArrangementSegmentId = (
+  item: Pick<MotionInstance | ResourceTrack, "id" | "sourceIntentId" | "sourceExpressionId">,
+) => item.sourceIntentId ?? item.sourceExpressionId ?? item.id;
+
+const markPendingArrangementQualityChecksStale = (
+  arrangement: PendingArrangement,
+): PendingArrangement => ({
+  ...arrangement,
+  qualityControlStatus: "pending",
+  qualityControlChecks: arrangement.qualityControlChecks.map((check) => ({
+    ...check,
+    status: "pending",
+    message: "当前语义段的组件已修改，插入时间线后请复核此项。",
+    affectedExpressionIds: [],
+  })),
+});
 
 type ArrangementIntentSummary = {
   id: string;
@@ -1304,6 +1349,8 @@ const App = () => {
   const [instances, setInstances] = useState<MotionInstance[]>([]);
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
+  const [arrangementComponentPicker, setArrangementComponentPicker] =
+    useState<ArrangementComponentPicker | null>(null);
   const [activeArrangementBatchId, setActiveArrangementBatchId] =
     useState("");
   const [activeArrangementIntentId, setActiveArrangementIntentId] =
@@ -1654,6 +1701,55 @@ const App = () => {
       ),
     [definitions, effectNameOverrides],
   );
+  const arrangementComponentDefinitions = useMemo(() => {
+    const allowedIds = new Set(
+      canvasOrientation === "portrait"
+        ? PORTRAIT_ROUTE_COMPONENT_IDS
+        : AI_ARRANGEABLE_COMPONENT_IDS,
+    );
+    return definitions.filter((definition) => allowedIds.has(definition.id));
+  }, [canvasOrientation, definitions]);
+  const pendingArrangementSegments = useMemo<PendingArrangementSegment[]>(() => {
+    if (!pendingArrangement) return [];
+    const segments = new Map<string, PendingArrangementSegment>();
+    const ensureSegment = (
+      item: MotionInstance | ResourceTrack,
+    ): PendingArrangementSegment => {
+      const id = getArrangementSegmentId(item);
+      const existing = segments.get(id);
+      if (existing) return existing;
+      const created: PendingArrangementSegment = {
+        id,
+        motionInstances: [],
+        resourceTracks: [],
+        startFrame: item.startFrame,
+        endFrame: item.startFrame + item.durationInFrames,
+      };
+      segments.set(id, created);
+      return created;
+    };
+    pendingArrangement.motionInstances.forEach((instance) => {
+      const segment = ensureSegment(instance);
+      segment.motionInstances.push(instance);
+      segment.startFrame = Math.min(segment.startFrame, instance.startFrame);
+      segment.endFrame = Math.max(
+        segment.endFrame,
+        instance.startFrame + instance.durationInFrames,
+      );
+    });
+    pendingArrangement.resourceTracks.forEach((track) => {
+      const segment = ensureSegment(track);
+      segment.resourceTracks.push(track);
+      segment.startFrame = Math.min(segment.startFrame, track.startFrame);
+      segment.endFrame = Math.max(
+        segment.endFrame,
+        track.startFrame + track.durationInFrames,
+      );
+    });
+    return [...segments.values()].sort(
+      (left, right) => left.startFrame - right.startFrame,
+    );
+  }, [pendingArrangement]);
   const selectedInstance =
     instances.find((instance) => instance.id === selectedInstanceId) ?? null;
   const selectedDefinition = selectedInstance
@@ -2993,6 +3089,10 @@ const App = () => {
                 semanticSegmentCount: analysis.semanticSegmentCount,
                 intentCount: analysis.intentCount,
                 skippedCueCount: analysis.skippedCueCount,
+                repeatedAvoidedCount:
+                  analysis.diversitySummary?.repeatedAvoidedCount,
+                supportingSuppressedCount:
+                  analysis.diversitySummary?.supportingSuppressedCount,
               },
               layoutSummary: checkedTimeline.layoutSummary,
             }
@@ -3705,6 +3805,48 @@ const App = () => {
       throw new Error("JSON 格式无效，无法读取编排内容。");
     }
     const parsedRecord = isRecord(parsed) ? parsed : null;
+    const semanticAnalysis = isRecord(parsedRecord?.semanticAnalysis)
+      ? parsedRecord.semanticAnalysis
+      : null;
+    const componentCandidatesBySegment = Object.fromEntries(
+      (Array.isArray(semanticAnalysis?.cueAnalyses)
+        ? semanticAnalysis.cueAnalyses
+        : []
+      ).flatMap((rawCue) => {
+        if (!isRecord(rawCue) || !Array.isArray(rawCue.intents)) return [];
+        return rawCue.intents.flatMap((rawIntent) => {
+          if (!isRecord(rawIntent) || typeof rawIntent.id !== "string") return [];
+          const candidates = Array.isArray(rawIntent.componentCandidates)
+            ? rawIntent.componentCandidates.flatMap(
+                (rawCandidate, candidateIndex): ArrangementComponentCandidate[] => {
+                  if (!isRecord(rawCandidate)) return [];
+                  const componentId = String(rawCandidate.componentId ?? "");
+                  if (!definitionMap.has(componentId)) return [];
+                  return [
+                    {
+                      componentId,
+                      rank: Math.max(
+                        1,
+                        Math.round(
+                          finiteNumber(rawCandidate.rank, candidateIndex + 1),
+                        ),
+                      ),
+                      reason:
+                        typeof rawCandidate.reason === "string"
+                          ? rawCandidate.reason
+                          : "适合当前语义",
+                      props: isRecord(rawCandidate.props)
+                        ? rawCandidate.props
+                        : {},
+                    },
+                  ];
+                },
+              )
+            : [];
+          return candidates.length > 0 ? [[rawIntent.id, candidates]] : [];
+        });
+      }),
+    ) as Record<string, ArrangementComponentCandidate[]>;
     const qualityControl = isRecord(parsedRecord?.qualityControl)
       ? parsedRecord.qualityControl
       : null;
@@ -3947,6 +4089,8 @@ const App = () => {
       motionInstances: arrangementBatch.motionItems,
       resourceTracks: arrangementBatch.resourceItems,
       selectedKeys,
+      lockedSegmentIds: [],
+      componentCandidatesBySegment,
       qualityControlStatus:
         typeof qualityControl?.status === "string"
           ? qualityControl.status
@@ -3987,6 +4131,189 @@ const App = () => {
           : [],
       };
     });
+  };
+
+  const togglePendingArrangementSegmentLock = (segmentId: string) => {
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      const locked = new Set(current.lockedSegmentIds);
+      if (locked.has(segmentId)) locked.delete(segmentId);
+      else locked.add(segmentId);
+      return { ...current, lockedSegmentIds: [...locked] };
+    });
+    setArrangementComponentPicker(null);
+  };
+
+  const replacePendingArrangementMotion = (
+    instanceId: string,
+    candidate: ArrangementComponentCandidate,
+  ) => {
+    const definition = definitionMap.get(candidate.componentId);
+    if (!definition) return;
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      const currentInstance = current.motionInstances.find(
+        (instance) => instance.id === instanceId,
+      );
+      if (
+        !currentInstance ||
+        current.lockedSegmentIds.includes(
+          getArrangementSegmentId(currentInstance),
+        )
+      ) {
+        return current;
+      }
+      const compatibleProps = Object.fromEntries(
+        Object.keys(definition.propsSchema)
+          .filter((key) => key in currentInstance.props)
+          .map((key) => [key, currentInstance.props[key]]),
+      );
+      return markPendingArrangementQualityChecksStale({
+        ...current,
+        motionInstances: current.motionInstances.map((instance) =>
+          instance.id === instanceId
+            ? {
+                ...instance,
+                componentId: definition.id,
+                position: getRegisteredEffectPosition(
+                  definition,
+                  canvasOrientation,
+                ),
+                props: {
+                  ...defaultsFromDefinition(definition),
+                  ...compatibleProps,
+                  ...candidate.props,
+                },
+              }
+            : instance,
+        ),
+      });
+    });
+    setArrangementComponentPicker(null);
+  };
+
+  const addPendingArrangementMotion = (
+    segmentId: string,
+    candidate: ArrangementComponentCandidate,
+  ) => {
+    const definition = definitionMap.get(candidate.componentId);
+    if (!definition) return;
+    setPendingArrangement((current) => {
+      if (!current || current.lockedSegmentIds.includes(segmentId)) return current;
+      const segmentItems = [
+        ...current.motionInstances,
+        ...current.resourceTracks,
+      ].filter((item) => getArrangementSegmentId(item) === segmentId);
+      const base = segmentItems.sort(
+        (left, right) => left.startFrame - right.startFrame,
+      )[0];
+      if (!base) return current;
+      const instance = createInstance(
+        definition,
+        base.startFrame,
+        Math.max(durationInFrames, base.startFrame + base.durationInFrames),
+        {
+          durationInFrames: base.durationInFrames,
+          trackOrder:
+            Math.max(
+              -1,
+              ...current.motionInstances.map((item) => item.trackOrder),
+              ...current.resourceTracks.map((item) => item.trackOrder),
+            ) + 1,
+          backgroundOpacity: 0,
+          position: getRegisteredEffectPosition(definition, canvasOrientation),
+          props: candidate.props,
+          sourceExpressionId: `manual-${segmentId}-${Date.now()}`,
+          sourceIntentId: segmentId,
+          arrangementBatchId: current.batchId,
+          arrangementBatchName: current.batchName,
+        },
+      );
+      return markPendingArrangementQualityChecksStale({
+        ...current,
+        motionInstances: [...current.motionInstances, instance],
+        selectedKeys: [...current.selectedKeys, `motion:${instance.id}`],
+      });
+    });
+    setArrangementComponentPicker(null);
+  };
+
+  const regeneratePendingArrangementSegment = (segmentId: string) => {
+    const candidateCount =
+      pendingArrangement?.componentCandidatesBySegment[segmentId]?.length ??
+      arrangementComponentDefinitions.length;
+    if (candidateCount < 2) {
+      setNotice({ tone: "info", text: "当前语义段没有更多匹配的候选组件。" });
+      return;
+    }
+    setPendingArrangement((current) => {
+      if (!current || current.lockedSegmentIds.includes(segmentId)) return current;
+      const semanticCandidates =
+        current.componentCandidatesBySegment[segmentId] ??
+        arrangementComponentDefinitions.map((definition, index) => ({
+          componentId: definition.id,
+          rank: index + 1,
+          reason: "来自当前画幅的可编排组件库",
+          props: {},
+        }));
+      const availableCandidates = semanticCandidates.filter((candidate) =>
+        definitionMap.has(candidate.componentId),
+      );
+      if (availableCandidates.length < 2) return current;
+      const segmentInstances = current.motionInstances.filter(
+        (instance) => getArrangementSegmentId(instance) === segmentId,
+      );
+      if (segmentInstances.length === 0) return current;
+      const occupied = new Set(segmentInstances.map((item) => item.componentId));
+      let candidateCursor = segmentId
+        .split("")
+        .reduce((total, character) => total + character.charCodeAt(0), 0);
+      const replacements = new Map<
+        string,
+        {
+          definition: MotionComponentDefinition;
+          candidate: ArrangementComponentCandidate;
+        }
+      >();
+      segmentInstances.forEach((instance) => {
+        const alternatives = availableCandidates.filter(
+          (candidate) =>
+            candidate.componentId !== instance.componentId &&
+            !occupied.has(candidate.componentId),
+        );
+        const pool = alternatives.length > 0 ? alternatives : availableCandidates;
+        const candidate = pool[candidateCursor % pool.length];
+        const definition = definitionMap.get(candidate.componentId)!;
+        candidateCursor += 1;
+        occupied.add(definition.id);
+        replacements.set(instance.id, { definition, candidate });
+      });
+      return markPendingArrangementQualityChecksStale({
+        ...current,
+        motionInstances: current.motionInstances.map((instance) => {
+          const replacement = replacements.get(instance.id);
+          if (!replacement) return instance;
+          const { definition, candidate } = replacement;
+          const compatibleProps = Object.fromEntries(
+            Object.keys(definition.propsSchema)
+              .filter((key) => key in instance.props)
+              .map((key) => [key, instance.props[key]]),
+          );
+          return {
+            ...instance,
+            componentId: definition.id,
+            position: getRegisteredEffectPosition(definition, canvasOrientation),
+            props: {
+              ...defaultsFromDefinition(definition),
+              ...compatibleProps,
+              ...candidate.props,
+            },
+          };
+        }),
+      });
+    });
+    setArrangementComponentPicker(null);
+    setNotice({ tone: "ok", text: "已只为当前语义段换一组组件，其他段保持不变。" });
   };
 
   const applyPendingArrangement = () => {
@@ -8808,7 +9135,10 @@ const App = () => {
       {pendingArrangement ? (
         <div
           className="export-dialog-layer arrangement-preview-layer"
-          onPointerDown={() => setPendingArrangement(null)}
+          onPointerDown={() => {
+            setPendingArrangement(null);
+            setArrangementComponentPicker(null);
+          }}
         >
           <section
             className="arrangement-preview-dialog"
@@ -8826,7 +9156,10 @@ const App = () => {
               <button
                 type="button"
                 aria-label="关闭编排预览"
-                onClick={() => setPendingArrangement(null)}
+                onClick={() => {
+                  setPendingArrangement(null);
+                  setArrangementComponentPicker(null);
+                }}
               >
                 <X />
               </button>
@@ -8856,10 +9189,16 @@ const App = () => {
                     pendingArrangement.semanticSummary.cueCount
                     ? ` → ${pendingArrangement.semanticSummary.semanticSegmentCount} 个语义段`
                     : ""}{" "}
-                  · 意图{" "}
-                  <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
-                  {pendingArrangement.semanticSummary.skippedCueCount} 段
-                </span>
+                   · 意图{" "}
+                   <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
+                   {pendingArrangement.semanticSummary.skippedCueCount} 段
+                   {pendingArrangement.semanticSummary.repeatedAvoidedCount
+                     ? ` · 避免重复 ${pendingArrangement.semanticSummary.repeatedAvoidedCount}`
+                     : ""}
+                   {pendingArrangement.semanticSummary.supportingSuppressedCount
+                     ? ` · 减少堆叠 ${pendingArrangement.semanticSummary.supportingSuppressedCount}`
+                     : ""}
+                 </span>
               ) : null}
               {pendingArrangement.layoutSummary ? (
                 <span
@@ -8919,59 +9258,203 @@ const App = () => {
             </div>
 
             <div className="arrangement-preview-list">
-              {pendingArrangement.motionInstances.map((instance) => {
-                const key = `motion:${instance.id}`;
-                const definition = definitionMap.get(instance.componentId);
-                return (
-                  <label className="arrangement-preview-item" key={key}>
-                    <input
-                      type="checkbox"
-                      checked={pendingArrangement.selectedKeys.includes(key)}
-                      onChange={() => togglePendingArrangementItem(key)}
-                    />
-                    <i className="motion">动效</i>
-                    <span>
-                      <strong>{definition?.name ?? instance.componentId}</strong>
-                      <small>
-                        {instance.componentId}
-                        {typeof instance.props.title === "string" &&
-                        instance.props.title
-                          ? ` · ${instance.props.title}`
-                          : ""}
-                      </small>
-                    </span>
-                    <time>
-                      {formatTime(instance.startFrame / fps)} ·{" "}
-                      {formatTime(instance.durationInFrames / fps)}
-                    </time>
-                  </label>
+              {pendingArrangementSegments.map((segment, segmentIndex) => {
+                const locked = pendingArrangement.lockedSegmentIds.includes(
+                  segment.id,
                 );
-              })}
-              {pendingArrangement.resourceTracks.map((track) => {
-                const key = `resource:${track.id}`;
+                const semanticCandidates = (
+                  pendingArrangement.componentCandidatesBySegment[segment.id] ??
+                  arrangementComponentDefinitions.map((definition, index) => ({
+                    componentId: definition.id,
+                    rank: index + 1,
+                    reason: "来自当前画幅的可编排组件库",
+                    props: {},
+                  }))
+                ).filter((candidate) => definitionMap.has(candidate.componentId));
+                const pickerOpen =
+                  arrangementComponentPicker?.segmentId === segment.id;
                 return (
-                  <label className="arrangement-preview-item" key={key}>
-                    <input
-                      type="checkbox"
-                      checked={pendingArrangement.selectedKeys.includes(key)}
-                      onChange={() => togglePendingArrangementItem(key)}
-                    />
-                    <i className={track.kind}>
-                      {track.kind === "icon"
-                        ? "图标"
-                        : track.kind === "material"
-                          ? "素材"
-                          : "音效"}
-                    </i>
-                    <span>
-                      <strong>{track.name}</strong>
-                      <small>{track.resourceId}</small>
-                    </span>
-                    <time>
-                      {formatTime(track.startFrame / fps)} ·{" "}
-                      {formatTime(track.durationInFrames / fps)}
-                    </time>
-                  </label>
+                  <section
+                    className={`arrangement-segment${locked ? " locked" : ""}`}
+                    key={segment.id}
+                  >
+                    <header className="arrangement-segment-header">
+                      <div>
+                        <strong>语义段 {segmentIndex + 1}</strong>
+                        <time>
+                          {formatTime(segment.startFrame / fps)} –{" "}
+                          {formatTime(segment.endFrame / fps)}
+                        </time>
+                        <small>
+                          {segment.motionInstances.length} 个动效 ·{" "}
+                          {segment.resourceTracks.length} 个资源 ·{" "}
+                          {semanticCandidates.length} 个语义候选
+                        </small>
+                      </div>
+                      <div className="arrangement-segment-actions">
+                        <button
+                          type="button"
+                          disabled={locked || semanticCandidates.length < 2}
+                          onClick={() =>
+                            regeneratePendingArrangementSegment(segment.id)
+                          }
+                        >
+                          换一组
+                        </button>
+                        <button
+                          type="button"
+                          disabled={locked || semanticCandidates.length === 0}
+                          onClick={() =>
+                            setArrangementComponentPicker({
+                              mode: "add",
+                              segmentId: segment.id,
+                            })
+                          }
+                        >
+                          <Plus />添加效果
+                        </button>
+                        <button
+                          type="button"
+                          className={locked ? "active" : undefined}
+                          aria-pressed={locked}
+                          onClick={() =>
+                            togglePendingArrangementSegmentLock(segment.id)
+                          }
+                        >
+                          {locked ? "已锁定" : "锁定"}
+                        </button>
+                      </div>
+                    </header>
+
+                    {pickerOpen ? (
+                      <div className="arrangement-component-picker">
+                        <span>
+                          {arrangementComponentPicker.mode === "replace"
+                            ? "替换为"
+                            : "添加效果"}
+                        </span>
+                        <select
+                          autoFocus
+                          defaultValue=""
+                          onChange={(event) => {
+                            const componentId = event.target.value;
+                            const candidate = semanticCandidates.find(
+                              (item) => item.componentId === componentId,
+                            );
+                            if (!candidate) return;
+                            if (
+                              arrangementComponentPicker.mode === "replace" &&
+                              arrangementComponentPicker.instanceId
+                            ) {
+                              replacePendingArrangementMotion(
+                                arrangementComponentPicker.instanceId,
+                                candidate,
+                              );
+                            } else {
+                              addPendingArrangementMotion(segment.id, candidate);
+                            }
+                          }}
+                        >
+                          <option value="">选择效果库中的组件…</option>
+                          {semanticCandidates.map((candidate) => {
+                            const definition = definitionMap.get(
+                              candidate.componentId,
+                            )!;
+                            return (
+                              <option
+                                key={candidate.componentId}
+                                value={candidate.componentId}
+                              >
+                                {candidate.rank}. {definition.name} ·{" "}
+                                {candidate.reason}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setArrangementComponentPicker(null)}
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="arrangement-segment-items">
+                      {segment.motionInstances.map((instance) => {
+                        const key = `motion:${instance.id}`;
+                        const definition = definitionMap.get(instance.componentId);
+                        return (
+                          <div className="arrangement-preview-item" key={key}>
+                            <input
+                              type="checkbox"
+                              disabled={locked}
+                              aria-label={`选择${definition?.name ?? instance.componentId}`}
+                              checked={pendingArrangement.selectedKeys.includes(key)}
+                              onChange={() => togglePendingArrangementItem(key)}
+                            />
+                            <i className="motion">动效</i>
+                            <span>
+                              <strong>{definition?.name ?? instance.componentId}</strong>
+                              <small>
+                                {instance.componentId}
+                                {typeof instance.props.title === "string" &&
+                                instance.props.title
+                                  ? ` · ${instance.props.title}`
+                                  : ""}
+                              </small>
+                            </span>
+                            <time>
+                              {formatTime(instance.startFrame / fps)} ·{" "}
+                              {formatTime(instance.durationInFrames / fps)}
+                            </time>
+                            <button
+                              type="button"
+                              disabled={locked || semanticCandidates.length === 0}
+                              onClick={() =>
+                                setArrangementComponentPicker({
+                                  mode: "replace",
+                                  segmentId: segment.id,
+                                  instanceId: instance.id,
+                                })
+                              }
+                            >
+                              替换
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {segment.resourceTracks.map((track) => {
+                        const key = `resource:${track.id}`;
+                        return (
+                          <div className="arrangement-preview-item resource" key={key}>
+                            <input
+                              type="checkbox"
+                              disabled={locked}
+                              aria-label={`选择${track.name}`}
+                              checked={pendingArrangement.selectedKeys.includes(key)}
+                              onChange={() => togglePendingArrangementItem(key)}
+                            />
+                            <i className={track.kind}>
+                              {track.kind === "icon"
+                                ? "图标"
+                                : track.kind === "material"
+                                  ? "素材"
+                                  : "音效"}
+                            </i>
+                            <span>
+                              <strong>{track.name}</strong>
+                              <small>{track.resourceId}</small>
+                            </span>
+                            <time>
+                              {formatTime(track.startFrame / fps)} ·{" "}
+                              {formatTime(track.durationInFrames / fps)}
+                            </time>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
                 );
               })}
             </div>
@@ -8986,13 +9469,16 @@ const App = () => {
               >
                 {pendingArrangement.qualityControlStatus === "failed"
                   ? "质检未通过，仍可插入所选项；失败项已列出，插入后请人工调整。"
-                  : "只有勾选项会被插入，取消不会修改时间线。"}
+                  : pendingArrangement.qualityControlStatus === "pending"
+                    ? "组件已修改，质检状态待复核；只有勾选项会被插入。"
+                    : "只有勾选项会被插入，取消不会修改时间线。"}
               </span>
               <div>
                 <button
                   type="button"
                   onClick={() => {
                     setPendingArrangement(null);
+                    setArrangementComponentPicker(null);
                     setSrtDialogOpen(true);
                   }}
                 >

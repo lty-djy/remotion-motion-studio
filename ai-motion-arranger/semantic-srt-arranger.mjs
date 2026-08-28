@@ -139,6 +139,38 @@ const INTENT_RULES = [
   },
 ];
 
+const LEGACY_COMPONENT_REASONS = Object.freeze({
+  Countdown: "适合截止时间、阶段切换和紧迫感",
+  SegmentedMeter: "适合流程、容量和分阶段信息",
+  DualMetricBar: "适合两组数值或方案差异",
+  WaveformMetric: "适合性能、速度和连续变化数据",
+  LiquidGauge: "适合占比、完成率和进度数据",
+  RadialTicks: "适合重点结论、科技感和综合指标",
+});
+
+const LEGACY_CANDIDATE_IDS_BY_RULE = Object.freeze({
+  performance: ["WaveformMetric", "RadialTicks", "SegmentedMeter"],
+  process: ["SegmentedMeter", "Countdown", "RadialTicks"],
+  automation: ["RadialTicks", "SegmentedMeter", "WaveformMetric"],
+  comparison: ["DualMetricBar", "SegmentedMeter", "RadialTicks"],
+  completion: ["LiquidGauge", "RadialTicks", "SegmentedMeter"],
+  coverage: ["LiquidGauge", "SegmentedMeter", "RadialTicks"],
+  deadline: ["Countdown", "RadialTicks", "SegmentedMeter"],
+  emphasis: ["RadialTicks", "Countdown", "DualMetricBar"],
+  number: ["WaveformMetric", "LiquidGauge", "RadialTicks"],
+});
+
+const legacyComponentCandidates = (rule, availableIds, props) =>
+  (LEGACY_CANDIDATE_IDS_BY_RULE[rule.id] ?? [rule.componentId])
+    .filter((componentId) => availableIds.has(componentId))
+    .map((componentId, index) => ({
+      componentId,
+      rank: index + 1,
+      reason:
+        LEGACY_COMPONENT_REASONS[componentId] ?? `适合${rule.label}语义`,
+      props,
+    }));
+
 const firstNumber = (text) => {
   const match = text.match(
     /[+-]?\d+(?:[.,]\d+)?\s*(?:%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒|ms|fps)?/iu,
@@ -267,6 +299,17 @@ const buildLegacySemanticSrtArrangement = ({
         0.4,
         Math.min(1.6, Number(((timing.endFrame - timing.startFrame) / fps / 2).toFixed(2))),
       );
+      const props = {
+        title: rule.label,
+        subtitle: rule.subtitle,
+        value,
+        item1: shorten(parts[0] ?? entry.text, 22),
+        item2: shorten(parts[1] ?? "人工确认后插入", 22),
+        item3: shorten(parts[2] ?? "仍可继续微调", 22),
+        animationSeconds,
+        accentColor: rule.accentColor,
+        secondaryColor: "#7a7d84",
+      };
       motionTimeline.push({
         componentId: rule.componentId,
         startFrame: timing.startFrame,
@@ -276,17 +319,7 @@ const buildLegacySemanticSrtArrangement = ({
         visible: true,
         sourceStartFrame: 0,
         backgroundOpacity: 0,
-        props: {
-          title: rule.label,
-          subtitle: rule.subtitle,
-          value,
-          item1: shorten(parts[0] ?? entry.text, 22),
-          item2: shorten(parts[1] ?? "人工确认后插入", 22),
-          item3: shorten(parts[2] ?? "仍可继续微调", 22),
-          animationSeconds,
-          accentColor: rule.accentColor,
-          secondaryColor: "#7a7d84",
-        },
+        props,
         sourceExpressionId: expressionId,
         sourceIntentId: intentId,
         layoutIntent: {
@@ -355,7 +388,14 @@ const buildLegacySemanticSrtArrangement = ({
         });
       }
 
-      detected.push({ id: intentId, type: rule.type, label: rule.label, componentId: rule.componentId });
+      detected.push({
+        id: intentId,
+        type: rule.type,
+        label: rule.label,
+        componentId: rule.componentId,
+        componentIds: [rule.componentId],
+        componentCandidates: legacyComponentCandidates(rule, componentIds, props),
+      });
       intentCount += 1;
     });
 
@@ -724,6 +764,244 @@ const activationAllows = (activation, context) => {
   return true;
 };
 
+const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
+  "chapter-transition": [
+    { componentId: "PortraitChapterRail", reason: "突出章节标题和阶段切换" },
+    { componentId: "PortraitInfoCallout", reason: "用轻量说明卡承接新章节" },
+  ],
+  "info-callout": [
+    { componentId: "PortraitInfoCallout", reason: "适合工具、方法和补充解释" },
+    { componentId: "PortraitChapterRail", reason: "适合把说明提升为小节标题" },
+  ],
+  "metric-decision": [
+    { componentId: "PortraitMetricDecision", reason: "突出核心数字和推荐结论" },
+    { componentId: "PortraitDecisionTagStack", reason: "并列展示多个判断标签" },
+    { componentId: "PortraitInfoCallout", reason: "弱化数据感，改用结论说明卡" },
+  ],
+  "process-steps": [
+    { componentId: "PortraitStepChecklist", reason: "逐步呈现操作流程" },
+    { componentId: "PortraitInfoCallout", reason: "将流程压缩为简短说明" },
+    { componentId: "PortraitChapterRail", reason: "作为流程章节的开场提示" },
+  ],
+  "risk-boundary": [
+    { componentId: "PortraitRiskWarning", reason: "适合一般风险和使用边界" },
+    { componentId: "LegacyModelEliminationWarning", reason: "适合过时、淘汰和被取代语义" },
+    { componentId: "PortraitInfoCallout", reason: "用较克制的说明方式提示限制" },
+  ],
+  "next-episode-cta": [
+    { componentId: "PortraitNextEpisodeCta", reason: "突出关注动作和下集内容" },
+    { componentId: "PortraitChapterRail", reason: "用章节式结尾预告下一部分" },
+    { componentId: "PortraitInfoCallout", reason: "以轻量卡片收束口播" },
+  ],
+});
+
+const portraitCandidateAllowed = (componentId, context) => {
+  if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
+  if (componentId === "PortraitDecisionTagStack") return context.evidence.labelCount >= 2;
+  if (componentId === "PortraitStepChecklist") return context.evidence.stepCount >= 2;
+  if (componentId === "LegacyModelEliminationWarning") {
+    return context.evidence.eliminationWarning;
+  }
+  return true;
+};
+
+const portraitCandidateProps = (componentId, route, context) => {
+  const routedSelection = route.components.find(
+    (selection) => selection.componentId === componentId,
+  );
+  if (routedSelection) {
+    return propsFromBindings(routedSelection.propBindings, context);
+  }
+  const shared = {
+    accentColor: context.style.accentColor,
+    panelColor: context.style.panelColor,
+    textColor: context.style.textColor,
+    animationSeconds: context.timing.animationSeconds,
+  };
+  if (componentId === "PortraitChapterRail") {
+    return {
+      ...shared,
+      title: context.segment.topic,
+      subtitle: context.segment.detail,
+    };
+  }
+  if (componentId === "PortraitInfoCallout") {
+    return {
+      ...shared,
+      eyebrow: context.segment.label,
+      title: context.segment.topic,
+      detail: context.segment.detail,
+      note: context.segment.note || context.intent.conclusion,
+      iconText: context.resource.iconText,
+    };
+  }
+  if (componentId === "PortraitStepChecklist") {
+    return {
+      ...shared,
+      eyebrow: context.segment.label,
+      title: context.segment.topic,
+      subtitle: context.segment.detail,
+      step1: context.intent.steps[1],
+      step2: context.intent.steps[2],
+      step3: context.intent.steps[3],
+      icon1: context.intent.symbols[1],
+      icon2: context.intent.symbols[2],
+      icon3: context.intent.symbols[3],
+      successColor: context.style.successColor,
+    };
+  }
+  return shared;
+};
+
+const portraitComponentCandidates = (route, context, availableIds) =>
+  (PORTRAIT_CANDIDATE_PROFILES[route.id] ?? [])
+    .filter(
+      ({ componentId }) =>
+        availableIds.has(componentId) && portraitCandidateAllowed(componentId, context),
+    )
+    .map((candidate, index) => ({
+      ...candidate,
+      rank: index + 1,
+      props: portraitCandidateProps(candidate.componentId, route, context),
+    }));
+
+const PORTRAIT_DIVERSITY_POLICY = Object.freeze({
+  cooldownIntentCount: 2,
+  maxIntentsPerCueForSupportingMotion: 2,
+  repeatedComponentPenalty: 1000,
+  usagePenalty: 20,
+});
+
+const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
+  PortraitChapterRail: {
+    anchor: "center-top",
+    fallbackAnchors: ["left-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitInfoCallout: {
+    anchor: "right-top",
+    fallbackAnchors: ["left-top", "right-center", "left-center"],
+    preferredScale: 0.72,
+  },
+  PortraitMetricDecision: {
+    anchor: "left-top",
+    fallbackAnchors: ["right-top", "left-center"],
+    preferredScale: 0.64,
+  },
+  PortraitDecisionTagStack: {
+    anchor: "right-center",
+    fallbackAnchors: ["right-top", "left-center"],
+    preferredScale: 0.82,
+  },
+  PortraitStepChecklist: {
+    anchor: "right-top",
+    fallbackAnchors: ["left-top", "right-center", "left-center"],
+    preferredScale: 0.62,
+  },
+  PortraitRiskWarning: {
+    anchor: "left-top",
+    fallbackAnchors: ["right-top", "left-center", "right-center"],
+    preferredScale: 0.64,
+  },
+  LegacyModelEliminationWarning: {
+    anchor: "left-top",
+    fallbackAnchors: ["right-top", "left-center", "right-center"],
+    preferredScale: 0.64,
+  },
+  PortraitNextEpisodeCta: {
+    anchor: "right-top",
+    fallbackAnchors: ["left-top", "right-center"],
+    preferredScale: 0.78,
+  },
+});
+
+const portraitLayoutForCandidate = (componentId, route) => {
+  const routedLayout = route.components.find(
+    (selection) => selection.componentId === componentId,
+  )?.layout;
+  return routedLayout ?? PORTRAIT_FALLBACK_LAYOUTS[componentId];
+};
+
+const selectDiversePortraitCandidates = ({
+  route,
+  context,
+  availableIds,
+  intentCountInCue,
+  diversityState,
+}) => {
+  const candidates = portraitComponentCandidates(route, context, availableIds);
+  const activeSelections = route.components.filter(
+    (selection) =>
+      availableIds.has(selection.componentId) &&
+      activationAllows(selection.activation, context),
+  );
+  if (candidates.length === 0 || activeSelections.length === 0) return [];
+
+  if (context.evidence.eliminationWarning) {
+    const eliminationCandidate = candidates.find(
+      (candidate) => candidate.componentId === "LegacyModelEliminationWarning",
+    );
+    return eliminationCandidate ? [eliminationCandidate] : [];
+  }
+
+  const routeUseCount = diversityState.routeUsage.get(route.id) ?? 0;
+  if (
+    activeSelections.length > 1 &&
+    routeUseCount === 0 &&
+    intentCountInCue <=
+      PORTRAIT_DIVERSITY_POLICY.maxIntentsPerCueForSupportingMotion
+  ) {
+    return activeSelections.flatMap((selection) => {
+      const candidate = candidates.find(
+        (item) => item.componentId === selection.componentId,
+      );
+      return candidate ? [candidate] : [];
+    });
+  }
+
+  if (activeSelections.length > 1) {
+    diversityState.supportingSuppressedCount += activeSelections.length - 1;
+  }
+  const recentIds = new Set(
+    diversityState.recentComponentIds.slice(
+      -PORTRAIT_DIVERSITY_POLICY.cooldownIntentCount,
+    ),
+  );
+  const ranked = [...candidates].sort((left, right) => {
+    const score = (candidate) =>
+      (recentIds.has(candidate.componentId)
+        ? PORTRAIT_DIVERSITY_POLICY.repeatedComponentPenalty
+        : 0) +
+      (diversityState.componentUsage.get(candidate.componentId) ?? 0) *
+        PORTRAIT_DIVERSITY_POLICY.usagePenalty +
+      candidate.rank;
+    return score(left) - score(right);
+  });
+  const chosen = ranked[0];
+  const baselineId = activeSelections[0]?.componentId;
+  if (baselineId && chosen.componentId !== baselineId && recentIds.has(baselineId)) {
+    diversityState.repeatedAvoidedCount += 1;
+  }
+  return [chosen];
+};
+
+const recordPortraitCandidateUsage = (routeId, candidates, diversityState) => {
+  candidates.forEach((candidate) => {
+    diversityState.componentUsage.set(
+      candidate.componentId,
+      (diversityState.componentUsage.get(candidate.componentId) ?? 0) + 1,
+    );
+    diversityState.recentComponentIds.push(candidate.componentId);
+  });
+  diversityState.recentComponentIds = diversityState.recentComponentIds.slice(
+    -PORTRAIT_DIVERSITY_POLICY.cooldownIntentCount,
+  );
+  diversityState.routeUsage.set(
+    routeId,
+    (diversityState.routeUsage.get(routeId) ?? 0) + 1,
+  );
+};
+
 const buildPortraitSemanticSrtArrangement = ({
   entries,
   fps,
@@ -739,6 +1017,13 @@ const buildPortraitSemanticSrtArrangement = ({
   const messages = [];
   let intentCount = 0;
   let trackOrder = 0;
+  const diversityState = {
+    recentComponentIds: [],
+    componentUsage: new Map(),
+    routeUsage: new Map(),
+    repeatedAvoidedCount: 0,
+    supportingSuppressedCount: 0,
+  };
 
   const sourceCueLabel = (entry) => {
     const indices = entry.sourceCueIndices ?? [entry.index];
@@ -775,19 +1060,25 @@ const buildPortraitSemanticSrtArrangement = ({
       );
       const context = portraitContext({ route, text: entry.text, timing, fps });
       const createdMotionIds = [];
+      const selectedCandidates = selectDiversePortraitCandidates({
+        route,
+        context,
+        availableIds: componentIds,
+        intentCountInCue: selectedRoutes.length,
+        diversityState,
+      });
 
-      route.components.forEach((selection, componentIndex) => {
-        if (
-          !componentIds.has(selection.componentId) ||
-          !activationAllows(selection.activation, context)
-        ) {
-          return;
-        }
+      selectedCandidates.forEach((candidate, componentIndex) => {
+        const routedSelection = route.components.find(
+          (selection) => selection.componentId === candidate.componentId,
+        );
+        const layout = portraitLayoutForCandidate(candidate.componentId, route);
+        if (!layout) return;
         const expressionId = `effect-${sequence}-${route.id}-${componentIndex + 1}`;
-        const supportingOffset = selection.role === "supporting" ? Math.min(6, Math.max(0, timing.endFrame - timing.startFrame - 3)) : 0;
+        const supportingOffset = routedSelection?.role === "supporting" ? Math.min(6, Math.max(0, timing.endFrame - timing.startFrame - 3)) : 0;
         const componentStart = timing.startFrame + supportingOffset;
         motionTimeline.push({
-          componentId: selection.componentId,
+          componentId: candidate.componentId,
           startFrame: componentStart,
           durationInFrames: Math.max(3, timing.endFrame - componentStart),
           laneId: `motion-${sequence}-${route.id}-${componentIndex + 1}`,
@@ -795,21 +1086,22 @@ const buildPortraitSemanticSrtArrangement = ({
           visible: true,
           sourceStartFrame: 0,
           backgroundOpacity: 0,
-          props: propsFromBindings(selection.propBindings, context),
+          props: candidate.props,
           sourceExpressionId: expressionId,
           sourceIntentId: intentId,
           layoutIntent: {
-            anchor: selection.layout.anchor,
-            fallbackAnchors: selection.layout.fallbackAnchors,
-            preferredScale: selection.layout.preferredScale,
+            anchor: layout.anchor,
+            fallbackAnchors: layout.fallbackAnchors,
+            preferredScale: layout.preferredScale,
             avoid: PORTRAIT_ROUTING_POLICY.layout.avoid,
             collisionPolicy: PORTRAIT_ROUTING_POLICY.layout.collisionPolicy,
           },
         });
-        createdMotionIds.push(selection.componentId);
+        createdMotionIds.push(candidate.componentId);
       });
 
       if (createdMotionIds.length === 0) return;
+      recordPortraitCandidateUsage(route.id, selectedCandidates, diversityState);
 
       const icon = context.evidence.eliminationWarning
         ? null
@@ -875,6 +1167,11 @@ const buildPortraitSemanticSrtArrangement = ({
         label: route.label,
         componentId: createdMotionIds[0],
         componentIds: createdMotionIds,
+        componentCandidates: portraitComponentCandidates(
+          route,
+          context,
+          componentIds,
+        ),
         score: matchResult.score,
         minimumScore: matchResult.minimumScore,
         signals: matchResult.signals,
@@ -917,6 +1214,12 @@ const buildPortraitSemanticSrtArrangement = ({
     intentCount,
     motionCount: motionTimeline.length,
     resourceCount: resourceTracks.length,
+    diversitySummary: {
+      cooldownIntentCount: PORTRAIT_DIVERSITY_POLICY.cooldownIntentCount,
+      repeatedAvoidedCount: diversityState.repeatedAvoidedCount,
+      supportingSuppressedCount: diversityState.supportingSuppressedCount,
+      componentUsage: Object.fromEntries(diversityState.componentUsage),
+    },
     cueAnalyses,
     messages,
   };

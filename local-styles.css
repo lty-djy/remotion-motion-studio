@@ -3547,7 +3547,7 @@ aside {
 .arrangement-preview-dialog {
   display: flex;
   flex-direction: column;
-  width: 680px;
+  width: 820px;
   max-width: calc(100vw - 40px);
   max-height: min(82vh, 760px);
   padding: 18px;
@@ -3752,7 +3752,7 @@ aside {
 .arrangement-preview-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-height: 160px;
   overflow-y: auto;
   padding: 8px;
@@ -3761,9 +3761,136 @@ aside {
   background: rgba(255, 255, 255, 0.025);
 }
 
+.arrangement-segment {
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.arrangement-segment.locked {
+  border-color: rgba(124, 226, 186, 0.28);
+  background: rgba(83, 219, 163, 0.035);
+}
+
+.arrangement-segment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.arrangement-segment-header > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.arrangement-segment-header strong {
+  color: #e6fbff;
+  font-size: 12px;
+}
+
+.arrangement-segment-header time,
+.arrangement-segment-header small {
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.arrangement-segment-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.arrangement-segment-actions button,
+.arrangement-component-picker button,
+.arrangement-preview-item > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid rgba(104, 232, 255, 0.18);
+  border-radius: 6px;
+  color: #a9dce5;
+  background: rgba(104, 232, 255, 0.05);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.arrangement-segment-actions button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.arrangement-segment-actions button:hover:not(:disabled),
+.arrangement-component-picker button:hover,
+.arrangement-preview-item > button:hover:not(:disabled) {
+  border-color: rgba(104, 232, 255, 0.36);
+  background: rgba(104, 232, 255, 0.12);
+}
+
+.arrangement-segment-actions button.active {
+  color: #7ce2ba;
+  border-color: rgba(83, 219, 163, 0.32);
+  background: rgba(83, 219, 163, 0.1);
+}
+
+.arrangement-segment-actions button:disabled,
+.arrangement-preview-item > button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.arrangement-component-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(104, 232, 255, 0.14);
+  background: rgba(104, 232, 255, 0.045);
+}
+
+.arrangement-component-picker > span {
+  color: #9feeff;
+  font-size: 11px;
+}
+
+.arrangement-component-picker select {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid rgba(104, 232, 255, 0.25);
+  border-radius: 7px;
+  color: var(--text);
+  background: #111824;
+  font-size: 11px;
+  outline: none;
+}
+
+.arrangement-component-picker select:focus {
+  border-color: rgba(104, 232, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(104, 232, 255, 0.08);
+}
+
+.arrangement-segment-items {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px;
+}
+
 .arrangement-preview-item {
   display: grid;
-  grid-template-columns: 18px 42px minmax(0, 1fr) auto;
+  grid-template-columns: 18px 42px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   min-height: 48px;
@@ -3771,7 +3898,11 @@ aside {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
-  cursor: pointer;
+  cursor: default;
+}
+
+.arrangement-preview-item.resource {
+  grid-template-columns: 18px 42px minmax(0, 1fr) auto;
 }
 
 .arrangement-preview-item:hover {
@@ -3781,6 +3912,10 @@ aside {
 
 .arrangement-preview-item input {
   accent-color: var(--cyan);
+}
+
+.arrangement-preview-item input:disabled {
+  opacity: 0.5;
 }
 
 .arrangement-preview-item > i {

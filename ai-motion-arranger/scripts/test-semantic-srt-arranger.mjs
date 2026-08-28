@@ -48,6 +48,24 @@ const registeredIds = new Set(REGISTERED_CARDS.map((card) => card.id));
 if (!first.motionTimeline.every((item) => registeredIds.has(item.componentId))) {
   throw new Error("语义编排引用了效果库之外的组件");
 }
+if (
+  !first.semanticAnalysis.cueAnalyses.every((cue) =>
+    cue.intents.every(
+      (intent) =>
+        intent.componentCandidates.length >= 2 &&
+        intent.componentCandidates.every(
+          (candidate) =>
+            registeredIds.has(candidate.componentId) &&
+            candidate.reason &&
+            candidate.rank >= 1 &&
+            candidate.props &&
+            typeof candidate.props === "object",
+        ),
+    ),
+  )
+) {
+  throw new Error("横屏语义意图没有生成可解释的真实组件候选集");
+}
 const indexedResources = new Set(
   Object.entries(resourceIndex.libraries).flatMap(([library, entries]) =>
     entries.map((entry) => `${library}:${entry.id}`),
@@ -149,11 +167,83 @@ if (
   throw new Error("竖屏语义编排混入了横屏旧组件");
 }
 if (
+  !portraitFirst.semanticAnalysis.cueAnalyses.every((cue) =>
+    cue.intents.every(
+      (intent) =>
+        intent.componentCandidates.length >= 2 &&
+        intent.componentCandidates.every(
+          (candidate) =>
+            PORTRAIT_ROUTE_COMPONENT_IDS.includes(candidate.componentId) &&
+            candidate.reason &&
+            candidate.rank >= 1 &&
+            candidate.props &&
+            typeof candidate.props === "object",
+        ),
+    ),
+  )
+) {
+  throw new Error("竖屏语义意图没有生成可解释的真实组件候选集");
+}
+if (
   portraitFirst.semanticAnalysis.cueAnalyses.some(
     (cue) => cue.intents.length > 3,
   )
 ) {
   throw new Error("单条竖屏字幕生成了超过 3 个视觉意图");
+}
+
+const repeatedMetricResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 540,
+  entries: [
+    { index: 1, startMs: 0, endMs: 2600, text: "第一组数据增长30%，收益更高。" },
+    { index: 2, startMs: 3200, endMs: 5800, text: "第二组数据增长42%，效率更高。" },
+    { index: 3, startMs: 6400, endMs: 9000, text: "第三组数据增长56%，成本更低。" },
+  ],
+});
+const repeatedMetricPrimaryIds = repeatedMetricResult.semanticAnalysis.cueAnalyses
+  .flatMap((cue) => cue.intents)
+  .filter((intent) => intent.id.endsWith("metric-decision"))
+  .map((intent) => intent.componentIds[0]);
+if (
+  repeatedMetricPrimaryIds.length !== 3 ||
+  repeatedMetricPrimaryIds.some(
+    (componentId, index) =>
+      index > 0 && componentId === repeatedMetricPrimaryIds[index - 1],
+  ) ||
+  repeatedMetricResult.semanticAnalysis.diversitySummary.repeatedAvoidedCount < 1
+) {
+  throw new Error(
+    `相邻重复数字语义没有触发组件冷却：${repeatedMetricPrimaryIds.join(",")}`,
+  );
+}
+
+const denseCueResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 300,
+  entries: [
+    {
+      index: 1,
+      startMs: 0,
+      endMs: 7200,
+      text: "下一步进入执行流程，首先导入字幕，然后自动编排，最后确认插入，整体效率提升42%。",
+    },
+  ],
+});
+const denseCueIntentIds = new Set(
+  denseCueResult.semanticAnalysis.cueAnalyses[0]?.intents.map((intent) => intent.id),
+);
+const denseCueMotionCount = denseCueResult.motionTimeline.filter((item) =>
+  denseCueIntentIds.has(item.sourceIntentId),
+).length;
+if (
+  denseCueIntentIds.size !== 3 ||
+  denseCueMotionCount > 3 ||
+  denseCueResult.semanticAnalysis.diversitySummary.supportingSuppressedCount < 1
+) {
+  throw new Error(
+    `高密度语义没有限制辅助动效：intents=${denseCueIntentIds.size} motion=${denseCueMotionCount}`,
+  );
 }
 const metricItems = portraitFirst.motionTimeline.filter((item) =>
   ["PortraitMetricDecision", "PortraitDecisionTagStack"].includes(item.componentId),
@@ -309,6 +399,13 @@ if (
   variantComponents.get(2)?.includes("LegacyModelEliminationWarning")
 ) {
   throw new Error("一般风险提醒没有继续使用原风险卡");
+}
+const generalRiskCandidates = riskVariantResult.semanticAnalysis.cueAnalyses
+  .find((cue) => cue.cueIndex === 2)
+  ?.intents.find((intent) => intent.id.endsWith("risk-boundary"))
+  ?.componentCandidates.map((candidate) => candidate.componentId);
+if (generalRiskCandidates?.includes("LegacyModelEliminationWarning")) {
+  throw new Error("一般风险语义不应把淘汰警告列为候选组件");
 }
 if (
   variantComponents.get(3)?.includes("LegacyModelEliminationWarning") ||
