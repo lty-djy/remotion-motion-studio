@@ -5,10 +5,8 @@ import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
 
-import { FlowPipelineEffectDef } from "./effects/FlowPipeline";
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
-import { TerminalStepHeroEffectDef } from "./effects/TerminalStepHero";
 
 import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
 
@@ -43,12 +41,7 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   SrtSemanticCaptionsEffectDef,
 
   SrtCueTextEffectDef,
-
-  FlowPipelineEffectDef,
-
   TerminalPanelEffectDef,
-
-  TerminalStepHeroEffectDef,
   SoftTeachingGlassPanelEffectDef,
   PortraitChapterRailEffectDef,
 

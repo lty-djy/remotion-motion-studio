@@ -176,6 +176,7 @@ type PendingArrangement = {
   batchName: string;
   motionInstances: MotionInstance[];
   resourceTracks: ResourceTrack[];
+  captionInstance?: MotionInstance;
   selectedKeys: string[];
   lockedSegmentIds: string[];
   componentCandidatesBySegment: Record<
@@ -222,11 +223,70 @@ type PendingArrangementSegment = {
   endFrame: number;
 };
 
+const SRT_CAPTION_TRACK_ID = "srt-caption-track";
+
 type ArrangementComponentPicker = {
   mode: "replace" | "add";
   segmentId: string;
   instanceId?: string;
 };
+
+type ArrangementResourceEntry = {
+  id: string;
+  label: string;
+  url: string;
+  mimeType: string;
+  tags: string[];
+  usage: string;
+  category: string;
+  accent: string;
+  durationSeconds?: number;
+};
+
+type ArrangementResourcePicker = {
+  mode: "replace" | "add";
+  segmentId: string;
+  kind: ResourceTrack["kind"];
+  trackId?: string;
+};
+
+type ArrangementResourceLibrary = Record<
+  ResourceTrack["kind"],
+  ArrangementResourceEntry[]
+>;
+
+const ARRANGEMENT_RESOURCE_RECOMMENDATIONS: Record<
+  string,
+  Partial<Record<ResourceTrack["kind"], string[]>>
+> = {
+  "chapter-transition": {
+    icon: ["arrow", "title", "timeline"],
+    sfx: ["whoosh-soft", "tick"],
+  },
+  "info-callout": {
+    icon: ["code", "lightbulb", "file-text"],
+    sfx: ["whoosh-soft", "tick"],
+  },
+  "metric-decision": {
+    icon: ["speed", "chart-bar", "hash"],
+    sfx: ["tick", "impact"],
+  },
+  "process-steps": {
+    icon: ["timeline", "list-checks", "route"],
+    sfx: ["tick", "whoosh-soft"],
+  },
+  "risk-boundary": {
+    icon: ["warning", "x-circle", "seal-check"],
+    sfx: ["impact", "tick"],
+  },
+  "next-episode-cta": {
+    icon: ["megaphone", "bell", "arrow"],
+    sfx: ["whoosh-soft", "impact"],
+  },
+};
+
+const getArrangementRouteId = (segmentId: string) =>
+  segmentId.replace(/^intent-\d+-/u, "");
 
 const getArrangementSegmentId = (
   item: Pick<MotionInstance | ResourceTrack, "id" | "sourceIntentId" | "sourceExpressionId">,
@@ -1351,6 +1411,10 @@ const App = () => {
     useState<PendingArrangement | null>(null);
   const [arrangementComponentPicker, setArrangementComponentPicker] =
     useState<ArrangementComponentPicker | null>(null);
+  const [arrangementResourcePicker, setArrangementResourcePicker] =
+    useState<ArrangementResourcePicker | null>(null);
+  const [arrangementResourceSearch, setArrangementResourceSearch] = useState("");
+  const arrangementAudioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const [activeArrangementBatchId, setActiveArrangementBatchId] =
     useState("");
   const [activeArrangementIntentId, setActiveArrangementIntentId] =
@@ -1473,6 +1537,12 @@ const App = () => {
   const [effectSearch, setEffectSearch] = useState("");
   const [iconSearch, setIconSearch] = useState("");
   const [iconResources, setIconResources] = useState<IconResource[]>([]);
+  const [arrangementResourceLibrary, setArrangementResourceLibrary] =
+    useState<ArrangementResourceLibrary>({
+      icon: [],
+      material: [],
+      sfx: [],
+    });
   const [iconLibraryError, setIconLibraryError] = useState("");
   const [openIconCategories, setOpenIconCategories] = useState<string[]>([
     "内容与素材",
@@ -1554,6 +1624,43 @@ const App = () => {
               typeof (icon as IconResource).url === "string",
           ),
         );
+        const normalizeLibrary = (
+          entries: unknown,
+          fallbackCategory: string,
+        ): ArrangementResourceEntry[] =>
+          (Array.isArray(entries) ? entries : []).flatMap((rawEntry) => {
+            if (!isRecord(rawEntry)) return [];
+            const id = String(rawEntry.id ?? "");
+            const url = String(rawEntry.url ?? "");
+            if (!id || !url.startsWith("/input/")) return [];
+            const media = isRecord(rawEntry.media) ? rawEntry.media : {};
+            return [
+              {
+                id,
+                label: String(rawEntry.label ?? id),
+                url,
+                mimeType: String(
+                  rawEntry.mimeType ?? "application/octet-stream",
+                ),
+                tags: Array.isArray(rawEntry.tags)
+                  ? rawEntry.tags.filter(
+                      (tag): tag is string => typeof tag === "string",
+                    )
+                  : [],
+                usage: String(rawEntry.usage ?? ""),
+                category: String(rawEntry.category ?? fallbackCategory),
+                accent: String(rawEntry.accent ?? "#68e8ff"),
+                ...(Number.isFinite(Number(media.durationSeconds))
+                  ? { durationSeconds: Number(media.durationSeconds) }
+                  : {}),
+              },
+            ];
+          });
+        setArrangementResourceLibrary({
+          icon: normalizeLibrary(index?.libraries?.icons, "图标"),
+          material: normalizeLibrary(index?.libraries?.materials, "素材"),
+          sfx: normalizeLibrary(index?.libraries?.sfx, "音效"),
+        });
         setIconLibraryError("");
       })
       .catch((error) => {
@@ -3043,10 +3150,9 @@ const App = () => {
         resourceIndex,
       });
       const analysis = semanticTimeline.semanticAnalysis;
-      if (analysis.motionCount + analysis.resourceCount === 0) {
-        throw new Error(
-          "没有识别到需要视觉强化的明确语义；时间线未修改，请调整字幕内容后重试。",
-        );
+      const captionDefinition = definitionMap.get("SrtSemanticCaptions");
+      if (!captionDefinition) {
+        throw new Error("当前效果库缺少 SRT字幕语义动画，无法生成真实字幕轨道。");
       }
       const componentDefinitions = arrangeableComponentIds.flatMap((componentId) => {
         const definition = definitionMap.get(componentId);
@@ -3069,13 +3175,92 @@ const App = () => {
         includeFace: personPlaceholderEnabled,
         includeCaptions: true,
       });
+      const srtEndSeconds = Math.max(
+        ...entriesOverride.map((entry) => entry.endMs),
+      ) / 1000;
+      const srtEndFrame = Math.max(3, Math.ceil(srtEndSeconds * fps));
+      const cueAnalyses = Array.isArray(analysis.cueAnalyses)
+        ? analysis.cueAnalyses
+        : [];
+      const captionCues = entriesOverride.map((entry) => {
+        const cueAnalysis = cueAnalyses.find((rawCue) => {
+          if (!isRecord(rawCue)) return false;
+          if (Number(rawCue.cueIndex) === entry.index) return true;
+          return (
+            Array.isArray(rawCue.sourceCueIndices) &&
+            rawCue.sourceCueIndices.some(
+              (sourceIndex) => Number(sourceIndex) === entry.index,
+            )
+          );
+        });
+        const primaryIntent =
+          isRecord(cueAnalysis) &&
+          Array.isArray(cueAnalysis.intents) &&
+          isRecord(cueAnalysis.intents[0])
+            ? cueAnalysis.intents[0]
+            : null;
+        const semanticKey =
+          primaryIntent && typeof primaryIntent.id === "string"
+            ? getArrangementRouteId(primaryIntent.id)
+            : "";
+        const keywordSignal =
+          primaryIntent && Array.isArray(primaryIntent.signals)
+            ? primaryIntent.signals.find(
+                (rawSignal) =>
+                  isRecord(rawSignal) &&
+                  rawSignal.type === "keyword" &&
+                  typeof rawSignal.label === "string" &&
+                  entry.text.includes(rawSignal.label),
+              )
+            : null;
+        return {
+          index: entry.index,
+          start: entry.startMs / 1000,
+          end: entry.endMs / 1000,
+          text: entry.text,
+          semanticKey,
+          semanticLabel:
+            primaryIntent && typeof primaryIntent.label === "string"
+              ? primaryIntent.label
+              : "",
+          keyword:
+            isRecord(keywordSignal) && typeof keywordSignal.label === "string"
+              ? keywordSignal.label
+              : "",
+        };
+      });
+      const timelineWithCaption = {
+        ...checkedTimeline,
+        motionTimeline: [
+          ...(Array.isArray(checkedTimeline.motionTimeline)
+            ? checkedTimeline.motionTimeline
+            : []),
+          {
+            componentId: "SrtSemanticCaptions",
+            startFrame: 0,
+            durationInFrames: srtEndFrame,
+            position: getRegisteredEffectPosition(
+              captionDefinition,
+              canvasOrientation,
+            ),
+            backgroundOpacity: 0,
+            props: {
+              enabled: true,
+              cuesJson: JSON.stringify(captionCues),
+              timeOffset: 0,
+            },
+            sourceExpressionId: SRT_CAPTION_TRACK_ID,
+            sourceIntentId: SRT_CAPTION_TRACK_ID,
+          },
+        ],
+      };
       await showStage("preview");
       const baseName = (fileNameOverride || "字幕")
         .replace(/\.srt$/i, "")
         .replace(/[\\/:*?"<>|]/g, "-");
       await importTimelineJson(
         new File(
-          [JSON.stringify(checkedTimeline)],
+          [JSON.stringify(timelineWithCaption)],
           `${baseName}-自动语义编排.timeline.json`,
           { type: "application/json" },
         ),
@@ -3107,16 +3292,13 @@ const App = () => {
         skippedCueCount: analysis.skippedCueCount,
         messages: analysis.messages,
       });
-      const srtEndSeconds = Math.max(
-        ...entriesOverride.map((entry) => entry.endMs),
-      ) / 1000;
       if (srtEndSeconds * fps > durationInFrames) {
         setVideoDuration((current) => Math.max(current, srtEndSeconds + 1));
       }
       setSrtDialogOpen(false);
       setNotice({
         tone: "info",
-        text: `已识别 ${analysis.intentCount} 个语义意图，完成自动避让与 ${checkedTimeline.qualityControlSummary.passedCount}/5 项质检，生成预览但尚未修改时间线。`,
+        text: `已识别 ${analysis.intentCount} 个语义意图，并生成 ${entriesOverride.length} 句真实字幕；预览尚未修改时间线。`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "语义编排生成失败";
@@ -4078,16 +4260,24 @@ const App = () => {
       motionItems: importedInstances,
       resourceItems: orderedResourceTracks,
     });
+    const captionInstance = arrangementBatch.motionItems.find(
+      (instance) => instance.sourceIntentId === SRT_CAPTION_TRACK_ID,
+    );
+    const arrangementMotionItems = arrangementBatch.motionItems.filter(
+      (instance) => instance.id !== captionInstance?.id,
+    );
     const selectedKeys = [
-      ...arrangementBatch.motionItems.map((instance) => `motion:${instance.id}`),
+      ...arrangementMotionItems.map((instance) => `motion:${instance.id}`),
       ...arrangementBatch.resourceItems.map((track) => `resource:${track.id}`),
+      ...(captionInstance ? [`caption:${captionInstance.id}`] : []),
     ];
     setPendingArrangement({
       fileName: file.name,
       batchId: arrangementBatch.batchId,
       batchName: arrangementBatch.batchName,
-      motionInstances: arrangementBatch.motionItems,
+      motionInstances: arrangementMotionItems,
       resourceTracks: arrangementBatch.resourceItems,
+      captionInstance,
       selectedKeys,
       lockedSegmentIds: [],
       componentCandidatesBySegment,
@@ -4100,7 +4290,7 @@ const App = () => {
     });
     setNotice({
       tone: "info",
-      text: `已生成 ${arrangementBatch.motionItems.length} 个动效和 ${arrangementBatch.resourceItems.length} 个资源的编排预览，时间线尚未修改。`,
+      text: `已生成 ${arrangementMotionItems.length} 个动效、${arrangementBatch.resourceItems.length} 个资源和 ${captionInstance ? 1 : 0} 条真实字幕轨的编排预览，时间线尚未修改。`,
     });
   };
 
@@ -4127,6 +4317,9 @@ const App = () => {
               ...current.resourceTracks.map(
                 (track) => `resource:${track.id}`,
               ),
+              ...(current.captionInstance
+                ? [`caption:${current.captionInstance.id}`]
+                : []),
             ]
           : [],
       };
@@ -4316,16 +4509,165 @@ const App = () => {
     setNotice({ tone: "ok", text: "已只为当前语义段换一组组件，其他段保持不变。" });
   };
 
+  const stopArrangementAudioPreview = () => {
+    arrangementAudioPreviewRef.current?.pause();
+    arrangementAudioPreviewRef.current = null;
+  };
+
+  const previewArrangementAudio = (resource: ArrangementResourceEntry) => {
+    stopArrangementAudioPreview();
+    const audio = new Audio(resource.url);
+    audio.volume = 0.55;
+    arrangementAudioPreviewRef.current = audio;
+    void audio.play().catch(() =>
+      setNotice({ tone: "info", text: "浏览器暂时无法播放该音效。" }),
+    );
+  };
+
+  const replacePendingArrangementResource = (
+    trackId: string,
+    resource: ArrangementResourceEntry,
+  ) => {
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      const currentTrack = current.resourceTracks.find(
+        (track) => track.id === trackId,
+      );
+      if (
+        !currentTrack ||
+        current.lockedSegmentIds.includes(getArrangementSegmentId(currentTrack))
+      ) {
+        return current;
+      }
+      const sourceFrames = resource.durationSeconds
+        ? Math.max(3, Math.round(resource.durationSeconds * fps))
+        : currentTrack.sourceDurationInFrames;
+      return markPendingArrangementQualityChecksStale({
+        ...current,
+        resourceTracks: current.resourceTracks.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                resourceId: resource.id,
+                name: resource.label,
+                url: resource.url,
+                mimeType: resource.mimeType,
+                sourceDurationInFrames: sourceFrames,
+                durationInFrames:
+                  track.kind === "sfx"
+                    ? Math.min(track.durationInFrames, sourceFrames)
+                    : track.durationInFrames,
+              }
+            : track,
+        ),
+      });
+    });
+    stopArrangementAudioPreview();
+    setArrangementResourcePicker(null);
+    setArrangementResourceSearch("");
+  };
+
+  const addPendingArrangementResource = (
+    segmentId: string,
+    kind: ResourceTrack["kind"],
+    resource: ArrangementResourceEntry,
+  ) => {
+    setPendingArrangement((current) => {
+      if (!current || current.lockedSegmentIds.includes(segmentId)) return current;
+      const segmentItems = [
+        ...current.motionInstances,
+        ...current.resourceTracks,
+      ].filter((item) => getArrangementSegmentId(item) === segmentId);
+      const base = [...segmentItems].sort(
+        (left, right) => left.startFrame - right.startFrame,
+      )[0];
+      if (!base) return current;
+      const id = createResourceTrackId();
+      const sourceFrames = resource.durationSeconds
+        ? Math.max(3, Math.round(resource.durationSeconds * fps))
+        : base.durationInFrames;
+      const iconSize = canvasOrientation === "portrait" ? 132 : 118;
+      const materialWidth = Math.round(canvasWidth * 0.64);
+      const materialHeight = Math.round(materialWidth * 0.5625);
+      const track: ResourceTrack = {
+        id,
+        laneId: id,
+        trackOrder:
+          Math.max(
+            -1,
+            ...current.motionInstances.map((item) => item.trackOrder),
+            ...current.resourceTracks.map((item) => item.trackOrder),
+          ) + 1,
+        kind,
+        resourceId: resource.id,
+        name: resource.label,
+        url: resource.url,
+        mimeType: resource.mimeType,
+        sourceStartFrame: 0,
+        sourceDurationInFrames: sourceFrames,
+        startFrame: base.startFrame,
+        durationInFrames:
+          kind === "sfx"
+            ? Math.min(sourceFrames, base.durationInFrames)
+            : base.durationInFrames,
+        visible: true,
+        position:
+          kind === "sfx"
+            ? { x: 0, y: 0, width: 1, height: 1, scale: 1, zIndex: 0 }
+            : kind === "icon"
+              ? {
+                  x: Math.round((canvasWidth - iconSize) / 2),
+                  y: canvasOrientation === "portrait" ? 176 : 92,
+                  width: iconSize,
+                  height: iconSize,
+                  scale: 1,
+                  zIndex: 35,
+                }
+              : {
+                  x: Math.round((canvasWidth - materialWidth) / 2),
+                  y: canvasOrientation === "portrait" ? 420 : 180,
+                  width: materialWidth,
+                  height: materialHeight,
+                  scale: 1,
+                  zIndex: 24,
+                },
+        volume: kind === "sfx" ? 0.28 : 1,
+        voiceDucking: kind === "sfx" ? 0.72 : 0,
+        sourceExpressionId: `manual-${kind}-${segmentId}-${Date.now()}`,
+        sourceIntentId: segmentId,
+        arrangementBatchId: current.batchId,
+        arrangementBatchName: current.batchName,
+      };
+      return markPendingArrangementQualityChecksStale({
+        ...current,
+        resourceTracks: [...current.resourceTracks, track],
+        selectedKeys: [...current.selectedKeys, `resource:${track.id}`],
+      });
+    });
+    stopArrangementAudioPreview();
+    setArrangementResourcePicker(null);
+    setArrangementResourceSearch("");
+  };
+
   const applyPendingArrangement = () => {
     if (!pendingArrangement) return;
     const selectedKeys = new Set(pendingArrangement.selectedKeys);
     const selectedMotionInstances = pendingArrangement.motionInstances.filter(
       (instance) => selectedKeys.has(`motion:${instance.id}`),
     );
+    const selectedCaptionInstance =
+      pendingArrangement.captionInstance &&
+      selectedKeys.has(`caption:${pendingArrangement.captionInstance.id}`)
+        ? pendingArrangement.captionInstance
+        : null;
+    const selectedTimelineInstances = [
+      ...selectedMotionInstances,
+      ...(selectedCaptionInstance ? [selectedCaptionInstance] : []),
+    ];
     const selectedResourceTracks = pendingArrangement.resourceTracks.filter(
       (track) => selectedKeys.has(`resource:${track.id}`),
     );
-    if (selectedMotionInstances.length + selectedResourceTracks.length === 0) {
+    if (selectedTimelineInstances.length + selectedResourceTracks.length === 0) {
       setNotice({ tone: "info", text: "请至少选择一个编排项。" });
       return;
     }
@@ -4338,10 +4680,10 @@ const App = () => {
         ...instances.map((candidate) => candidate.trackOrder),
         ...resourceTracks.map((candidate) => candidate.trackOrder),
       ) -
-      selectedMotionInstances.length -
+      selectedTimelineInstances.length -
       selectedResourceTracks.length;
     const arrangementRankById = new Map<string, number>();
-    [...selectedMotionInstances, ...selectedResourceTracks]
+    [...selectedTimelineInstances, ...selectedResourceTracks]
       .sort((left, right) => left.trackOrder - right.trackOrder)
       .forEach((clip, index) => arrangementRankById.set(clip.id, index));
     const withArrangementTrackOrders = <
@@ -4356,7 +4698,7 @@ const App = () => {
       }));
     const nextInstances = appendClipsWithoutMovingExisting(
       instances,
-      withArrangementTrackOrders(selectedMotionInstances),
+      withArrangementTrackOrders(selectedTimelineInstances),
     );
     const nextResourceTracks = appendClipsWithoutMovingExisting(
       resourceTracks,
@@ -4364,7 +4706,7 @@ const App = () => {
     );
     const selectedEndFrame = Math.max(
       0,
-      ...selectedMotionInstances.map(
+      ...selectedTimelineInstances.map(
         (instance) => instance.startFrame + instance.durationInFrames,
       ),
       ...selectedResourceTracks.map(
@@ -4376,8 +4718,8 @@ const App = () => {
     setManualTimelineEndFrame((current) =>
       Math.max(current, selectedEndFrame),
     );
-    if (selectedMotionInstances[0]) {
-      selectOnlyInstance(selectedMotionInstances[0].id);
+    if (selectedTimelineInstances[0]) {
+      selectOnlyInstance(selectedTimelineInstances[0].id);
     } else if (selectedResourceTracks[0]) {
       selectResourceTrack(selectedResourceTracks[0].id);
     }
@@ -4385,14 +4727,18 @@ const App = () => {
     setActiveArrangementIntentId("");
     seekEditorFrame(
       Math.min(
-        ...selectedMotionInstances.map((instance) => instance.startFrame),
+        ...selectedTimelineInstances.map((instance) => instance.startFrame),
         ...selectedResourceTracks.map((track) => track.startFrame),
       ),
     );
+    stopArrangementAudioPreview();
     setPendingArrangement(null);
+    setArrangementComponentPicker(null);
+    setArrangementResourcePicker(null);
+    setArrangementResourceSearch("");
     setNotice({
       tone: "ok",
-      text: `已确认插入 ${selectedMotionInstances.length} 个动效和 ${selectedResourceTracks.length} 个资源；原时间线内容已保留。`,
+      text: `已确认插入 ${selectedMotionInstances.length} 个动效、${selectedResourceTracks.length} 个资源和 ${selectedCaptionInstance ? 1 : 0} 条真实字幕轨；原时间线内容已保留。`,
     });
   };
 
@@ -9136,8 +9482,11 @@ const App = () => {
         <div
           className="export-dialog-layer arrangement-preview-layer"
           onPointerDown={() => {
+            stopArrangementAudioPreview();
             setPendingArrangement(null);
             setArrangementComponentPicker(null);
+            setArrangementResourcePicker(null);
+            setArrangementResourceSearch("");
           }}
         >
           <section
@@ -9157,8 +9506,11 @@ const App = () => {
                 type="button"
                 aria-label="关闭编排预览"
                 onClick={() => {
+                  stopArrangementAudioPreview();
                   setPendingArrangement(null);
                   setArrangementComponentPicker(null);
+                  setArrangementResourcePicker(null);
+                  setArrangementResourceSearch("");
                 }}
               >
                 <X />
@@ -9169,11 +9521,13 @@ const App = () => {
               <span>
                 已选 <b>{pendingArrangement.selectedKeys.length}</b> /{" "}
                 {pendingArrangement.motionInstances.length +
-                  pendingArrangement.resourceTracks.length}
+                  pendingArrangement.resourceTracks.length +
+                  (pendingArrangement.captionInstance ? 1 : 0)}
               </span>
               <span>
                 动效 {pendingArrangement.motionInstances.length} · 资源{" "}
-                {pendingArrangement.resourceTracks.length}
+                {pendingArrangement.resourceTracks.length} · 字幕{" "}
+                {pendingArrangement.captionInstance ? 1 : 0}
               </span>
               <span>
                 质检 {QUALITY_CONTROL_STATUS_LABELS[
@@ -9216,6 +9570,30 @@ const App = () => {
               ) : null}
               <span className="preserve">原时间线将保留</span>
             </div>
+
+            {pendingArrangement.captionInstance ? (
+              <label className="arrangement-caption-toggle">
+                <TextAa aria-hidden="true" />
+                <span>
+                  <strong>字幕</strong>
+                  <small>
+                    导入 {pendingArrangement.semanticSummary?.cueCount ?? 0} 句真实 SRT，按原时间戳实时显示
+                  </small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={pendingArrangement.selectedKeys.includes(
+                    `caption:${pendingArrangement.captionInstance.id}`,
+                  )}
+                  onChange={() =>
+                    togglePendingArrangementItem(
+                      `caption:${pendingArrangement.captionInstance!.id}`,
+                    )
+                  }
+                />
+                <i aria-hidden="true" />
+              </label>
+            ) : null}
 
             {pendingArrangement.qualityControlChecks.length > 0 ? (
               <div className="arrangement-qc-list" aria-label="自动质检结果">
@@ -9271,6 +9649,79 @@ const App = () => {
                     props: {},
                   }))
                 ).filter((candidate) => definitionMap.has(candidate.componentId));
+                const candidateGroups = [...semanticCandidates.reduce(
+                  (groups, candidate) => {
+                    const definition = definitionMap.get(candidate.componentId)!;
+                    const groupName =
+                      EFFECT_REGISTRY_BY_ID.get(candidate.componentId)
+                        ?.catalogGroup ?? definition.category;
+                    const groupCandidates = groups.get(groupName) ?? [];
+                    groupCandidates.push(candidate);
+                    groups.set(groupName, groupCandidates);
+                    return groups;
+                  },
+                  new Map<string, ArrangementComponentCandidate[]>(),
+                )];
+                const pickerTargetInstance = arrangementComponentPicker?.instanceId
+                  ? segment.motionInstances.find(
+                      (instance) =>
+                        instance.id === arrangementComponentPicker.instanceId,
+                    )
+                  : null;
+                const resourcePickerOpen =
+                  arrangementResourcePicker?.segmentId === segment.id;
+                const resourcePickerKind = resourcePickerOpen
+                  ? arrangementResourcePicker.kind
+                  : "icon";
+                const preferredResourceIds =
+                  ARRANGEMENT_RESOURCE_RECOMMENDATIONS[
+                    getArrangementRouteId(segment.id)
+                  ]?.[resourcePickerKind] ?? [];
+                const resourceQuery = arrangementResourceSearch
+                  .trim()
+                  .toLocaleLowerCase("zh-CN");
+                const visibleResourceCandidates = [
+                  ...arrangementResourceLibrary[resourcePickerKind],
+                ]
+                  .filter((resource) => {
+                    if (!resourceQuery) return true;
+                    return [
+                      resource.label,
+                      resource.id,
+                      resource.category,
+                      resource.usage,
+                      ...resource.tags,
+                    ].some((text) =>
+                      text.toLocaleLowerCase("zh-CN").includes(resourceQuery),
+                    );
+                  })
+                  .sort((left, right) => {
+                    const leftRank = preferredResourceIds.indexOf(left.id);
+                    const rightRank = preferredResourceIds.indexOf(right.id);
+                    return (
+                      (leftRank < 0 ? 999 : leftRank) -
+                        (rightRank < 0 ? 999 : rightRank) ||
+                      left.label.localeCompare(right.label, "zh-CN")
+                    );
+                  });
+                const resourceCandidateGroups = [
+                  ...visibleResourceCandidates.reduce((groups, resource) => {
+                    const groupName =
+                      resourcePickerKind === "sfx"
+                        ? "内置音效"
+                        : resource.category ||
+                          (resourcePickerKind === "material" ? "素材" : "图标");
+                    const groupResources = groups.get(groupName) ?? [];
+                    groupResources.push(resource);
+                    groups.set(groupName, groupResources);
+                    return groups;
+                  }, new Map<string, ArrangementResourceEntry[]>()),
+                ];
+                const pickerTargetResource = arrangementResourcePicker?.trackId
+                  ? segment.resourceTracks.find(
+                      (track) => track.id === arrangementResourcePicker.trackId,
+                    )
+                  : null;
                 const pickerOpen =
                   arrangementComponentPicker?.segmentId === segment.id;
                 return (
@@ -9304,12 +9755,14 @@ const App = () => {
                         <button
                           type="button"
                           disabled={locked || semanticCandidates.length === 0}
-                          onClick={() =>
+                          onClick={() => {
+                            stopArrangementAudioPreview();
+                            setArrangementResourcePicker(null);
                             setArrangementComponentPicker({
                               mode: "add",
                               segmentId: segment.id,
-                            })
-                          }
+                            });
+                          }}
                         >
                           <Plus />添加效果
                         </button>
@@ -9326,57 +9779,351 @@ const App = () => {
                       </div>
                     </header>
 
+                    <div className="arrangement-resource-actions">
+                      <span>资源</span>
+                      {(
+                        [
+                          ["icon", "图标"],
+                          ["material", "素材"],
+                          ["sfx", "音效"],
+                        ] as const
+                      ).map(([kind, label]) => {
+                        const count = arrangementResourceLibrary[kind].length;
+                        return (
+                          <button
+                            type="button"
+                            key={kind}
+                            disabled={locked || count === 0}
+                            title={count === 0 ? `${label}库暂无可用资源` : `添加${label}`}
+                            onClick={() => {
+                              setArrangementComponentPicker(null);
+                              setArrangementResourceSearch("");
+                              setArrangementResourcePicker({
+                                mode: "add",
+                                segmentId: segment.id,
+                                kind,
+                              });
+                            }}
+                          >
+                            <Plus />{label}
+                            <b>{count}</b>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {resourcePickerOpen ? (
+                      <div className="arrangement-resource-picker">
+                        <header>
+                          <div>
+                            <strong>
+                              {arrangementResourcePicker.mode === "replace"
+                                ? `替换${
+                                    resourcePickerKind === "icon"
+                                      ? "图标"
+                                      : resourcePickerKind === "material"
+                                        ? "素材"
+                                        : "音效"
+                                  }`
+                                : `添加${
+                                    resourcePickerKind === "icon"
+                                      ? "图标"
+                                      : resourcePickerKind === "material"
+                                        ? "素材"
+                                        : "音效"
+                                  }`}
+                            </strong>
+                            <small>
+                              前列为当前语义推荐，也可以搜索并自由选择全部固定资源
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              stopArrangementAudioPreview();
+                              setArrangementResourcePicker(null);
+                              setArrangementResourceSearch("");
+                            }}
+                          >
+                            <X />关闭
+                          </button>
+                        </header>
+                        <label className="arrangement-resource-search">
+                          <MagnifyingGlass />
+                          <input
+                            autoFocus
+                            type="search"
+                            value={arrangementResourceSearch}
+                            onChange={(event) =>
+                              setArrangementResourceSearch(event.target.value)
+                            }
+                            placeholder="搜索名称、标签或用途"
+                          />
+                          <b>{visibleResourceCandidates.length}</b>
+                        </label>
+                        {resourceCandidateGroups.length > 0 ? (
+                          <div className="arrangement-resource-groups">
+                            {resourceCandidateGroups.map(
+                              ([groupName, groupResources]) => (
+                                <section key={groupName}>
+                                  <header>
+                                    <strong>{groupName}</strong>
+                                    <small>{groupResources.length} 项</small>
+                                  </header>
+                                  <div className="arrangement-resource-grid">
+                                    {groupResources.map((resource) => {
+                                      const isCurrent =
+                                        pickerTargetResource?.resourceId ===
+                                        resource.id;
+                                      const isRecommended =
+                                        preferredResourceIds.includes(resource.id);
+                                      const applyResource = () => {
+                                        if (
+                                          arrangementResourcePicker.mode ===
+                                            "replace" &&
+                                          arrangementResourcePicker.trackId
+                                        ) {
+                                          replacePendingArrangementResource(
+                                            arrangementResourcePicker.trackId,
+                                            resource,
+                                          );
+                                        } else {
+                                          addPendingArrangementResource(
+                                            segment.id,
+                                            resourcePickerKind,
+                                            resource,
+                                          );
+                                        }
+                                      };
+                                      return (
+                                        <article
+                                          className={`arrangement-resource-card${
+                                            isCurrent ? " current" : ""
+                                          }`}
+                                          key={resource.id}
+                                        >
+                                          <button
+                                            type="button"
+                                            className="arrangement-resource-main"
+                                            disabled={isCurrent}
+                                            onClick={applyResource}
+                                          >
+                                            <span className="arrangement-resource-preview">
+                                              {resourcePickerKind === "sfx" ? (
+                                                <i className="arrangement-waveform">
+                                                  {Array.from({ length: 18 }, (_, index) => (
+                                                    <b
+                                                      key={index}
+                                                      style={{
+                                                        height: `${
+                                                          20 +
+                                                          ((index * 17 +
+                                                            resource.id.length * 9) %
+                                                            64)
+                                                        }%`,
+                                                      }}
+                                                    />
+                                                  ))}
+                                                </i>
+                                              ) : resource.mimeType.startsWith(
+                                                  "video/",
+                                                ) ? (
+                                                <video
+                                                  src={resource.url}
+                                                  muted
+                                                  autoPlay
+                                                  loop
+                                                  playsInline
+                                                />
+                                              ) : (
+                                                <img
+                                                  src={resource.url}
+                                                  alt=""
+                                                  loading="lazy"
+                                                />
+                                              )}
+                                              {isRecommended ? <b>AI 推荐</b> : null}
+                                            </span>
+                                            <span className="arrangement-resource-copy">
+                                              <strong>{resource.label}</strong>
+                                              <small>{resource.usage}</small>
+                                              <em>{resource.tags.join(" · ")}</em>
+                                            </span>
+                                          </button>
+                                          <footer>
+                                            <span>
+                                              {resource.durationSeconds
+                                                ? `${resource.durationSeconds.toFixed(2)} 秒`
+                                                : resource.category}
+                                            </span>
+                                            {resourcePickerKind === "sfx" ? (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  previewArrangementAudio(resource)
+                                                }
+                                              >
+                                                <Play weight="fill" />试听
+                                              </button>
+                                            ) : null}
+                                            <button
+                                              type="button"
+                                              disabled={isCurrent}
+                                              onClick={applyResource}
+                                            >
+                                              {isCurrent
+                                                ? "当前资源"
+                                                : arrangementResourcePicker.mode ===
+                                                    "replace"
+                                                  ? "使用"
+                                                  : "添加"}
+                                            </button>
+                                          </footer>
+                                        </article>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+                              ),
+                            )}
+                          </div>
+                        ) : (
+                          <div className="arrangement-resource-empty">
+                            当前资源库没有匹配项
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
                     {pickerOpen ? (
                       <div className="arrangement-component-picker">
-                        <span>
-                          {arrangementComponentPicker.mode === "replace"
-                            ? "替换为"
-                            : "添加效果"}
-                        </span>
-                        <select
-                          autoFocus
-                          defaultValue=""
-                          onChange={(event) => {
-                            const componentId = event.target.value;
-                            const candidate = semanticCandidates.find(
-                              (item) => item.componentId === componentId,
-                            );
-                            if (!candidate) return;
-                            if (
-                              arrangementComponentPicker.mode === "replace" &&
-                              arrangementComponentPicker.instanceId
-                            ) {
-                              replacePendingArrangementMotion(
-                                arrangementComponentPicker.instanceId,
-                                candidate,
-                              );
-                            } else {
-                              addPendingArrangementMotion(segment.id, candidate);
-                            }
-                          }}
-                        >
-                          <option value="">选择效果库中的组件…</option>
-                          {semanticCandidates.map((candidate) => {
-                            const definition = definitionMap.get(
-                              candidate.componentId,
-                            )!;
-                            return (
-                              <option
-                                key={candidate.componentId}
-                                value={candidate.componentId}
-                              >
-                                {candidate.rank}. {definition.name} ·{" "}
-                                {candidate.reason}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => setArrangementComponentPicker(null)}
-                        >
-                          取消
-                        </button>
+                        <header>
+                          <div>
+                            <strong>
+                              {arrangementComponentPicker.mode === "replace"
+                                ? "替换当前动效"
+                                : "向当前段添加效果"}
+                            </strong>
+                            <small>
+                              只显示当前语义匹配的 {semanticCandidates.length} 个候选
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setArrangementComponentPicker(null)}
+                          >
+                            <X />关闭
+                          </button>
+                        </header>
+                        <div className="arrangement-candidate-groups">
+                          {candidateGroups.map(([groupName, groupCandidates]) => (
+                            <section key={groupName}>
+                              <header>
+                                <strong>{groupName}</strong>
+                                <small>{groupCandidates.length} 个候选</small>
+                              </header>
+                              <div className="arrangement-candidate-grid">
+                                {groupCandidates.map((candidate) => {
+                                  const definition = definitionMap.get(
+                                    candidate.componentId,
+                                  )!;
+                                  const isCurrent =
+                                    pickerTargetInstance?.componentId ===
+                                    candidate.componentId;
+                                  const isUsed = segment.motionInstances.some(
+                                    (instance) =>
+                                      instance.componentId === candidate.componentId,
+                                  );
+                                  const applyCandidate = () => {
+                                    if (
+                                      arrangementComponentPicker.mode === "replace" &&
+                                      arrangementComponentPicker.instanceId
+                                    ) {
+                                      replacePendingArrangementMotion(
+                                        arrangementComponentPicker.instanceId,
+                                        candidate,
+                                      );
+                                    } else {
+                                      addPendingArrangementMotion(
+                                        segment.id,
+                                        candidate,
+                                      );
+                                    }
+                                  };
+                                  return (
+                                    <button
+                                      type="button"
+                                      className={`arrangement-candidate-card${
+                                        isCurrent ? " current" : ""
+                                      }`}
+                                      key={candidate.componentId}
+                                      disabled={isCurrent}
+                                      onClick={applyCandidate}
+                                    >
+                                      <span className="arrangement-candidate-preview">
+                                        <Player
+                                          component={definition.component}
+                                          inputProps={{
+                                            ...defaultsFromDefinition(definition),
+                                            ...candidate.props,
+                                            backgroundOpacity: 0.72,
+                                          }}
+                                          durationInFrames={Math.max(
+                                            45,
+                                            Math.min(
+                                              definition.durationInFrames,
+                                              120,
+                                            ),
+                                          )}
+                                          fps={fps}
+                                          compositionWidth={Math.max(
+                                            1,
+                                            definition.bounds.width,
+                                          )}
+                                          compositionHeight={Math.max(
+                                            1,
+                                            definition.bounds.height,
+                                          )}
+                                          autoPlay
+                                          loop
+                                          muted
+                                          controls={false}
+                                          clickToPlay={false}
+                                          spaceKeyToPlayOrPause={false}
+                                          acknowledgeRemotionLicense
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            backgroundColor: "#080b11",
+                                          }}
+                                        />
+                                        <b>推荐 {candidate.rank}</b>
+                                      </span>
+                                      <span className="arrangement-candidate-copy">
+                                        <strong>{definition.name}</strong>
+                                        <small>{definition.description}</small>
+                                        <em>{candidate.reason}</em>
+                                      </span>
+                                      <span className="arrangement-candidate-footer">
+                                        <i>{definition.category}</i>
+                                        <b>
+                                          {isCurrent
+                                            ? "当前组件"
+                                            : isUsed
+                                              ? "再次添加"
+                                              : arrangementComponentPicker.mode ===
+                                                  "replace"
+                                                ? "使用此组件"
+                                                : "添加到本段"}
+                                        </b>
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </section>
+                          ))}
+                        </div>
                       </div>
                     ) : null}
 
@@ -9411,13 +10158,15 @@ const App = () => {
                             <button
                               type="button"
                               disabled={locked || semanticCandidates.length === 0}
-                              onClick={() =>
+                              onClick={() => {
+                                stopArrangementAudioPreview();
+                                setArrangementResourcePicker(null);
                                 setArrangementComponentPicker({
                                   mode: "replace",
                                   segmentId: segment.id,
                                   instanceId: instance.id,
-                                })
-                              }
+                                });
+                              }}
                             >
                               替换
                             </button>
@@ -9450,6 +10199,25 @@ const App = () => {
                               {formatTime(track.startFrame / fps)} ·{" "}
                               {formatTime(track.durationInFrames / fps)}
                             </time>
+                            <button
+                              type="button"
+                              disabled={
+                                locked ||
+                                arrangementResourceLibrary[track.kind].length === 0
+                              }
+                              onClick={() => {
+                                setArrangementComponentPicker(null);
+                                setArrangementResourceSearch("");
+                                setArrangementResourcePicker({
+                                  mode: "replace",
+                                  segmentId: segment.id,
+                                  kind: track.kind,
+                                  trackId: track.id,
+                                });
+                              }}
+                            >
+                              替换
+                            </button>
                           </div>
                         );
                       })}
@@ -9477,8 +10245,11 @@ const App = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    stopArrangementAudioPreview();
                     setPendingArrangement(null);
                     setArrangementComponentPicker(null);
+                    setArrangementResourcePicker(null);
+                    setArrangementResourceSearch("");
                     setSrtDialogOpen(true);
                   }}
                 >

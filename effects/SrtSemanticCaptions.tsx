@@ -7,25 +7,13 @@ type SrtCue = {
   start: number;
   end: number;
   text: string;
+  semanticKey?: string;
+  semanticLabel?: string;
+  keyword?: string;
 };
 
-// 来自「未来3年卫浴行业.srt」的逐句时间轴（秒）
-const DEFAULT_CUES: SrtCue[] = [
-  { index: 1, start: 0.133, end: 0.966, text: "未来3年" },
-  { index: 2, start: 0.966, end: 2.083, text: "卫浴店只有这种" },
-  { index: 3, start: 2.083, end: 3.166, text: "门店能够赚钱" },
-  { index: 4, start: 3.2, end: 4.766, text: "单纯卖货的门店只会" },
-  { index: 5, start: 4.766, end: 6.2, text: "慢慢的被市场淘汰" },
-  { index: 6, start: 6.4, end: 7.883, text: "线上引流线下成交" },
-  { index: 7, start: 7.883, end: 9.933, text: "才是实体店最终的出路" },
-  { index: 8, start: 9.966, end: 11.483, text: "短视频做品牌种草" },
-  { index: 9, start: 11.483, end: 13.0, text: "直播做精准转化" },
-  { index: 10, start: 13.0, end: 13.883, text: "客流稳定" },
-  { index: 11, start: 13.883, end: 14.966, text: "客单更高" },
-  { index: 12, start: 15.083, end: 16.733, text: "轻松突破业绩瓶颈" },
-  { index: 13, start: 16.883, end: 17.566, text: "紧跟趋势" },
-  { index: 14, start: 17.683, end: 19.4, text: "轻松实现年入百万" },
-];
+// 组件只显示工作台实际导入的 SRT，不再回退到示例字幕。
+const DEFAULT_CUES: SrtCue[] = [];
 
 type SemanticTag =
   | "time"
@@ -36,7 +24,16 @@ type SemanticTag =
   | "deal"
   | "people"
   | "growth"
-  | "trend";
+  | "trend"
+  | "info"
+  | "process"
+  | "metric"
+  | "comparison"
+  | "completion"
+  | "coverage"
+  | "emphasis"
+  | "cta"
+  | "automation";
 
 // 语义词库：按顺序匹配，第一条命中的关键词决定该句台词的视觉语义
 const SEMANTIC_LEXICON: ReadonlyArray<{
@@ -64,18 +61,33 @@ const TAG_COLORS: Record<SemanticTag, string> = {
   people: "#60a5fa",
   growth: "#a3e635",
   trend: "#e879f9",
+  info: "#38bdf8",
+  process: "#fb923c",
+  metric: "#22d3ee",
+  comparison: "#c084fc",
+  completion: "#4ade80",
+  coverage: "#2dd4bf",
+  emphasis: "#fbbf24",
+  cta: "#f472b6",
+  automation: "#a78bfa",
 };
 
-const TAG_LABELS: Record<SemanticTag, string> = {
-  time: "周期",
-  store: "门店",
-  money: "收益",
-  risk: "风险",
-  online: "线上",
-  deal: "转化",
-  people: "客群",
-  growth: "增长",
-  trend: "趋势",
+const SEMANTIC_KEY_TAGS: Record<string, SemanticTag> = {
+  "chapter-transition": "time",
+  "info-callout": "info",
+  "metric-decision": "metric",
+  "process-steps": "process",
+  "risk-boundary": "risk",
+  "next-episode-cta": "cta",
+  performance: "metric",
+  process: "process",
+  automation: "automation",
+  comparison: "comparison",
+  completion: "completion",
+  coverage: "coverage",
+  deadline: "time",
+  emphasis: "emphasis",
+  number: "metric",
 };
 
 type SemanticMatch = {
@@ -83,13 +95,58 @@ type SemanticMatch = {
   keyword: string;
 };
 
-const matchSemantics = (text: string): SemanticMatch => {
+const fallbackKeyword = (text: string) => {
+  const numeric = text.match(/\d+(?:[.,]\d+)?\s*(?:%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒)?/u)?.[0];
+  if (numeric) return numeric.trim();
+  const explicit = text.match(
+    /(?:重点|注意|必须|核心|关键|结论|总结|记住|推荐|避免|风险|提升|增长|降低|完成|成功|首先|然后|最后|下一步|接下来)/u,
+  )?.[0];
+  if (explicit) return explicit;
+  const fragments = text
+    .split(/[，,。！？!?…；;：:、\s]+/u)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2);
+  const candidate = fragments.sort((left, right) => right.length - left.length)[0] ?? "";
+  if (!candidate) return "";
+  if (candidate.length <= 6) return candidate;
+  const start = Math.max(0, Math.floor((candidate.length - 4) / 2));
+  return candidate.slice(start, start + 4);
+};
+
+const fallbackTag = (text: string, cueIndex: number): SemanticTag => {
+  if (/风险|注意|不能|避免|错误|失败|淘汰|亏损|下降/u.test(text)) return "risk";
+  if (/首先|然后|接着|最后|步骤|流程/u.test(text)) return "process";
+  if (/AI|代码|模型|自动|智能|JSON|API/iu.test(text)) return "automation";
+  if (/完成|成功|达成|结果/u.test(text)) return "completion";
+  if (/对比|相比|选择|优于|不如/u.test(text)) return "comparison";
+  if (/关注|点赞|评论|下一期|下期|收藏/u.test(text)) return "cta";
+  if (/重点|核心|关键|结论|记住/u.test(text)) return "emphasis";
+  if (/\d|效率|速度|增长|提升|降低|成本/u.test(text)) return "metric";
+  const variedFallbacks: SemanticTag[] = ["info", "people", "trend", "growth"];
+  return variedFallbacks[Math.abs(cueIndex - 1) % variedFallbacks.length];
+};
+
+const matchSemantics = (cue: SrtCue): SemanticMatch => {
+  const routedTag = cue.semanticKey
+    ? SEMANTIC_KEY_TAGS[cue.semanticKey]
+    : undefined;
+  if (cue.keyword && cue.text.includes(cue.keyword)) {
+    return {
+      tag: routedTag ?? fallbackTag(cue.text, cue.index),
+      keyword: cue.keyword,
+    };
+  }
   for (const entry of SEMANTIC_LEXICON) {
     for (const key of entry.keys) {
-      if (key && text.includes(key)) return { tag: entry.tag, keyword: key };
+      if (key && cue.text.includes(key)) {
+        return { tag: routedTag ?? entry.tag, keyword: key };
+      }
     }
   }
-  return { tag: "store", keyword: "" };
+  return {
+    tag: routedTag ?? fallbackTag(cue.text, cue.index),
+    keyword: fallbackKeyword(cue.text),
+  };
 };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
@@ -181,6 +238,76 @@ const SemanticIcon: React.FC<{ tag: SemanticTag; color: string }> = ({
           <path d="M 17 -10 L 8 -9 M 17 -10 L 16 -1" />
         </g>
       );
+    case "info":
+      return (
+        <g {...common}>
+          <circle cx={0} cy={0} r={20} />
+          <path d="M 0 -5 L 0 12" />
+          <circle cx={0} cy={-12} r={1} fill={color} strokeWidth={3} />
+        </g>
+      );
+    case "process":
+      return (
+        <g {...common}>
+          <circle cx={-15} cy={-11} r={4} />
+          <circle cx={-15} cy={0} r={4} />
+          <circle cx={-15} cy={11} r={4} />
+          <path d="M -7 -11 L 17 -11 M -7 0 L 17 0 M -7 11 L 17 11" />
+        </g>
+      );
+    case "metric":
+      return (
+        <g {...common}>
+          <path d="M -18 14 L -18 4 M -5 14 L -5 -4 M 8 14 L 8 -13" />
+          <path d="M -18 -8 L -7 -15 L 2 -8 L 17 -18" />
+          <path d="M 17 -18 L 8 -17 M 17 -18 L 16 -9" />
+        </g>
+      );
+    case "comparison":
+      return (
+        <g {...common}>
+          <path d="M -19 -8 L 14 -8 M 14 -8 L 7 -15 M 14 -8 L 7 -1" />
+          <path d="M 19 9 L -14 9 M -14 9 L -7 2 M -14 9 L -7 16" />
+        </g>
+      );
+    case "completion":
+      return (
+        <g {...common}>
+          <circle cx={0} cy={0} r={20} />
+          <path d="M -10 0 L -3 8 L 12 -9" />
+        </g>
+      );
+    case "coverage":
+      return (
+        <g {...common}>
+          <path d="M 0 0 L 0 -20 A 20 20 0 1 1 -14 14 Z" />
+          <path d="M 5 -15 A 16 16 0 0 1 15 -3" opacity={0.5} />
+        </g>
+      );
+    case "emphasis":
+      return (
+        <g {...common}>
+          <path d="M 0 -19 L 0 5" />
+          <circle cx={0} cy={14} r={1} fill={color} strokeWidth={4} />
+          <path d="M -13 -13 L -19 -18 M 13 -13 L 19 -18" opacity={0.55} />
+        </g>
+      );
+    case "cta":
+      return (
+        <g {...common}>
+          <path d="M -14 8 L -9 3 L -9 -6 A 9 9 0 0 1 9 -6 L 9 3 L 14 8 Z" />
+          <path d="M -4 13 A 5 4 0 0 0 4 13" />
+        </g>
+      );
+    case "automation":
+      return (
+        <g {...common}>
+          <rect x={-18} y={-15} width={36} height={30} rx={8} />
+          <circle cx={-7} cy={-3} r={2} fill={color} strokeWidth={2} />
+          <circle cx={7} cy={-3} r={2} fill={color} strokeWidth={2} />
+          <path d="M -8 7 L 0 11 L 8 7 M 0 -15 L 0 -21" />
+        </g>
+      );
     case "money":
     default:
       return (
@@ -213,7 +340,6 @@ type SrtSemanticCaptionsProps = {
   fontSize?: number;
   accentMode?: string;
   accentColor?: string;
-  showRail?: boolean;
   timeOffset?: number;
   cuesJson?: string;
   backgroundOpacity?: number;
@@ -224,7 +350,6 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
   fontSize = 58,
   accentMode = "auto",
   accentColor = "#f5c542",
-  showRail = true,
   timeOffset = 0,
   cuesJson = "",
   backgroundOpacity = 0,
@@ -247,10 +372,17 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
             return [];
           return [
             {
-              index: i + 1,
+              index: Number.isFinite(Number(item.index))
+                ? Math.max(1, Math.round(Number(item.index)))
+                : i + 1,
               start,
               end: Math.max(end, start + 0.2),
               text,
+              semanticKey:
+                typeof item.semanticKey === "string" ? item.semanticKey : undefined,
+              semanticLabel:
+                typeof item.semanticLabel === "string" ? item.semanticLabel : undefined,
+              keyword: typeof item.keyword === "string" ? item.keyword : undefined,
             },
           ];
         });
@@ -266,10 +398,9 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
 
   const active =
     cues.find((cue) => t >= cue.start && t < cue.end) ?? null;
-  const totalDuration = cues[cues.length - 1].end;
 
-  const semantic = active ? matchSemantics(active.text) : null;
-  const tag: SemanticTag = semantic?.tag ?? "store";
+  const semantic = active ? matchSemantics(active) : null;
+  const tag: SemanticTag = semantic?.tag ?? "info";
   const accent =
     accentMode === "mono" ? accentColor || "#f5c542" : TAG_COLORS[tag];
 
@@ -323,20 +454,6 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
     ? clamp01(age / Math.max(0.001, active.end - active.start))
     : 0;
 
-  // 底部台词轨：整段时间轴 + 当前句高亮 + 播放游标
-  const railX = 150;
-  const railW = 780;
-  const railY = 232;
-  const railH = 6;
-  const globalP = clamp01(t / Math.max(0.001, totalDuration));
-  const segA = active
-    ? railX + railW * clamp01(active.start / totalDuration)
-    : 0;
-  const segB = active
-    ? railX + railW * clamp01(active.end / totalDuration)
-    : 0;
-  const cursorX = railX + railW * globalP;
-
   return (
     <div
       data-effect="SrtSemanticCaptions"
@@ -355,81 +472,6 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
         viewBox="0 0 1080 300"
         style={{ position: "absolute", inset: 0 }}
       >
-        {/* 台词进度轨 */}
-        {showRail ? (
-          <g opacity={groupAlpha > 0 ? 0.95 : 0.75}>
-            <rect
-              x={railX}
-              y={railY}
-              width={railW}
-              height={railH}
-              rx={railH / 2}
-              fill="rgba(255,255,255,0.16)"
-            />
-            <rect
-              x={railX}
-              y={railY}
-              width={Math.max(0, cursorX - railX)}
-              height={railH}
-              rx={railH / 2}
-              fill="rgba(255,255,255,0.42)"
-            />
-            {active ? (
-              <rect
-                x={segA}
-                y={railY - 1}
-                width={Math.max(2, segB - segA)}
-                height={railH + 2}
-                rx={(railH + 2) / 2}
-                fill={accent}
-                opacity={0.92}
-              />
-            ) : null}
-            {cues.map((cue) => (
-              <line
-                key={`tick-${cue.index}`}
-                x1={railX + railW * clamp01(cue.start / totalDuration)}
-                x2={railX + railW * clamp01(cue.start / totalDuration)}
-                y1={railY - 6}
-                y2={railY + railH + 6}
-                stroke="rgba(255,255,255,0.28)"
-                strokeWidth={1.5}
-              />
-            ))}
-            {active ? (
-              <g style={{ filter: `drop-shadow(0px 0px 6px ${accent})` }}>
-                <circle cx={cursorX} cy={railY + railH / 2} r={6} fill={accent} />
-              </g>
-            ) : null}
-            {active ? (
-              <text
-                x={railX + railW}
-                y={railY - 14}
-                textAnchor="end"
-                fill="rgba(255,255,255,0.55)"
-                fontSize={20}
-                letterSpacing={2}
-              >
-                {`${String(active.index).padStart(2, "0")} / ${String(
-                  cues.length,
-                ).padStart(2, "0")}`}
-              </text>
-            ) : null}
-            {active ? (
-              <text
-                x={railX}
-                y={railY - 14}
-                fill={accent}
-                fontSize={20}
-                letterSpacing={4}
-                opacity={0.85}
-              >
-                {`语义 · ${TAG_LABELS[tag]}`}
-              </text>
-            ) : null}
-          </g>
-        ) : null}
-
         {/* 台词条板：进入/退出由帧驱动位移与透明度控制 */}
         {active ? (
           <g opacity={groupAlpha} transform={`translate(0 ${groupDy.toFixed(2)})`}>
@@ -517,7 +559,7 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
 export const SrtSemanticCaptionsEffectDef: EffectDef = {
   id: "SrtSemanticCaptions",
   name: "SRT字幕语义动画",
-  description: "逐句驱动 SVG 字幕：语义词库匹配关键词配色与图标，卡拉OK扫线＋台词轨时间轴",
+  description: "读取导入的真实 SRT 时间戳逐句显示，支持语义配色、图标与关键词扫线",
   category: "captions",
   catalogGroup: "字幕与台词",
   glyph: "SRT",
@@ -533,7 +575,6 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
     fontSize: 58,
     accentMode: "auto",
     accentColor: "#f5c542",
-    showRail: true,
     timeOffset: 0,
     cuesJson: "",
   },
@@ -550,7 +591,6 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
       ],
     },
     accentColor: { type: "color", label: "单色模式强调色", default: "#f5c542" },
-    showRail: { type: "boolean", label: "显示台词轨", default: true },
     timeOffset: { type: "number", label: "时间偏移(秒)", default: 0, min: -10, max: 10, step: 0.05 },
     cuesJson: {
       type: "text",

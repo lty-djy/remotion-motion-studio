@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **31** 个组件，其中 **6** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **29** 个组件，其中 **6** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -12,17 +12,12 @@
 
 ## 字幕与台词
 
-- `SrtSemanticCaptions`：SRT字幕语义动画 — 逐句驱动 SVG 字幕：语义词库匹配关键词配色与图标，卡拉OK扫线＋台词轨时间轴（仅工作台可用；props：`enabled`、`fontSize`、`accentMode`、`accentColor`、`showRail`、`timeOffset`、`cuesJson`）
+- `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，支持语义配色、图标与关键词扫线（仅工作台可用；props：`enabled`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
 - `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
-
-## 流程与图表
-
-- `FlowPipeline`：数据管线流程图 — 任务控制台风格四区数据流转图：节点高亮、虚线流动、数据包飞行并在 VSM 中枢完成协议转换，底部滚动日志（中文，自动循环）（仅工作台可用；props：`enabled`、`title`、`subtitle`、`loopSeconds`、`dliColor`、`propColor`、`showHeader`、`showConsole`）
 
 ## 终端教学 HUD
 
 - `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
-- `TerminalStepHero`：终端步骤主视觉 — 大号步骤编号配合一句结论，适合终端教学的章节落点。（仅工作台可用；props：`enabled`、`step`、`title`、`subtitle`、`accentColor`、`secondaryColor`、`animationSeconds`）
 
 ## 柔和教学紫
 
