@@ -6064,6 +6064,63 @@ const App = () => {
     value: unknown,
   ) => {
     const label = schema.label ?? key;
+    if (
+      key === "mediaUrl" &&
+      selectedDefinition?.id === "MediaSpotlightCard"
+    ) {
+      const handleMediaUpload = async (
+        event: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload-media", {
+          method: "POST",
+          headers: { "x-file-name": encodeURIComponent(file.name) },
+          body: file,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.ok) {
+          updateSelectedProp("mediaUrl", data.mediaUrl);
+          if (data.mediaType) {
+            updateSelectedProp("mediaType", data.mediaType);
+          }
+        }
+      };
+      return (
+        <label className="prop-field" key={key}>
+          <span>{label}</span>
+          <div className="media-upload-row">
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleMediaUpload}
+              style={{ display: "none" }}
+              id="media-spotlight-upload"
+            />
+            <button
+              type="button"
+              className="media-upload-btn"
+              onClick={() =>
+                document.getElementById("media-spotlight-upload")?.click()
+              }
+            >
+              选择文件上传
+            </button>
+            <input
+              type="text"
+              value={String(value ?? "")}
+              placeholder="或粘贴素材地址"
+              onChange={(event) =>
+                updateSelectedProp("mediaUrl", event.target.value)
+              }
+            />
+          </div>
+        </label>
+      );
+    }
     if (schema.type === "boolean") {
       return (
         <label className="toggle-row" key={key}>
@@ -7902,19 +7959,20 @@ const App = () => {
                   <strong>卡片底色</strong><small>OPACITY</small>
                 </div>
                 <div className="dynamic-prop-fields">
-                  <label className="reference-checkline">
-                    <input
-                      type="checkbox"
-                      checked={selectedInstance.backgroundOpacity > 0}
-                      onChange={(event) =>
-                        updateInstance(selectedInstance.id, (instance) => ({
-                          ...instance,
-                          backgroundOpacity: event.target.checked ? 1 : 0,
-                        }))
-                      }
-                    />
-                    <span>显示卡片底色</span>
-                  </label>
+                  <span
+                    className={`pill-toggle${selectedInstance.backgroundOpacity > 0 ? ' active' : ''}`}
+                    role="switch"
+                    aria-checked={selectedInstance.backgroundOpacity > 0}
+                    onClick={() =>
+                      updateInstance(selectedInstance.id, (instance) => ({
+                        ...instance,
+                        backgroundOpacity: instance.backgroundOpacity > 0 ? 0 : 1,
+                      }))
+                    }
+                  >
+                    <span className="pill-toggle-dot" />
+                    <span className="pill-toggle-text">显示卡片底色</span>
+                  </span>
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>底色透明度</label>

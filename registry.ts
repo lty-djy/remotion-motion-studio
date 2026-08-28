@@ -11,8 +11,8 @@ import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
 import { TerminalStepHeroEffectDef } from "./effects/TerminalStepHero";
 
 import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
-import { SoftTeachingLibraryGridEffectDef } from "./effects/SoftTeachingLibraryGrid";
-import { SoftTeachingIncrementBadgeEffectDef } from "./effects/SoftTeachingIncrementBadge";
+
+
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
@@ -21,6 +21,7 @@ import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist"
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { LegacyModelEliminationWarningEffectDef } from "./effects/LegacyModelEliminationWarning";
+import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { WORKBUDDY_EFFECT_DEFS } from "./effects/WorkBuddyCards";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
@@ -47,11 +48,6 @@ export const EFFECT_REGISTRY: EffectDef[] = [
 
   TerminalStepHeroEffectDef,
   SoftTeachingGlassPanelEffectDef,
-
-  SoftTeachingLibraryGridEffectDef,
-
-  SoftTeachingIncrementBadgeEffectDef,
-
   PortraitChapterRailEffectDef,
 
   PortraitInfoCalloutEffectDef,
@@ -67,6 +63,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitNextEpisodeCtaEffectDef,
 
   LegacyModelEliminationWarningEffectDef,
+
+  MediaSpotlightCardEffectDef,
 
   ...WORKBUDDY_EFFECT_DEFS,
 

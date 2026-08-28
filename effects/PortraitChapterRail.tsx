@@ -41,6 +41,11 @@ export const PortraitChapterRail: React.FC<Props> = ({
         position: "relative",
         width: 520,
         height: 116,
+        borderRadius: 14,
+        border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
+        backgroundColor: bgFactor > 0 ? `color-mix(in srgb, #1a1c28 ${Math.round(88 * bgFactor)}%, transparent)` : "transparent",
+        boxShadow: bgFactor > 0 ? "0 14px 28px rgba(0, 0, 0, 0.36)" : "none",
+        backdropFilter: bgFactor > 0 ? "blur(14px)" : undefined,
         color: textColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
         opacity: interpolate(frame, [0, enterFrames], [0, 1], {

@@ -1443,6 +1443,39 @@ const localApi = (): Plugin => {
           return;
         }
 
+        if (url.pathname === "/api/upload-media" && req.method === "POST") {
+          const inputName = decodeURIComponent(
+            String(req.headers["x-file-name"] ?? "media-file"),
+          );
+          const lower = extname(inputName).toLowerCase();
+          const imageExt = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif"];
+          const videoExt = [".mp4", ".mov", ".webm", ".m4v", ".ogg"];
+          const isImage = imageExt.includes(lower);
+          const isVideo = videoExt.includes(lower);
+          if (!isImage && !isVideo) {
+            sendJson(res, 400, { ok: false, error: "仅支持图片或视频文件" });
+            return;
+          }
+          const extension = isImage ? lower : videoExt.includes(lower) ? lower : ".mp4";
+          const body = await getBody(req, 4 * 1024 * 1024 * 1024);
+          const slug =
+            basename(inputName, extname(inputName))
+              .replace(/[^A-Za-z0-9\u4e00-\u9fff_-]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+              .slice(0, 48) || "media";
+          const storedName = `${Date.now()}-${slug}${extension}`;
+          const filePath = join(mediaDir, storedName);
+          await writeFile(filePath, body);
+          const mediaUrl = `/api/media/${basename(filePath)}`;
+          sendJson(res, 200, {
+            ok: true,
+            filename: basename(inputName),
+            mediaUrl: `${mediaUrl}?t=${Date.now()}`,
+            mediaType: isImage ? "image" : "video",
+          });
+          return;
+        }
+
         if (url.pathname === "/api/upload-video" && req.method === "POST") {
           const inputName = decodeURIComponent(
             String(req.headers["x-file-name"] ?? "video.mp4"),

@@ -27,7 +27,6 @@
 ## 柔和教学紫
 
 - `SoftTeachingGlassPanel`：柔和教学玻璃面板 — 人物口播上方的半透明信息面板，适合标题、英文标签和三项解释。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
-- `SoftTeachingLibraryGrid`：柔和教学动效库卡槽 — 低对比紫色卡槽矩阵，可指定一格高亮，表达动效库或能力模块新增。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`columns`、`highlightIndex`、`accentColor`、`animationSeconds`）
 - `SoftTeachingIncrementBadge`：柔和教学 +1 反馈 — 卡槽高亮后出现的 +1 反馈徽章，用于新增、完成或收集动作。（仅工作台可用；props：`enabled`、`value`、`label`、`accentColor`、`animationSeconds`）
 
 ## 竖屏口播信息层
@@ -43,6 +42,10 @@
 ## 风险提醒
 
 - `LegacyModelEliminationWarning`：旧方案淘汰警告 — 深色科技警告面板：标题先入场，红色删除线划过旧方案，最后盖下淘汰印章。（仅工作台可用；props：`enabled`、`kicker`、`title`、`subtitle`、`stampText`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+
+## 媒体展示组件
+
+- `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`animationSeconds`）
 
 ## WorkBuddy效果
 
