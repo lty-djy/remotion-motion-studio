@@ -15,6 +15,12 @@ const componentCatalogPath = join(
   root,
   "remotion-motion-studio.component-catalog.md",
 );
+const semanticCatalogPath = join(
+  root,
+  "ai-motion-arranger",
+  "references",
+  "component-semantic-capabilities.md",
+);
 
 const writeIfChanged = async (path, content) => {
   const previous = await readFile(path, "utf8").catch(() => "");
@@ -51,7 +57,11 @@ const loadRuntimeRegistry = async () => {
   if (!Array.isArray(registry) || registry.length === 0) {
     throw new Error("registry.ts 没有导出有效的 EFFECT_REGISTRY");
   }
-  return registry;
+  const semanticIntentDefinitions = module.exports.SEMANTIC_INTENT_DEFINITIONS;
+  if (!Array.isArray(semanticIntentDefinitions)) {
+    throw new Error("registry.ts 没有导出有效的 SEMANTIC_INTENT_DEFINITIONS");
+  }
+  return { registry, semanticIntentDefinitions };
 };
 
 const assertUniqueIds = (items, label) => {
@@ -110,8 +120,66 @@ const renderComponentCatalog = (runtimeCards, arrangeableIds) => {
   return `${lines.join("\n").trimEnd()}\n`;
 };
 
+const renderSemanticCapabilityCatalog = (
+  runtimeCards,
+  semanticIntentDefinitions,
+) => {
+  const labels = new Map(
+    semanticIntentDefinitions.map((definition) => [
+      definition.id,
+      definition.label,
+    ]),
+  );
+  const groups = new Map();
+  for (const card of runtimeCards) {
+    const list = groups.get(card.catalogGroup) ?? [];
+    list.push(card);
+    groups.set(card.catalogGroup, list);
+  }
+  const intentLabel = (intentId) => labels.get(intentId) ?? intentId ?? "—";
+  const lines = [
+    "# 组件语义能力审核表（自动生成）",
+    "",
+    "> 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。",
+    "> 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。",
+    "",
+    `当前覆盖 **${runtimeCards.length}** 个注册组件。`,
+    "",
+    "## 核心语义",
+    "",
+    ...semanticIntentDefinitions.map(
+      (definition) =>
+        `- **${definition.label}**（\`${definition.id}\`）：${definition.description}`,
+    ),
+    "",
+  ];
+
+  for (const [group, cards] of groups) {
+    lines.push(`## ${group}`, "");
+    for (const card of cards) {
+      const semantic = card.semantic;
+      const primary = semantic.primaryIntent
+        ? intentLabel(semantic.primaryIntent)
+        : `系统角色：${semantic.systemRole ?? "未指定"}`;
+      const secondary = semantic.secondaryIntents?.length
+        ? semantic.secondaryIntents.map(intentLabel).join("、")
+        : "无";
+      lines.push(
+        `- **${card.name}**（\`${card.id}\`）`,
+        `  - 主要：${primary}`,
+        `  - 次要：${secondary}`,
+        `  - 内容：${semantic.contentKinds.join("、")}`,
+        `  - 方向：${semantic.orientation}；密度：${semantic.density}；建议时长：${semantic.durationSeconds.min}–${semantic.durationSeconds.max} 秒`,
+        `  - 检索词：${semantic.keywords.join("、")}`,
+    );
+    }
+    lines.push("");
+  }
+  return `${lines.join("\n").trimEnd()}\n`;
+};
+
 const main = async () => {
-  const registry = await loadRuntimeRegistry();
+  const { registry, semanticIntentDefinitions } = await loadRuntimeRegistry();
   assertUniqueIds(registry, "EFFECT_REGISTRY");
 
   const runtimeCards = registry.map(toSerializableDefinition);
@@ -154,9 +222,13 @@ const main = async () => {
     componentCatalogPath,
     renderComponentCatalog(runtimeCards, arrangeableIds),
   );
+  const semanticCatalogChanged = await writeIfChanged(
+    semanticCatalogPath,
+    renderSemanticCapabilityCatalog(runtimeCards, semanticIntentDefinitions),
+  );
 
   console.log(
-    `✓ runtime=${runtimeCards.length} arrangeable=${registeredCards.length} meta=${metaChanged ? "updated" : "unchanged"} catalog=${catalogChanged ? "updated" : "unchanged"}`,
+    `✓ runtime=${runtimeCards.length} arrangeable=${registeredCards.length} meta=${metaChanged ? "updated" : "unchanged"} catalog=${catalogChanged ? "updated" : "unchanged"} semantics=${semanticCatalogChanged ? "updated" : "unchanged"}`,
   );
 };
 

@@ -1,11 +1,11 @@
-export const PORTRAIT_ROUTE_TABLE_VERSION = "1.2";
+export const PORTRAIT_ROUTE_TABLE_VERSION = "1.4";
 
 export const PORTRAIT_ROUTING_POLICY = Object.freeze({
   orientation: "portrait",
   maxIntentsPerCue: 3,
   supportsMultipleIntentsPerCue: true,
   supportsMultipleComponentsPerIntent: true,
-  baseCaptionTrack: "forbidden",
+  baseCaptionTrack: "separate-toggle",
   bgm: "forbidden",
   resources: {
     icons: "optional",
@@ -25,6 +25,13 @@ export const PORTRAIT_ROUTING_POLICY = Object.freeze({
     previewBeforeApply: true,
     requireUserConfirmation: true,
     existingTimeline: "preserve",
+  },
+  density: {
+    targetSecondsPerMotion: 4,
+    minMotionBudget: 4,
+    maxMotionBudget: 16,
+    maxIntentsPerSegment: 2,
+    minCueFramesForSupportingMotion: 150,
   },
 });
 
@@ -101,20 +108,127 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     ],
   },
   {
+    id: "evidence-source",
+    intentType: "evidence",
+    label: "检测与证据",
+    priority: 85,
+    match: {
+      anyKeywords: [
+        "检测",
+        "抽检",
+        "样品",
+        "医院",
+        "接诊",
+        "患者",
+        "报告",
+        "研究",
+        "国家标准",
+        "证据",
+        "发现",
+      ],
+      patternSources: [
+        "(?:央视|机构|医院|实验室|监管部门).{0,16}(?:检测|抽检|发现|报告|接诊)",
+        "(?:检测|抽检|研究|报告).{0,18}(?:发现|显示|表明|样品|超标|不达标)",
+      ],
+      suppressors: [
+        {
+          label: "仅为保留证据的行动建议",
+          patternSource: "(?:保留|保存|收集).{0,3}证据",
+          weight: 4,
+        },
+      ],
+      minimumScore: 1,
+    },
+    resources: { iconId: "seal-check", sfxId: "tick", iconAnchor: "right-top" },
+    components: [
+      {
+        componentId: "PortraitInfoCallout",
+        role: "primary",
+        activation: "always",
+        propBindings: {
+          eyebrow: "segment.label",
+          title: "segment.topic",
+          detail: "segment.detail",
+          note: "segment.note",
+          iconText: "resource.iconText",
+          accentColor: "style.accentColor",
+          panelColor: "style.panelColor",
+          textColor: "style.textColor",
+          animationSeconds: "timing.animationSeconds",
+        },
+        layout: {
+          anchor: "right-top",
+          fallbackAnchors: ["left-top", "right-center", "left-center"],
+          size: "medium",
+          preferredScale: 0.72,
+        },
+      },
+    ],
+  },
+  {
+    id: "enumerated-tool-list",
+    intentType: "list",
+    label: "多项工具清单",
+    priority: 88,
+    match: {
+      anyKeywords: ["skill", "Skill", "技能", "工具", "一个一个", "逐个", "清单"],
+      patternSources: [
+        "(?:\\d+|一|二|三|四|五|六|七|八|九|十)个(?:\\s*)(?:skill|技能|工具|方法)",
+        "(?:这些|这几个|下面)(?:\\s*)(?:skill|技能|工具|方法)",
+        "(?:一个一个|逐个).{0,8}(?:讲|介绍|说明)",
+      ],
+      minimumScore: 2,
+    },
+    resources: { iconId: "list-checks", sfxId: "tick", iconAnchor: "left-top" },
+    components: [
+      {
+        componentId: "PortraitStaggeredToolList",
+        role: "primary",
+        activation: "when-two-or-more-list-items-present",
+        propBindings: {
+          eyebrow: "segment.label",
+          item1: "intent.items.1",
+          item2: "intent.items.2",
+          item3: "intent.items.3",
+          item4: "intent.items.4",
+          detail1: "intent.itemDetails.1",
+          detail2: "intent.itemDetails.2",
+          detail3: "intent.itemDetails.3",
+          detail4: "intent.itemDetails.4",
+          badge1: "intent.itemBadges.1",
+          badge2: "intent.itemBadges.2",
+          badge3: "intent.itemBadges.3",
+          badge4: "intent.itemBadges.4",
+          highlightColor: "style.listHighlightColor",
+          panelColor: "style.panelColor",
+          textColor: "style.textColor",
+          animationSeconds: "timing.animationSeconds",
+        },
+        layout: {
+          anchor: "center-top",
+          fallbackAnchors: ["left-top", "right-top"],
+          size: "large",
+          preferredScale: 0.92,
+        },
+      },
+    ],
+  },
+  {
     id: "metric-decision",
-    intentType: "comparison",
+    intentType: "metric",
     label: "数字决策",
     priority: 90,
     match: {
       anyKeywords: ["更推荐", "优点", "缺点", "更快", "更低", "更高", "相比", "选择", "方案"],
       patternSources: [
-        "\\d+(?:[.,]\\d+)?\\s*(?:%|％|万|亿|倍|k|K|元|年|秒)?",
+        "\\d+(?:[.,]\\d+)?\\s*(?:%|％|万|亿|倍|k|K|元|块|件|年|秒)?",
+        "(?:一|两|几|十|百|千|万)+\\s*(?:块钱|元|万)",
         "(?:相比|对比|选择|推荐).{0,18}",
       ],
       boosts: [
         {
           label: "中文数量级",
-          patternSource: "(?:十万|百万|千万|上亿|过亿|破亿)",
+          patternSource: "(?:几万|十万|百万|千万|上亿|过亿|破亿)",
           weight: 3,
         },
         {
@@ -128,6 +242,17 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
         {
           label: "仅为未来时间范围",
           patternSource: "^(?:未来|今后)(?:\\d+|一|二|三|四|五|十|几)年",
+          weight: 4,
+        },
+        {
+          label: "型号标准或投诉号码",
+          patternSource:
+            "^(?!.*(?:块钱|元|%|％|倍|件|增长|下降|提升|降低)).*(?:(?:[A-Za-z]{1,6}\\s*\\d{2,})|(?:\\d{5,}\\s*(?:投诉|举报|热线|电话)))",
+          weight: 4,
+        },
+        {
+          label: "行动步骤中的试用时长",
+          patternSource: "(?:试戴|等待|静置|浸泡|使用).{0,8}\\d+(?:小时|分钟|天)",
           weight: 4,
         },
       ],
@@ -228,17 +353,71 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     ],
   },
   {
+    id: "action-advice",
+    intentType: "instruction",
+    label: "行动建议",
+    priority: 75,
+    match: {
+      anyKeywords: [
+        "认准",
+        "正规店铺",
+        "正规渠道",
+        "建议",
+        "最好",
+        "应该",
+        "试戴",
+        "保留证据",
+        "保存证据",
+        "投诉",
+        "举报",
+      ],
+      patternSources: [
+        "(?:购买|选择|遇到|发现).{0,10}(?:认准|正规|保留|保存|投诉|举报)",
+        "(?:先|请|建议|最好|应该).{0,16}(?:试戴|检查|确认|保留|保存|联系)",
+      ],
+      minimumScore: 1,
+    },
+    resources: { iconId: "list-checks", sfxId: "tick", iconAnchor: "right-top" },
+    components: [
+      {
+        componentId: "PortraitInfoCallout",
+        role: "primary",
+        activation: "always",
+        propBindings: {
+          eyebrow: "segment.label",
+          title: "segment.topic",
+          detail: "segment.detail",
+          note: "segment.note",
+          iconText: "resource.iconText",
+          accentColor: "style.accentColor",
+          panelColor: "style.panelColor",
+          textColor: "style.textColor",
+          animationSeconds: "timing.animationSeconds",
+        },
+        layout: {
+          anchor: "right-top",
+          fallbackAnchors: ["left-top", "right-center", "left-center"],
+          size: "medium",
+          preferredScale: 0.72,
+        },
+      },
+    ],
+  },
+  {
     id: "risk-boundary",
     intentType: "warning",
     label: "风险与限制",
     priority: 100,
     match: {
-      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常", "淘汰", "亏损", "下滑", "过时", "落后", "出局", "取代", "不再适用", "旧模式", "旧方案", "传统模式"],
+      anyKeywords: ["注意", "但是", "不过", "风险", "不能", "不等于", "避免", "限制", "边界", "错误", "失真", "异常", "淘汰", "亏损", "下滑", "过时", "落后", "出局", "取代", "不再适用", "旧模式", "旧方案", "传统模式", "致癌", "超标", "不达标", "不含", "骗人", "皮炎", "红肿", "流脓", "伤害", "假货", "治病", "不划算", "露馅", "还敢", "离谱", "根本排不出去"],
       patternSources: [
         "(?:但是|不过|注意).{0,28}(?:不能|风险|错误|失真|异常|限制)",
         "(?:只会|将会|可能会|容易|导致).{0,24}(?:淘汰|亏损|下滑|失败|流失|下降)",
         "(?:单纯|只靠|只会|仍在|还在|依赖|传统|旧(?:模式|方案|做法|打法|产品|技术)?|原有).{0,24}(?:被(?:市场|行业|时代|用户)?淘汰|淘汰出局|出局|过时|落后|不再适用|不再有效|被取代|失去竞争力)",
         "(?:市场|行业|时代|用户).{0,12}(?:正在|将|会|逐渐|开始)?(?:淘汰|抛弃|取代).{0,20}(?:单纯|只靠|只会|传统|旧|原有)",
+        "(?:致癌|超标|不达标|不含|骗人|皮炎|红肿|流脓|伤害|假货|治病|露馅).{0,24}",
+        "(?:伤害|损伤|影响).{0,10}(?:肾|肝|皮肤|身体|健康|骨)",
+        "(?:真不划算|得不偿失|你还敢|便宜到离谱)",
       ],
       suppressors: [
         {

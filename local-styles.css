@@ -3855,9 +3855,10 @@ aside {
 .arrangement-preview-dialog {
   display: flex;
   flex-direction: column;
-  width: 820px;
-  max-width: calc(100vw - 40px);
-  max-height: min(82vh, 760px);
+  width: 1180px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   padding: 18px;
   border: 1px solid rgba(104, 232, 255, 0.28);
   border-radius: 16px;
@@ -3868,6 +3869,7 @@ aside {
 
 .arrangement-preview-dialog > header {
   display: flex;
+  flex: 0 0 auto;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
@@ -3917,6 +3919,7 @@ aside {
 
 .arrangement-preview-summary {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 7px;
   margin: 14px 0 10px;
@@ -3956,6 +3959,7 @@ aside {
 
 .arrangement-qc-list {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 10px;
@@ -3985,6 +3989,7 @@ aside {
 
 .arrangement-caption-controls {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 10px;
@@ -4127,6 +4132,7 @@ aside {
 
 .arrangement-preview-actions {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 6px;
   margin-bottom: 8px;
@@ -4148,9 +4154,10 @@ aside {
 
 .arrangement-preview-list {
   display: flex;
+  flex: 1 1 320px;
   flex-direction: column;
   gap: 8px;
-  min-height: 160px;
+  min-height: 220px;
   overflow-y: auto;
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -4850,6 +4857,7 @@ aside {
 
 .arrangement-preview-dialog > footer {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -4902,6 +4910,12 @@ aside {
 
   .arrangement-qc-list {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1050px) {
+  .arrangement-qc-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

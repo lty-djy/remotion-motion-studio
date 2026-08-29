@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **28** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **29** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -30,6 +30,7 @@
 - `PortraitMetricDecision`：竖屏口播·数据决策卡 — 参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。（仅工作台可用；props：`enabled`、`lead`、`conclusion`、`metricLabel`、`value`、`unit`、`verdict`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitDecisionTagStack`：竖屏口播·优缺点标签组 — 从数据决策卡拆出的独立三标签组件，三张玻璃卡严格同宽对齐并依次滑入。（仅工作台可用；props：`enabled`、`tag1`、`tag2`、`tag3`、`symbol1`、`symbol2`、`symbol3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitStepChecklist`：竖屏口播·步骤清单卡 — 参考竖屏口播视频的后期增强段：顶部给出阶段结论，右侧三张编号步骤卡依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`step1`、`step2`、`step3`、`icon1`、`icon2`、`icon3`、`accentColor`、`successColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `PortraitStaggeredToolList`：竖屏口播·多工具错峰列表 — 复刻参考视频 7.5–12.25 秒：标题先建立语境，四项工具以彩色竖线、说明与徽标依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`titlePrefix`、`titleMain`、`titleEmphasis`、`titleSuffix`、`item1`、`item2`、`item3`、`item4`、`detail1`、`detail2`、`detail3`、`detail4`、`badge1`、`badge2`、`badge3`、`badge4`、`color1`、`color2`、`color3`、`color4`、`highlightColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitRiskWarning`：竖屏口播·风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`icon1`、`icon2`、`icon3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitNextEpisodeCta`：竖屏口播·下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）

@@ -1,0 +1,271 @@
+export const SEMANTIC_INTENT_DEFINITIONS = [
+  { id: "emphasis", label: "重点强调", description: "强化一句话中的核心结论、关键词或重要信息。" },
+  { id: "metric", label: "数字展示", description: "呈现数值、比例、金额、进度或量化结果。" },
+  { id: "comparison", label: "对比差异", description: "表达两个或多个方案、阶段、指标之间的差异。" },
+  { id: "list", label: "列举要点", description: "承载并列观点、标签、条件或清单。" },
+  { id: "process", label: "流程说明", description: "表达步骤、路径、阶段或先后关系。" },
+  { id: "explanation", label: "概念解释", description: "补充定义、方法、工具、原理或背景说明。" },
+  { id: "warning", label: "风险提醒", description: "提示限制、错误、下降、淘汰或需要规避的问题。" },
+  { id: "evidence", label: "案例与素材", description: "展示图片、视频、案例、证明或可视化证据。" },
+  { id: "transition", label: "章节转场", description: "建立开场、章节切换、阶段推进或收束。" },
+  { id: "call-to-action", label: "行动引导", description: "引导关注、收藏、继续观看或采取下一步行动。" },
+] as const;
+
+export type SemanticIntentId =
+  (typeof SEMANTIC_INTENT_DEFINITIONS)[number]["id"];
+
+export type SemanticContentKind =
+  | "short-text"
+  | "long-text"
+  | "metric"
+  | "comparison"
+  | "list"
+  | "process"
+  | "media"
+  | "caption"
+  | "spatial";
+
+export type EffectSystemRole = "caption-track";
+
+export type EffectSemanticCapabilities = {
+  primaryIntent?: SemanticIntentId;
+  secondaryIntents: SemanticIntentId[];
+  contentKinds: SemanticContentKind[];
+  keywords: string[];
+  orientation: "any" | "portrait" | "landscape";
+  density: "light" | "medium" | "heavy";
+  durationSeconds: { min: number; max: number };
+  systemRole?: EffectSystemRole;
+};
+
+const capability = (
+  primaryIntent: SemanticIntentId | undefined,
+  secondaryIntents: SemanticIntentId[],
+  contentKinds: SemanticContentKind[],
+  keywords: string[],
+  options: Partial<
+    Pick<
+      EffectSemanticCapabilities,
+      "orientation" | "density" | "durationSeconds" | "systemRole"
+    >
+  > = {},
+): EffectSemanticCapabilities => ({
+  primaryIntent,
+  secondaryIntents,
+  contentKinds,
+  keywords,
+  orientation: options.orientation ?? "any",
+  density: options.density ?? "medium",
+  durationSeconds: options.durationSeconds ?? { min: 1.5, max: 6 },
+  ...(options.systemRole ? { systemRole: options.systemRole } : {}),
+});
+
+export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
+  Record<string, EffectSemanticCapabilities>
+> = Object.freeze({
+  GlobalExpedition: capability(
+    "evidence",
+    ["process", "transition", "explanation"],
+    ["spatial", "process", "short-text"],
+    ["地图", "路线", "地点", "全球", "跨区域", "行程"],
+    { density: "heavy", durationSeconds: { min: 6, max: 60 } },
+  ),
+  SrtSemanticCaptions: capability(
+    undefined,
+    ["emphasis"],
+    ["caption", "long-text"],
+    ["字幕", "逐字", "关键词高亮", "语义字幕"],
+    { orientation: "portrait", density: "light", systemRole: "caption-track", durationSeconds: { min: 0.5, max: 20 } },
+  ),
+  SrtCueText: capability(
+    undefined,
+    [],
+    ["caption", "long-text"],
+    ["字幕", "台词", "原文", "时间定位"],
+    { density: "light", systemRole: "caption-track", durationSeconds: { min: 0.5, max: 20 } },
+  ),
+  TerminalPanel: capability(
+    "process",
+    ["explanation", "list", "evidence"],
+    ["process", "list", "long-text"],
+    ["代码", "终端", "命令", "步骤", "开发", "工具"],
+    { density: "heavy", durationSeconds: { min: 3, max: 12 } },
+  ),
+  SoftTeachingGlassPanel: capability(
+    "explanation",
+    ["list", "emphasis"],
+    ["list", "long-text"],
+    ["教学", "解释", "知识点", "方法", "说明"],
+    { density: "medium", durationSeconds: { min: 3, max: 10 } },
+  ),
+  PortraitChapterRail: capability(
+    "transition",
+    ["emphasis", "process"],
+    ["short-text", "process"],
+    ["章节", "下一步", "接下来", "阶段", "开场"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 1.2, max: 5 } },
+  ),
+  PortraitInfoCallout: capability(
+    "explanation",
+    ["emphasis", "evidence", "process", "transition", "warning", "call-to-action"],
+    ["short-text", "long-text"],
+    ["说明", "方法", "工具", "例如", "提示", "补充"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 7 } },
+  ),
+  PortraitMetricDecision: capability(
+    "metric",
+    ["comparison", "emphasis"],
+    ["metric", "short-text"],
+    ["数字", "比例", "金额", "增长", "降低", "结果"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  PortraitDecisionTagStack: capability(
+    "comparison",
+    ["list", "emphasis", "metric"],
+    ["comparison", "list", "short-text"],
+    ["标签", "优缺点", "选择", "判断", "并列"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  PortraitStepChecklist: capability(
+    "process",
+    ["list", "explanation"],
+    ["process", "list", "short-text"],
+    ["步骤", "流程", "首先", "然后", "最后"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2.5, max: 9 } },
+  ),
+  PortraitStaggeredToolList: capability(
+    "list",
+    ["explanation", "emphasis", "process"],
+    ["list", "short-text"],
+    ["多个工具", "多个技能", "几个方法", "清单", "逐项讲解", "skill"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 3, max: 9 } },
+  ),
+  PortraitRiskWarning: capability(
+    "warning",
+    ["emphasis", "list", "explanation"],
+    ["list", "short-text"],
+    ["风险", "注意", "限制", "错误", "异常", "避免"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 8 } },
+  ),
+  PortraitNextEpisodeCta: capability(
+    "call-to-action",
+    ["transition", "emphasis"],
+    ["short-text"],
+    ["关注", "点赞", "收藏", "下期", "下一步"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  QuickSetupProof: capability(
+    "evidence",
+    ["emphasis", "comparison", "list"],
+    ["list", "short-text"],
+    ["证明", "快速", "门槛", "无需", "几分钟"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  LegacyModelEliminationWarning: capability(
+    "warning",
+    ["comparison", "emphasis"],
+    ["comparison", "short-text"],
+    ["淘汰", "过时", "落后", "失效", "被取代"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 1.5, max: 7 } },
+  ),
+  MediaSpotlightCard: capability(
+    "evidence",
+    ["explanation", "emphasis"],
+    ["media", "short-text"],
+    ["图片", "视频", "案例", "截图", "作品", "证据"],
+    { density: "heavy", durationSeconds: { min: 2, max: 12 } },
+  ),
+  MaterialCard: capability(
+    "evidence",
+    ["explanation"],
+    ["media"],
+    ["图片", "视频", "素材", "截图", "录屏"],
+    { density: "medium", durationSeconds: { min: 2, max: 12 } },
+  ),
+  TitleReveal: capability(
+    "transition",
+    ["emphasis", "metric"],
+    ["metric", "short-text"],
+    ["开场", "章节", "年份", "趋势", "预告"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 5 } },
+  ),
+  LineTrend: capability(
+    "metric",
+    ["warning", "comparison", "evidence"],
+    ["metric", "comparison"],
+    ["趋势", "折线", "增长", "下降", "变化"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 7 } },
+  ),
+  StepFlow: capability(
+    "process",
+    ["comparison", "explanation"],
+    ["process", "short-text"],
+    ["路径", "流程", "节点", "线上", "线下"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 8 } },
+  ),
+  CompareSplit: capability(
+    "comparison",
+    ["explanation", "list"],
+    ["comparison", "short-text"],
+    ["对比", "左右", "方案", "差异", "双引擎"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 7 } },
+  ),
+  BulletStack: capability(
+    "list",
+    ["emphasis", "explanation"],
+    ["list", "short-text"],
+    ["要点", "优势", "清单", "条件", "并列"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  BarChart: capability(
+    "metric",
+    ["comparison", "evidence", "emphasis"],
+    ["metric", "comparison"],
+    ["柱状图", "业绩", "突破", "增长", "排名"],
+    { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 7 } },
+  ),
+  EndLockup: capability(
+    "call-to-action",
+    ["metric", "emphasis", "transition"],
+    ["metric", "short-text"],
+    ["结尾", "目标", "金额", "行动", "实现"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  SegmentedMeter: capability(
+    "metric",
+    ["process", "list", "emphasis"],
+    ["metric", "process"],
+    ["容量", "阶段", "进度", "性能", "分段"],
+  ),
+  DualMetricBar: capability(
+    "comparison",
+    ["metric", "emphasis"],
+    ["metric", "comparison"],
+    ["对比", "差异", "竞争", "前后", "双向"],
+  ),
+  WaveformMetric: capability(
+    "metric",
+    ["evidence", "emphasis"],
+    ["metric"],
+    ["实时", "吞吐", "速度", "波形", "连续变化"],
+  ),
+  LiquidGauge: capability(
+    "metric",
+    ["emphasis", "process"],
+    ["metric"],
+    ["完成率", "占比", "进度", "比例", "液位"],
+  ),
+  RadialTicks: capability(
+    "emphasis",
+    ["metric", "evidence"],
+    ["metric", "short-text"],
+    ["综合指标", "核心结论", "评分", "科技", "刻度"],
+  ),
+});
+
+export const semanticIntentIdsFor = (
+  capabilities: EffectSemanticCapabilities,
+): SemanticIntentId[] => [
+  ...(capabilities.primaryIntent ? [capabilities.primaryIntent] : []),
+  ...capabilities.secondaryIntents,
+];

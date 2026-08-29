@@ -212,6 +212,9 @@ type PendingArrangement = {
     cueCount: number;
     semanticSegmentCount?: number;
     intentCount: number;
+    detectedIntentCount?: number;
+    suppressedIntentCount?: number;
+    motionBudget?: number;
     skippedCueCount: number;
     repeatedAvoidedCount?: number;
     supportingSuppressedCount?: number;
@@ -1533,6 +1536,9 @@ const App = () => {
     cueCount: number;
     semanticSegmentCount?: number;
     intentCount: number;
+    detectedIntentCount?: number;
+    suppressedIntentCount?: number;
+    motionBudget?: number;
     motionCount: number;
     resourceCount: number;
     skippedCueCount: number;
@@ -3328,6 +3334,12 @@ const App = () => {
         durationInFrames,
         canvas,
         availableComponentIds: arrangeableComponentIds,
+        componentCapabilities: arrangeableComponentIds.flatMap((componentId) => {
+          const definition = EFFECT_REGISTRY_BY_ID.get(componentId);
+          return definition
+            ? [{ componentId, semantic: definition.semantic }]
+            : [];
+        }),
         resourceIndex,
       });
       const analysis = semanticTimeline.semanticAnalysis;
@@ -3455,6 +3467,9 @@ const App = () => {
                 cueCount: analysis.cueCount,
                 semanticSegmentCount: analysis.semanticSegmentCount,
                 intentCount: analysis.intentCount,
+                detectedIntentCount: analysis.detectedIntentCount,
+                suppressedIntentCount: analysis.suppressedIntentCount,
+                motionBudget: analysis.densitySummary?.motionBudget,
                 skippedCueCount: analysis.skippedCueCount,
                 repeatedAvoidedCount:
                   analysis.diversitySummary?.repeatedAvoidedCount,
@@ -3469,6 +3484,9 @@ const App = () => {
         cueCount: analysis.cueCount,
         semanticSegmentCount: analysis.semanticSegmentCount,
         intentCount: analysis.intentCount,
+        detectedIntentCount: analysis.detectedIntentCount,
+        suppressedIntentCount: analysis.suppressedIntentCount,
+        motionBudget: analysis.densitySummary?.motionBudget,
         motionCount: analysis.motionCount,
         resourceCount: analysis.resourceCount,
         skippedCueCount: analysis.skippedCueCount,
@@ -3480,7 +3498,7 @@ const App = () => {
       setSrtDialogOpen(false);
       setNotice({
         tone: "info",
-        text: `已识别 ${analysis.intentCount} 个语义意图，并生成 ${entriesOverride.length} 句真实字幕；预览尚未修改时间线。`,
+        text: `已识别 ${analysis.detectedIntentCount ?? analysis.intentCount} 个语义意图，密度筛选后 ${analysis.intentCount} 个进入预览；时间线尚未修改。`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "语义编排生成失败";
@@ -8540,13 +8558,13 @@ const App = () => {
             <span>背景纯色</span>
             <button
               type="button"
-              className={`reference-switch ${solidBackgroundEnabled ? "active" : ""}`}
+              className={`reference-switch ${solidBackgroundEnabled ? "" : "active"}`}
               aria-label="背景纯色"
-              aria-pressed={solidBackgroundEnabled}
+              aria-pressed={!solidBackgroundEnabled}
               title={
                 solidBackgroundEnabled
-                  ? "关闭纯色背景，使用透明背景"
-                  : "开启纯色背景"
+                  ? "开启透明棋盘格背景"
+                  : "关闭透明棋盘格，恢复纯黑背景"
               }
               onClick={() =>
                 setSolidBackgroundEnabled((enabled) => !enabled)
@@ -10339,8 +10357,11 @@ const App = () => {
                     pendingArrangement.semanticSummary.cueCount
                     ? ` → ${pendingArrangement.semanticSummary.semanticSegmentCount} 个语义段`
                     : ""}{" "}
-                   · 意图{" "}
-                   <b>{pendingArrangement.semanticSummary.intentCount}</b> · 跳过{" "}
+                   · 检测意图{" "}
+                   <b>{pendingArrangement.semanticSummary.detectedIntentCount ?? pendingArrangement.semanticSummary.intentCount}</b>
+                   {pendingArrangement.semanticSummary.suppressedIntentCount
+                     ? ` · 预览采用 ${pendingArrangement.semanticSummary.intentCount} · 密度抑制 ${pendingArrangement.semanticSummary.suppressedIntentCount}`
+                     : ""} · 跳过{" "}
                    {pendingArrangement.semanticSummary.skippedCueCount} 段
                    {pendingArrangement.semanticSummary.repeatedAvoidedCount
                      ? ` · 避免重复 ${pendingArrangement.semanticSummary.repeatedAvoidedCount}`
@@ -11170,7 +11191,10 @@ const App = () => {
                   srtResult.semanticSegmentCount !== srtResult.cueCount
                     ? ` → ${srtResult.semanticSegmentCount} 个语义段`
                     : ""}{" "}
-                  · {srtResult.intentCount} 个意图 ·{" "}
+                  · {srtResult.detectedIntentCount ?? srtResult.intentCount} 个检测意图
+                  {srtResult.suppressedIntentCount
+                    ? ` · ${srtResult.intentCount} 个进入预览 · ${srtResult.suppressedIntentCount} 个密度抑制`
+                    : ""} ·{" "}
                   {srtResult.motionCount} 个动效 · {srtResult.resourceCount} 个资源
                 </b>
               ) : null}

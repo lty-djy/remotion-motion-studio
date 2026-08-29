@@ -1,6 +1,6 @@
 // 此文件由 sync-runtime-registry.mjs 从运行时 registry.ts 自动生成。
 // 不要手改；请修改真实组件定义后运行 npm.cmd run sync:registry。
-export const RUNTIME_COMPONENT_COUNT = 28;
+export const RUNTIME_COMPONENT_COUNT = 29;
 export const REGISTERED_CARDS = [
   {
     "id": "SegmentedMeter",
@@ -72,6 +72,31 @@ export const REGISTERED_CARDS = [
       "secondaryColor": {
         "type": "color",
         "label": "辅助色"
+      }
+    },
+    "semantic": {
+      "primaryIntent": "metric",
+      "secondaryIntents": [
+        "process",
+        "list",
+        "emphasis"
+      ],
+      "contentKinds": [
+        "metric",
+        "process"
+      ],
+      "keywords": [
+        "容量",
+        "阶段",
+        "进度",
+        "性能",
+        "分段"
+      ],
+      "orientation": "any",
+      "density": "medium",
+      "durationSeconds": {
+        "min": 1.5,
+        "max": 6
       }
     }
   },
@@ -146,6 +171,30 @@ export const REGISTERED_CARDS = [
         "type": "color",
         "label": "辅助色"
       }
+    },
+    "semantic": {
+      "primaryIntent": "comparison",
+      "secondaryIntents": [
+        "metric",
+        "emphasis"
+      ],
+      "contentKinds": [
+        "metric",
+        "comparison"
+      ],
+      "keywords": [
+        "对比",
+        "差异",
+        "竞争",
+        "前后",
+        "双向"
+      ],
+      "orientation": "any",
+      "density": "medium",
+      "durationSeconds": {
+        "min": 1.5,
+        "max": 6
+      }
     }
   },
   {
@@ -218,6 +267,29 @@ export const REGISTERED_CARDS = [
       "secondaryColor": {
         "type": "color",
         "label": "辅助色"
+      }
+    },
+    "semantic": {
+      "primaryIntent": "metric",
+      "secondaryIntents": [
+        "evidence",
+        "emphasis"
+      ],
+      "contentKinds": [
+        "metric"
+      ],
+      "keywords": [
+        "实时",
+        "吞吐",
+        "速度",
+        "波形",
+        "连续变化"
+      ],
+      "orientation": "any",
+      "density": "medium",
+      "durationSeconds": {
+        "min": 1.5,
+        "max": 6
       }
     }
   },
@@ -292,6 +364,29 @@ export const REGISTERED_CARDS = [
         "type": "color",
         "label": "辅助色"
       }
+    },
+    "semantic": {
+      "primaryIntent": "metric",
+      "secondaryIntents": [
+        "emphasis",
+        "process"
+      ],
+      "contentKinds": [
+        "metric"
+      ],
+      "keywords": [
+        "完成率",
+        "占比",
+        "进度",
+        "比例",
+        "液位"
+      ],
+      "orientation": "any",
+      "density": "medium",
+      "durationSeconds": {
+        "min": 1.5,
+        "max": 6
+      }
     }
   },
   {
@@ -364,6 +459,30 @@ export const REGISTERED_CARDS = [
       "secondaryColor": {
         "type": "color",
         "label": "辅助色"
+      }
+    },
+    "semantic": {
+      "primaryIntent": "emphasis",
+      "secondaryIntents": [
+        "metric",
+        "evidence"
+      ],
+      "contentKinds": [
+        "metric",
+        "short-text"
+      ],
+      "keywords": [
+        "综合指标",
+        "核心结论",
+        "评分",
+        "科技",
+        "刻度"
+      ],
+      "orientation": "any",
+      "density": "medium",
+      "durationSeconds": {
+        "min": 1.5,
+        "max": 6
       }
     }
   }

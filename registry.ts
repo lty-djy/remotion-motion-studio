@@ -1,9 +1,16 @@
 import type { MotionComponentDefinition } from "./local-protocol";
+import {
+  EFFECT_SEMANTIC_CAPABILITIES,
+  type EffectSemanticCapabilities,
+} from "./effect-semantic-capabilities";
+export {
+  SEMANTIC_INTENT_DEFINITIONS,
+  semanticIntentIdsFor,
+} from "./effect-semantic-capabilities";
 
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
-
 
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
@@ -16,6 +23,7 @@ import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
 import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
+import { PortraitStaggeredToolListEffectDef } from "./effects/PortraitStaggeredToolList";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
@@ -29,17 +37,20 @@ import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 export type EffectDef = MotionComponentDefinition & {
   catalogGroup: string;
   placement: "left" | "right" | "top" | "bottom";
+  semantic?: EffectSemanticCapabilities;
   arranger?: {
     compiler: "legacy-metric";
   };
 };
 
-export const EFFECT_REGISTRY: EffectDef[] = [
+export type RegisteredEffectDef = EffectDef & {
+  semantic: EffectSemanticCapabilities;
+};
+
+const EFFECT_DEFINITIONS: EffectDef[] = [
 
   GlobalExpeditionEffectDef,
-
   SrtSemanticCaptionsEffectDef,
-
   SrtCueTextEffectDef,
   TerminalPanelEffectDef,
   SoftTeachingGlassPanelEffectDef,
@@ -52,6 +63,8 @@ export const EFFECT_REGISTRY: EffectDef[] = [
   PortraitDecisionTagStackEffectDef,
 
   PortraitStepChecklistEffectDef,
+
+  PortraitStaggeredToolListEffectDef,
 
   PortraitRiskWarningEffectDef,
 
@@ -69,6 +82,36 @@ export const EFFECT_REGISTRY: EffectDef[] = [
 
   ...LEGACY_EFFECT_DEFS,
 ];
+
+const registeredIds = new Set(EFFECT_DEFINITIONS.map((definition) => definition.id));
+const missingSemanticIds = EFFECT_DEFINITIONS.filter(
+  (definition) => !EFFECT_SEMANTIC_CAPABILITIES[definition.id],
+).map((definition) => definition.id);
+const staleSemanticIds = Object.keys(EFFECT_SEMANTIC_CAPABILITIES).filter(
+  (componentId) => !registeredIds.has(componentId),
+);
+
+if (missingSemanticIds.length > 0 || staleSemanticIds.length > 0) {
+  throw new Error(
+    [
+      missingSemanticIds.length > 0
+        ? `组件缺少语义能力：${missingSemanticIds.join(", ")}`
+        : "",
+      staleSemanticIds.length > 0
+        ? `语义能力引用了不存在的组件：${staleSemanticIds.join(", ")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("；"),
+  );
+}
+
+export const EFFECT_REGISTRY: RegisteredEffectDef[] = EFFECT_DEFINITIONS.map(
+  (definition) => ({
+    ...definition,
+    semantic: EFFECT_SEMANTIC_CAPABILITIES[definition.id],
+  }),
+);
 
 export const EFFECT_REGISTRY_BY_ID = new Map(
   EFFECT_REGISTRY.map((definition) => [definition.id, definition]),

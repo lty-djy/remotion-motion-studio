@@ -6,11 +6,18 @@ import { fileURLToPath } from "node:url";
 import { buildSemanticSrtArrangement } from "../semantic-srt-arranger.mjs";
 import { PORTRAIT_ROUTE_COMPONENT_IDS } from "../portrait-semantic-routes.mjs";
 import { REGISTERED_CARDS } from "./registry-meta.mjs";
+import { loadRuntimeRegistry } from "./load-runtime-registry.mjs";
+
+const allDetectedIntents = (cue) => [
+  ...(cue.intents ?? []),
+  ...(cue.suppressedIntents ?? []),
+];
 
 const here = dirname(fileURLToPath(import.meta.url));
 const resourceIndex = JSON.parse(
   await readFile(join(here, "..", "..", "public", "input", "resource-index.json"), "utf8"),
 );
+const runtimeRegistry = await loadRuntimeRegistry();
 const input = {
   entries: [
     {
@@ -30,6 +37,10 @@ const input = {
   durationInFrames: 240,
   canvas: { width: 1920, height: 1080, orientation: "landscape" },
   availableComponentIds: REGISTERED_CARDS.map((card) => card.id),
+  componentCapabilities: REGISTERED_CARDS.map((card) => ({
+    componentId: card.id,
+    semantic: card.semantic,
+  })),
   resourceIndex,
 };
 
@@ -52,11 +63,12 @@ if (
   !first.semanticAnalysis.cueAnalyses.every((cue) =>
     cue.intents.every(
       (intent) =>
-        intent.componentCandidates.length >= 2 &&
+        intent.componentCandidates.length >= 1 &&
         intent.componentCandidates.every(
           (candidate) =>
             registeredIds.has(candidate.componentId) &&
             candidate.reason &&
+            candidate.semanticMatch?.strength &&
             candidate.rank >= 1 &&
             candidate.props &&
             typeof candidate.props === "object",
@@ -135,6 +147,9 @@ const portraitInput = {
   durationInFrames: 720,
   canvas: { width: 1080, height: 1920, orientation: "portrait" },
   availableComponentIds: PORTRAIT_ROUTE_COMPONENT_IDS,
+  componentCapabilities: runtimeRegistry.filter((card) =>
+    PORTRAIT_ROUTE_COMPONENT_IDS.includes(card.id),
+  ).map((card) => ({ componentId: card.id, semantic: card.semantic })),
   resourceIndex,
 };
 const portraitFirst = buildSemanticSrtArrangement(portraitInput);
@@ -154,10 +169,58 @@ if (
 const portraitComponentIds = new Set(
   portraitFirst.motionTimeline.map((item) => item.componentId),
 );
-for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS) {
+for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
+  (id) => ![
+    "PortraitDecisionTagStack",
+    "PortraitStaggeredToolList",
+    "LegacyModelEliminationWarning",
+  ].includes(id),
+)) {
   if (!portraitComponentIds.has(componentId)) {
     throw new Error(`竖屏语义编排没有生成 ${componentId}`);
   }
+}
+
+const skillListResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 5400,
+  availableComponentIds: ["PortraitStaggeredToolList"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitStaggeredToolList")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 1, startMs: 7533, endMs: 9450, text: "你得先把AI的能力准备好" },
+    { index: 2, startMs: 9450, endMs: 10683, text: "就是这4个skill" },
+    { index: 3, startMs: 10766, endMs: 12250, text: "今天我一个一个讲清楚" },
+    { index: 4, startMs: 26966, endMs: 29366, text: "第一个skill是我自己做的UI skill" },
+    { index: 5, startMs: 117000, endMs: 120533, text: "第二个skill GSAP负责网页的高级动画" },
+    { index: 6, startMs: 136000, endMs: 139400, text: "第三个skill ponyfill负责代码质量" },
+    { index: 7, startMs: 178450, endMs: 181050, text: "第四个scale Playright MCP" },
+  ],
+});
+const skillListMotion = skillListResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitStaggeredToolList",
+);
+if (!skillListMotion) {
+  throw new Error("4 个 Skill 语义没有生成错峰工具列表。");
+}
+if (
+  skillListMotion.props.item1 !== "我自己做的 Skill" ||
+  skillListMotion.props.item2 !== "GSAP Skills" ||
+  skillListMotion.props.item3 !== "Ponytail" ||
+  skillListMotion.props.item4 !== "Playwright MCP"
+) {
+  throw new Error("错峰工具列表没有从整份 SRT 提取四项 Skill 名称。");
+}
+const skillListIntent = skillListResult.semanticAnalysis.cueAnalyses
+  .flatMap((cue) => cue.intents)
+  .find((intent) => intent.id.endsWith("enumerated-tool-list"));
+if (
+  !skillListIntent ||
+  skillListIntent.type !== "list" ||
+  skillListIntent.componentCandidates[0]?.semanticMatch?.strength !== "primary"
+) {
+  throw new Error("错峰工具列表没有作为列举语义的主要候选。");
 }
 if (
   !portraitFirst.motionTimeline.every((item) =>
@@ -170,11 +233,12 @@ if (
   !portraitFirst.semanticAnalysis.cueAnalyses.every((cue) =>
     cue.intents.every(
       (intent) =>
-        intent.componentCandidates.length >= 2 &&
+        intent.componentCandidates.length >= 1 &&
         intent.componentCandidates.every(
           (candidate) =>
             PORTRAIT_ROUTE_COMPONENT_IDS.includes(candidate.componentId) &&
             candidate.reason &&
+            candidate.semanticMatch?.strength &&
             candidate.rank >= 1 &&
             candidate.props &&
             typeof candidate.props === "object",
@@ -208,13 +272,11 @@ const repeatedMetricPrimaryIds = repeatedMetricResult.semanticAnalysis.cueAnalys
 if (
   repeatedMetricPrimaryIds.length !== 3 ||
   repeatedMetricPrimaryIds.some(
-    (componentId, index) =>
-      index > 0 && componentId === repeatedMetricPrimaryIds[index - 1],
-  ) ||
-  repeatedMetricResult.semanticAnalysis.diversitySummary.repeatedAvoidedCount < 1
+    (componentId) => componentId !== "PortraitMetricDecision",
+  )
 ) {
   throw new Error(
-    `相邻重复数字语义没有触发组件冷却：${repeatedMetricPrimaryIds.join(",")}`,
+    `相邻数字语义为了变化而选择了弱匹配组件：${repeatedMetricPrimaryIds.join(",")}`,
   );
 }
 
@@ -230,29 +292,57 @@ const denseCueResult = buildSemanticSrtArrangement({
     },
   ],
 });
-const denseCueIntentIds = new Set(
-  denseCueResult.semanticAnalysis.cueAnalyses[0]?.intents.map((intent) => intent.id),
+const denseCueAnalysis = denseCueResult.semanticAnalysis.cueAnalyses[0];
+const denseCueIntentIds = new Set(denseCueAnalysis?.intents.map((intent) => intent.id));
+const denseCueDetectedIds = new Set(
+  allDetectedIntents(denseCueAnalysis).map((intent) => intent.id),
 );
 const denseCueMotionCount = denseCueResult.motionTimeline.filter((item) =>
   denseCueIntentIds.has(item.sourceIntentId),
 ).length;
 if (
-  denseCueIntentIds.size !== 3 ||
-  denseCueMotionCount > 3 ||
-  denseCueResult.semanticAnalysis.diversitySummary.supportingSuppressedCount < 1
+  denseCueDetectedIds.size !== 3 ||
+  denseCueIntentIds.size !== 2 ||
+  denseCueAnalysis.suppressedIntents.length !== 1 ||
+  denseCueMotionCount > 2 ||
+  denseCueResult.semanticAnalysis.detectedIntentCount !== 3 ||
+  denseCueResult.semanticAnalysis.intentCount !== 2 ||
+  denseCueResult.semanticAnalysis.suppressedIntentCount !== 1 ||
+  denseCueResult.semanticAnalysis.densitySummary.motionBudget !== 2 ||
+  denseCueAnalysis.suppressedIntents.some(
+    (intent) =>
+      intent.suppressionReason !== "visual-density-budget" ||
+      intent.componentCandidates.length === 0,
+  )
 ) {
   throw new Error(
-    `高密度语义没有限制辅助动效：intents=${denseCueIntentIds.size} motion=${denseCueMotionCount}`,
+    `高密度语义没有正确限流：detected=${denseCueDetectedIds.size} preview=${denseCueIntentIds.size} motion=${denseCueMotionCount}`,
   );
 }
 const metricItems = portraitFirst.motionTimeline.filter((item) =>
   ["PortraitMetricDecision", "PortraitDecisionTagStack"].includes(item.componentId),
 );
 if (
-  metricItems.length !== 2 ||
+  metricItems.length !== 1 ||
   new Set(metricItems.map((item) => item.sourceIntentId)).size !== 1
 ) {
-  throw new Error("数字决策没有在同一语义意图下组合数据卡与标签组");
+  throw new Error("多意图字幕没有抑制数字决策的辅助动效");
+}
+const singleMetricCombo = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 210,
+  entries: [
+    { index: 1, startMs: 0, endMs: 6000, text: "1K速度更快，成本更低，更推荐1K。" },
+  ],
+});
+const singleMetricItems = singleMetricCombo.motionTimeline.filter((item) =>
+  ["PortraitMetricDecision", "PortraitDecisionTagStack"].includes(item.componentId),
+);
+if (
+  singleMetricItems.length !== 2 ||
+  new Set(singleMetricItems.map((item) => item.sourceIntentId)).size !== 1
+) {
+  throw new Error("单一数字意图没有保留数据卡与标签组组合能力");
 }
 if (
   portraitFirst.motionTimeline.some((item) =>
@@ -337,7 +427,7 @@ const sentencePatternResult = buildSemanticSrtArrangement(sentencePatternInput);
 const routeIdsByCue = new Map(
   sentencePatternResult.semanticAnalysis.cueAnalyses.map((cue) => [
     cue.cueIndex,
-    cue.intents.map((intent) => intent.id.replace(/^intent-\d+-/u, "")),
+    allDetectedIntents(cue).map((intent) => intent.id.replace(/^intent-\d+-/u, "")),
   ]),
 );
 const expectRoutes = (cueIndex, expected, forbidden = []) => {
@@ -359,16 +449,23 @@ expectRoutes(3, []);
 expectRoutes(4, ["process-steps"]);
 expectRoutes(5, ["metric-decision"], ["risk-boundary"]);
 expectRoutes(6, ["metric-decision"]);
-const eliminationItem = sentencePatternResult.motionTimeline.find(
-  (item) => item.sourceIntentId === "intent-002-risk-boundary",
+const eliminationResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 120,
+  entries: [
+    { index: 1, startMs: 0, endMs: 3600, text: "单纯卖货的门店只会慢慢被市场淘汰" },
+  ],
+});
+const eliminationItem = eliminationResult.motionTimeline.find(
+  (item) => item.sourceIntentId === "intent-001-risk-boundary",
 );
 if (
   eliminationItem?.componentId !== "LegacyModelEliminationWarning" ||
   eliminationItem.props.title !== "单纯卖货" ||
   eliminationItem.props.stampText !== "市场淘汰" ||
-  sentencePatternResult.motionTimeline.some(
+  eliminationResult.motionTimeline.some(
     (item) =>
-      item.sourceIntentId === "intent-002-risk-boundary" &&
+      item.sourceIntentId === "intent-001-risk-boundary" &&
       item.componentId === "PortraitRiskWarning",
   )
 ) {
@@ -388,7 +485,11 @@ const riskVariantResult = buildSemanticSrtArrangement({
 const variantComponents = new Map(
   riskVariantResult.semanticAnalysis.cueAnalyses.map((cue) => [
     cue.cueIndex,
-    cue.intents.flatMap((intent) => intent.componentIds),
+    allDetectedIntents(cue).flatMap((intent) =>
+      intent.componentIds.length > 0
+        ? intent.componentIds
+        : intent.componentCandidates.slice(0, 1).map((candidate) => candidate.componentId),
+    ),
   ]),
 );
 if (!variantComponents.get(1)?.includes("LegacyModelEliminationWarning")) {
@@ -400,9 +501,11 @@ if (
 ) {
   throw new Error("一般风险提醒没有继续使用原风险卡");
 }
-const generalRiskCandidates = riskVariantResult.semanticAnalysis.cueAnalyses
-  .find((cue) => cue.cueIndex === 2)
-  ?.intents.find((intent) => intent.id.endsWith("risk-boundary"))
+const generalRiskCue = riskVariantResult.semanticAnalysis.cueAnalyses.find(
+  (cue) => cue.cueIndex === 2,
+);
+const generalRiskCandidates = allDetectedIntents(generalRiskCue)
+  .find((intent) => intent.id.endsWith("risk-boundary"))
   ?.componentCandidates.map((candidate) => candidate.componentId);
 if (generalRiskCandidates?.includes("LegacyModelEliminationWarning")) {
   throw new Error("一般风险语义不应把淘汰警告列为候选组件");
@@ -413,6 +516,42 @@ if (
 ) {
   throw new Error("规避淘汰或主动淘汰旧设备时误用了淘汰警告动画");
 }
+
+const consumerSafetyCalibration = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 600,
+  entries: [
+    { index: 1, startMs: 0, endMs: 2600, text: "致癌物超标9000多倍" },
+    { index: 2, startMs: 3000, endMs: 5600, text: "央视检测发现多件样品不达标" },
+    { index: 3, startMs: 6000, endMs: 8600, text: "买首饰认准GB28480国家标准" },
+    { index: 4, startMs: 9000, endMs: 11600, text: "新饰品先在手腕试戴24小时" },
+    { index: 5, startMs: 12000, endMs: 14600, text: "遇到假货保留证据，打12315投诉" },
+  ],
+});
+const calibrationRoutes = new Map(
+  consumerSafetyCalibration.semanticAnalysis.cueAnalyses.map((cue) => [
+    cue.cueIndex,
+    allDetectedIntents(cue).map((intent) => intent.id.replace(/^intent-\d+-/u, "")),
+  ]),
+);
+const expectCalibrationRoutes = (cueIndex, expected, forbidden = []) => {
+  const actual = calibrationRoutes.get(cueIndex) ?? [];
+  for (const routeId of expected) {
+    if (!actual.includes(routeId)) {
+      throw new Error(`消费安全校准 ${cueIndex} 没有命中 ${routeId}：${actual.join(",")}`);
+    }
+  }
+  for (const routeId of forbidden) {
+    if (actual.includes(routeId)) {
+      throw new Error(`消费安全校准 ${cueIndex} 不应命中 ${routeId}`);
+    }
+  }
+};
+expectCalibrationRoutes(1, ["risk-boundary", "metric-decision"]);
+expectCalibrationRoutes(2, ["risk-boundary", "evidence-source"]);
+expectCalibrationRoutes(3, ["evidence-source", "action-advice"], ["metric-decision"]);
+expectCalibrationRoutes(4, ["action-advice"], ["metric-decision"]);
+expectCalibrationRoutes(5, ["risk-boundary", "action-advice"], ["metric-decision", "evidence-source"]);
 const firstCueItems = sentencePatternResult.motionTimeline.filter((item) =>
   ["intent-001-chapter-transition", "intent-001-risk-boundary"].includes(
     item.sourceIntentId,
@@ -447,5 +586,5 @@ if (
 }
 
 process.stdout.write(
-  `✓ SRT 语义编排通过：landscapeMotion=${first.motionTimeline.length} portraitMotion=${portraitFirst.motionTimeline.length} portraitIntents=${portraitFirst.semanticAnalysis.intentCount} captions=forbidden bgm=forbidden\n`,
+  `✓ SRT 语义编排通过：landscapeMotion=${first.motionTimeline.length} portraitMotion=${portraitFirst.motionTimeline.length} portraitIntents=${portraitFirst.semanticAnalysis.intentCount} captions=separate-toggle bgm=forbidden\n`,
 );

@@ -26,6 +26,7 @@ const expectedComponentIds = [
   "PortraitMetricDecision",
   "PortraitDecisionTagStack",
   "PortraitStepChecklist",
+  "PortraitStaggeredToolList",
   "PortraitRiskWarning",
   "LegacyModelEliminationWarning",
   "PortraitNextEpisodeCta",
@@ -38,10 +39,10 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 6) {
-  throw new Error("竖屏语义路由必须保持 6 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 9) {
+  throw new Error("竖屏语义路由必须覆盖 9 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 6) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 9) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
@@ -125,8 +126,11 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
 const representativeCues = new Map([
   ["chapter-transition", "下一步进入制作环节。"],
   ["info-callout", "比如可以使用这个增强工具。"],
+  ["evidence-source", "央视检测发现多件样品不达标。"],
+  ["enumerated-tool-list", "就是这4个skill，今天我一个一个讲清楚。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],
+  ["action-advice", "购买时认准国家标准并去正规店铺。"],
   ["risk-boundary", "但是要注意，它不能修复错误口型。"],
   ["next-episode-cta", "下期介绍自动剪辑，记得关注。"],
 ]);
@@ -179,10 +183,10 @@ if (
   throw new Error("竖屏路由没有保留一句多意图与一意图多组件能力。");
 }
 if (
-  PORTRAIT_ROUTING_POLICY.baseCaptionTrack !== "forbidden" ||
+  PORTRAIT_ROUTING_POLICY.baseCaptionTrack !== "separate-toggle" ||
   PORTRAIT_ROUTING_POLICY.bgm !== "forbidden"
 ) {
-  throw new Error("竖屏路由不得生成基础字幕轨道或 BGM。");
+  throw new Error("竖屏路由必须使用独立字幕开关且不得生成 BGM。");
 }
 if (
   PORTRAIT_ROUTING_POLICY.captionSafeZone.startRatio !== 0.8 ||
@@ -200,5 +204,5 @@ if (
 }
 
 console.log(
-  `✓ 竖屏语义路由通过：routes=${PORTRAIT_SEMANTIC_ROUTES.length} components=${PORTRAIT_ROUTE_COMPONENT_IDS.length} multiIntent=on captions=forbidden bgm=forbidden`,
+  `✓ 竖屏语义路由通过：routes=${PORTRAIT_SEMANTIC_ROUTES.length} components=${PORTRAIT_ROUTE_COMPONENT_IDS.length} multiIntent=on captions=separate-toggle bgm=forbidden`,
 );

@@ -267,6 +267,7 @@ type ProjectSnapshot = {
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
+  solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
   createdAt?: string;
   updatedAt: string;
@@ -701,6 +702,7 @@ const normalizeProjectSnapshot = (
     canvasOrientation:
       input.canvasOrientation === "portrait" ? "portrait" : "landscape",
     safetyGuideVisible: input.safetyGuideVisible !== false,
+    solidBackgroundEnabled: input.solidBackgroundEnabled !== false,
     soundEnabled: input.soundEnabled !== false,
     createdAt:
       typeof input.createdAt === "string" ? input.createdAt : undefined,

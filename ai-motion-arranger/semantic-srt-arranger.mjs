@@ -160,15 +160,77 @@ const LEGACY_CANDIDATE_IDS_BY_RULE = Object.freeze({
   number: ["WaveformMetric", "LiquidGauge", "RadialTicks"],
 });
 
-const legacyComponentCandidates = (rule, availableIds, props) =>
+const SEMANTIC_INTENT_IDS_BY_ROUTE_TYPE = Object.freeze({
+  metric: ["metric"],
+  process: ["process"],
+  automation: ["process", "explanation"],
+  comparison: ["comparison", "metric"],
+  completion: ["metric", "emphasis"],
+  coverage: ["metric", "emphasis"],
+  countdown: ["transition", "emphasis"],
+  emphasis: ["emphasis"],
+  transition: ["transition"],
+  instruction: ["explanation"],
+  evidence: ["evidence"],
+  list: ["list"],
+  warning: ["warning"],
+  "call-to-action": ["call-to-action"],
+});
+
+const semanticCapabilityMap = (componentCapabilities = []) =>
+  new Map(
+    componentCapabilities.flatMap((entry) =>
+      entry?.componentId && entry?.semantic
+        ? [[entry.componentId, entry.semantic]]
+        : [],
+    ),
+  );
+
+const semanticMatchFor = (componentId, routeType, capabilitiesById) => {
+  const semantic = capabilitiesById.get(componentId);
+  const expectedIntentIds = SEMANTIC_INTENT_IDS_BY_ROUTE_TYPE[routeType] ?? [];
+  if (!semantic || expectedIntentIds.length === 0) {
+    return { intentId: expectedIntentIds[0] ?? routeType, strength: "fallback" };
+  }
+  if (expectedIntentIds.includes(semantic.primaryIntent)) {
+    return { intentId: semantic.primaryIntent, strength: "primary" };
+  }
+  const secondaryIntent = semantic.secondaryIntents?.find((intentId) =>
+    expectedIntentIds.includes(intentId),
+  );
+  return secondaryIntent
+    ? { intentId: secondaryIntent, strength: "secondary" }
+    : { intentId: expectedIntentIds[0] ?? routeType, strength: "fallback" };
+};
+
+const semanticMatchWeight = (match) =>
+  match.strength === "primary" ? 0 : match.strength === "secondary" ? 1 : 2;
+
+const legacyComponentCandidates = (
+  rule,
+  availableIds,
+  props,
+  capabilitiesById,
+) =>
   (LEGACY_CANDIDATE_IDS_BY_RULE[rule.id] ?? [rule.componentId])
     .filter((componentId) => availableIds.has(componentId))
-    .map((componentId, index) => ({
+    .map((componentId, originalIndex) => ({
       componentId,
-      rank: index + 1,
+      originalIndex,
+      semanticMatch: semanticMatchFor(componentId, rule.type, capabilitiesById),
       reason:
         LEGACY_COMPONENT_REASONS[componentId] ?? `适合${rule.label}语义`,
       props,
+    }))
+    .sort(
+      (left, right) =>
+        semanticMatchWeight(left.semanticMatch) -
+          semanticMatchWeight(right.semanticMatch) ||
+        left.originalIndex - right.originalIndex,
+    )
+    .map(({ originalIndex: _originalIndex, ...candidate }, index) => ({
+      ...candidate,
+      rank: index + 1,
     }));
 
 const firstNumber = (text) => {
@@ -257,9 +319,11 @@ const buildLegacySemanticSrtArrangement = ({
   durationInFrames,
   canvas,
   availableComponentIds,
+  componentCapabilities,
   resourceIndex,
 }) => {
   const componentIds = new Set(availableComponentIds);
+  const capabilitiesById = semanticCapabilityMap(componentCapabilities);
   const motionTimeline = [];
   const resourceTracks = [];
   const cueAnalyses = [];
@@ -394,7 +458,12 @@ const buildLegacySemanticSrtArrangement = ({
         label: rule.label,
         componentId: rule.componentId,
         componentIds: [rule.componentId],
-        componentCandidates: legacyComponentCandidates(rule, componentIds, props),
+        componentCandidates: legacyComponentCandidates(
+          rule,
+          componentIds,
+          props,
+          capabilitiesById,
+        ),
       });
       intentCount += 1;
     });
@@ -492,6 +561,115 @@ const portraitRouteMatchResult = (route, text) => {
   };
 };
 
+const portraitRouteMatchesForEntry = (entry, componentIds) =>
+  PORTRAIT_SEMANTIC_ROUTES.flatMap((route) => {
+    if (!route.components.some((component) => componentIds.has(component.componentId))) {
+      return [];
+    }
+    const matchResult = portraitRouteMatchResult(route, entry.text);
+    return matchResult.matched ? [{ route, matchResult }] : [];
+  }).sort(
+    (left, right) =>
+      right.route.priority - left.route.priority ||
+      right.matchResult.score - left.matchResult.score,
+  );
+
+const planPortraitVisualIntents = (entryMatches) => {
+  const density = PORTRAIT_ROUTING_POLICY.density;
+  const firstStartMs = entryMatches[0]?.entry.startMs ?? 0;
+  const lastEndMs = entryMatches.at(-1)?.entry.endMs ?? firstStartMs;
+  const durationSeconds = Math.max(0, (lastEndMs - firstStartMs) / 1000);
+  const candidates = entryMatches.flatMap(({ matched }, entryPosition) =>
+    matched
+      .slice(0, PORTRAIT_ROUTING_POLICY.maxIntentsPerCue)
+      .map(({ route, matchResult }) => ({
+        key: `${entryPosition}:${route.id}`,
+        entryPosition,
+        route,
+        matchResult,
+        baseScore:
+          route.priority +
+          matchResult.score * 10 +
+          (entryPosition === 0 ? 16 : 0) +
+          (entryPosition === entryMatches.length - 1 ? 16 : 0),
+      })),
+  );
+  const desiredMotionBudget = Math.min(
+    candidates.length,
+    Math.max(
+      Math.min(density.minMotionBudget, candidates.length),
+      Math.min(
+        density.maxMotionBudget,
+        Math.round(durationSeconds / density.targetSecondsPerMotion),
+      ),
+    ),
+  );
+  const selectedKeys = new Set();
+  const segmentUsage = new Map();
+  const routeUsage = new Map();
+
+  const canSelect = (candidate) =>
+    !selectedKeys.has(candidate.key) &&
+    (segmentUsage.get(candidate.entryPosition) ?? 0) <
+      density.maxIntentsPerSegment;
+  const select = (candidate) => {
+    selectedKeys.add(candidate.key);
+    segmentUsage.set(
+      candidate.entryPosition,
+      (segmentUsage.get(candidate.entryPosition) ?? 0) + 1,
+    );
+    routeUsage.set(
+      candidate.route.id,
+      (routeUsage.get(candidate.route.id) ?? 0) + 1,
+    );
+  };
+  const dynamicScore = (candidate) => {
+    const adjacentSameRoute = candidates.some(
+      (selected) =>
+        selectedKeys.has(selected.key) &&
+        selected.route.id === candidate.route.id &&
+        Math.abs(selected.entryPosition - candidate.entryPosition) === 1,
+    );
+    return (
+      candidate.baseScore -
+      (routeUsage.get(candidate.route.id) ?? 0) * 24 -
+      (segmentUsage.get(candidate.entryPosition) ?? 0) * 18 -
+      (adjacentSameRoute ? 16 : 0)
+    );
+  };
+  const strongestFirst = (items) =>
+    [...items].sort(
+      (left, right) =>
+        dynamicScore(right) - dynamicScore(left) ||
+        left.entryPosition - right.entryPosition ||
+        left.route.id.localeCompare(right.route.id),
+    );
+
+  const routeIds = [...new Set(candidates.map((candidate) => candidate.route.id))];
+  for (const routeId of routeIds) {
+    if (selectedKeys.size >= desiredMotionBudget) break;
+    const candidate = strongestFirst(
+      candidates.filter(
+        (item) => item.route.id === routeId && canSelect(item),
+      ),
+    )[0];
+    if (candidate) select(candidate);
+  }
+
+  while (selectedKeys.size < desiredMotionBudget) {
+    const candidate = strongestFirst(candidates.filter(canSelect))[0];
+    if (!candidate) break;
+    select(candidate);
+  }
+
+  return {
+    selectedKeys,
+    motionBudget: selectedKeys.size,
+    detectedIntentCount: candidates.length,
+    durationSeconds,
+  };
+};
+
 const uniqueText = (values) =>
   [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 
@@ -586,7 +764,7 @@ const eliminationDetails = (text) => {
 
 const metricFromText = (text) => {
   const match = text.match(
-    /([+-]?\d+(?:[.,]\d+)?)\s*(%|％|万|亿|倍|k|K|元|年|天|小时|分钟|秒|ms|fps)?/u,
+    /([+-]?\d+(?:[.,]\d+)?)\s*(%|％|万|亿|倍|k|K|元|块|件|年|天|小时|分钟|秒|ms|fps)?/u,
   );
   if (match) {
     return {
@@ -595,8 +773,9 @@ const metricFromText = (text) => {
       unit: match[2] ?? "",
     };
   }
-  const chineseMagnitude = text.match(/(十万|百万|千万|上亿|过亿|破亿)/u)?.[1];
+  const chineseMagnitude = text.match(/(几万|十万|百万|千万|上亿|过亿|破亿)/u)?.[1];
   const magnitudeValues = {
+    几万: { value: "几", unit: "万" },
     十万: { value: "10", unit: "万" },
     百万: { value: "100", unit: "万" },
     千万: { value: "1000", unit: "万" },
@@ -609,11 +788,52 @@ const metricFromText = (text) => {
     : { raw: "", value: "", unit: "" };
 };
 
+const portraitDocumentContextFor = (entries) => {
+  const documentText = entries
+    .map((entry) => String(entry?.text ?? "").trim())
+    .filter(Boolean)
+    .join("，");
+  const enumeratedItems = [];
+  const addItem = (label, detail, badge) => {
+    if (!label || enumeratedItems.some((item) => item.label === label)) return;
+    enumeratedItems.push({ label, detail, badge });
+  };
+
+  if (/我自己做的\s*UI\s*skill/iu.test(documentText)) {
+    addItem("我自己做的 Skill", "UI 审美 · 全流程用它", "C 位");
+  }
+  if (/\bGSAP\b/iu.test(documentText)) {
+    addItem("GSAP Skills", "高级动效", "★ 26K");
+  }
+  if (/\bpony(?:fill|tail)\b/iu.test(documentText)) {
+    addItem("Ponytail", "工程克制", "★ 80K");
+  }
+  if (/\bPlayr(?:ight|wright)\s*MCP\b/iu.test(documentText)) {
+    addItem("Playwright MCP", "自动测试", "★ 35K");
+  }
+
+  if (enumeratedItems.length < 2) {
+    const genericMatches = [...documentText.matchAll(
+      /第(?:一|二|三|四|五|六|七|八|九|十|\d+)个(?:\s*)(?:skill|技能|工具|方法)(?:是|叫)?[，,:：]?\s*([^，。；;]{2,24})/giu,
+    )];
+    genericMatches.forEach((match, index) => {
+      const label = match[1]
+        .replace(/^(?:我自己做的|就是|这个)/u, "")
+        .replace(/(?:一直|负责|用来|可以).*$/u, "")
+        .trim();
+      addItem(label, "逐项说明", `0${index + 1}`);
+    });
+  }
+
+  return { enumeratedItems: enumeratedItems.slice(0, 4) };
+};
+
 const portraitStyleForRoute = (routeId) => {
   const accents = {
     "chapter-transition": "#168CFF",
     "info-callout": "#168CFF",
     "metric-decision": "#14E6A1",
+    "enumerated-tool-list": "#F2D51B",
     "process-steps": "#168CFF",
     "risk-boundary": "#FF493D",
     "next-episode-cta": "#168CFF",
@@ -625,6 +845,7 @@ const portraitStyleForRoute = (routeId) => {
     warningColor: "#FF493D",
     eliminationAccentColor: "#FFB735",
     eliminationPanelColor: "#080F19",
+    listHighlightColor: "#F2D51B",
     panelColor: "#111318",
     textColor: "#FFFFFF",
     shadowColor: "#000000",
@@ -632,9 +853,26 @@ const portraitStyleForRoute = (routeId) => {
 };
 
 const iconTextForId = (iconId) =>
-  ({ arrow: "↗", code: "</>", speed: "↗", timeline: "▣" })[iconId] ?? "✦";
+  ({
+    arrow: "↗",
+    code: "</>",
+    speed: "↗",
+    timeline: "▣",
+    "seal-check": "✓",
+    "list-checks": "▣",
+  })[iconId] ?? "✦";
 
-const portraitContext = ({ route, text, timing, fps }) => {
+const riskConclusionForText = (text) => {
+  if (/致癌/u.test(text)) return "存在致癌风险";
+  if (/不达标/u.test(text)) return "检测不达标";
+  if (/超标/u.test(text)) return "含量严重超标";
+  if (/皮炎|红肿|流脓|伤害|肾脏|健康/u.test(text)) return "存在健康风险";
+  if (/假货|骗人|露馅/u.test(text)) return "谨防假冒产品";
+  if (/不划算|得不偿失/u.test(text)) return "可能得不偿失";
+  return "注意风险与限制";
+};
+
+const portraitContext = ({ route, text, timing, fps, documentContext }) => {
   const fragments = listFragments(text);
   const metric = metricFromText(text);
   const matchedKeywords = route.match.anyKeywords.filter((keyword) =>
@@ -652,6 +890,20 @@ const portraitContext = ({ route, text, timing, fps }) => {
   const eliminationWarning =
     route.id === "risk-boundary" && isEliminationWarning(text);
   const elimination = eliminationDetails(text);
+  const documentItems = documentContext?.enumeratedItems ?? [];
+  const fallbackItems = labels.length >= 2
+    ? labels.slice(0, 4).map((label, index) => ({
+        label,
+        detail: "逐项说明",
+        badge: `0${index + 1}`,
+      }))
+    : [1, 2, 3, 4].map((index) => ({
+        label: `工具 ${index}`,
+        detail: "逐项说明",
+        badge: `0${index}`,
+      }));
+  const enumeratedItems = (documentItems.length >= 2 ? documentItems : fallbackItems)
+    .slice(0, 4);
   const englishTitle = text.match(/\b[A-Za-z][A-Za-z0-9-]{1,18}\b/u)?.[0] ?? "";
   const ctaTopic = text
     .replace(/(?:下期|下一期|下次)/gu, "")
@@ -670,16 +922,22 @@ const portraitContext = ({ route, text, timing, fps }) => {
   const routeLabels = {
     "chapter-transition": "章节提示",
     "info-callout": "补充说明",
+    "evidence-source": "检测证据",
+    "enumerated-tool-list": "4 个 Skill",
     "metric-decision": "推荐方案",
     "process-steps": "执行流程",
-    "risk-boundary": "使用边界",
+    "action-advice": "行动建议",
+    "risk-boundary": "风险提醒",
     "next-episode-cta": "下期",
   };
   const topics = {
     "chapter-transition": shorten(chapterTopic || fragments[0] || text, 16),
     "info-callout": shorten(fragments[0] || text, 14),
+    "evidence-source": shorten(fragments[0] || text, 14),
+    "enumerated-tool-list": "多项能力准备",
     "metric-decision": shorten(text, 18),
     "process-steps": "操作步骤",
+    "action-advice": shorten(fragments[0] || text, 14),
     "risk-boundary": shorten(riskTopic || fragments[0] || "风险提醒", 12),
     "next-episode-cta": englishTitle || shorten(ctaTopic || "下集预告", 12),
   };
@@ -687,10 +945,13 @@ const portraitContext = ({ route, text, timing, fps }) => {
     route.id === "next-episode-cta"
       ? shorten(ctaTopic.replace(englishTitle, "").trim() || "自动剪辑", 14)
       : shorten(fragments[1] || fragments[0] || text, 20);
-  const animationSeconds = Math.max(
-    0.4,
-    Math.min(1.6, Number(((timing.endFrame - timing.startFrame) / fps / 2).toFixed(2))),
-  );
+  const segmentSeconds = (timing.endFrame - timing.startFrame) / fps;
+  const animationSeconds = route.id === "enumerated-tool-list"
+    ? Math.max(1.8, Math.min(3.2, Number((segmentSeconds - 0.15).toFixed(2))))
+    : Math.max(
+        0.4,
+        Math.min(1.6, Number((segmentSeconds / 2).toFixed(2))),
+      );
   const symbolSet =
     route.id === "risk-boundary"
       ? ["×", "!", "⌁"]
@@ -709,7 +970,7 @@ const portraitContext = ({ route, text, timing, fps }) => {
     intent: {
       conclusion:
         route.id === "risk-boundary"
-          ? "≠ 万能修复"
+          ? riskConclusionForText(text)
           : route.id === "metric-decision"
             ? shorten(text, 18)
             : detail,
@@ -724,6 +985,24 @@ const portraitContext = ({ route, text, timing, fps }) => {
           : /更快|更低|更高|更好/u.exec(text)?.[0] ?? "重点数据",
       },
       labels: { 1: labels[0] ?? "", 2: labels[1] ?? "", 3: labels[2] ?? "" },
+      items: {
+        1: enumeratedItems[0]?.label ?? "工具 1",
+        2: enumeratedItems[1]?.label ?? "工具 2",
+        3: enumeratedItems[2]?.label ?? "工具 3",
+        4: enumeratedItems[3]?.label ?? "工具 4",
+      },
+      itemDetails: {
+        1: enumeratedItems[0]?.detail ?? "逐项说明",
+        2: enumeratedItems[1]?.detail ?? "逐项说明",
+        3: enumeratedItems[2]?.detail ?? "逐项说明",
+        4: enumeratedItems[3]?.detail ?? "逐项说明",
+      },
+      itemBadges: {
+        1: enumeratedItems[0]?.badge ?? "01",
+        2: enumeratedItems[1]?.badge ?? "02",
+        3: enumeratedItems[2]?.badge ?? "03",
+        4: enumeratedItems[3]?.badge ?? "04",
+      },
       steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
       risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
       elimination,
@@ -739,7 +1018,7 @@ const portraitContext = ({ route, text, timing, fps }) => {
     resource: { iconText: iconTextForId(route.resources?.iconId) },
     style,
     timing: { animationSeconds },
-    evidence: { keywordCount: keywords.length, labelCount: labels.length, stepCount: steps.length, riskCount: risks.length, metricFound: Boolean(metric.raw), eliminationWarning },
+    evidence: { keywordCount: keywords.length, labelCount: labels.length, listItemCount: enumeratedItems.length, stepCount: steps.length, riskCount: risks.length, metricFound: Boolean(metric.raw), eliminationWarning },
   };
 };
 
@@ -759,6 +1038,7 @@ const activationAllows = (activation, context) => {
   if (activation === "when-metric-present") return context.evidence.metricFound;
   if (activation === "when-supporting-labels-present") return context.evidence.labelCount >= 2;
   if (activation === "when-two-or-more-steps-present") return context.evidence.stepCount >= 2;
+  if (activation === "when-two-or-more-list-items-present") return context.evidence.listItemCount >= 2;
   if (activation === "when-elimination-warning") return context.evidence.eliminationWarning;
   if (activation === "unless-elimination-warning") return !context.evidence.eliminationWarning;
   return true;
@@ -773,6 +1053,14 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitInfoCallout", reason: "适合工具、方法和补充解释" },
     { componentId: "PortraitChapterRail", reason: "适合把说明提升为小节标题" },
   ],
+  "evidence-source": [
+    { componentId: "PortraitInfoCallout", reason: "适合呈现检测来源、机构结论和事实证据" },
+  ],
+  "enumerated-tool-list": [
+    { componentId: "PortraitStaggeredToolList", reason: "按口播节奏错峰列出多个工具、技能或方法" },
+    { componentId: "PortraitStepChecklist", reason: "当条目强调先后顺序时可改用步骤清单" },
+    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
+  ],
   "metric-decision": [
     { componentId: "PortraitMetricDecision", reason: "突出核心数字和推荐结论" },
     { componentId: "PortraitDecisionTagStack", reason: "并列展示多个判断标签" },
@@ -782,6 +1070,10 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitStepChecklist", reason: "逐步呈现操作流程" },
     { componentId: "PortraitInfoCallout", reason: "将流程压缩为简短说明" },
     { componentId: "PortraitChapterRail", reason: "作为流程章节的开场提示" },
+  ],
+  "action-advice": [
+    { componentId: "PortraitInfoCallout", reason: "适合呈现单条购买建议和处理方法" },
+    { componentId: "PortraitStepChecklist", reason: "当建议包含多个步骤时可改用清单" },
   ],
   "risk-boundary": [
     { componentId: "PortraitRiskWarning", reason: "适合一般风险和使用边界" },
@@ -796,6 +1088,9 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
 });
 
 const portraitCandidateAllowed = (componentId, context) => {
+  if (componentId === "PortraitStaggeredToolList") {
+    return context.evidence.listItemCount >= 2;
+  }
   if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
   if (componentId === "PortraitDecisionTagStack") return context.evidence.labelCount >= 2;
   if (componentId === "PortraitStepChecklist") return context.evidence.stepCount >= 2;
@@ -853,22 +1148,44 @@ const portraitCandidateProps = (componentId, route, context) => {
   return shared;
 };
 
-const portraitComponentCandidates = (route, context, availableIds) =>
+const portraitComponentCandidates = (
+  route,
+  context,
+  availableIds,
+  capabilitiesById,
+) =>
   (PORTRAIT_CANDIDATE_PROFILES[route.id] ?? [])
     .filter(
       ({ componentId }) =>
         availableIds.has(componentId) && portraitCandidateAllowed(componentId, context),
     )
-    .map((candidate, index) => ({
+    .map((candidate, originalIndex) => ({
+      ...candidate,
+      originalIndex,
+      semanticMatch: semanticMatchFor(
+        candidate.componentId,
+        route.intentType,
+        capabilitiesById,
+      ),
+      props: portraitCandidateProps(candidate.componentId, route, context),
+    }))
+    .sort(
+      (left, right) =>
+        semanticMatchWeight(left.semanticMatch) -
+          semanticMatchWeight(right.semanticMatch) ||
+        left.originalIndex - right.originalIndex,
+    )
+    .map(({ originalIndex: _originalIndex, ...candidate }, index) => ({
       ...candidate,
       rank: index + 1,
-      props: portraitCandidateProps(candidate.componentId, route, context),
     }));
 
 const PORTRAIT_DIVERSITY_POLICY = Object.freeze({
   cooldownIntentCount: 2,
-  maxIntentsPerCueForSupportingMotion: 2,
+  maxIntentsPerCueForSupportingMotion: 1,
   repeatedComponentPenalty: 1000,
+  semanticFallbackPenalty: 5000,
+  semanticSecondaryPenalty: 1500,
   usagePenalty: 20,
 });
 
@@ -898,6 +1215,11 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["left-top", "right-center", "left-center"],
     preferredScale: 0.62,
   },
+  PortraitStaggeredToolList: {
+    anchor: "center-top",
+    fallbackAnchors: ["left-top", "right-top"],
+    preferredScale: 0.92,
+  },
   PortraitRiskWarning: {
     anchor: "left-top",
     fallbackAnchors: ["right-top", "left-center", "right-center"],
@@ -926,10 +1248,17 @@ const selectDiversePortraitCandidates = ({
   route,
   context,
   availableIds,
+  capabilitiesById,
   intentCountInCue,
+  cueFrameCount,
   diversityState,
 }) => {
-  const candidates = portraitComponentCandidates(route, context, availableIds);
+  const candidates = portraitComponentCandidates(
+    route,
+    context,
+    availableIds,
+    capabilitiesById,
+  );
   const activeSelections = route.components.filter(
     (selection) =>
       availableIds.has(selection.componentId) &&
@@ -949,7 +1278,9 @@ const selectDiversePortraitCandidates = ({
     activeSelections.length > 1 &&
     routeUseCount === 0 &&
     intentCountInCue <=
-      PORTRAIT_DIVERSITY_POLICY.maxIntentsPerCueForSupportingMotion
+      PORTRAIT_DIVERSITY_POLICY.maxIntentsPerCueForSupportingMotion &&
+    cueFrameCount >=
+      PORTRAIT_ROUTING_POLICY.density.minCueFramesForSupportingMotion
   ) {
     return activeSelections.flatMap((selection) => {
       const candidate = candidates.find(
@@ -972,6 +1303,11 @@ const selectDiversePortraitCandidates = ({
       (recentIds.has(candidate.componentId)
         ? PORTRAIT_DIVERSITY_POLICY.repeatedComponentPenalty
         : 0) +
+      (candidate.semanticMatch?.strength === "fallback"
+        ? PORTRAIT_DIVERSITY_POLICY.semanticFallbackPenalty
+        : candidate.semanticMatch?.strength === "secondary"
+          ? PORTRAIT_DIVERSITY_POLICY.semanticSecondaryPenalty
+          : 0) +
       (diversityState.componentUsage.get(candidate.componentId) ?? 0) *
         PORTRAIT_DIVERSITY_POLICY.usagePenalty +
       candidate.rank;
@@ -1008,9 +1344,14 @@ const buildPortraitSemanticSrtArrangement = ({
   durationInFrames,
   canvas,
   availableComponentIds,
+  componentCapabilities,
   resourceIndex,
+  documentContext,
 }) => {
   const componentIds = new Set(availableComponentIds);
+  const capabilitiesById = semanticCapabilityMap(componentCapabilities);
+  const resolvedDocumentContext =
+    documentContext ?? portraitDocumentContextFor(entries);
   const motionTimeline = [];
   const resourceTracks = [];
   const cueAnalyses = [];
@@ -1024,6 +1365,17 @@ const buildPortraitSemanticSrtArrangement = ({
     repeatedAvoidedCount: 0,
     supportingSuppressedCount: 0,
   };
+  const entryMatches = entries.map((entry, entryPosition) => {
+    const rawMatched = portraitRouteMatchesForEntry(entry, componentIds);
+    return {
+      entry,
+      entryPosition,
+      rawMatchedCount: rawMatched.length,
+      matched: rawMatched.slice(0, PORTRAIT_ROUTING_POLICY.maxIntentsPerCue),
+    };
+  });
+  const visualPlan = planPortraitVisualIntents(entryMatches);
+  let suppressedIntentCount = 0;
 
   const sourceCueLabel = (entry) => {
     const indices = entry.sourceCueIndices ?? [entry.index];
@@ -1032,19 +1384,18 @@ const buildPortraitSemanticSrtArrangement = ({
       : `${indices[0]}–${indices.at(-1)}`;
   };
 
-  for (const entry of entries) {
-    const matched = PORTRAIT_SEMANTIC_ROUTES.flatMap((route) => {
-      if (!route.components.some((component) => componentIds.has(component.componentId))) {
-        return [];
-      }
-      const matchResult = portraitRouteMatchResult(route, entry.text);
-      return matchResult.matched ? [{ route, matchResult }] : [];
-    }).sort(
-      (left, right) =>
-        right.route.priority - left.route.priority ||
-        right.matchResult.score - left.matchResult.score,
+  for (const {
+    entry,
+    entryPosition,
+    matched,
+    rawMatchedCount,
+  } of entryMatches) {
+    const selectedRoutes = matched.filter(({ route }) =>
+      visualPlan.selectedKeys.has(`${entryPosition}:${route.id}`),
     );
-    const selectedRoutes = matched.slice(0, PORTRAIT_ROUTING_POLICY.maxIntentsPerCue);
+    const suppressedRoutes = matched.filter(({ route }) =>
+      !visualPlan.selectedKeys.has(`${entryPosition}:${route.id}`),
+    );
     const startFrame = Math.max(0, Math.round((entry.startMs / 1000) * fps));
     const endFrame = Math.max(startFrame + 3, Math.round((entry.endMs / 1000) * fps));
     const detected = [];
@@ -1058,13 +1409,21 @@ const buildPortraitSemanticSrtArrangement = ({
         routeIndex,
         selectedRoutes.length,
       );
-      const context = portraitContext({ route, text: entry.text, timing, fps });
+      const context = portraitContext({
+        route,
+        text: entry.text,
+        timing,
+        fps,
+        documentContext: resolvedDocumentContext,
+      });
       const createdMotionIds = [];
       const selectedCandidates = selectDiversePortraitCandidates({
         route,
         context,
         availableIds: componentIds,
+        capabilitiesById,
         intentCountInCue: selectedRoutes.length,
+        cueFrameCount: endFrame - startFrame,
         diversityState,
       });
 
@@ -1171,6 +1530,7 @@ const buildPortraitSemanticSrtArrangement = ({
           route,
           context,
           componentIds,
+          capabilitiesById,
         ),
         score: matchResult.score,
         minimumScore: matchResult.minimumScore,
@@ -1179,12 +1539,47 @@ const buildPortraitSemanticSrtArrangement = ({
       intentCount += 1;
     });
 
-    if (matched.length > selectedRoutes.length) {
+    const suppressedIntents = suppressedRoutes.map(({ route, matchResult }) => {
+      const sequence = String(entry.index).padStart(3, "0");
+      const timing = { startFrame, endFrame };
+      const context = portraitContext({
+        route,
+        text: entry.text,
+        timing,
+        fps,
+        documentContext: resolvedDocumentContext,
+      });
+      suppressedIntentCount += 1;
+      return {
+        id: `intent-${sequence}-${route.id}`,
+        type: route.intentType,
+        label: route.label,
+        componentId: null,
+        componentIds: [],
+        componentCandidates: portraitComponentCandidates(
+          route,
+          context,
+          componentIds,
+          capabilitiesById,
+        ),
+        score: matchResult.score,
+        minimumScore: matchResult.minimumScore,
+        signals: matchResult.signals,
+        suppressionReason: "visual-density-budget",
+      };
+    });
+
+    if (rawMatchedCount > PORTRAIT_ROUTING_POLICY.maxIntentsPerCue) {
       messages.push(
-        `语义段 ${sourceCueLabel(entry)} 命中 ${matched.length} 个竖屏语义，仅保留优先级最高的 ${PORTRAIT_ROUTING_POLICY.maxIntentsPerCue} 个，避免画面过载。`,
+        `语义段 ${sourceCueLabel(entry)} 命中 ${rawMatchedCount} 个竖屏语义，仅分析优先级最高的 ${PORTRAIT_ROUTING_POLICY.maxIntentsPerCue} 个。`,
       );
     }
-    if (detected.length === 0) {
+    if (suppressedIntents.length > 0) {
+      messages.push(
+        `语义段 ${sourceCueLabel(entry)} 有 ${suppressedIntents.length} 个意图因视觉密度预算未进入预览，已保留为候选记录。`,
+      );
+    }
+    if (detected.length === 0 && suppressedIntents.length === 0) {
       messages.push(`语义段 ${sourceCueLabel(entry)} 未发现需要视觉强化的明确语义，已保留口播但不添加效果。`);
     }
     cueAnalyses.push({
@@ -1194,11 +1589,15 @@ const buildPortraitSemanticSrtArrangement = ({
       startFrame,
       endFrame,
       intents: detected,
+      suppressedIntents,
     });
   }
 
-  const matchedCueCount = cueAnalyses.filter((cue) => cue.intents.length > 0).length;
-  const skippedCueCount = cueAnalyses.length - matchedCueCount;
+  const matchedCueCount = cueAnalyses.filter(
+    (cue) => cue.intents.length > 0 || cue.suppressedIntents.length > 0,
+  ).length;
+  const appliedCueCount = cueAnalyses.filter((cue) => cue.intents.length > 0).length;
+  const skippedCueCount = cueAnalyses.length - appliedCueCount;
   const maxEndFrame = Math.max(
     durationInFrames,
     ...entries.map((entry) => Math.round((entry.endMs / 1000) * fps)),
@@ -1209,9 +1608,13 @@ const buildPortraitSemanticSrtArrangement = ({
     semanticSegmentCount: entries.length,
     matchedCueCount,
     matchedSegmentCount: matchedCueCount,
+    appliedCueCount,
+    appliedSegmentCount: appliedCueCount,
     skippedCueCount,
     skippedSegmentCount: skippedCueCount,
     intentCount,
+    detectedIntentCount: intentCount + suppressedIntentCount,
+    suppressedIntentCount,
     motionCount: motionTimeline.length,
     resourceCount: resourceTracks.length,
     diversitySummary: {
@@ -1219,6 +1622,15 @@ const buildPortraitSemanticSrtArrangement = ({
       repeatedAvoidedCount: diversityState.repeatedAvoidedCount,
       supportingSuppressedCount: diversityState.supportingSuppressedCount,
       componentUsage: Object.fromEntries(diversityState.componentUsage),
+    },
+    densitySummary: {
+      targetSecondsPerMotion:
+        PORTRAIT_ROUTING_POLICY.density.targetSecondsPerMotion,
+      motionBudget: visualPlan.motionBudget,
+      detectedIntentCount: visualPlan.detectedIntentCount,
+      selectedIntentCount: intentCount,
+      suppressedIntentCount,
+      durationSeconds: Number(visualPlan.durationSeconds.toFixed(3)),
     },
     cueAnalyses,
     messages,
@@ -1247,6 +1659,7 @@ const buildMergedPortraitSemanticSrtArrangement = (input) => {
   const timeline = buildPortraitSemanticSrtArrangement({
     ...input,
     entries: semanticEntries,
+    documentContext: portraitDocumentContextFor(input.entries),
   });
   return {
     ...timeline,
