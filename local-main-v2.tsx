@@ -39,7 +39,6 @@ import {
   TextAa,
   Trash,
   UploadSimple,
-  User,
   VideoCamera,
   X,
 } from "@phosphor-icons/react";
@@ -573,7 +572,7 @@ type ProjectSnapshot = {
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   safetyGuideVisible?: boolean;
-  personPlaceholderEnabled?: boolean;
+  solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
   activeArrangementBatchId?: string;
   createdAt?: string;
@@ -1106,7 +1105,7 @@ type StudioPreviewProps = {
   instances: MotionInstance[];
   canvasOrientation: "landscape" | "portrait";
   safetyGuideVisible: boolean;
-  personPlaceholderEnabled: boolean;
+  solidBackgroundEnabled: boolean;
   soundEnabled: boolean;
   globalCardScale: number;
 };
@@ -1121,7 +1120,7 @@ const StudioPreviewComposition = ({
   instances,
   canvasOrientation,
   safetyGuideVisible,
-  personPlaceholderEnabled,
+  solidBackgroundEnabled,
   soundEnabled,
   globalCardScale,
 }: StudioPreviewProps) => {
@@ -1141,7 +1140,7 @@ const StudioPreviewComposition = ({
       : { width: 1920, height: 1080, orientation: "landscape" };
   const previewAvoidanceRegions = createKnownAvoidanceRegions({
     canvas: previewCanvas,
-    includeFace: personPlaceholderEnabled,
+    includeFace: false,
     includeCaptions: true,
   });
   const orderedLayers = [
@@ -1171,6 +1170,9 @@ const StudioPreviewComposition = ({
 
   return (
     <AbsoluteFill>
+      {solidBackgroundEnabled ? (
+        <AbsoluteFill style={{ backgroundColor: "#05070a" }} />
+      ) : null}
       {orderedLayers.map((layer) => {
         if (layer.kind === "video") {
           const track = layer.track;
@@ -1400,6 +1402,7 @@ const App = () => {
     () => localStorage.getItem("export-folder-path") ?? "",
   );
   const [exportFileNameDraft, setExportFileNameDraft] = useState("");
+  const [exportDialogError, setExportDialogError] = useState("");
   const [exportPicking, setExportPicking] = useState(false);
   const [exportFileName, setExportFileName] = useState<string | null>(null);
   const [motionModule, setMotionModule] = useState<MotionModule | null>(null);
@@ -1500,7 +1503,7 @@ const App = () => {
     "landscape" | "portrait"
   >("landscape");
   const [safetyGuideVisible, setSafetyGuideVisible] = useState(true);
-  const [personPlaceholderEnabled, setPersonPlaceholderEnabled] =
+  const [solidBackgroundEnabled, setSolidBackgroundEnabled] =
     useState(true);
   const [initialPanelWidths] = useState(readStoredPanelWidths);
   const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
@@ -1738,7 +1741,7 @@ const App = () => {
     videoTracks.length > 0
       ? videoTracks[0].visible !== false
       : Boolean(videoUrl && videoPreviewEnabled);
-  const exportTransparent = !mainVideoVisible;
+  const exportTransparent = !mainVideoVisible && !solidBackgroundEnabled;
   const playheadPercent =
     (currentFrame / Math.max(1, durationInFrames - 1)) * 100;
 
@@ -2387,8 +2390,8 @@ const App = () => {
           draft?.canvasOrientation === "portrait" ? "portrait" : "landscape",
         );
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
-        setPersonPlaceholderEnabled(
-          draft?.personPlaceholderEnabled !== false,
+        setSolidBackgroundEnabled(
+          draft?.solidBackgroundEnabled !== false,
         );
         setSoundEnabled(draft?.soundEnabled !== false);
         setActiveArrangementBatchId(
@@ -2608,7 +2611,7 @@ const App = () => {
       instances: effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
-      personPlaceholderEnabled,
+      solidBackgroundEnabled,
       soundEnabled,
       globalCardScale,
     }),
@@ -2617,7 +2620,7 @@ const App = () => {
       effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
-      personPlaceholderEnabled,
+      solidBackgroundEnabled,
       soundEnabled,
       sourceIncludesVideo,
       videoPreviewEnabled,
@@ -2654,7 +2657,7 @@ const App = () => {
       trackHeights,
       canvasOrientation,
       safetyGuideVisible,
-      personPlaceholderEnabled,
+      solidBackgroundEnabled,
       soundEnabled,
     }),
     [
@@ -2667,7 +2670,7 @@ const App = () => {
       projectName,
       resourceTracks,
       safetyGuideVisible,
-      personPlaceholderEnabled,
+      solidBackgroundEnabled,
       soundEnabled,
       sourceIncludesVideo,
       theme,
@@ -2902,8 +2905,8 @@ const App = () => {
         snapshot.canvasOrientation === "portrait" ? "portrait" : "landscape",
       );
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
-      setPersonPlaceholderEnabled(
-        snapshot.personPlaceholderEnabled !== false,
+      setSolidBackgroundEnabled(
+        snapshot.solidBackgroundEnabled !== false,
       );
       setSoundEnabled(snapshot.soundEnabled !== false);
       setTimelineHeight(
@@ -3163,7 +3166,7 @@ const App = () => {
         timeline: semanticTimeline,
         canvas,
         componentDefinitions,
-        includeFace: personPlaceholderEnabled,
+        includeFace: true,
         includeCaptions: true,
       });
       await showStage("quality");
@@ -3172,7 +3175,7 @@ const App = () => {
         canvas,
         componentDefinitions,
         resourceIndex,
-        includeFace: personPlaceholderEnabled,
+        includeFace: true,
         includeCaptions: true,
       });
       const srtEndSeconds = Math.max(
@@ -3246,6 +3249,7 @@ const App = () => {
             backgroundOpacity: 0,
             props: {
               enabled: true,
+              showIcon: false,
               cuesJson: JSON.stringify(captionCues),
               timeOffset: 0,
             },
@@ -4772,6 +4776,7 @@ const App = () => {
       localStorage.getItem("export-folder-path") ?? "",
     );
     setExportFileNameDraft(defaultExportFileName());
+    setExportDialogError("");
     setExportDialogOpen(true);
   };
 
@@ -4783,12 +4788,16 @@ const App = () => {
       if (!response.ok) throw new Error(data.error ?? "选择文件夹失败");
       if (data.path) {
         setExportDirDraft(String(data.path));
+        setExportDialogError("");
         localStorage.setItem("export-folder-path", String(data.path));
       }
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "无法打开文件夹选择器";
+      setExportDialogError(message);
       setNotice({
         tone: "error",
-        text: error instanceof Error ? error.message : "无法打开文件夹选择器",
+        text: message,
       });
     } finally {
       setExportPicking(false);
@@ -4869,9 +4878,11 @@ const App = () => {
     const outputDir = exportDirDraft.trim();
     const fileName = exportFileNameDraft.trim() || defaultExportFileName();
     if (!outputDir) {
+      setExportDialogError("请先选择或填写导出文件夹。");
       setNotice({ tone: "error", text: "请先选择导出文件夹。" });
       return;
     }
+    setExportDialogError("");
     setExportDialogOpen(false);
     setExportFileName(fileName);
     setRendering(true);
@@ -7776,7 +7787,7 @@ const App = () => {
             disabled={rendering}
             onClick={openExportDialog}
           >
-            <DownloadSimple weight="bold" />导出整条时间轴(透明)
+            <DownloadSimple weight="bold" />导出整条时间轴({exportTransparent ? "透明" : mainVideoVisible ? "合成" : "纯色"})
           </button>
 
           <section className="reference-control-group">
@@ -7802,22 +7813,21 @@ const App = () => {
             </button>
           </div>
           <div className="reference-switch-row">
-            <span>人物占位</span>
+            <span>背景纯色</span>
             <button
               type="button"
-              className={`reference-switch ${personPlaceholderEnabled ? "active" : ""}`}
-              aria-label="人物占位"
-              aria-pressed={personPlaceholderEnabled}
+              className={`reference-switch ${solidBackgroundEnabled ? "active" : ""}`}
+              aria-label="背景纯色"
+              aria-pressed={solidBackgroundEnabled}
               title={
-                personPlaceholderEnabled
-                  ? "自动编排将避开中央人物区"
-                  : "自动编排不再预留人物区"
+                solidBackgroundEnabled
+                  ? "关闭纯色背景，使用透明背景"
+                  : "开启纯色背景"
               }
               onClick={() =>
-                setPersonPlaceholderEnabled((enabled) => !enabled)
+                setSolidBackgroundEnabled((enabled) => !enabled)
               }
             >
-              <User />
               <i />
             </button>
           </div>
@@ -7879,7 +7889,18 @@ const App = () => {
                   style={{
                     width: "100%",
                     height: "100%",
-                    backgroundColor: "#05070a",
+                    backgroundColor: solidBackgroundEnabled
+                      ? "#05070a"
+                      : "transparent",
+                    backgroundImage: solidBackgroundEnabled
+                      ? "none"
+                      : "linear-gradient(45deg, #181b22 25%, transparent 25%), linear-gradient(-45deg, #181b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181b22 75%), linear-gradient(-45deg, transparent 75%, #181b22 75%)",
+                    backgroundPosition: solidBackgroundEnabled
+                      ? undefined
+                      : "0 0, 0 8px, 8px -8px, -8px 0",
+                    backgroundSize: solidBackgroundEnabled
+                      ? undefined
+                      : "16px 16px",
                   }}
                 />
               ) : (
@@ -9572,27 +9593,69 @@ const App = () => {
             </div>
 
             {pendingArrangement.captionInstance ? (
-              <label className="arrangement-caption-toggle">
-                <TextAa aria-hidden="true" />
-                <span>
-                  <strong>字幕</strong>
-                  <small>
-                    导入 {pendingArrangement.semanticSummary?.cueCount ?? 0} 句真实 SRT，按原时间戳实时显示
-                  </small>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={pendingArrangement.selectedKeys.includes(
-                    `caption:${pendingArrangement.captionInstance.id}`,
-                  )}
-                  onChange={() =>
-                    togglePendingArrangementItem(
-                      `caption:${pendingArrangement.captionInstance!.id}`,
+              <div className="arrangement-caption-controls">
+                <label className="arrangement-caption-toggle">
+                  <TextAa aria-hidden="true" />
+                  <span>
+                    <strong>字幕</strong>
+                    <small>
+                      导入 {pendingArrangement.semanticSummary?.cueCount ?? 0} 句真实 SRT，按原时间戳实时显示
+                    </small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={pendingArrangement.selectedKeys.includes(
+                      `caption:${pendingArrangement.captionInstance.id}`,
+                    )}
+                    onChange={() =>
+                      togglePendingArrangementItem(
+                        `caption:${pendingArrangement.captionInstance!.id}`,
+                      )
+                    }
+                  />
+                  <i aria-hidden="true" />
+                </label>
+                <label
+                  className={`arrangement-caption-toggle ${
+                    pendingArrangement.selectedKeys.includes(
+                      `caption:${pendingArrangement.captionInstance.id}`,
                     )
-                  }
-                />
-                <i aria-hidden="true" />
-              </label>
+                      ? ""
+                      : "is-disabled"
+                  }`}
+                >
+                  <SelectionForeground aria-hidden="true" />
+                  <span>
+                    <strong>图标</strong>
+                    <small>按字幕语义调用图标库，默认关闭</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    disabled={!pendingArrangement.selectedKeys.includes(
+                      `caption:${pendingArrangement.captionInstance.id}`,
+                    )}
+                    checked={pendingArrangement.captionInstance.props.showIcon === true}
+                    onChange={() =>
+                      setPendingArrangement((current) =>
+                        current?.captionInstance
+                          ? {
+                              ...current,
+                              captionInstance: {
+                                ...current.captionInstance,
+                                props: {
+                                  ...current.captionInstance.props,
+                                  showIcon:
+                                    current.captionInstance.props.showIcon !== true,
+                                },
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                  <i aria-hidden="true" />
+                </label>
+              </div>
             ) : null}
 
             {pendingArrangement.qualityControlChecks.length > 0 ? (
@@ -10433,7 +10496,14 @@ const App = () => {
                 <input
                   type="text"
                   value={exportDirDraft}
-                  onChange={(event) => setExportDirDraft(event.target.value)}
+                  aria-invalid={Boolean(exportDialogError)}
+                  aria-describedby={
+                    exportDialogError ? "export-dialog-error" : undefined
+                  }
+                  onChange={(event) => {
+                    setExportDirDraft(event.target.value);
+                    if (exportDialogError) setExportDialogError("");
+                  }}
                   placeholder="例如 D:\导出"
                   spellCheck={false}
                 />
@@ -10447,6 +10517,15 @@ const App = () => {
                 </button>
               </div>
             </label>
+            {exportDialogError ? (
+              <p
+                id="export-dialog-error"
+                className="export-dialog-error"
+                role="alert"
+              >
+                {exportDialogError}
+              </p>
+            ) : null}
             <label className="export-dialog-field">
               <span>文件名</span>
               <input

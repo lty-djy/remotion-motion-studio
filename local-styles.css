@@ -3096,7 +3096,7 @@ aside {
 
 .toast {
   position: fixed;
-  z-index: 99;
+  z-index: 130;
   left: 50%;
   bottom: 22px;
   max-width: 680px;
@@ -3334,6 +3334,17 @@ aside {
 
 .export-dialog-field input[type="text"]:focus {
   border-color: rgba(104, 232, 255, 0.55);
+}
+
+.export-dialog-field input[type="text"][aria-invalid="true"] {
+  border-color: rgba(255, 96, 117, 0.65);
+}
+
+.export-dialog-error {
+  margin: -4px 0 12px;
+  color: #ff8fa0;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .export-dialog-row {
@@ -3675,18 +3686,29 @@ aside {
   font-style: normal;
 }
 
+.arrangement-caption-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .arrangement-caption-toggle {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(104, 232, 255, 0.2);
   border-radius: 10px;
   color: #bdf7ff;
   background: rgba(104, 232, 255, 0.055);
   cursor: pointer;
+}
+
+.arrangement-caption-toggle.is-disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .arrangement-caption-toggle > svg {
@@ -4577,6 +4599,10 @@ aside {
 }
 
 @media (max-width: 760px) {
+  .arrangement-caption-controls {
+    grid-template-columns: 1fr;
+  }
+
   .arrangement-qc-list {
     grid-template-columns: 1fr;
   }

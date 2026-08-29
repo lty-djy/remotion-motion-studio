@@ -165,178 +165,46 @@ const charEm = (ch: string) => {
 const textWidthEm = (text: string) =>
   [...text].reduce((sum, ch) => sum + charEm(ch), 0);
 
-// ---------- 语义图标（局部坐标，中心 0,0，外接半径约 26） ----------
-const SemanticIcon: React.FC<{ tag: SemanticTag; color: string }> = ({
-  tag,
-  color,
-}) => {
-  const common = {
-    stroke: color,
-    strokeWidth: 5.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    fill: "none",
-  };
-  switch (tag) {
-    case "time":
-      return (
-        <g {...common}>
-          <circle cx={0} cy={0} r={20} />
-          <path d="M 0 -11 L 0 1 L 9 6" />
-        </g>
-      );
-    case "store":
-      return (
-        <g {...common}>
-          <path d="M -18 -4 L -15 -17 L 15 -17 L 18 -4 Z" />
-          <path d="M -13 -4 L -13 16 L 13 16 L 13 -4" />
-          <path d="M -4 16 L -4 4 L 5 4 L 5 16" />
-        </g>
-      );
-    case "risk":
-      return (
-        <g {...common}>
-          <path d="M 0 -19 L 19 15 L -19 15 Z" />
-          <path d="M 0 -7 L 0 4" />
-          <circle cx={0} cy={10.5} r={0.5} fill={color} strokeWidth={3} />
-        </g>
-      );
-    case "online":
-      return (
-        <g {...common}>
-          <rect x={-17} y={-13} width={34} height={26} rx={7} />
-          <path d="M -4 -6 L 7 0 L -4 6 Z" fill={color} />
-        </g>
-      );
-    case "deal":
-      return (
-        <g {...common}>
-          <circle cx={0} cy={0} r={20} />
-          <path d="M -9 1 L -2 8 L 10 -7" />
-        </g>
-      );
-    case "people":
-      return (
-        <g {...common}>
-          <circle cx={-3} cy={-7} r={7} />
-          <path d="M -15 15 a 12 10 0 0 1 24 0" />
-          <circle cx={14} cy={-8} r={5} opacity={0.55} />
-          <path d="M 10 14 a 9 8 0 0 1 12 -6" opacity={0.55} />
-        </g>
-      );
-    case "growth":
-      return (
-        <g {...common}>
-          <path d="M -18 13 L -6 1 L 1 7 L 16 -9" />
-          <path d="M 16 -9 L 6 -8 M 16 -9 L 15 1" />
-        </g>
-      );
-    case "trend":
-      return (
-        <g {...common}>
-          <path d="M -18 12 C -10 4 -7 16 -1 7 C 4 0 8 -4 17 -10" />
-          <path d="M 17 -10 L 8 -9 M 17 -10 L 16 -1" />
-        </g>
-      );
-    case "info":
-      return (
-        <g {...common}>
-          <circle cx={0} cy={0} r={20} />
-          <path d="M 0 -5 L 0 12" />
-          <circle cx={0} cy={-12} r={1} fill={color} strokeWidth={3} />
-        </g>
-      );
-    case "process":
-      return (
-        <g {...common}>
-          <circle cx={-15} cy={-11} r={4} />
-          <circle cx={-15} cy={0} r={4} />
-          <circle cx={-15} cy={11} r={4} />
-          <path d="M -7 -11 L 17 -11 M -7 0 L 17 0 M -7 11 L 17 11" />
-        </g>
-      );
-    case "metric":
-      return (
-        <g {...common}>
-          <path d="M -18 14 L -18 4 M -5 14 L -5 -4 M 8 14 L 8 -13" />
-          <path d="M -18 -8 L -7 -15 L 2 -8 L 17 -18" />
-          <path d="M 17 -18 L 8 -17 M 17 -18 L 16 -9" />
-        </g>
-      );
-    case "comparison":
-      return (
-        <g {...common}>
-          <path d="M -19 -8 L 14 -8 M 14 -8 L 7 -15 M 14 -8 L 7 -1" />
-          <path d="M 19 9 L -14 9 M -14 9 L -7 2 M -14 9 L -7 16" />
-        </g>
-      );
-    case "completion":
-      return (
-        <g {...common}>
-          <circle cx={0} cy={0} r={20} />
-          <path d="M -10 0 L -3 8 L 12 -9" />
-        </g>
-      );
-    case "coverage":
-      return (
-        <g {...common}>
-          <path d="M 0 0 L 0 -20 A 20 20 0 1 1 -14 14 Z" />
-          <path d="M 5 -15 A 16 16 0 0 1 15 -3" opacity={0.5} />
-        </g>
-      );
-    case "emphasis":
-      return (
-        <g {...common}>
-          <path d="M 0 -19 L 0 5" />
-          <circle cx={0} cy={14} r={1} fill={color} strokeWidth={4} />
-          <path d="M -13 -13 L -19 -18 M 13 -13 L 19 -18" opacity={0.55} />
-        </g>
-      );
-    case "cta":
-      return (
-        <g {...common}>
-          <path d="M -14 8 L -9 3 L -9 -6 A 9 9 0 0 1 9 -6 L 9 3 L 14 8 Z" />
-          <path d="M -4 13 A 5 4 0 0 0 4 13" />
-        </g>
-      );
-    case "automation":
-      return (
-        <g {...common}>
-          <rect x={-18} y={-15} width={36} height={30} rx={8} />
-          <circle cx={-7} cy={-3} r={2} fill={color} strokeWidth={2} />
-          <circle cx={7} cy={-3} r={2} fill={color} strokeWidth={2} />
-          <path d="M -8 7 L 0 11 L 8 7 M 0 -15 L 0 -21" />
-        </g>
-      );
-    case "money":
-    default:
-      return (
-        <g>
-          <text
-            x={0}
-            y={0}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill={color}
-            fontSize={30}
-            fontWeight={800}
-          >
-            ¥
-          </text>
-          <path
-            d="M -14 14 L 14 14"
-            stroke={color}
-            strokeWidth={5}
-            strokeLinecap="round"
-            fill="none"
-          />
-        </g>
-      );
-  }
+// 语义图标统一引用 public/input/icons 中的稳定资源 ID。
+const TAG_ICON_IDS: Record<SemanticTag, string> = {
+  time: "calendar",
+  store: "buildings",
+  money: "credit-card",
+  risk: "warning",
+  online: "broadcast",
+  deal: "target",
+  people: "users",
+  growth: "trend-up",
+  trend: "route",
+  info: "lightbulb",
+  process: "list-checks",
+  metric: "chart-bar",
+  comparison: "arrow",
+  completion: "check-circle",
+  coverage: "scan",
+  emphasis: "lightning",
+  cta: "megaphone",
+  automation: "robot",
+};
+
+const SemanticIcon: React.FC<{ tag: SemanticTag }> = ({ tag }) => {
+  const iconId = TAG_ICON_IDS[tag];
+  return (
+    <image
+      data-icon-id={iconId}
+      href={`/input/icons/${iconId}.svg`}
+      x={-27}
+      y={-27}
+      width={54}
+      height={54}
+      preserveAspectRatio="xMidYMid meet"
+    />
+  );
 };
 
 type SrtSemanticCaptionsProps = {
   enabled?: boolean;
+  showIcon?: boolean;
   fontSize?: number;
   accentMode?: string;
   accentColor?: string;
@@ -347,6 +215,7 @@ type SrtSemanticCaptionsProps = {
 
 export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
   enabled = true,
+  showIcon = false,
   fontSize = 58,
   accentMode = "auto",
   accentColor = "#f5c542",
@@ -437,13 +306,14 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
   const badgeR = Math.max(26, Math.min(40, fs * 0.6));
 
   // 先按内容估宽，再整体居中重排
-  const estimatedW =
-    plateH / 2 + 10 + badgeR * 2 + 24 + totalW + 44;
+  const estimatedW = showIcon
+    ? plateH / 2 + 10 + badgeR * 2 + 24 + totalW + 44
+    : totalW + 114;
   const plateW = Math.max(360, Math.min(1028, estimatedW));
   const plateX = 540 - plateW / 2;
   const plateY = plateCy - plateH / 2;
   const badgeCx = plateX + plateH / 2 + 10;
-  const textStartX = badgeCx + badgeR + 22;
+  const textStartX = showIcon ? badgeCx + badgeR + 22 : plateX + 44;
   const baselineY = plateCy + Math.round(fs * 0.35);
   const iconScale = badgeR / 26;
 
@@ -489,19 +359,23 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
             </g>
 
             {/* 语义图标徽章 */}
-            <g style={{ filter: `drop-shadow(0px 0px 8px ${accent}66)` }}>
-              <circle
-                cx={badgeCx}
-                cy={plateCy}
-                r={badgeR}
-                fill={`${accent}26`}
-                stroke={`${accent}99`}
-                strokeWidth={2}
-              />
-            </g>
-            <g transform={`translate(${badgeCx} ${plateCy}) scale(${iconScale.toFixed(3)})`}>
-              <SemanticIcon tag={tag} color={accent} />
-            </g>
+            {showIcon ? (
+              <>
+                <g style={{ filter: `drop-shadow(0px 0px 8px ${accent}66)` }}>
+                  <circle
+                    cx={badgeCx}
+                    cy={plateCy}
+                    r={badgeR}
+                    fill={`${accent}26`}
+                    stroke={`${accent}99`}
+                    strokeWidth={2}
+                  />
+                </g>
+                <g transform={`translate(${badgeCx} ${plateCy}) scale(${iconScale.toFixed(3)})`}>
+                  <SemanticIcon tag={tag} />
+                </g>
+              </>
+            ) : null}
 
             {/* 三段文本：关键词按语义色强调 */}
             <text
@@ -559,7 +433,7 @@ export const SrtSemanticCaptions: React.FC<SrtSemanticCaptionsProps> = ({
 export const SrtSemanticCaptionsEffectDef: EffectDef = {
   id: "SrtSemanticCaptions",
   name: "SRT字幕语义动画",
-  description: "读取导入的真实 SRT 时间戳逐句显示，支持语义配色、图标与关键词扫线",
+  description: "读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线",
   category: "captions",
   catalogGroup: "字幕与台词",
   glyph: "SRT",
@@ -572,6 +446,7 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
   defaultPosition: { x: 0, y: 1360, scale: 1 },
   defaultProps: {
     enabled: true,
+    showIcon: false,
     fontSize: 58,
     accentMode: "auto",
     accentColor: "#f5c542",
@@ -580,6 +455,7 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
   },
   propsSchema: {
     enabled: { type: "boolean", label: "显示字幕动画", default: true },
+    showIcon: { type: "boolean", label: "显示语义图标", default: false },
     fontSize: { type: "number", label: "字号(px)", default: 58, min: 24, max: 110, step: 2 },
     accentMode: {
       type: "select",

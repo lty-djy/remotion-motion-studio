@@ -12,7 +12,7 @@
 
 ## 字幕与台词
 
-- `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，支持语义配色、图标与关键词扫线（仅工作台可用；props：`enabled`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
+- `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，可选调用固定图标库并支持语义配色与关键词扫线（仅工作台可用；props：`enabled`、`showIcon`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
 - `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
 
 ## 终端教学 HUD
