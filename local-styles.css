@@ -868,7 +868,7 @@ main.is-resizing-sidebar * {
   width: 100%;
   height: 38px;
   display: grid;
-  grid-template-columns: 1fr auto 14px;
+  grid-template-columns: 1fr 24px auto 14px;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
@@ -877,6 +877,33 @@ main.is-resizing-sidebar * {
   background: #141c28;
   text-align: left;
   cursor: pointer;
+}
+
+.icon-category-color-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--icon-accent) 72%, white);
+  border-radius: 5px;
+  box-shadow: 0 0 0 2px rgba(3, 8, 15, 0.75), 0 0 10px color-mix(in srgb, var(--icon-accent) 45%, transparent);
+  cursor: pointer;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.icon-category-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.icon-category-color-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+.icon-category-color-swatch.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .icon-category-toggle span {
@@ -991,6 +1018,243 @@ main.is-resizing-sidebar * {
 .icon-library-card:hover > svg {
   color: var(--icon-accent);
   opacity: 1;
+}
+
+.sfx-library-panel {
+  min-height: 100%;
+  padding-bottom: 24px;
+}
+
+.sfx-library-header {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #302943;
+}
+
+.sfx-library-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.sfx-library-header small {
+  color: #a776f7;
+  font: 11px Consolas, "SFMono-Regular", monospace;
+  letter-spacing: 0.17em;
+}
+
+.sfx-library-header strong {
+  color: #f4f0ff;
+  font-size: 21px;
+}
+
+.sfx-library-header span {
+  color: #776d89;
+  font-size: 11px;
+}
+
+.sfx-library-header > b {
+  min-width: 42px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #c7a5ff;
+  background: #1c1629;
+  border: 1px solid #583d84;
+  border-radius: 15px;
+  font: 14px Consolas, "SFMono-Regular", monospace;
+}
+
+.sfx-library-import {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 9px 11px;
+  border: 1px dashed #6d4aa4;
+  border-radius: 8px;
+  color: #d9c7fa;
+  background: linear-gradient(135deg, rgba(116, 71, 176, 0.18), rgba(36, 25, 55, 0.42));
+  text-align: left;
+  cursor: pointer;
+}
+
+.sfx-library-import:hover {
+  border-color: #ad7cf6;
+  background: linear-gradient(135deg, rgba(129, 78, 198, 0.28), rgba(45, 29, 68, 0.52));
+}
+
+.sfx-library-import > svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: #b785ff;
+}
+
+.sfx-library-import span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sfx-library-import strong {
+  font-size: 12px;
+}
+
+.sfx-library-import small {
+  color: #82758f;
+  font-size: 9px;
+}
+
+.sfx-library-search {
+  margin-top: 11px;
+  border-color: #392e49;
+  background: #17121f;
+}
+
+.sfx-library-search:focus-within {
+  border-color: #8e61ce;
+  box-shadow: 0 0 0 1px #462d6a;
+}
+
+.sfx-library-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 1px 10px;
+  color: #786d87;
+  font: 10px Consolas, "SFMono-Regular", monospace;
+}
+
+.sfx-library-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sfx-library-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #332a42;
+  border-radius: 8px;
+  background: #121019;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.sfx-library-card:hover,
+.sfx-library-card.previewing {
+  border-color: #754da9;
+  background: #181121;
+}
+
+.sfx-preview-button {
+  width: 38px;
+  height: 38px;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  padding: 0;
+  border: 1px solid #543a75;
+  border-radius: 50%;
+  color: #c49aff;
+  background: #21172f;
+  cursor: pointer;
+}
+
+.sfx-preview-button:hover,
+.sfx-library-card.previewing .sfx-preview-button {
+  color: #fff;
+  background: #7d4fbd;
+}
+
+.sfx-preview-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sfx-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sfx-card-copy strong,
+.sfx-card-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sfx-card-copy strong {
+  color: #e8e0f4;
+  font-size: 12px;
+}
+
+.sfx-card-copy small {
+  color: #71677d;
+  font-size: 9px;
+}
+
+.sfx-card-copy span {
+  color: #9877c4;
+  font: 9px Consolas, "SFMono-Regular", monospace;
+}
+
+.sfx-card-actions {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.sfx-card-actions button {
+  min-width: 28px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid #382e47;
+  border-radius: 5px;
+  color: #81768e;
+  background: #17121f;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sfx-card-actions button:hover {
+  color: #d8cbe8;
+  border-color: #604583;
+}
+
+.sfx-card-actions button.primary {
+  margin-left: auto;
+  color: #eee4ff;
+  border-color: #7047a7;
+  background: #4c2e74;
+}
+
+.sfx-card-actions button.primary:hover {
+  background: #68409d;
+}
+
+.sfx-card-actions button.danger:hover {
+  color: #ff9c9c;
+  border-color: #8f444f;
+  background: #351a22;
+}
+
+.sfx-card-actions svg {
+  width: 12px;
+  height: 12px;
 }
 
 .effect-library-imported {
@@ -3477,6 +3741,8 @@ aside {
   background: rgba(17, 22, 31, 0.98);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
 }
 
 .component-context-menu small {
@@ -3528,6 +3794,37 @@ aside {
 
 .component-context-menu .create-action:hover {
   background: rgba(110, 227, 118, 0.19);
+}
+
+.component-context-menu .icon-import-action {
+  color: #78b7ff;
+  background: rgba(61, 137, 255, 0.13);
+}
+
+.component-context-menu .icon-import-action:hover {
+  background: rgba(61, 137, 255, 0.23);
+}
+
+.component-context-menu .icon-new-group-action {
+  color: #c7a5ff;
+  background: rgba(139, 119, 255, 0.13);
+}
+
+.component-context-menu .icon-new-group-action:hover {
+  background: rgba(139, 119, 255, 0.23);
+}
+
+.component-context-menu .icon-rename-group-action {
+  color: #ffc46b;
+  background: rgba(255, 178, 66, 0.13);
+}
+
+.component-context-menu .icon-rename-group-action:hover {
+  background: rgba(255, 178, 66, 0.23);
+}
+
+.icon-group-rename-backdrop {
+  z-index: 240;
 }
 
 .component-context-menu .group-rename-action {

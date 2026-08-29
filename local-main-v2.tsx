@@ -1,6 +1,7 @@
 ﻿import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -88,6 +89,14 @@ type IconResource = {
   usage: string;
   category: string;
   accent: string;
+  source?: string;
+};
+
+type IconCategoryGroup = {
+  id: string;
+  name: string;
+  accent: string;
+  builtin: boolean;
 };
 
 const ICON_CATEGORY_ORDER = [
@@ -97,6 +106,15 @@ const ICON_CATEGORY_ORDER = [
   "商务与教育",
   "沟通与传播",
   "表达与强调",
+];
+
+const BUILT_IN_ICON_GROUPS: IconCategoryGroup[] = [
+  { id: "content", name: "内容与素材", accent: "#2f8cff", builtin: true },
+  { id: "automation", name: "自动化与流程", accent: "#27c4e8", builtin: true },
+  { id: "status", name: "状态与数据", accent: "#20d7a0", builtin: true },
+  { id: "business", name: "商务与教育", accent: "#f2b93d", builtin: true },
+  { id: "communication", name: "沟通与传播", accent: "#a776f7", builtin: true },
+  { id: "expression", name: "表达与强调", accent: "#4f9dff", builtin: true },
 ];
 
 type AiArrangementStage =
@@ -240,6 +258,19 @@ type ArrangementResourceEntry = {
   category: string;
   accent: string;
   durationSeconds?: number;
+  source?: string;
+};
+
+type SoundResource = ArrangementResourceEntry & {
+  bytes?: number;
+};
+
+const formatSoundDuration = (durationSeconds?: number) => {
+  const total = Math.max(0, Number(durationSeconds) || 0);
+  const minutes = Math.floor(total / 60);
+  const seconds = Math.floor(total % 60);
+  const tenths = Math.floor((total % 1) * 10);
+  return `${minutes}:${String(seconds).padStart(2, "0")}.${tenths}`;
 };
 
 type ArrangementResourcePicker = {
@@ -358,6 +389,7 @@ const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
 const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
 const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
 const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
+const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 278;
@@ -636,13 +668,16 @@ type ContextMenuState = {
     | "resourceTimeline"
     | "library"
     | "libraryGroup"
-    | "libraryRoot";
+    | "libraryRoot"
+    | "iconLibrary";
   instanceIds: string[];
   videoTrackId?: string;
   resourceTrackId?: string;
   componentId?: string;
+  iconId?: string;
   groupId?: string;
   groupName?: string;
+  iconGroupId?: string;
   groupComponentIds?: string[];
 };
 
@@ -680,6 +715,26 @@ const loadEffectNameOverrides = (): Record<string, string> => {
               Boolean(componentId) &&
               typeof name === "string" &&
               Boolean(name.trim()),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const loadEffectGroupNameOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(EFFECT_GROUP_NAME_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([id, name]) =>
+              typeof id === "string" &&
+              typeof name === "string" &&
+              name.trim().length > 0,
           ),
         )
       : {};
@@ -1394,6 +1449,10 @@ const App = () => {
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const componentInput = useRef<HTMLInputElement>(null);
+  const iconImportInput = useRef<HTMLInputElement>(null);
+  const iconImportCategoryRef = useRef("内容与素材");
+  const sfxImportInput = useRef<HTMLInputElement>(null);
+  const sfxLibraryAudioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const timelineJsonInput = useRef<HTMLInputElement>(null);
   const activeComponentIdRef = useRef("");
   const workspaceReadyRef = useRef(false);
@@ -1525,13 +1584,14 @@ const App = () => {
   const [shortcuts, setShortcuts] = useState<ShortcutMap>(loadShortcuts);
   const [shortcutDraft, setShortcutDraft] = useState<ShortcutMap>(loadShortcuts);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const [timelineMarquee, setTimelineMarquee] =
     useState<MarqueeRect | null>(null);
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
-    useState<"editor" | "effects" | "icons" | "code">("editor");
+    useState<"editor" | "effects" | "icons" | "sfx" | "code">("editor");
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
   const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
   const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
@@ -1539,6 +1599,8 @@ const App = () => {
   );
   const [effectSearch, setEffectSearch] = useState("");
   const [iconSearch, setIconSearch] = useState("");
+  const [sfxSearch, setSfxSearch] = useState("");
+  const [previewingSfxId, setPreviewingSfxId] = useState("");
   const [iconResources, setIconResources] = useState<IconResource[]>([]);
   const [arrangementResourceLibrary, setArrangementResourceLibrary] =
     useState<ArrangementResourceLibrary>({
@@ -1551,6 +1613,10 @@ const App = () => {
     "内容与素材",
     "状态与数据",
   ]);
+  const [customIconGroups, setCustomIconGroups] = useState<IconCategoryGroup[]>([]);
+  const [iconGroupRenameTarget, setIconGroupRenameTarget] =
+    useState<IconCategoryGroup | null>(null);
+  const [iconGroupNameDraft, setIconGroupNameDraft] = useState("");
   const [customCatalogGroups, setCustomCatalogGroups] = useState(
     loadCustomCatalogGroups,
   );
@@ -1565,6 +1631,9 @@ const App = () => {
   );
   const [effectNameOverrides, setEffectNameOverrides] = useState(
     loadEffectNameOverrides,
+  );
+  const [effectGroupNameOverrides, setEffectGroupNameOverrides] = useState(
+    loadEffectGroupNameOverrides,
   );
   const [effectRenameTarget, setEffectRenameTarget] =
     useState<EffectRenameTarget | null>(null);
@@ -1590,6 +1659,25 @@ const App = () => {
     resolved: "none" | "vertical" | "horizontal";
   } | null>(null);
   const [laneDrop, setLaneDrop] = useState<LaneDropState | null>(null);
+
+  useLayoutEffect(() => {
+    const menu = contextMenuRef.current;
+    if (!contextMenu || !menu) return;
+    const padding = 8;
+    const bounds = menu.getBoundingClientRect();
+    const x = Math.max(
+      padding,
+      Math.min(contextMenu.x, window.innerWidth - bounds.width - padding),
+    );
+    const y = Math.max(
+      padding,
+      Math.min(contextMenu.y, window.innerHeight - bounds.height - padding),
+    );
+    if (x === contextMenu.x && y === contextMenu.y) return;
+    setContextMenu((current) =>
+      current ? { ...current, x, y } : current,
+    );
+  }, [contextMenu]);
   const historyRef = useRef<{
     past: EditHistorySnapshot[];
     present: EditHistorySnapshot | null;
@@ -1602,9 +1690,17 @@ const App = () => {
   useEffect(
     () => () => {
       playheadDragCleanupRef.current?.();
+      sfxLibraryAudioPreviewRef.current?.pause();
     },
     [],
   );
+
+  useEffect(() => {
+    if (activeWorkspace === "sfx") return;
+    sfxLibraryAudioPreviewRef.current?.pause();
+    sfxLibraryAudioPreviewRef.current = null;
+    setPreviewingSfxId("");
+  }, [activeWorkspace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1653,6 +1749,9 @@ const App = () => {
                 usage: String(rawEntry.usage ?? ""),
                 category: String(rawEntry.category ?? fallbackCategory),
                 accent: String(rawEntry.accent ?? "#68e8ff"),
+                ...(typeof rawEntry.source === "string"
+                  ? { source: rawEntry.source }
+                  : {}),
                 ...(Number.isFinite(Number(media.durationSeconds))
                   ? { durationSeconds: Number(media.durationSeconds) }
                   : {}),
@@ -1676,6 +1775,24 @@ const App = () => {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/icon-groups", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!payload?.ok || !Array.isArray(payload.groups)) return;
+        setCustomIconGroups(
+          payload.groups.filter(
+            (group: unknown): group is IconCategoryGroup =>
+              Boolean(group) && typeof group === "object" &&
+              typeof (group as IconCategoryGroup).id === "string" &&
+              typeof (group as IconCategoryGroup).name === "string" &&
+              typeof (group as IconCategoryGroup).accent === "string",
+          ),
+        );
+      })
+      .catch(() => undefined);
   }, []);
 
   const setActiveComponentId = useCallback((id: string) => {
@@ -1944,7 +2061,11 @@ const App = () => {
   );
   const effectCatalog = useMemo(() => {
     const groups = [
-      ...BUILT_IN_CATALOG.map((group) => ({ ...group, items: [] as typeof group.items })),
+      ...BUILT_IN_CATALOG.map((group) => ({
+        ...group,
+        name: effectGroupNameOverrides[group.id] ?? group.name,
+        items: [] as typeof group.items,
+      })),
       ...customCatalogGroups.map((group) => ({ ...group, items: [] })),
     ];
     const availableGroupIds = new Set(groups.map((group) => group.id));
@@ -1983,6 +2104,7 @@ const App = () => {
     customDefinitions,
     definitionMap,
     effectGroupAssignments,
+    effectGroupNameOverrides,
     effectNameOverrides,
   ]);
   const catalogDefinitionMap = useMemo(() => {
@@ -2032,12 +2154,9 @@ const App = () => {
   );
   const filteredIconCatalog = useMemo(() => {
     const query = iconSearch.trim().toLocaleLowerCase("zh-CN");
-    const categories = new Map<
-      string,
-      { name: string; accent: string; items: IconResource[] }
-    >();
-    for (const category of ICON_CATEGORY_ORDER) {
-      categories.set(category, { name: category, accent: "#4f9dff", items: [] });
+    const categories = new Map<string, IconCategoryGroup & { items: IconResource[] }>();
+    for (const group of [...BUILT_IN_ICON_GROUPS, ...customIconGroups]) {
+      categories.set(group.name, { ...group, items: [] });
     }
     for (const icon of iconResources) {
       const category = icon.category || "表达与强调";
@@ -2052,16 +2171,20 @@ const App = () => {
         .toLocaleLowerCase("zh-CN");
       if (query && !searchable.includes(query)) continue;
       const group = categories.get(category) ?? {
+        id: `unregistered-${category}`,
         name: category,
         accent: icon.accent || "#4f9dff",
+        builtin: true,
         items: [],
       };
       group.accent = icon.accent || group.accent;
       group.items.push(icon);
       categories.set(category, group);
     }
-    return [...categories.values()].filter((category) => category.items.length > 0);
-  }, [iconResources, iconSearch]);
+    return [...categories.values()].filter(
+      (category) => category.items.length > 0 || (!query && !category.builtin),
+    );
+  }, [iconResources, iconSearch, customIconGroups]);
   const visibleIconCount = useMemo(
     () =>
       filteredIconCatalog.reduce(
@@ -2070,6 +2193,16 @@ const App = () => {
       ),
     [filteredIconCatalog],
   );
+  const filteredSfxResources = useMemo(() => {
+    const query = sfxSearch.trim().toLocaleLowerCase("zh-CN");
+    return (arrangementResourceLibrary.sfx as SoundResource[]).filter((sound) => {
+      if (!query) return true;
+      return [sound.id, sound.label, sound.category, sound.usage, ...sound.tags]
+        .join(" ")
+        .toLocaleLowerCase("zh-CN")
+        .includes(query);
+    });
+  }, [arrangementResourceLibrary.sfx, sfxSearch]);
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
@@ -3038,6 +3171,51 @@ const App = () => {
     setNotice({ tone: "ok", text: `已添加图标“${icon.label}”到时间轴。` });
   };
 
+  const addSfxResource = (sound: SoundResource) => {
+    const id = createResourceTrackId();
+    const sourceDurationInFrames = Math.max(
+      3,
+      Math.round((sound.durationSeconds ?? 1) * fps),
+    );
+    const track: ResourceTrack = {
+      id,
+      laneId: id,
+      trackOrder:
+        Math.min(
+          0,
+          ...videoTracks.map((candidate) => candidate.trackOrder),
+          ...instances.map((candidate) => candidate.trackOrder),
+          ...resourceTracks.map((candidate) => candidate.trackOrder),
+        ) - 1,
+      kind: "sfx",
+      resourceId: sound.id,
+      name: sound.label,
+      url: sound.url,
+      mimeType: sound.mimeType || "audio/wav",
+      sourceStartFrame: 0,
+      sourceDurationInFrames,
+      startFrame: currentFrame,
+      durationInFrames: sourceDurationInFrames,
+      visible: true,
+      position: {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        scale: 1,
+        zIndex: 0,
+      },
+      volume: 0.55,
+      voiceDucking: 0,
+    };
+    setResourceTracks((current) => [...current, track]);
+    selectResourceTrack(track.id);
+    setManualTimelineEndFrame((current) =>
+      Math.max(current, track.startFrame + track.durationInFrames),
+    );
+    setNotice({ tone: "ok", text: `已添加音效“${sound.label}”到时间轴。` });
+  };
+
   const toggleCanvasOrientation = () => {
     const nextOrientation =
       canvasOrientation === "landscape" ? "portrait" : "landscape";
@@ -3950,6 +4128,78 @@ const App = () => {
     });
   };
 
+  const importIcon = async (file: File) => {
+    if (file.size > 512 * 1024) {
+      throw new Error("SVG 图标不能超过 512 KB。");
+    }
+    const category = iconImportCategoryRef.current || "内容与素材";
+    setNotice({ tone: "info", text: `正在导入“${file.name}”…` });
+    const response = await fetch("/api/import-icon", {
+      method: "POST",
+      headers: {
+        "Content-Type": "image/svg+xml",
+        "X-File-Name": encodeURIComponent(file.name),
+        "X-Icon-Category": encodeURIComponent(category),
+      },
+      body: file,
+    });
+    const data = await response.json();
+    if (!response.ok || !data?.icon) {
+      throw new Error(data?.error ?? "图标导入失败");
+    }
+    const icon = data.icon as IconResource;
+    setIconResources((current) => [
+      ...current.filter((item) => item.id !== icon.id),
+      icon,
+    ]);
+    setArrangementResourceLibrary((current) => ({
+      ...current,
+      icon: [
+        ...current.icon.filter((item) => item.id !== icon.id),
+        icon,
+      ],
+    }));
+    setOpenIconCategories((current) =>
+      current.includes(icon.category) ? current : [...current, icon.category],
+    );
+    setIconSearch("");
+    setNotice({ tone: "ok", text: `已将“${icon.label}”导入“${icon.category}”。` });
+  };
+
+  const importSfx = async (file: File) => {
+    if (file.size > 25 * 1024 * 1024) {
+      throw new Error("音效文件不能超过 25 MB。");
+    }
+    setNotice({ tone: "info", text: `正在导入音效“${file.name}”…` });
+    const response = await fetch("/api/import-sfx", {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "X-File-Name": encodeURIComponent(file.name),
+      },
+      body: file,
+    });
+    const data = await response.json();
+    if (!response.ok || !data?.sound) {
+      throw new Error(data?.error ?? "音效导入失败");
+    }
+    const rawSound = data.sound as SoundResource & {
+      media?: { durationSeconds?: number };
+    };
+    const sound: SoundResource = {
+      ...rawSound,
+      ...(Number.isFinite(Number(rawSound.media?.durationSeconds))
+        ? { durationSeconds: Number(rawSound.media?.durationSeconds) }
+        : {}),
+    };
+    setArrangementResourceLibrary((current) => ({
+      ...current,
+      sfx: [...current.sfx.filter((item) => item.id !== sound.id), sound],
+    }));
+    setSfxSearch("");
+    setNotice({ tone: "ok", text: `已将“${sound.label}”加入音效库。` });
+  };
+
   const importCodeTemplate = async () => {
     const code = codeTemplate.trim();
     if (!code) throw new Error("请先输入 TSX / React 代码。");
@@ -4520,7 +4770,7 @@ const App = () => {
 
   const previewArrangementAudio = (resource: ArrangementResourceEntry) => {
     stopArrangementAudioPreview();
-    const audio = new Audio(resource.url);
+    const audio = new window.Audio(resource.url);
     audio.volume = 0.55;
     arrangementAudioPreviewRef.current = audio;
     void audio.play().catch(() =>
@@ -6409,6 +6659,290 @@ const App = () => {
     });
   };
 
+  const stopSfxLibraryPreview = () => {
+    sfxLibraryAudioPreviewRef.current?.pause();
+    sfxLibraryAudioPreviewRef.current = null;
+    setPreviewingSfxId("");
+  };
+
+  const toggleSfxLibraryPreview = (sound: SoundResource) => {
+    if (previewingSfxId === sound.id) {
+      stopSfxLibraryPreview();
+      return;
+    }
+    stopSfxLibraryPreview();
+    const audio = new window.Audio(sound.url);
+    audio.volume = 0.65;
+    audio.onended = () => {
+      sfxLibraryAudioPreviewRef.current = null;
+      setPreviewingSfxId("");
+    };
+    sfxLibraryAudioPreviewRef.current = audio;
+    setPreviewingSfxId(sound.id);
+    void audio.play().catch(() => {
+      stopSfxLibraryPreview();
+      setNotice({ tone: "error", text: `无法试听“${sound.label}”。` });
+    });
+  };
+
+  const openSfxFileLocation = async (soundId: string) => {
+    try {
+      const response = await fetch("/api/open-sfx-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soundId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "无法打开音效所在位置");
+      }
+      setNotice({ tone: "ok", text: "已在资源管理器中定位音效文件。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开音效所在位置",
+      });
+    }
+  };
+
+  const deleteManualSfxResource = async (sound: SoundResource) => {
+    if (sound.source !== "manual") return;
+    if (
+      resourceTracks.some(
+        (track) => track.kind === "sfx" && track.resourceId === sound.id,
+      )
+    ) {
+      setNotice({ tone: "error", text: "请先从时间线移除这个音效，再删除资源。" });
+      return;
+    }
+    if (!window.confirm(`确定从音效库删除“${sound.label}”吗？`)) return;
+    stopSfxLibraryPreview();
+    try {
+      const response = await fetch("/api/delete-manual-sfx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soundId: sound.id }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "音效删除失败");
+      }
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        sfx: current.sfx.filter((item) => item.id !== sound.id),
+      }));
+      setNotice({ tone: "ok", text: `已删除音效“${sound.label}”。` });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "音效删除失败",
+      });
+    }
+  };
+
+  const openIconFileLocation = async (iconId: string) => {
+    setContextMenu(null);
+    try {
+      const response = await fetch("/api/open-icon-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ iconId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "无法打开图标所在位置");
+      }
+      setNotice({ tone: "ok", text: "已在资源管理器中定位图标文件。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开图标所在位置",
+      });
+    }
+  };
+
+  const deleteManualIcon = async (icon: IconResource) => {
+    setContextMenu(null);
+    if (icon.source !== "manual") {
+      setNotice({ tone: "error", text: "内置图标不能删除。" });
+      return;
+    }
+    if (resourceTracks.some((track) => track.kind === "icon" && track.resourceId === icon.id)) {
+      setNotice({ tone: "error", text: "请先从时间线移除这个图标，再删除资源。" });
+      return;
+    }
+    if (!window.confirm(`确定删除“${icon.label}”吗？`)) return;
+    try {
+      const response = await fetch("/api/delete-manual-icon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ iconId: icon.id }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "图标删除失败");
+      }
+      setIconResources((current) => current.filter((item) => item.id !== icon.id));
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        icon: current.icon.filter((item) => item.id !== icon.id),
+      }));
+      setNotice({ tone: "ok", text: `已删除“${icon.label}”。` });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "图标删除失败",
+      });
+    }
+  };
+
+  const showIconLibraryMenu = (
+    event: React.MouseEvent,
+    category = "内容与素材",
+    iconId?: string,
+    iconGroupId?: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 210),
+      y: Math.min(event.clientY, window.innerHeight - 82),
+      source: "iconLibrary",
+      instanceIds: [],
+      groupName: category,
+      iconId,
+      iconGroupId,
+    });
+  };
+
+  const createIconGroup = async () => {
+    const name = window.prompt("新图标分组名称（最多 20 个字）")?.trim().slice(0, 20);
+    if (!name) return;
+    setContextMenu(null);
+    try {
+      const response = await fetch("/api/icon-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.group) throw new Error(payload?.error ?? "新建分组失败");
+      const group = payload.group as IconCategoryGroup;
+      setCustomIconGroups((current) => [...current, group]);
+      setOpenIconCategories((current) => [...current, group.name]);
+      setNotice({ tone: "ok", text: `已新建图标分组“${group.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "新建分组失败" });
+    }
+  };
+
+  const deleteIconGroup = async (group: IconCategoryGroup) => {
+    setContextMenu(null);
+    if (!window.confirm(`删除空分组“${group.name}”吗？`)) return;
+    try {
+      const response = await fetch(`/api/icon-groups?id=${encodeURIComponent(group.id)}`, { method: "DELETE" });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "删除分组失败");
+      setCustomIconGroups((current) => current.filter((item) => item.id !== group.id));
+      setOpenIconCategories((current) => current.filter((name) => name !== group.name));
+      setNotice({ tone: "ok", text: `已删除图标分组“${group.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "删除分组失败" });
+    }
+  };
+
+  const openRenameIconGroupDialog = (group: IconCategoryGroup) => {
+    setContextMenu(null);
+    setIconGroupRenameTarget(group);
+    setIconGroupNameDraft(group.name);
+  };
+
+  const saveIconGroupRename = async () => {
+    const group = iconGroupRenameTarget;
+    const name = iconGroupNameDraft.trim().slice(0, 20);
+    if (!group || !name || name === group.name) {
+      setIconGroupRenameTarget(null);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/icon-groups?id=${encodeURIComponent(group.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.group) throw new Error(payload?.error ?? "重命名分组失败");
+      const renamed = payload.group as IconCategoryGroup;
+      setCustomIconGroups((current) =>
+        current.map((item) => (item.id === renamed.id ? renamed : item)),
+      );
+      setOpenIconCategories((current) =>
+        current.map((category) => (category === group.name ? renamed.name : category)),
+      );
+      setIconResources((current) =>
+        current.map((icon) =>
+          icon.category === group.name
+            ? { ...icon, category: renamed.name, accent: renamed.accent }
+            : icon,
+        ),
+      );
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        icon: current.icon.map((icon) =>
+          icon.category === group.name
+            ? { ...icon, category: renamed.name, accent: renamed.accent }
+            : icon,
+        ),
+      }));
+      setIconGroupRenameTarget(null);
+      setNotice({ tone: "ok", text: `已将分组重命名为“${renamed.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "重命名分组失败" });
+    }
+  };
+
+  const updateIconGroupColor = async (
+    group: IconCategoryGroup,
+    accent: string,
+  ) => {
+    if (group.builtin || !/^#[0-9a-f]{6}$/i.test(accent)) return;
+    try {
+      const response = await fetch(`/api/icon-groups?id=${encodeURIComponent(group.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accent }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.group) throw new Error(payload?.error ?? "分组颜色保存失败");
+      const updated = payload.group as IconCategoryGroup;
+      setCustomIconGroups((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setIconResources((current) =>
+        current.map((icon) =>
+          icon.category === updated.name ? { ...icon, accent: updated.accent } : icon,
+        ),
+      );
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        icon: current.icon.map((icon) =>
+          icon.category === updated.name ? { ...icon, accent: updated.accent } : icon,
+        ),
+      }));
+      setNotice({ tone: "ok", text: `已更新“${updated.name}”的分组颜色。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "分组颜色保存失败" });
+    }
+  };
+
+  const openIconImportPicker = (category = "内容与素材") => {
+    iconImportCategoryRef.current = category;
+    setContextMenu(null);
+    iconImportInput.current?.click();
+  };
+
+  const openSfxImportPicker = () => sfxImportInput.current?.click();
+
   const openNewGroupDialog = () => {
     setContextMenu(null);
     setGroupRenameTarget(null);
@@ -6417,10 +6951,10 @@ const App = () => {
   };
 
   const openRenameGroupDialog = (groupId: string, groupName: string) => {
-    const group = customCatalogGroups.find((item) => item.id === groupId);
+    const group = effectCatalog.find((item) => item.id === groupId);
     setContextMenu(null);
     if (!group) return;
-    setGroupRenameTarget(group);
+    setGroupRenameTarget({ id: group.id, name: group.name });
     setGroupNameDraft(groupName);
     setGroupDialogOpen(true);
   };
@@ -6447,16 +6981,30 @@ const App = () => {
     const name = groupNameDraft.trim().slice(0, 30);
     if (!name || !groupRenameTarget) return;
     const previousName = groupRenameTarget.name;
-    setCustomCatalogGroups((current) => {
-      const next = current.map((group) =>
-        group.id === groupRenameTarget.id ? { ...group, name } : group,
-      );
-      window.localStorage.setItem(
-        CUSTOM_GROUP_STORAGE_KEY,
-        JSON.stringify(next),
-      );
-      return next;
-    });
+    const isCustomGroup = customCatalogGroups.some(
+      (group) => group.id === groupRenameTarget.id,
+    );
+    if (isCustomGroup) {
+      setCustomCatalogGroups((current) => {
+        const next = current.map((group) =>
+          group.id === groupRenameTarget.id ? { ...group, name } : group,
+        );
+        window.localStorage.setItem(
+          CUSTOM_GROUP_STORAGE_KEY,
+          JSON.stringify(next),
+        );
+        return next;
+      });
+    } else {
+      setEffectGroupNameOverrides((current) => {
+        const next = { ...current, [groupRenameTarget.id]: name };
+        window.localStorage.setItem(
+          EFFECT_GROUP_NAME_STORAGE_KEY,
+          JSON.stringify(next),
+        );
+        return next;
+      });
+    }
     setGroupDialogOpen(false);
     setGroupRenameTarget(null);
     setGroupNameDraft("");
@@ -6720,7 +7268,8 @@ const App = () => {
   };
 
   const openRenameEffectDialog = (componentId: string) => {
-    const definition = definitionMap.get(componentId);
+    const definition =
+      catalogDefinitionMap.get(componentId) ?? definitionMap.get(componentId);
     setContextMenu(null);
     if (!definition) {
       setNotice({ tone: "error", text: "未找到该效果。" });
@@ -7266,6 +7815,40 @@ const App = () => {
         }}
         hidden
       />
+      <input
+        ref={iconImportInput}
+        type="file"
+        accept=".svg,image/svg+xml"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          importIcon(file).catch((error) => {
+            setNotice({
+              tone: "error",
+              text: error instanceof Error ? error.message : "图标导入失败",
+            });
+          });
+        }}
+        hidden
+      />
+      <input
+        ref={sfxImportInput}
+        type="file"
+        accept=".wav,.mp3,.ogg,.m4a,audio/wav,audio/mpeg,audio/ogg,audio/mp4"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          importSfx(file).catch((error) => {
+            setNotice({
+              tone: "error",
+              text: error instanceof Error ? error.message : "音效导入失败",
+            });
+          });
+        }}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -7293,6 +7876,12 @@ const App = () => {
             onClick={() => setActiveWorkspace("icons")}
           >
             图标库
+          </button>
+          <button
+            className={activeWorkspace === "sfx" ? "active" : ""}
+            onClick={() => setActiveWorkspace("sfx")}
+          >
+            音效库
           </button>
           <button
             className={activeWorkspace === "code" ? "active" : ""}
@@ -7654,7 +8243,7 @@ const App = () => {
               </label>
 
               <div className="icon-library-summary">
-                <span>{iconResources.length} 个内置图标</span>
+                <span>{iconResources.length} 个图标</span>
                 <span>{filteredIconCatalog.length} 个分类</span>
               </div>
 
@@ -7662,7 +8251,11 @@ const App = () => {
                 <div className="effect-library-empty">{iconLibraryError}</div>
               ) : null}
 
-              <div className="icon-library-catalog">
+              <div
+                className="icon-library-catalog"
+                onContextMenu={(event) => showIconLibraryMenu(event)}
+                title="右键可新建分组或导入 SVG 图标"
+              >
                 {filteredIconCatalog.map((category) => {
                   const isOpen =
                     Boolean(iconSearch.trim()) ||
@@ -7675,6 +8268,9 @@ const App = () => {
                     >
                       <button
                         className={isOpen ? "icon-category-toggle open" : "icon-category-toggle"}
+                        onContextMenu={(event) =>
+                          showIconLibraryMenu(event, category.name, undefined, category.id)
+                        }
                         onClick={() =>
                           setOpenIconCategories((current) =>
                             current.includes(category.name)
@@ -7684,6 +8280,26 @@ const App = () => {
                         }
                       >
                         <span>{category.name}</span>
+                        {category.builtin ? (
+                          <i
+                            className="icon-category-color-swatch locked"
+                            style={{ background: category.accent }}
+                            title="内置分组颜色不可修改"
+                          />
+                        ) : (
+                          <input
+                            className="icon-category-color-swatch"
+                            type="color"
+                            value={category.accent}
+                            title="选择分组颜色"
+                            aria-label={`选择“${category.name}”的分组颜色`}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) =>
+                              updateIconGroupColor(category, event.target.value)
+                            }
+                          />
+                        )}
                         <b>{category.items.length}</b>
                         <CaretDown />
                       </button>
@@ -7694,7 +8310,10 @@ const App = () => {
                               className="icon-library-card"
                               key={icon.id}
                               onClick={() => addIconResource(icon)}
-                              title={`${icon.usage}；单击添加到时间轴`}
+                              title={`${icon.usage}；单击添加到时间轴；右键可导入同分类图标`}
+                              onContextMenu={(event) =>
+                                showIconLibraryMenu(event, category.name, icon.id, category.id)
+                              }
                             >
                               <i>
                                 <img src={icon.url} alt="" />
@@ -7713,6 +8332,111 @@ const App = () => {
 
               {!iconLibraryError && filteredIconCatalog.length === 0 ? (
                 <div className="effect-library-empty">没有匹配的图标</div>
+              ) : null}
+            </div>
+          ) : activeWorkspace === "sfx" ? (
+            <div className="sfx-library-panel">
+              <header className="sfx-library-header">
+                <div>
+                  <small>SOUND EFFECTS</small>
+                  <strong>音效库</strong>
+                  <span>试听后加入当前播放位置</span>
+                </div>
+                <b>{arrangementResourceLibrary.sfx.length}</b>
+              </header>
+
+              <button
+                type="button"
+                className="sfx-library-import"
+                onClick={openSfxImportPicker}
+              >
+                <UploadSimple weight="bold" />
+                <span>
+                  <strong>导入本地音效</strong>
+                  <small>WAV、MP3、OGG、M4A · 最大 25 MB</small>
+                </span>
+              </button>
+
+              <label className="effect-library-search sfx-library-search">
+                <MagnifyingGlass />
+                <input
+                  type="search"
+                  value={sfxSearch}
+                  onChange={(event) => setSfxSearch(event.target.value)}
+                  placeholder="搜索音效、标签或用途"
+                />
+              </label>
+
+              <div className="sfx-library-summary">
+                <span>{filteredSfxResources.length} 个结果</span>
+                <span>{arrangementResourceLibrary.sfx.filter((sound) => sound.source === "manual").length} 个手动导入</span>
+              </div>
+
+              <div className="sfx-library-list">
+                {filteredSfxResources.map((sound) => {
+                  const isPreviewing = previewingSfxId === sound.id;
+                  return (
+                    <article
+                      className={isPreviewing ? "sfx-library-card previewing" : "sfx-library-card"}
+                      key={sound.id}
+                    >
+                      <button
+                        type="button"
+                        className="sfx-preview-button"
+                        onClick={() => toggleSfxLibraryPreview(sound)}
+                        aria-label={isPreviewing ? `停止试听 ${sound.label}` : `试听 ${sound.label}`}
+                        title={isPreviewing ? "停止试听" : "试听音效"}
+                      >
+                        {isPreviewing ? <Pause weight="fill" /> : <Play weight="fill" />}
+                      </button>
+                      <div className="sfx-card-copy">
+                        <strong>{sound.label}</strong>
+                        <small>{sound.usage || sound.id}</small>
+                        <span>
+                          {formatSoundDuration(sound.durationSeconds)}
+                          {sound.source === "manual" ? " · 手动导入" : " · 内置"}
+                        </span>
+                      </div>
+                      <div className="sfx-card-actions">
+                        {sound.source === "manual" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => void openSfxFileLocation(sound.id)}
+                              aria-label={`打开 ${sound.label} 所在位置`}
+                              title="打开文件所在位置"
+                            >
+                              <FolderOpen />
+                            </button>
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => void deleteManualSfxResource(sound)}
+                              aria-label={`删除 ${sound.label}`}
+                              title="从音效库删除"
+                            >
+                              <Trash />
+                            </button>
+                          </>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="primary"
+                          onClick={() => addSfxResource(sound)}
+                          title="添加到当前播放位置"
+                        >
+                          <Plus /> 添加
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {filteredSfxResources.length === 0 ? (
+                <div className="effect-library-empty">
+                  {sfxSearch.trim() ? "没有匹配的音效" : "音效库为空，可以先导入一个音效"}
+                </div>
               ) : null}
             </div>
           ) : (
@@ -9344,6 +10068,57 @@ const App = () => {
         </div>
       ) : null}
 
+      {iconGroupRenameTarget ? (
+        <div
+          className="shortcut-dialog-backdrop icon-group-rename-backdrop"
+          onPointerDown={() => setIconGroupRenameTarget(null)}
+        >
+          <section
+            className="shortcut-dialog group-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span>
+                  <strong>重命名图标分组</strong>
+                  <small>名称会同步更新该分组内的手动导入图标</small>
+                </span>
+              </div>
+              <button onClick={() => setIconGroupRenameTarget(null)}>
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <label htmlFor="rename-icon-group-name">分组名称</label>
+              <input
+                id="rename-icon-group-name"
+                autoFocus
+                maxLength={20}
+                value={iconGroupNameDraft}
+                onChange={(event) => setIconGroupNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveIconGroupRename();
+                  if (event.key === "Escape") setIconGroupRenameTarget(null);
+                }}
+              />
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button onClick={() => setIconGroupRenameTarget(null)}>取消</button>
+                <button
+                  className="shortcut-save"
+                  disabled={!iconGroupNameDraft.trim()}
+                  onClick={saveIconGroupRename}
+                >
+                  保存名称
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {pendingGroupDelete ? (
         <div
           className="shortcut-dialog-backdrop delete-confirm-backdrop"
@@ -10690,6 +11465,7 @@ const App = () => {
             onPointerDown={() => setContextMenu(null)}
           />
           <div
+            ref={contextMenuRef}
             className="component-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
@@ -10721,18 +11497,11 @@ const App = () => {
               </>
             ) : contextMenu.source === "library" ? (
               <>
-                <small>效果库</small>
-                {contextMenu.componentId ? (
-                  <button
-                    className="group-rename-action"
-                    onClick={() =>
-                      contextMenu.componentId &&
-                      openRenameEffectDialog(contextMenu.componentId)
-                    }
-                  >
-                    重命名组件
-                  </button>
-                ) : null}
+                <small>
+                  {contextMenu.componentId
+                    ? catalogDefinitionMap.get(contextMenu.componentId)?.name ?? "效果组件"
+                    : "效果组件"}
+                </small>
                 {contextMenu.componentId ? (
                   <button
                     className="code-action"
@@ -10770,10 +11539,7 @@ const App = () => {
                 <button className="create-action" onClick={openNewGroupDialog}>
                   新建分组
                 </button>
-                {contextMenu.groupId &&
-                customCatalogGroups.some(
-                  (group) => group.id === contextMenu.groupId,
-                ) ? (
+                {contextMenu.groupId ? (
                   <button
                     className="group-rename-action"
                     onClick={() =>
@@ -10807,6 +11573,66 @@ const App = () => {
               <button className="create-action" onClick={openNewGroupDialog}>
                 新建分组
               </button>
+              </>
+            ) : contextMenu.source === "iconLibrary" ? (
+              <>
+                <small>{contextMenu.groupName ?? "图标库"}</small>
+                <button
+                  className="icon-import-action"
+                  onClick={() =>
+                    openIconImportPicker(contextMenu.groupName ?? "内容与素材")
+                  }
+                >
+                  <UploadSimple /> 导入 SVG 图标
+                </button>
+                <button className="icon-new-group-action" onClick={createIconGroup}>
+                  新建分组
+                </button>
+                {contextMenu.iconGroupId ? (() => {
+                  const group = customIconGroups.find(
+                    (item) => item.id === contextMenu.iconGroupId,
+                  );
+                  return group ? (
+                    <>
+                      <button
+                        className="icon-rename-group-action"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openRenameIconGroupDialog(group);
+                        }}
+                      >
+                        重命名分组
+                      </button>
+                      <button className="delete-action" onClick={() => deleteIconGroup(group)}>
+                        删除分组
+                      </button>
+                    </>
+                  ) : null;
+                })() : null}
+                {contextMenu.iconId ? (
+                  <button
+                    className="code-action"
+                    onClick={() => openIconFileLocation(contextMenu.iconId!)}
+                  >
+                    打开文件所在位置
+                  </button>
+                ) : null}
+                {contextMenu.iconId &&
+                iconResources.find((icon) => icon.id === contextMenu.iconId)
+                  ?.source === "manual" ? (
+                  <button
+                    className="delete-action"
+                    onClick={() => {
+                      const icon = iconResources.find(
+                        (item) => item.id === contextMenu.iconId,
+                      );
+                      if (icon) deleteManualIcon(icon);
+                    }}
+                  >
+                    删除图标
+                  </button>
+                ) : null}
               </>
             ) : (
               <>

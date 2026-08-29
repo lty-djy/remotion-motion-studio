@@ -59,6 +59,21 @@
       "usage": "表示多张图片、图库或素材集合"
     },
     {
+      "id": "camera",
+      "library": "icons",
+      "file": "icons/camera.svg",
+      "label": "相机",
+      "category": "内容与素材",
+      "accent": "#2f8cff",
+      "tags": [
+        "内容与素材",
+        "相机",
+        "拍照",
+        "摄影"
+      ],
+      "usage": "表示相机、拍照、摄影或静态画面采集"
+    },
+    {
       "id": "video-camera",
       "library": "icons",
       "file": "icons/video-camera.svg",
@@ -713,6 +728,29 @@
         "数字"
       ],
       "usage": "用于逐项弹出、步骤完成或微交互"
+    },
+    {
+      "id": "tick-2",
+      "library": "sfx",
+      "file": "sfx/tick-2.wav",
+      "label": "tick",
+      "category": "自定义音效",
+      "accent": "#a776f7",
+      "tags": [
+        "音效",
+        "手动导入",
+        "tick"
+      ],
+      "usage": "用户手动导入的短音效",
+      "source": "manual",
+      "durationSeconds": 0.12
+    }
+  ],
+  "iconGroups": [
+    {
+      "id": "custom-1787978665269",
+      "name": "自定义",
+      "accent": "#c8ff00"
     }
   ]
 }

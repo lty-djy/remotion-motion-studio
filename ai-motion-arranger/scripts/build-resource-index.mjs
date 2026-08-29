@@ -79,8 +79,15 @@ const readSvgMetadata = (buffer) => {
   return { viewBox };
 };
 
-const inspectMedia = (extension, buffer) => {
+const inspectMedia = (extension, buffer, entry) => {
   if (extension === ".wav") return readWavMetadata(buffer);
+  if (
+    EXTENSIONS_BY_LIBRARY.sfx.has(extension) &&
+    Number.isFinite(Number(entry.durationSeconds)) &&
+    Number(entry.durationSeconds) > 0
+  ) {
+    return { durationSeconds: Number(Number(entry.durationSeconds).toFixed(3)) };
+  }
   if (extension === ".svg") return readSvgMetadata(buffer);
   return undefined;
 };
@@ -163,7 +170,7 @@ export const createResourceIndex = async () => {
     if (!fileStat?.isFile()) throw new Error(`${entry.library}:${entry.id} 缺少文件 ${entry.file}`);
     const buffer = await readFile(target);
     const extension = extname(entry.file).toLowerCase();
-    const media = inspectMedia(extension, buffer);
+    const media = inspectMedia(extension, buffer, entry);
     libraries[entry.library].push({
       id: entry.id,
       label: entry.label.trim(),
@@ -176,6 +183,7 @@ export const createResourceIndex = async () => {
       usage: entry.usage.trim(),
       ...(entry.category ? { category: entry.category.trim() } : {}),
       ...(entry.accent ? { accent: entry.accent } : {}),
+      ...(entry.source ? { source: entry.source } : {}),
       ...(media ? { media } : {}),
     });
   }

@@ -24,6 +24,11 @@ const activeComponentPath = join(rootDir, "local-imported", "active.tsx");
 const componentStoreDir = join(rootDir, "local-components");
 const mediaDir = join(rootDir, "local-media");
 const mediaTempDir = join(mediaDir, "temp");
+const resourceRoot = join(rootDir, "public", "input");
+const iconResourceDir = join(resourceRoot, "icons");
+const sfxResourceDir = join(resourceRoot, "sfx");
+const resourceManifestPath = join(resourceRoot, "resource-manifest.json");
+const resourceIndexPath = join(resourceRoot, "resource-index.json");
 const projectDir = join(rootDir, "local-projects");
 const renderDir = join(rootDir, "outputs", "renders");
 const renderEntry = join(rootDir, "local-render-entry-v2.tsx");
@@ -743,6 +748,264 @@ const getBody = async (req: IncomingMessage, maxBytes: number) => {
   return Buffer.concat(chunks);
 };
 
+const ICON_CATEGORY_ACCENTS: Record<string, string> = {
+  "内容与素材": "#2f8cff",
+  "自动化与流程": "#27c4e8",
+  "状态与数据": "#20d7a0",
+  "商务与教育": "#f2b93d",
+  "沟通与传播": "#a776f7",
+  "表达与强调": "#4f9dff",
+};
+
+const readCustomIconGroups = (manifest: { iconGroups?: unknown }) =>
+  Array.isArray(manifest.iconGroups)
+    ? manifest.iconGroups.filter(
+        (group): group is { id: string; name: string; accent: string } =>
+          Boolean(group) && typeof group === "object" &&
+          /^[A-Za-z0-9_-]+$/.test(String((group as Record<string, unknown>).id ?? "")) &&
+          typeof (group as Record<string, unknown>).name === "string" &&
+          typeof (group as Record<string, unknown>).accent === "string",
+      )
+    : [];
+
+const iconCategoryAccent = (manifest: { iconGroups?: unknown }, category: string) =>
+  ICON_CATEGORY_ACCENTS[category] ??
+  readCustomIconGroups(manifest).find((group) => group.name === category)?.accent;
+
+const importManualIcon = async (
+  filename: string,
+  category: string,
+  body: Buffer,
+) => {
+  if (extname(filename).toLowerCase() !== ".svg") {
+    throw new Error("仅支持 SVG 图标文件");
+  }
+  const source = body.toString("utf8");
+  if (!/^\s*(?:<\?xml[^>]*>\s*)?<svg[\s>]/i.test(source)) {
+    throw new Error("文件不是有效的 SVG");
+  }
+  const blockedSvgContent = [
+    [/<\/?script\b/i, "脚本"],
+    [/<\/?(?:foreignObject|iframe|object|embed|image)\b/i, "嵌入内容"],
+    [/\son[a-z]+\s*=/i, "事件处理器"],
+    [/(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|data:|javascript:|file:)/i, "外部资源"],
+  ] as const;
+  for (const [pattern, label] of blockedSvgContent) {
+    if (pattern.test(source)) throw new Error(`SVG 不允许包含${label}`);
+  }
+
+  const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as {
+    resources: Array<Record<string, unknown>>;
+    iconGroups?: unknown;
+  };
+  const accent = iconCategoryAccent(manifest, category);
+  if (!accent) throw new Error("图标分类无效");
+  const baseName = basename(filename, extname(filename));
+  const slug = baseName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42) || "custom-icon";
+  const existingIds = new Set(
+    manifest.resources
+      .filter((resource) => resource.library === "icons")
+      .map((resource) => String(resource.id ?? "")),
+  );
+  let id = slug;
+  for (let suffix = 2; existingIds.has(id); suffix += 1) id = `${slug}-${suffix}`;
+  const label = baseName.replace(/[_-]+/g, " ").trim().slice(0, 40) || id;
+  const entry = {
+    id,
+    library: "icons",
+    file: `icons/${id}.svg`,
+    label,
+    category,
+    accent,
+    tags: [category, "手动导入"],
+    usage: "用户手动导入的 SVG 图标",
+    source: "manual",
+  };
+  await writeFile(join(iconResourceDir, `${id}.svg`), body);
+  manifest.resources.push(entry);
+  await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const { createResourceIndex } = await import(
+    "./ai-motion-arranger/scripts/build-resource-index.mjs"
+  );
+  const index = await createResourceIndex();
+  await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  const indexed = index.libraries.icons.find((icon) => icon.id === id);
+  if (!indexed) throw new Error("图标索引生成失败");
+  return indexed;
+};
+
+const deleteManualIcon = async (iconId: string) => {
+  if (!/^[A-Za-z0-9_-]+$/.test(iconId)) throw new Error("图标标识无效");
+  const originalManifest = await readFile(resourceManifestPath, "utf8");
+  const originalIndex = await readFile(resourceIndexPath, "utf8");
+  const manifest = JSON.parse(originalManifest) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const resource = manifest.resources.find(
+    (item) => item.library === "icons" && item.id === iconId,
+  );
+  if (!resource || resource.source !== "manual") {
+    throw new Error("只能删除手动导入的图标");
+  }
+  const relativeFile = typeof resource.file === "string" ? resource.file : "";
+  if (!/^icons\/[A-Za-z0-9_-]+\.svg$/.test(relativeFile)) {
+    throw new Error("图标文件无效");
+  }
+  const target = resolve(resourceRoot, relativeFile);
+  const iconRoot = `${resolve(iconResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(iconRoot) || !existsSync(target)) {
+    throw new Error("图标文件不存在");
+  }
+  const originalAsset = await readFile(target);
+  manifest.resources = manifest.resources.filter((item) => item !== resource);
+
+  try {
+    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await unlink(target);
+    const { createResourceIndex } = await import(
+      "./ai-motion-arranger/scripts/build-resource-index.mjs"
+    );
+    const index = await createResourceIndex();
+    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  } catch (error) {
+    await writeFile(resourceManifestPath, originalManifest);
+    if (!existsSync(target)) await writeFile(target, originalAsset);
+    await writeFile(resourceIndexPath, originalIndex);
+    throw error;
+  }
+};
+
+const SFX_EXTENSIONS = new Set([".wav", ".mp3", ".ogg", ".m4a"]);
+
+const readAudioDuration = async (target: string) => {
+  const output = await runBinary(ffprobeBinary(), [
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    target,
+  ]);
+  const durationSeconds = Number(output.trim());
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new Error("无法读取音效时长，请确认文件可以正常播放");
+  }
+  return Number(durationSeconds.toFixed(3));
+};
+
+const importManualSfx = async (filename: string, body: Buffer) => {
+  const extension = extname(filename).toLowerCase();
+  if (!SFX_EXTENSIONS.has(extension)) {
+    throw new Error("仅支持 WAV、MP3、OGG 或 M4A 音效文件");
+  }
+  const originalManifest = await readFile(resourceManifestPath, "utf8");
+  const originalIndex = await readFile(resourceIndexPath, "utf8");
+  const manifest = JSON.parse(originalManifest) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const baseName = basename(filename, extname(filename));
+  const slug = baseName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42) || "custom-sound";
+  const existingIds = new Set(
+    manifest.resources
+      .filter((resource) => resource.library === "sfx")
+      .map((resource) => String(resource.id ?? "")),
+  );
+  let id = slug;
+  for (let suffix = 2; existingIds.has(id); suffix += 1) id = `${slug}-${suffix}`;
+  const storedFile = `sfx/${id}${extension}`;
+  const target = resolve(resourceRoot, storedFile);
+  const sfxRoot = `${resolve(sfxResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(sfxRoot)) throw new Error("音效文件路径无效");
+  const label = baseName.replace(/[_-]+/g, " ").trim().slice(0, 48) || id;
+
+  try {
+    await writeFile(target, body);
+    const durationSeconds = await readAudioDuration(target);
+    manifest.resources.push({
+      id,
+      library: "sfx",
+      file: storedFile,
+      label,
+      category: "自定义音效",
+      accent: "#a776f7",
+      tags: ["音效", "手动导入", label],
+      usage: "用户手动导入的短音效",
+      source: "manual",
+      durationSeconds,
+    });
+    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    const { createResourceIndex } = await import(
+      "./ai-motion-arranger/scripts/build-resource-index.mjs"
+    );
+    const index = await createResourceIndex();
+    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+    const indexed = index.libraries.sfx.find((sound) => sound.id === id);
+    if (!indexed) throw new Error("音效索引生成失败");
+    return indexed;
+  } catch (error) {
+    if (existsSync(target)) await unlink(target).catch(() => undefined);
+    await writeFile(resourceManifestPath, originalManifest);
+    await writeFile(resourceIndexPath, originalIndex);
+    throw error;
+  }
+};
+
+const findSfxFile = async (soundId: string) => {
+  if (!/^[A-Za-z0-9._-]+$/.test(soundId)) throw new Error("音效标识无效");
+  const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const resource = manifest.resources.find(
+    (item) => item.library === "sfx" && item.id === soundId,
+  );
+  const relativeFile = typeof resource?.file === "string" ? resource.file : "";
+  if (!/^sfx\/[A-Za-z0-9._-]+\.(?:wav|mp3|ogg|m4a)$/i.test(relativeFile)) {
+    throw new Error("找不到音效文件");
+  }
+  const target = resolve(resourceRoot, relativeFile);
+  const sfxRoot = `${resolve(sfxResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(sfxRoot) || !existsSync(target)) {
+    throw new Error("音效文件不存在");
+  }
+  return { manifest, resource, target };
+};
+
+const deleteManualSfx = async (soundId: string) => {
+  const originalManifest = await readFile(resourceManifestPath, "utf8");
+  const originalIndex = await readFile(resourceIndexPath, "utf8");
+  const { manifest, resource, target } = await findSfxFile(soundId);
+  if (resource?.source !== "manual") throw new Error("只能删除手动导入的音效");
+  const originalAsset = await readFile(target);
+  manifest.resources = manifest.resources.filter((item) => item !== resource);
+  try {
+    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await unlink(target);
+    const { createResourceIndex } = await import(
+      "./ai-motion-arranger/scripts/build-resource-index.mjs"
+    );
+    const index = await createResourceIndex();
+    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  } catch (error) {
+    await writeFile(resourceManifestPath, originalManifest);
+    if (!existsSync(target)) await writeFile(target, originalAsset);
+    await writeFile(resourceIndexPath, originalIndex);
+    throw error;
+  }
+};
+
 const validateComponent = (code: string) => {
   if (!code.includes("from \"remotion\"") && !code.includes("from 'remotion'")) {
     throw new Error("源码必须从 remotion 导入组件");
@@ -1128,6 +1391,8 @@ const localApi = (): Plugin => {
   configureServer(server) {
     mkdirSync(mediaDir, { recursive: true });
     mkdirSync(mediaTempDir, { recursive: true });
+    mkdirSync(iconResourceDir, { recursive: true });
+    mkdirSync(sfxResourceDir, { recursive: true });
     mkdirSync(projectDir, { recursive: true });
     mkdirSync(renderDir, { recursive: true });
     mkdirSync(componentStoreDir, { recursive: true });
@@ -1475,6 +1740,178 @@ const localApi = (): Plugin => {
             mediaUrl: `${mediaUrl}?t=${Date.now()}`,
             mediaType: isImage ? "image" : "video",
           });
+          return;
+        }
+
+        if (url.pathname === "/api/import-icon" && req.method === "POST") {
+          const filename = decodeURIComponent(
+            String(req.headers["x-file-name"] ?? "custom-icon.svg"),
+          );
+          const category = decodeURIComponent(
+            String(req.headers["x-icon-category"] ?? "内容与素材"),
+          );
+          const icon = await importManualIcon(
+            filename,
+            category,
+            await getBody(req, 512 * 1024),
+          );
+          sendJson(res, 200, { ok: true, icon });
+          return;
+        }
+
+        if (url.pathname === "/api/icon-groups" && req.method === "GET") {
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as { iconGroups?: unknown };
+          sendJson(res, 200, { ok: true, groups: readCustomIconGroups(manifest).map((group) => ({ ...group, builtin: false })) });
+          return;
+        }
+
+        if (url.pathname === "/api/icon-groups" && req.method === "POST") {
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString("utf8")) as { name?: string };
+          const name = typeof body.name === "string" ? body.name.trim().slice(0, 20) : "";
+          if (!name) throw new Error("分组名称不能为空");
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as { resources: Array<Record<string, unknown>>; iconGroups?: unknown };
+          const groups = readCustomIconGroups(manifest);
+          if (ICON_CATEGORY_ACCENTS[name] || groups.some((group) => group.name === name)) throw new Error("分组名称已存在");
+          const accents = ["#68e8ff", "#a776f7", "#f2b93d", "#20d7a0"];
+          const group = { id: `custom-${Date.now()}`, name, accent: accents[groups.length % accents.length] };
+          manifest.iconGroups = [...groups, group];
+          await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          sendJson(res, 200, { ok: true, group: { ...group, builtin: false } });
+          return;
+        }
+
+        if (url.pathname === "/api/icon-groups" && req.method === "PATCH") {
+          const id = url.searchParams.get("id") ?? "";
+          if (!/^custom-[A-Za-z0-9_-]+$/.test(id)) throw new Error("内置分组不能修改");
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString("utf8")) as { name?: string; accent?: string };
+          const originalManifest = await readFile(resourceManifestPath, "utf8");
+          const originalIndex = await readFile(resourceIndexPath, "utf8");
+          const manifest = JSON.parse(originalManifest) as { resources: Array<Record<string, unknown>>; iconGroups?: unknown };
+          const groups = readCustomIconGroups(manifest);
+          const group = groups.find((item) => item.id === id);
+          if (!group) throw new Error("找不到图标分组");
+          const name = body.name === undefined
+            ? group.name
+            : typeof body.name === "string"
+              ? body.name.trim().slice(0, 20)
+              : "";
+          if (!name) throw new Error("分组名称不能为空");
+          const accent = body.accent === undefined
+            ? group.accent
+            : typeof body.accent === "string" && /^#[0-9a-f]{6}$/i.test(body.accent)
+              ? body.accent.toLowerCase()
+              : "";
+          if (!accent) throw new Error("分组颜色无效");
+          if (ICON_CATEGORY_ACCENTS[name] || groups.some((item) => item.id !== id && item.name === name)) {
+            throw new Error("分组名称已存在");
+          }
+          const updatedGroup = { ...group, name, accent };
+          manifest.iconGroups = groups.map((item) => (item.id === id ? updatedGroup : item));
+          manifest.resources = manifest.resources.map((resource) => {
+            if (resource.library !== "icons" || resource.category !== group.name) return resource;
+            const tags = Array.isArray(resource.tags)
+              ? resource.tags.map((tag) => (tag === group.name ? name : tag))
+              : resource.tags;
+            return { ...resource, category: name, accent, tags };
+          });
+          try {
+            await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+            const { createResourceIndex } = await import("./ai-motion-arranger/scripts/build-resource-index.mjs");
+            const index = await createResourceIndex();
+            await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+          } catch (error) {
+            await writeFile(resourceManifestPath, originalManifest);
+            await writeFile(resourceIndexPath, originalIndex);
+            throw error;
+          }
+          sendJson(res, 200, { ok: true, group: { ...updatedGroup, builtin: false } });
+          return;
+        }
+
+        if (url.pathname === "/api/icon-groups" && req.method === "DELETE") {
+          const id = url.searchParams.get("id") ?? "";
+          if (!/^custom-[A-Za-z0-9_-]+$/.test(id)) throw new Error("内置分组不能删除");
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as { resources: Array<Record<string, unknown>>; iconGroups?: unknown };
+          const groups = readCustomIconGroups(manifest);
+          const group = groups.find((item) => item.id === id);
+          if (!group) throw new Error("找不到图标分组");
+          if (manifest.resources.some((resource) => resource.library === "icons" && resource.category === group.name)) {
+            throw new Error("请先移除或删除该分组内的图标");
+          }
+          manifest.iconGroups = groups.filter((item) => item.id !== id);
+          await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          sendJson(res, 200, { ok: true, id });
+          return;
+        }
+
+        if (url.pathname === "/api/open-icon-location" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { iconId?: string };
+          const iconId = typeof body.iconId === "string" ? body.iconId : "";
+          if (!/^[A-Za-z0-9_-]+$/.test(iconId)) {
+            throw new Error("图标标识无效");
+          }
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as {
+            resources: Array<Record<string, unknown>>;
+          };
+          const resource = manifest.resources.find(
+            (item) => item.library === "icons" && item.id === iconId,
+          );
+          const relativeFile = typeof resource?.file === "string" ? resource.file : "";
+          if (!/^icons\/[A-Za-z0-9_-]+\.svg$/.test(relativeFile)) {
+            throw new Error("找不到图标文件");
+          }
+          const target = resolve(resourceRoot, relativeFile);
+          const iconRoot = `${resolve(iconResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+          if (!target.startsWith(iconRoot) || !existsSync(target)) {
+            throw new Error("图标文件不存在");
+          }
+          runOpenFolder(target);
+          sendJson(res, 200, { ok: true, iconId });
+          return;
+        }
+
+        if (url.pathname === "/api/delete-manual-icon" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { iconId?: string };
+          const iconId = typeof body.iconId === "string" ? body.iconId : "";
+          await deleteManualIcon(iconId);
+          sendJson(res, 200, { ok: true, iconId });
+          return;
+        }
+
+        if (url.pathname === "/api/import-sfx" && req.method === "POST") {
+          const filename = decodeURIComponent(
+            String(req.headers["x-file-name"] ?? "custom-sound.wav"),
+          );
+          const sound = await importManualSfx(
+            filename,
+            await getBody(req, 25 * 1024 * 1024),
+          );
+          sendJson(res, 200, { ok: true, sound });
+          return;
+        }
+
+        if (url.pathname === "/api/open-sfx-location" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { soundId?: string };
+          const soundId = typeof body.soundId === "string" ? body.soundId : "";
+          const { target } = await findSfxFile(soundId);
+          runOpenFolder(target);
+          sendJson(res, 200, { ok: true, soundId });
+          return;
+        }
+
+        if (url.pathname === "/api/delete-manual-sfx" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { soundId?: string };
+          const soundId = typeof body.soundId === "string" ? body.soundId : "";
+          await deleteManualSfx(soundId);
+          sendJson(res, 200, { ok: true, soundId });
           return;
         }
 

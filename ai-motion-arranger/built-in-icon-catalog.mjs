@@ -8,6 +8,7 @@ export const BUILT_IN_ICON_CATEGORIES = [
       ["file-text", "FileText", "文档", ["文件", "内容"], "表示文档、脚本或文字资料"],
       ["image", "Image", "图片", ["图片", "素材"], "表示单张图片或视觉素材"],
       ["images", "Images", "图片组", ["相册", "素材组"], "表示多张图片、图库或素材集合"],
+      ["camera", "Camera", "相机", ["相机", "拍照", "摄影"], "表示相机、拍照、摄影或静态画面采集"],
       ["video-camera", "VideoCamera", "视频", ["视频", "拍摄"], "表示视频片段、拍摄或摄像内容"],
       ["folder-open", "FolderOpen", "文件夹", ["目录", "项目"], "表示目录、项目文件或打开资源"],
       ["cloud-upload", "CloudArrowUp", "上传云端", ["上传", "云端"], "表示上传、同步或提交到云端"],

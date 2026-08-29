@@ -1,7 +1,7 @@
 {
   "indexVersion": "1",
   "root": "public/input",
-  "resourceCount": 51,
+  "resourceCount": 53,
   "libraries": {
     "icons": [
       {
@@ -141,6 +141,27 @@
         "usage": "表示日期、排期或事件计划",
         "category": "商务与教育",
         "accent": "#f2b93d",
+        "media": {
+          "viewBox": "0 0 256 256"
+        }
+      },
+      {
+        "id": "camera",
+        "label": "相机",
+        "file": "icons/camera.svg",
+        "url": "/input/icons/camera.svg",
+        "mimeType": "image/svg+xml",
+        "bytes": 543,
+        "sha256": "66c8162c10f17e42ec38d6f586e8dc7b0fe565f2a1493f9727d3c4257fb810a9",
+        "tags": [
+          "内容与素材",
+          "相机",
+          "拍照",
+          "摄影"
+        ],
+        "usage": "表示相机、拍照、摄影或静态画面采集",
+        "category": "内容与素材",
+        "accent": "#2f8cff",
         "media": {
           "viewBox": "0 0 256 256"
         }
@@ -1005,6 +1026,29 @@
           "数字"
         ],
         "usage": "用于逐项弹出、步骤完成或微交互",
+        "media": {
+          "durationSeconds": 0.12,
+          "sampleRate": 24000,
+          "channels": 1
+        }
+      },
+      {
+        "id": "tick-2",
+        "label": "tick",
+        "file": "sfx/tick-2.wav",
+        "url": "/input/sfx/tick-2.wav",
+        "mimeType": "audio/wav",
+        "bytes": 5804,
+        "sha256": "50e037849ea5728c9fc8dd0f63943504e2fd016ae759b104898060ecca013b5f",
+        "tags": [
+          "音效",
+          "手动导入",
+          "tick"
+        ],
+        "usage": "用户手动导入的短音效",
+        "category": "自定义音效",
+        "accent": "#a776f7",
+        "source": "manual",
         "media": {
           "durationSeconds": 0.12,
           "sampleRate": 24000,

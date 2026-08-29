@@ -1,30 +1,5 @@
 [
   {
-    "id": "Countdown",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "center-stage",
-    "purpose": "倒计时 / 大数字翻转。适合表达阶段倒计时、即时数字。",
-    "whenToUse": "口播里 '还有 X 秒' / '第 N 阶段倒计时' / 数字封顶。",
-    "role": "anchor",
-    "preferredPalettes": [
-      "rose",
-      "amber",
-      "cyan"
-    ],
-    "propsFieldSemantics": {
-      "title": "阶段标签（中文，可留空）",
-      "subtitle": "副标题 / 英文标签（必填）",
-      "value": "起算数字（≥ 0 数字串）",
-      "item1": "补充说明一（可留空）",
-      "item2": "补充说明二（可留空）",
-      "item3": "补充说明三（可留空）",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
     "id": "SegmentedMeter",
     "catalogGroup": "数字与指标",
     "category": "metric",

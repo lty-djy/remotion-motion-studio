@@ -8,31 +8,11 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：6 张
+**当前卡片总数**：5 张
 **覆盖分组**：1 个（数字与指标）
-**registry 集合**：6 个 id
-**overlay 集合**：6 个 id
+**registry 集合**：5 个 id
+**overlay 集合**：5 个 id
 ## 数字与指标
-
-### `Countdown`
-
-**角色**：anchor  
-**画布落点**：center-stage  
-**推荐调色板**：rose / amber / cyan  
-**何时使用**：口播里 '还有 X 秒' / '第 N 阶段倒计时' / 数字封顶。  
-**视觉/语义**：倒计时 / 大数字翻转。适合表达阶段倒计时、即时数字。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 阶段标签（中文，可留空）
-- `subtitle` — 副标题 / 英文标签（必填）
-- `value` — 起算数字（≥ 0 数字串）
-- `item1` — 补充说明一（可留空）
-- `item2` — 补充说明二（可留空）
-- `item3` — 补充说明三（可留空）
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
 
 ### `SegmentedMeter`
 
@@ -135,8 +115,8 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：6
-- overlay 条目数：6
+- registry 条目数：5
+- overlay 条目数：5
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

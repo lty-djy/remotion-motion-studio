@@ -39,6 +39,9 @@ for (const icon of BUILT_IN_ICONS) {
 }
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const manualIcons = manifest.resources.filter(
+  (resource) => resource.library === "icons" && resource.source === "manual",
+);
 const nonIconResources = manifest.resources.filter(
   (resource) => resource.library !== "icons",
 );
@@ -53,6 +56,7 @@ manifest.resources = [
     tags: [icon.category, ...icon.tags],
     usage: icon.usage,
   })),
+  ...manualIcons,
   ...nonIconResources,
 ];
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");

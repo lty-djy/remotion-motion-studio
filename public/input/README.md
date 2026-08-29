@@ -15,6 +15,7 @@ public/input/
 
 规则：
 
+- 日常新增短音效可直接在工作台顶部打开“音效库”，点击“导入本地音效”；支持 WAV、MP3、OGG、M4A，导入后会自动复制到 `public/input/sfx/`、登记 manifest 并刷新索引。
 - Visual Script 只保存 `library + resourceId`，不保存绝对路径。
 - 新增资源后先登记 `resource-manifest.json`，再运行 `npm.cmd run sync:resources`。
 - 不要手改 `resource-index.json`。
