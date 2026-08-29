@@ -774,6 +774,19 @@ const iconCategoryAccent = (manifest: { iconGroups?: unknown }, category: string
   ICON_CATEGORY_ACCENTS[category] ??
   readCustomIconGroups(manifest).find((group) => group.name === category)?.accent;
 
+const SFX_RESERVED_GROUP_NAMES = ["内置音效", "自定义音效"];
+
+const readCustomSfxGroups = (manifest: { sfxGroups?: unknown }) =>
+  Array.isArray(manifest.sfxGroups)
+    ? manifest.sfxGroups.filter(
+        (group): group is { id: string; name: string; accent: string } =>
+          Boolean(group) && typeof group === "object" &&
+          /^[A-Za-z0-9_-]+$/.test(String((group as Record<string, unknown>).id ?? "")) &&
+          typeof (group as Record<string, unknown>).name === "string" &&
+          typeof (group as Record<string, unknown>).accent === "string",
+      )
+    : [];
+
 const importManualIcon = async (
   filename: string,
   category: string,
@@ -1846,6 +1859,106 @@ const localApi = (): Plugin => {
           return;
         }
 
+        if (url.pathname === "/api/sfx-groups" && req.method === "GET") {
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as { sfxGroups?: unknown };
+          sendJson(res, 200, { ok: true, groups: readCustomSfxGroups(manifest).map((group) => ({ ...group, builtin: false })) });
+          return;
+        }
+
+        if (url.pathname === "/api/sfx-groups" && req.method === "POST") {
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString("utf8")) as { name?: string };
+          const name = typeof body.name === "string" ? body.name.trim().slice(0, 20) : "";
+          if (!name) throw new Error("分组名称不能为空");
+          const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as { resources: Array<Record<string, unknown>>; sfxGroups?: unknown };
+          const groups = readCustomSfxGroups(manifest);
+          if (SFX_RESERVED_GROUP_NAMES.includes(name) || groups.some((group) => group.name === name)) throw new Error("分组名称已存在");
+          const accents = ["#68e8ff", "#a776f7", "#f2b93d", "#20d7a0"];
+          const group = { id: `custom-${Date.now()}`, name, accent: accents[groups.length % accents.length] };
+          manifest.sfxGroups = [...groups, group];
+          await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          sendJson(res, 200, { ok: true, group: { ...group, builtin: false } });
+          return;
+        }
+
+        if (url.pathname === "/api/sfx-groups" && req.method === "PATCH") {
+          const id = url.searchParams.get("id") ?? "";
+          if (!/^custom-[A-Za-z0-9_-]+$/.test(id)) throw new Error("内置分组不能修改");
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString("utf8")) as { name?: string; accent?: string };
+          const originalManifest = await readFile(resourceManifestPath, "utf8");
+          const originalIndex = await readFile(resourceIndexPath, "utf8");
+          const manifest = JSON.parse(originalManifest) as { resources: Array<Record<string, unknown>>; sfxGroups?: unknown };
+          const groups = readCustomSfxGroups(manifest);
+          const group = groups.find((item) => item.id === id);
+          if (!group) throw new Error("找不到音效分组");
+          const name = body.name === undefined
+            ? group.name
+            : typeof body.name === "string"
+              ? body.name.trim().slice(0, 20)
+              : "";
+          if (!name) throw new Error("分组名称不能为空");
+          const accent = body.accent === undefined
+            ? group.accent
+            : typeof body.accent === "string" && /^#[0-9a-f]{6}$/i.test(body.accent)
+              ? body.accent.toLowerCase()
+              : "";
+          if (!accent) throw new Error("分组颜色无效");
+          if (SFX_RESERVED_GROUP_NAMES.includes(name) || groups.some((item) => item.id !== id && item.name === name)) {
+            throw new Error("分组名称已存在");
+          }
+          const updatedGroup = { ...group, name, accent };
+          manifest.sfxGroups = groups.map((item) => (item.id === id ? updatedGroup : item));
+          manifest.resources = manifest.resources.map((resource) => {
+            if (resource.library !== "sfx" || resource.category !== group.name) return resource;
+            const tags = Array.isArray(resource.tags)
+              ? resource.tags.map((tag) => (tag === group.name ? name : tag))
+              : resource.tags;
+            return { ...resource, category: name, tags };
+          });
+          try {
+            await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+            const { createResourceIndex } = await import("./ai-motion-arranger/scripts/build-resource-index.mjs");
+            const index = await createResourceIndex();
+            await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+          } catch (error) {
+            await writeFile(resourceManifestPath, originalManifest);
+            await writeFile(resourceIndexPath, originalIndex);
+            throw error;
+          }
+          sendJson(res, 200, { ok: true, group: { ...updatedGroup, builtin: false } });
+          return;
+        }
+
+        if (url.pathname === "/api/sfx-groups" && req.method === "DELETE") {
+          const id = url.searchParams.get("id") ?? "";
+          if (!/^custom-[A-Za-z0-9_-]+$/.test(id)) throw new Error("内置分组不能删除");
+          const originalManifest = await readFile(resourceManifestPath, "utf8");
+          const originalIndex = await readFile(resourceIndexPath, "utf8");
+          const manifest = JSON.parse(originalManifest) as { resources: Array<Record<string, unknown>>; sfxGroups?: unknown };
+          const groups = readCustomSfxGroups(manifest);
+          const group = groups.find((item) => item.id === id);
+          if (!group) throw new Error("找不到音效分组");
+          manifest.sfxGroups = groups.filter((item) => item.id !== id);
+          manifest.resources = manifest.resources.map((resource) => {
+            if (resource.library !== "sfx" || resource.category !== group.name) return resource;
+            if (resource.source === "manual") return { ...resource, category: "自定义音效" };
+            const next = { ...resource };
+            delete next.category;
+            return next;
+          });
+          try {
+            await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+            const { createResourceIndex } = await import("./ai-motion-arranger/scripts/build-resource-index.mjs");
+            const index = await createResourceIndex();
+            await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+          } catch (error) {
+            await writeFile(resourceManifestPath, originalManifest);
+            await writeFile(resourceIndexPath, originalIndex);
+            throw error;
+          }
+          sendJson(res, 200, { ok: true, id });
+          return;
+        }
+
         if (url.pathname === "/api/open-icon-location" && req.method === "POST") {
           const body = JSON.parse(
             (await getBody(req, 64 * 1024)).toString("utf8"),
@@ -1914,6 +2027,54 @@ const localApi = (): Plugin => {
           const soundId = typeof body.soundId === "string" ? body.soundId : "";
           await deleteManualSfx(soundId);
           sendJson(res, 200, { ok: true, soundId });
+          return;
+        }
+
+        if (url.pathname === "/api/sfx-group-assign" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { soundId?: string; groupName?: string };
+          const soundId = typeof body.soundId === "string" ? body.soundId : "";
+          const groupName = typeof body.groupName === "string" ? body.groupName.trim() : "";
+          const originalManifest = await readFile(resourceManifestPath, "utf8");
+          const originalIndex = await readFile(resourceIndexPath, "utf8");
+          const manifest = JSON.parse(originalManifest) as {
+            resources: Array<Record<string, unknown>>;
+            sfxGroups?: unknown;
+          };
+          const resource = manifest.resources.find(
+            (item) => item.library === "sfx" && item.id === soundId,
+          );
+          if (!resource) throw new Error("找不到音效");
+          if (groupName) {
+            if (SFX_RESERVED_GROUP_NAMES.includes(groupName)) {
+              throw new Error("不能移入内置分组");
+            }
+            if (!readCustomSfxGroups(manifest).some((group) => group.name === groupName)) {
+              throw new Error("找不到音效分组");
+            }
+          }
+          manifest.resources = manifest.resources.map((item) => {
+            if (item !== resource) return item;
+            if (groupName) return { ...item, category: groupName };
+            if (item.source === "manual") return { ...item, category: "自定义音效" };
+            const next = { ...item };
+            delete next.category;
+            return next;
+          });
+          try {
+            await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+            const { createResourceIndex } = await import(
+              "./ai-motion-arranger/scripts/build-resource-index.mjs"
+            );
+            const index = await createResourceIndex();
+            await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+          } catch (error) {
+            await writeFile(resourceManifestPath, originalManifest);
+            await writeFile(resourceIndexPath, originalIndex);
+            throw error;
+          }
+          sendJson(res, 200, { ok: true, soundId, groupName });
           return;
         }
 

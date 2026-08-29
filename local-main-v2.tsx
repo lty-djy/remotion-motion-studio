@@ -276,6 +276,24 @@ const formatSoundDuration = (durationSeconds?: number) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${tenths}`;
 };
 
+const BUILT_IN_SFX_SECTIONS: IconCategoryGroup[] = [
+  { id: "builtin-sfx", name: "内置音效", accent: "#2f8cff", builtin: true },
+  { id: "manual-sfx", name: "自定义音效", accent: "#a776f7", builtin: true },
+];
+
+const sfxSectionName = (
+  sound: Pick<ArrangementResourceEntry, "category" | "source">,
+  customGroups: Array<Pick<IconCategoryGroup, "name">>,
+) => {
+  if (
+    sound.category &&
+    customGroups.some((group) => group.name === sound.category)
+  ) {
+    return sound.category;
+  }
+  return sound.source === "manual" ? "自定义音效" : "内置音效";
+};
+
 type ArrangementResourcePicker = {
   mode: "replace" | "add";
   segmentId: string;
@@ -672,7 +690,9 @@ type ContextMenuState = {
     | "library"
     | "libraryGroup"
     | "libraryRoot"
-    | "iconLibrary";
+    | "iconLibrary"
+    | "sfxLibrary"
+    | "sfxItem";
   instanceIds: string[];
   videoTrackId?: string;
   resourceTrackId?: string;
@@ -682,6 +702,8 @@ type ContextMenuState = {
   groupName?: string;
   iconGroupId?: string;
   groupComponentIds?: string[];
+  sfxGroupId?: string;
+  soundId?: string;
 };
 
 type LaneDropState = {
@@ -1623,6 +1645,14 @@ const App = () => {
   const [iconGroupRenameTarget, setIconGroupRenameTarget] =
     useState<IconCategoryGroup | null>(null);
   const [iconGroupNameDraft, setIconGroupNameDraft] = useState("");
+  const [customSfxGroups, setCustomSfxGroups] = useState<IconCategoryGroup[]>([]);
+  const [openSfxGroups, setOpenSfxGroups] = useState<string[]>([
+    "内置音效",
+    "自定义音效",
+  ]);
+  const [sfxGroupRenameTarget, setSfxGroupRenameTarget] =
+    useState<IconCategoryGroup | null>(null);
+  const [sfxGroupNameDraft, setSfxGroupNameDraft] = useState("");
   const [customCatalogGroups, setCustomCatalogGroups] = useState(
     loadCustomCatalogGroups,
   );
@@ -1789,6 +1819,24 @@ const App = () => {
       .then((payload) => {
         if (!payload?.ok || !Array.isArray(payload.groups)) return;
         setCustomIconGroups(
+          payload.groups.filter(
+            (group: unknown): group is IconCategoryGroup =>
+              Boolean(group) && typeof group === "object" &&
+              typeof (group as IconCategoryGroup).id === "string" &&
+              typeof (group as IconCategoryGroup).name === "string" &&
+              typeof (group as IconCategoryGroup).accent === "string",
+          ),
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/sfx-groups", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!payload?.ok || !Array.isArray(payload.groups)) return;
+        setCustomSfxGroups(
           payload.groups.filter(
             (group: unknown): group is IconCategoryGroup =>
               Boolean(group) && typeof group === "object" &&
@@ -2199,16 +2247,26 @@ const App = () => {
       ),
     [filteredIconCatalog],
   );
-  const filteredSfxResources = useMemo(() => {
+  const sfxCatalog = useMemo(() => {
     const query = sfxSearch.trim().toLocaleLowerCase("zh-CN");
-    return (arrangementResourceLibrary.sfx as SoundResource[]).filter((sound) => {
-      if (!query) return true;
-      return [sound.id, sound.label, sound.category, sound.usage, ...sound.tags]
-        .join(" ")
-        .toLocaleLowerCase("zh-CN")
-        .includes(query);
-    });
-  }, [arrangementResourceLibrary.sfx, sfxSearch]);
+    const sections = new Map<string, IconCategoryGroup & { items: SoundResource[] }>();
+    for (const group of [...BUILT_IN_SFX_SECTIONS, ...customSfxGroups]) {
+      sections.set(group.name, { ...group, items: [] });
+    }
+    for (const sound of arrangementResourceLibrary.sfx as SoundResource[]) {
+      if (query) {
+        const searchable = [sound.id, sound.label, sound.category, sound.usage, ...sound.tags]
+          .join(" ")
+          .toLocaleLowerCase("zh-CN");
+        if (!searchable.includes(query)) continue;
+      }
+      const section = sections.get(sfxSectionName(sound, customSfxGroups));
+      if (section) section.items.push(sound);
+    }
+    return [...sections.values()].filter(
+      (section) => section.items.length > 0 || (!query && !section.builtin),
+    );
+  }, [arrangementResourceLibrary.sfx, sfxSearch, customSfxGroups]);
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
@@ -6703,6 +6761,15 @@ const App = () => {
     });
   };
 
+  useEffect(() => {
+    if (!previewingSfxId) return;
+    const stillVisible = sfxCatalog.some((section) =>
+      section.items.some((sound) => sound.id === previewingSfxId),
+    );
+    if (!stillVisible) stopSfxLibraryPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sfxCatalog, previewingSfxId]);
+
   const openSfxFileLocation = async (soundId: string) => {
     try {
       const response = await fetch("/api/open-sfx-location", {
@@ -6950,6 +7017,156 @@ const App = () => {
       setNotice({ tone: "ok", text: `已更新“${updated.name}”的分组颜色。` });
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "分组颜色保存失败" });
+    }
+  };
+
+  const showSfxLibraryMenu = (
+    event: React.MouseEvent,
+    options: { sfxGroupId?: string; soundId?: string; groupName?: string } = {},
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 210),
+      y: Math.min(event.clientY, window.innerHeight - 120),
+      source: options.soundId ? "sfxItem" : "sfxLibrary",
+      instanceIds: [],
+      sfxGroupId: options.sfxGroupId,
+      soundId: options.soundId,
+      groupName: options.groupName,
+    });
+  };
+
+  const createSfxGroup = async () => {
+    const name = window.prompt("新音效分组名称（最多 20 个字）")?.trim().slice(0, 20);
+    if (!name) return;
+    setContextMenu(null);
+    try {
+      const response = await fetch("/api/sfx-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.group) throw new Error(payload?.error ?? "新建分组失败");
+      const group = payload.group as IconCategoryGroup;
+      setCustomSfxGroups((current) => [...current, group]);
+      setOpenSfxGroups((current) => [...current, group.name]);
+      setNotice({ tone: "ok", text: `已新建音效分组“${group.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "新建分组失败" });
+    }
+  };
+
+  const deleteSfxGroup = async (group: IconCategoryGroup) => {
+    setContextMenu(null);
+    const memberCount = (arrangementResourceLibrary.sfx as SoundResource[]).filter(
+      (sound) => sound.category === group.name,
+    ).length;
+    const message =
+      memberCount > 0
+        ? `删除音效分组“${group.name}”吗？组内 ${memberCount} 个音效会移回默认分组，不会被删除。`
+        : `删除空分组“${group.name}”吗？`;
+    if (!window.confirm(message)) return;
+    try {
+      const response = await fetch(`/api/sfx-groups?id=${encodeURIComponent(group.id)}`, { method: "DELETE" });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "删除分组失败");
+      setCustomSfxGroups((current) => current.filter((item) => item.id !== group.id));
+      setOpenSfxGroups((current) => current.filter((name) => name !== group.name));
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        sfx: current.sfx.map((sound) =>
+          sound.category === group.name
+            ? { ...sound, category: sound.source === "manual" ? "自定义音效" : "音效" }
+            : sound,
+        ),
+      }));
+      setNotice({ tone: "ok", text: `已删除音效分组“${group.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "删除分组失败" });
+    }
+  };
+
+  const openRenameSfxGroupDialog = (group: IconCategoryGroup) => {
+    setContextMenu(null);
+    setSfxGroupRenameTarget(group);
+    setSfxGroupNameDraft(group.name);
+  };
+
+  const saveSfxGroupRename = async () => {
+    const group = sfxGroupRenameTarget;
+    const name = sfxGroupNameDraft.trim().slice(0, 20);
+    if (!group || !name || name === group.name) {
+      setSfxGroupRenameTarget(null);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/sfx-groups?id=${encodeURIComponent(group.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.group) throw new Error(payload?.error ?? "重命名分组失败");
+      const renamed = payload.group as IconCategoryGroup;
+      setCustomSfxGroups((current) =>
+        current.map((item) => (item.id === renamed.id ? renamed : item)),
+      );
+      setOpenSfxGroups((current) =>
+        current.map((section) => (section === group.name ? renamed.name : section)),
+      );
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        sfx: current.sfx.map((sound) =>
+          sound.category === group.name
+            ? {
+                ...sound,
+                category: renamed.name,
+                tags: sound.tags.map((tag) => (tag === group.name ? renamed.name : tag)),
+              }
+            : sound,
+        ),
+      }));
+      setSfxGroupRenameTarget(null);
+      setNotice({ tone: "ok", text: `已将音效分组重命名为“${renamed.name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "重命名分组失败" });
+    }
+  };
+
+  const moveSfxToGroup = async (sound: SoundResource, groupName: string) => {
+    setContextMenu(null);
+    try {
+      const response = await fetch("/api/sfx-group-assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soundId: sound.id, groupName }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "移动音效失败");
+      const nextCategory = groupName
+        ? groupName
+        : sound.source === "manual"
+          ? "自定义音效"
+          : "音效";
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        sfx: current.sfx.map((item) =>
+          item.id === sound.id ? { ...item, category: nextCategory } : item,
+        ),
+      }));
+      setOpenSfxGroups((current) =>
+        groupName && !current.includes(groupName) ? [...current, groupName] : current,
+      );
+      setNotice({
+        tone: "ok",
+        text: groupName
+          ? `已将“${sound.label}”移入“${groupName}”。`
+          : `已将“${sound.label}”移回默认分组。`,
+      });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "移动音效失败" });
     }
   };
 
@@ -8386,72 +8603,133 @@ const App = () => {
               </label>
 
               <div className="sfx-library-summary">
-                <span>{filteredSfxResources.length} 个结果</span>
+                <span>
+                  {sfxCatalog.reduce(
+                    (total, section) => total + section.items.length,
+                    0,
+                  )}{" "}
+                  个结果
+                </span>
                 <span>{arrangementResourceLibrary.sfx.filter((sound) => sound.source === "manual").length} 个手动导入</span>
               </div>
 
-              <div className="sfx-library-list">
-                {filteredSfxResources.map((sound) => {
-                  const isPreviewing = previewingSfxId === sound.id;
+              <div
+                className="sfx-library-list"
+                onContextMenu={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  showSfxLibraryMenu(event);
+                }}
+                title="右键可新建分组"
+              >
+                {sfxCatalog.map((section) => {
+                  const isOpen =
+                    Boolean(sfxSearch.trim()) ||
+                    openSfxGroups.includes(section.name);
                   return (
-                    <article
-                      className={isPreviewing ? "sfx-library-card previewing" : "sfx-library-card"}
-                      key={sound.id}
+                    <section
+                      className="sfx-library-category"
+                      key={section.name}
+                      style={{ "--sfx-accent": section.accent } as React.CSSProperties}
                     >
                       <button
                         type="button"
-                        className="sfx-preview-button"
-                        onClick={() => toggleSfxLibraryPreview(sound)}
-                        aria-label={isPreviewing ? `停止试听 ${sound.label}` : `试听 ${sound.label}`}
-                        title={isPreviewing ? "停止试听" : "试听音效"}
+                        className={isOpen ? "sfx-category-toggle open" : "sfx-category-toggle"}
+                        onContextMenu={(event) =>
+                          showSfxLibraryMenu(event, {
+                            sfxGroupId: section.builtin ? undefined : section.id,
+                            groupName: section.name,
+                          })
+                        }
+                        onClick={() =>
+                          setOpenSfxGroups((current) =>
+                            current.includes(section.name)
+                              ? current.filter((name) => name !== section.name)
+                              : [...current, section.name],
+                          )
+                        }
                       >
-                        {isPreviewing ? <Pause weight="fill" /> : <Play weight="fill" />}
+                        <i
+                          className="sfx-category-dot"
+                          style={{ background: section.accent }}
+                        />
+                        <span>{section.name}</span>
+                        <b>{section.items.length}</b>
+                        <CaretDown />
                       </button>
-                      <div className="sfx-card-copy">
-                        <strong>{sound.label}</strong>
-                        <small>{sound.usage || sound.id}</small>
-                        <span>
-                          {formatSoundDuration(sound.durationSeconds)}
-                          {sound.source === "manual" ? " · 手动导入" : " · 内置"}
-                        </span>
-                      </div>
-                      <div className="sfx-card-actions">
-                        {sound.source === "manual" ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => void openSfxFileLocation(sound.id)}
-                              aria-label={`打开 ${sound.label} 所在位置`}
-                              title="打开文件所在位置"
-                            >
-                              <FolderOpen />
-                            </button>
-                            <button
-                              type="button"
-                              className="danger"
-                              onClick={() => void deleteManualSfxResource(sound)}
-                              aria-label={`删除 ${sound.label}`}
-                              title="从音效库删除"
-                            >
-                              <Trash />
-                            </button>
-                          </>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="primary"
-                          onClick={() => addSfxResource(sound)}
-                          title="添加到当前播放位置"
-                        >
-                          <Plus /> 添加
-                        </button>
-                      </div>
-                    </article>
+                      {isOpen ? (
+                        <div className="sfx-library-group">
+                          {section.items.map((sound) => {
+                            const isPreviewing = previewingSfxId === sound.id;
+                            return (
+                              <article
+                                className={isPreviewing ? "sfx-library-card previewing" : "sfx-library-card"}
+                                key={sound.id}
+                                onContextMenu={(event) =>
+                                  showSfxLibraryMenu(event, {
+                                    soundId: sound.id,
+                                    groupName: section.name,
+                                  })
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  className="sfx-preview-button"
+                                  onClick={() => toggleSfxLibraryPreview(sound)}
+                                  aria-label={isPreviewing ? `停止试听 ${sound.label}` : `试听 ${sound.label}`}
+                                  title={isPreviewing ? "停止试听" : "试听音效"}
+                                >
+                                  {isPreviewing ? <Pause weight="fill" /> : <Play weight="fill" />}
+                                </button>
+                                <div className="sfx-card-copy">
+                                  <strong>{sound.label}</strong>
+                                  <small>{sound.usage || sound.id}</small>
+                                  <span>
+                                    {formatSoundDuration(sound.durationSeconds)}
+                                    {sound.source === "manual" ? " · 手动导入" : " · 内置"}
+                                  </span>
+                                </div>
+                                <div className="sfx-card-actions">
+                                  {sound.source === "manual" ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => void openSfxFileLocation(sound.id)}
+                                        aria-label={`打开 ${sound.label} 所在位置`}
+                                        title="打开文件所在位置"
+                                      >
+                                        <FolderOpen />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="danger"
+                                        onClick={() => void deleteManualSfxResource(sound)}
+                                        aria-label={`删除 ${sound.label}`}
+                                        title="从音效库删除"
+                                      >
+                                        <Trash />
+                                      </button>
+                                    </>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="primary"
+                                    onClick={() => addSfxResource(sound)}
+                                    title="添加到当前播放位置"
+                                  >
+                                    <Plus /> 添加
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </section>
                   );
                 })}
               </div>
 
-              {filteredSfxResources.length === 0 ? (
+              {sfxCatalog.every((section) => section.items.length === 0) ? (
                 <div className="effect-library-empty">
                   {sfxSearch.trim() ? "没有匹配的音效" : "音效库为空，可以先导入一个音效"}
                 </div>
@@ -10137,6 +10415,57 @@ const App = () => {
         </div>
       ) : null}
 
+      {sfxGroupRenameTarget ? (
+        <div
+          className="shortcut-dialog-backdrop icon-group-rename-backdrop"
+          onPointerDown={() => setSfxGroupRenameTarget(null)}
+        >
+          <section
+            className="shortcut-dialog group-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span>
+                  <strong>重命名音效分组</strong>
+                  <small>名称会同步更新该分组内的音效</small>
+                </span>
+              </div>
+              <button onClick={() => setSfxGroupRenameTarget(null)}>
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <label htmlFor="rename-sfx-group-name">分组名称</label>
+              <input
+                id="rename-sfx-group-name"
+                autoFocus
+                maxLength={20}
+                value={sfxGroupNameDraft}
+                onChange={(event) => setSfxGroupNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveSfxGroupRename();
+                  if (event.key === "Escape") setSfxGroupRenameTarget(null);
+                }}
+              />
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button onClick={() => setSfxGroupRenameTarget(null)}>取消</button>
+                <button
+                  className="shortcut-save"
+                  disabled={!sfxGroupNameDraft.trim()}
+                  onClick={saveSfxGroupRename}
+                >
+                  保存名称
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {pendingGroupDelete ? (
         <div
           className="shortcut-dialog-backdrop delete-confirm-backdrop"
@@ -10567,7 +10896,7 @@ const App = () => {
                   ...visibleResourceCandidates.reduce((groups, resource) => {
                     const groupName =
                       resourcePickerKind === "sfx"
-                        ? "内置音效"
+                        ? sfxSectionName(resource, customSfxGroups)
                         : resource.category ||
                           (resourcePickerKind === "material" ? "素材" : "图标");
                     const groupResources = groups.get(groupName) ?? [];
@@ -11658,7 +11987,88 @@ const App = () => {
                   </button>
                 ) : null}
               </>
-            ) : (
+            ) : contextMenu.source === "sfxLibrary" ? (
+              <>
+                <small>{contextMenu.groupName ?? "音效库"}</small>
+                <button className="icon-new-group-action" onClick={createSfxGroup}>
+                  新建分组
+                </button>
+                {contextMenu.sfxGroupId ? (() => {
+                  const group = customSfxGroups.find(
+                    (item) => item.id === contextMenu.sfxGroupId,
+                  );
+                  return group ? (
+                    <>
+                      <button
+                        className="icon-rename-group-action"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openRenameSfxGroupDialog(group);
+                        }}
+                      >
+                        重命名分组
+                      </button>
+                      <button className="delete-action" onClick={() => deleteSfxGroup(group)}>
+                        删除分组
+                      </button>
+                    </>
+                  ) : null;
+                })() : null}
+              </>
+            ) : contextMenu.source === "sfxItem" ? (() => {
+              const sound = (arrangementResourceLibrary.sfx as SoundResource[]).find(
+                (item) => item.id === contextMenu.soundId,
+              );
+              const currentSection = sound
+                ? sfxSectionName(sound, customSfxGroups)
+                : "";
+              const moveTargets = customSfxGroups.filter(
+                (group) => group.name !== currentSection,
+              );
+              return (
+                <>
+                  <small>{sound?.label ?? "音效"}</small>
+                  {moveTargets.map((group) => (
+                    <button
+                      key={group.id}
+                      onClick={() => {
+                        if (sound) void moveSfxToGroup(sound, group.name);
+                      }}
+                    >
+                      移动到「{group.name}」
+                    </button>
+                  ))}
+                  {customSfxGroups.some((group) => group.name === currentSection) ? (
+                    <button onClick={() => sound && void moveSfxToGroup(sound, "")}>
+                      移回默认分组
+                    </button>
+                  ) : null}
+                  {sound?.source === "manual" ? (
+                    <>
+                      <button
+                        className="code-action"
+                        onClick={() => {
+                          setContextMenu(null);
+                          void openSfxFileLocation(sound.id);
+                        }}
+                      >
+                        打开文件所在位置
+                      </button>
+                      <button
+                        className="delete-action"
+                        onClick={() => {
+                          setContextMenu(null);
+                          void deleteManualSfxResource(sound);
+                        }}
+                      >
+                        删除音效
+                      </button>
+                    </>
+                  ) : null}
+                </>
+              );
+            })() : (
               <>
                 <small>
                   {contextMenu.source === "preview" ? "预览组件" : "时间轴组件"}

@@ -1046,7 +1046,7 @@
           "tick"
         ],
         "usage": "用户手动导入的短音效",
-        "category": "自定义音效",
+        "category": "持久化测试",
         "accent": "#a776f7",
         "source": "manual",
         "media": {

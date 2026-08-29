@@ -734,7 +734,7 @@
       "library": "sfx",
       "file": "sfx/tick-2.wav",
       "label": "tick",
-      "category": "自定义音效",
+      "category": "持久化测试",
       "accent": "#a776f7",
       "tags": [
         "音效",
@@ -751,6 +751,13 @@
       "id": "custom-1787978665269",
       "name": "自定义",
       "accent": "#c8ff00"
+    }
+  ],
+  "sfxGroups": [
+    {
+      "id": "custom-1788014133240",
+      "name": "持久化测试",
+      "accent": "#68e8ff"
     }
   ]
 }
