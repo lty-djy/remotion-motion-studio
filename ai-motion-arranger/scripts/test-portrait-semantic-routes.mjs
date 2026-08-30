@@ -27,6 +27,18 @@ const expectedComponentIds = [
   "PortraitDecisionTagStack",
   "PortraitStepChecklist",
   "PortraitStaggeredToolList",
+  "PortraitPromptMistakeDiagnosis",
+  "PortraitWorkflowPrerequisite",
+  "PortraitSkillIdentityCard",
+  "PortraitSkillSourceFusion",
+  "PortraitDesignRuleChecklist",
+  "PortraitSkillResultComparison",
+  "PortraitPromptIterationShowcase",
+  "PortraitGsapSkillShowcase",
+  "PortraitSkillIdentityHeaderBar",
+  "PortraitCodeDecisionChecklist",
+  "PortraitBrowserRepairLoop",
+  "PortraitAgentBrowserMedia",
   "PortraitRiskWarning",
   "LegacyModelEliminationWarning",
   "PortraitNextEpisodeCta",
@@ -39,17 +51,17 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 9) {
-  throw new Error("竖屏语义路由必须覆盖 9 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 20) {
+  throw new Error("竖屏语义路由必须覆盖 20 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 9) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 20) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
   JSON.stringify([...PORTRAIT_ROUTE_COMPONENT_IDS].sort()) !==
   JSON.stringify([...expectedComponentIds].sort())
 ) {
-  throw new Error("竖屏语义路由没有完整覆盖 8 个参考组件。");
+  throw new Error("竖屏语义路由没有完整覆盖 21 个参考组件。");
 }
 
 for (const route of PORTRAIT_SEMANTIC_ROUTES) {
@@ -128,6 +140,17 @@ const representativeCues = new Map([
   ["info-callout", "比如可以使用这个增强工具。"],
   ["evidence-source", "央视检测发现多件样品不达标。"],
   ["enumerated-tool-list", "就是这4个skill，今天我一个一个讲清楚。"],
+  ["direct-prompt-mistake", "打开 Codex 就直接问帮我做一个官网。"],
+  ["workflow-prerequisite", "动手之前先把这套工作流装好。"],
+  ["skill-identity", "第一个skill是我自己做的UI skill。"],
+  ["skill-source-fusion", "它不是凭空来的，审美判断是跟 Taste 学的。"],
+  ["design-rule-checklist", "它负责整个网页的设计审美，怎么排版怎么留白。"],
+  ["skill-result-comparison", "这是没装它的时候，AI 随手做出来的默认效果。"],
+  ["prompt-iteration-showcase", "那具体怎么用，第一句做一个摄影工作室的品牌官网。"],
+  ["gsap-skill-showcase", "第二个skill GSAP负责网页的高级动画和时间轴编排。"],
+  ["code-decision-checklist", "让AI先想这个功能真的需要吗。"],
+  ["browser-repair-loop", "让agent自己打开浏览器并循环检查。"],
+  ["browser-self-check-media", "你现在看到的这一整页就是逐屏自查结果。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],
   ["action-advice", "购买时认准国家标准并去正规店铺。"],

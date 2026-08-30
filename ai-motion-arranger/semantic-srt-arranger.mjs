@@ -825,7 +825,321 @@ const portraitDocumentContextFor = (entries) => {
     });
   }
 
-  return { enumeratedItems: enumeratedItems.slice(0, 4) };
+  const promptMatch = documentText.match(
+    /(?:帮|给)(?:我)?[^，。；;]{0,10}(?:官网|网站|页面)/u,
+  )?.[0];
+  const promptDiagnosis = {
+    eyebrow: /你是不是也这样/u.test(documentText) ? "你是不是也这样" : "是不是也这样",
+    titlePrefix: "打开就",
+    titleEmphasis: "直接开口",
+    prompt: (promptMatch ?? "帮我做一个官网").replace(/[，,]/gu, ""),
+    issue1: "配色随机",
+    issue2: "动效生硬",
+    issue3: "代码冗余",
+    conclusionPrefix: "问题不在模型，是你",
+    conclusionEmphasis: /(?:少了|缺少)[^，。；;]{0,8}(?:准备|前置)/u.test(documentText)
+      ? "少了准备这一步"
+      : "缺少前置准备",
+  };
+  const workflowStartIndex = entries.findIndex((entry) =>
+    /(?:动手|开始|制作).{0,6}(?:之前|前)/u.test(String(entry?.text ?? "")),
+  );
+  const workflowEntries = workflowStartIndex >= 0
+    ? entries.slice(workflowStartIndex).slice(0, 5)
+    : [];
+  const workflowEndEntry = workflowEntries.find((entry) =>
+    /(?:顺序|自测)/u.test(String(entry?.text ?? "")),
+  ) ?? workflowEntries.at(-1);
+  const workflowPrerequisite = {
+    startMs: workflowEntries[0]?.startMs,
+    endMs: workflowEndEntry?.endMs,
+    kicker: "动手做网页之前",
+    titleEmphasis: "先装工作流，",
+    titleSuffix: "再动手",
+    subtitleLine1: "先把这套 Skill 工作流装好，",
+    subtitleLine2: "AI 才知道该按什么规矩走。",
+    workflowLabel: "THE WORKFLOW",
+    stepCount: 4,
+    step1: "审美",
+    step2: "动效",
+    step3: "工程",
+    step4: "自测",
+    footerEmphasis: "顺序不能反",
+    footerText: "先定审美，最后自测",
+  };
+  const skillIdentityStartIndex = entries.findIndex((entry) =>
+    /第(?:一|1)个.{0,4}(?:skill|技能)/iu.test(String(entry?.text ?? "")),
+  );
+  const skillIdentityEntries = skillIdentityStartIndex >= 0
+    ? entries.slice(skillIdentityStartIndex).slice(0, 3)
+    : [];
+  const skillIdentity = {
+    startMs: skillIdentityEntries[0]?.startMs,
+    endMs: skillIdentityEntries.at(-1)?.endMs,
+    sequenceText: "01",
+    title: "我自己做的 Skill",
+    subtitle: "UI 审美 · 全流程规范",
+    badge: "C 位",
+    updateText: "持续更新中 · 新规则滚动迭代",
+  };
+  const skillSourceStartIndex = entries.findIndex((entry) =>
+    /(?:不是凭空来的|审美判断.{0,8}taste)/iu.test(String(entry?.text ?? "")),
+  );
+  const skillSourceEntries = skillSourceStartIndex >= 0
+    ? entries.slice(skillSourceStartIndex).slice(0, 6)
+    : [];
+  const skillSourceEndEntry = skillSourceEntries.find((entry) =>
+    /三样.{0,6}(?:拼|合).{0,4}一个/u.test(String(entry?.text ?? "")),
+  ) ?? skillSourceEntries.at(-1);
+  const skillSourceFusion = {
+    startMs: skillSourceEntries[0]?.startMs,
+    endMs: skillSourceEndEntry?.endMs,
+    sequenceText: "01",
+    title: "我自己做的 Skill",
+    subtitle: "UI 审美 · 全流程规范",
+    badge: "C 位",
+    sourceCount: 3,
+    source1: "TASTE",
+    source1Detail: "审美判断 · 来自 Taste",
+    source2: "IMPECCABLE",
+    source2Detail: "反廉价规则 · 来自 Impeccable",
+    source3: "自己的经验",
+    source3Detail: "日常实战 · 持续积累",
+  };
+  const designRulesStartIndex = entries.findIndex((entry) =>
+    /负责.{0,8}网页.{0,8}设计审美/u.test(String(entry?.text ?? "")),
+  );
+  const designRuleEntries = designRulesStartIndex >= 0
+    ? entries.slice(designRulesStartIndex).slice(0, 6)
+    : [];
+  const designRulesEndEntry = designRuleEntries.find((entry) =>
+    /(?:AI).{0,8}(?:规矩|规则)/iu.test(String(entry?.text ?? "")),
+  ) ?? designRuleEntries.at(-1);
+  const designRules = {
+    startMs: designRuleEntries[0]?.startMs,
+    endMs: designRulesEndEntry?.endMs,
+    ruleCount: 4,
+    rule1: "排版网格",
+    rule2: "留白密度",
+    rule3: "配色层级",
+    rule4: "视觉一致性",
+  };
+  const skillResultStartIndex = entries.findIndex((entry) =>
+    /(?:没装|未安装).{0,8}(?:时候|效果)/u.test(String(entry?.text ?? "")),
+  );
+  const skillResultEntries = skillResultStartIndex >= 0
+    ? entries.slice(skillResultStartIndex).slice(0, 8)
+    : [];
+  const skillResultEndEntry = skillResultEntries.find((entry) =>
+    /一样稳|照样稳|依然稳/u.test(String(entry?.text ?? "")),
+  ) ?? skillResultEntries.at(-1);
+  const afterResultEntry = skillResultEntries.find((entry) =>
+    /(?:装了|安装).{0,6}(?:之后|以后)/u.test(String(entry?.text ?? "")),
+  );
+  const alternateResultEntry = skillResultEntries.find((entry) =>
+    /换个(?:题材|行业)/u.test(String(entry?.text ?? "")),
+  );
+  const skillResultStartMs = skillResultEntries[0]?.startMs;
+  const secondsFromResultStart = (entry, fallback) =>
+    Number.isFinite(Number(entry?.startMs)) && Number.isFinite(Number(skillResultStartMs))
+      ? Number(((Number(entry.startMs) - Number(skillResultStartMs)) / 1000).toFixed(2))
+      : fallback;
+  const skillResultComparison = {
+    startMs: skillResultStartMs,
+    endMs: skillResultEndEntry?.endMs,
+    materialCount: 3,
+    material1Eyebrow: "WITHOUT THE SKILL",
+    material1Title: "没装它",
+    material1Detail: "AI 随手做出来的默认效果",
+    material2Eyebrow: "WITH THE SKILL",
+    material2Title: "装了它",
+    material2Detail: "同一个 AI，同一句话",
+    material3Eyebrow: "ANOTHER INDUSTRY",
+    material3Title: "换个行业",
+    material3Detail: "质感照样稳定",
+    firstSwitchSeconds: secondsFromResultStart(afterResultEntry, 3.1),
+    materialIntervalSeconds: Number((secondsFromResultStart(alternateResultEntry, 6.6) - secondsFromResultStart(afterResultEntry, 3.1)).toFixed(2)),
+  };
+  const promptIterationStartIndex = entries.findIndex((entry) =>
+    /具体怎么用/u.test(String(entry?.text ?? "")),
+  );
+  const promptIterationEntries = promptIterationStartIndex >= 0
+    ? entries.slice(promptIterationStartIndex).slice(0, 14)
+    : [];
+  const promptIterationEndEntry = promptIterationEntries.find((entry) =>
+    /只管说要什么/u.test(String(entry?.text ?? "")),
+  ) ?? promptIterationEntries.at(-1);
+  const firstPromptEntry = promptIterationEntries.find((entry) =>
+    /第一句|摄影/u.test(String(entry?.text ?? "")),
+  );
+  const secondPromptEntry = promptIterationEntries.find((entry) =>
+    /改成数据后台/u.test(String(entry?.text ?? "")),
+  );
+  const thirdPromptEntry = promptIterationEntries.find((entry) =>
+    /换成产品落地页/u.test(String(entry?.text ?? "")),
+  );
+  const promptIterationStartMs = promptIterationEntries[0]?.startMs;
+  const secondsFromPromptIterationStart = (entry, fallback) =>
+    Number.isFinite(Number(entry?.startMs)) && Number.isFinite(Number(promptIterationStartMs))
+      ? Number(((Number(entry.startMs) - Number(promptIterationStartMs)) / 1000).toFixed(2))
+      : fallback;
+  const firstResultSeconds = secondsFromPromptIterationStart(firstPromptEntry, 3.1);
+  const thirdResultSeconds = secondsFromPromptIterationStart(thirdPromptEntry, 13.3);
+  const promptIterations = {
+    startMs: promptIterationStartMs,
+    endMs: promptIterationEndEntry?.endMs,
+    iterationCount: 3,
+    eyebrow: "HOW TO USE",
+    title: "怎么用？",
+    emphasis: "一句话，改一版",
+    ghostNumber: "01",
+    waitingText: "等待第一句话",
+    iteration1Prompt: "做一个摄影工作室的品牌官网",
+    iteration1Badge: "品牌官网",
+    iteration2Prompt: "改成数据后台，深色",
+    iteration2Badge: "数据后台",
+    iteration3Prompt: "换成产品落地页",
+    iteration3Badge: "产品落地页",
+    firstResultSeconds,
+    iterationIntervalSeconds: secondPromptEntry && thirdPromptEntry
+      ? Number(((thirdResultSeconds - firstResultSeconds) / 2).toFixed(2))
+      : 5.2,
+  };
+  const gsapStartIndex = entries.findIndex((entry) =>
+    /第二个.{0,6}(?:skill|技能).{0,6}GSAP/iu.test(String(entry?.text ?? "")),
+  );
+  const gsapEntries = gsapStartIndex >= 0 ? entries.slice(gsapStartIndex).slice(0, 14) : [];
+  const gsapEndEntry = gsapEntries.find((entry) =>
+    /动的?好不好看/u.test(String(entry?.text ?? "")),
+  ) ?? gsapEntries.at(-1);
+  const pairEntry = gsapEntries.find((entry) =>
+    /配着第一个|一起用/u.test(String(entry?.text ?? "")),
+  );
+  const conclusionEntry = gsapEntries.find((entry) =>
+    /一个管页面/u.test(String(entry?.text ?? "")),
+  );
+  const gsapStartMs = gsapEntries[0]?.startMs;
+  const secondsFromGsapStart = (entry, fallback) =>
+    Number.isFinite(Number(entry?.startMs)) && Number.isFinite(Number(gsapStartMs))
+      ? Number(((Number(entry.startMs) - Number(gsapStartMs)) / 1000).toFixed(2))
+      : fallback;
+  const gsapSkill = {
+    startMs: gsapStartMs,
+    endMs: gsapEndEntry?.endMs,
+    sequenceText: "02",
+    title: "GSAP Skills",
+    subtitle: "动效引擎 · 高级动画",
+    badge: "★ 26K",
+    capabilityCount: 3,
+    capability1Title: "ScrollTrigger",
+    capability1Detail: "滚动进度驱动动画",
+    capability2Title: "Timeline",
+    capability2Detail: "时间轴精确编排",
+    capability3Title: "Stagger",
+    capability3Detail: "多元素错峰入场",
+    controlLead: "什么时候出现、什么时候结束、快慢怎么给——",
+    controlEmphasis: "它全管。",
+    firstSkillTitle: "我自己做的 Skill",
+    firstSkillDetail: "管页面好不好看",
+    secondSkillTitle: "GSAP Skills",
+    secondSkillDetail: "管它动得好不好看",
+    conclusionLead: "一个定住美感，",
+    conclusionEmphasis: "一个让它动起来",
+    capabilityStartSeconds: 2.8,
+    capabilityIntervalSeconds: 1.15,
+    pairRevealSeconds: secondsFromGsapStart(pairEntry, 11.2),
+    conclusionRevealSeconds: secondsFromGsapStart(conclusionEntry, 14.1),
+  };
+  const codeDecisionStartIndex = entries.findIndex((entry) =>
+    /让\s*AI\s*先想/iu.test(String(entry?.text ?? "")),
+  );
+  const codeDecisionEntries = codeDecisionStartIndex >= 0
+    ? entries.slice(codeDecisionStartIndex).slice(0, 5)
+    : [];
+  const codeDecisionEndEntry = codeDecisionEntries.find((entry) =>
+    /实在不行才自己写/u.test(String(entry?.text ?? "")),
+  ) ?? codeDecisionEntries.at(-1);
+  const firstQuestionEntry = codeDecisionEntries.find((entry) =>
+    /功能真的需要吗/u.test(String(entry?.text ?? "")),
+  );
+  const codeDecisionStartMs = codeDecisionEntries[0]?.startMs;
+  const firstHighlightSeconds = Number.isFinite(Number(firstQuestionEntry?.startMs)) && Number.isFinite(Number(codeDecisionStartMs))
+    ? Number(((Number(firstQuestionEntry.startMs) - Number(codeDecisionStartMs)) / 1000).toFixed(2))
+    : 1.15;
+  const codeDecisionEndMs = codeDecisionEndEntry?.endMs;
+  const questionIntervalSeconds = Number.isFinite(Number(codeDecisionEndMs)) && Number.isFinite(Number(firstQuestionEntry?.startMs))
+    ? Number(((Number(codeDecisionEndMs) - Number(firstQuestionEntry.startMs)) / 5 / 1000).toFixed(2))
+    : 1.11;
+  const codeDecisionChecklist = {
+    startMs: codeDecisionStartMs,
+    endMs: codeDecisionEndMs,
+    questionCount: 6,
+    question1: "这个功能真的需要吗",
+    question2: "现有代码里有没有",
+    question3: "标准库有没有",
+    question4: "原生平台有没有",
+    question5: "已装依赖有没有",
+    question6: "一行能搞定吗",
+    firstHighlightSeconds,
+    questionIntervalSeconds,
+  };
+  const browserRepairStartIndex = entries.findIndex((entry) =>
+    /让\s*agent\s*自己打开浏览器/iu.test(String(entry?.text ?? "")),
+  );
+  const browserRepairEntries = browserRepairStartIndex >= 0
+    ? entries.slice(browserRepairStartIndex).slice(0, 8)
+    : [];
+  const browserRepairEndEntry = browserRepairEntries.find((entry) =>
+    /直到整页真的没问题/u.test(String(entry?.text ?? "")),
+  ) ?? browserRepairEntries.at(-1);
+  const browserRepairStartMs = browserRepairEntries[0]?.startMs;
+  const browserRepairEndMs = browserRepairEndEntry?.endMs;
+  const browserRepairLoop = {
+    startMs: browserRepairStartMs,
+    endMs: browserRepairEndMs,
+    stepCount: 6,
+    step1: "打开浏览器",
+    step2: "运行页面",
+    step3: "自动截图",
+    step4: "发现问题",
+    step5: "自动修复",
+    step6: "再验证",
+    centerTitle: "一直循环",
+    centerSubtitle: "直到没问题",
+    firstNodeHighlightSeconds: 0.2,
+    nextNodeHighlightIntervalSeconds: Number.isFinite(Number(browserRepairEndMs)) && Number.isFinite(Number(browserRepairStartMs))
+      ? Number(((Number(browserRepairEndMs) - Number(browserRepairStartMs) - 1000) / 7 / 1000).toFixed(2))
+      : 1.26,
+    loopIntervalSeconds: 0.5,
+  };
+  const browserSelfCheckStartIndex = entries.findIndex((entry) =>
+    /你现在看到的这一整页/u.test(String(entry?.text ?? "")),
+  );
+  const browserSelfCheckEntries = browserSelfCheckStartIndex >= 0
+    ? entries.slice(browserSelfCheckStartIndex).slice(0, 2)
+    : [];
+  const browserSelfCheckMedia = {
+    startMs: browserSelfCheckEntries[0]?.startMs,
+    endMs: browserSelfCheckEntries.at(-1)?.endMs,
+    titlePrefix: "Agent 自己开浏览器，",
+    titleHighlight: "逐屏自查",
+    browserLabel: "playwright · headed",
+  };
+
+  return {
+    enumeratedItems: enumeratedItems.slice(0, 4),
+    promptDiagnosis,
+    workflowPrerequisite,
+    skillIdentity,
+    skillSourceFusion,
+    designRules,
+    skillResultComparison,
+    promptIterations,
+    gsapSkill,
+    codeDecisionChecklist,
+    browserRepairLoop,
+    browserSelfCheckMedia,
+  };
 };
 
 const portraitStyleForRoute = (routeId) => {
@@ -834,6 +1148,17 @@ const portraitStyleForRoute = (routeId) => {
     "info-callout": "#168CFF",
     "metric-decision": "#14E6A1",
     "enumerated-tool-list": "#F2D51B",
+    "direct-prompt-mistake": "#F2D51B",
+    "workflow-prerequisite": "#17D9E8",
+    "skill-identity": "#17D9E8",
+    "skill-source-fusion": "#17D9E8",
+    "design-rule-checklist": "#17D9E8",
+    "skill-result-comparison": "#17D9E8",
+    "prompt-iteration-showcase": "#17D9E8",
+    "gsap-skill-showcase": "#17D9E8",
+    "code-decision-checklist": "#9A73FF",
+    "browser-repair-loop": "#4E85FF",
+    "browser-self-check-media": "#638CFF",
     "process-steps": "#168CFF",
     "risk-boundary": "#FF493D",
     "next-episode-cta": "#168CFF",
@@ -841,12 +1166,15 @@ const portraitStyleForRoute = (routeId) => {
   return {
     accentColor: accents[routeId] ?? "#168CFF",
     secondaryColor: "#14E6A1",
+    tertiaryColor: "#A36CFF",
+    quaternaryColor: "#5986FF",
     successColor: "#14E6A1",
     warningColor: "#FF493D",
     eliminationAccentColor: "#FFB735",
     eliminationPanelColor: "#080F19",
     listHighlightColor: "#F2D51B",
     panelColor: "#111318",
+    ringColor: "#27406E",
     textColor: "#FFFFFF",
     shadowColor: "#000000",
   };
@@ -891,6 +1219,144 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     route.id === "risk-boundary" && isEliminationWarning(text);
   const elimination = eliminationDetails(text);
   const documentItems = documentContext?.enumeratedItems ?? [];
+  const promptDiagnosis = documentContext?.promptDiagnosis ?? {
+    eyebrow: "你是不是也这样",
+    titlePrefix: "打开就",
+    titleEmphasis: "直接开口",
+    prompt: "帮我做一个官网",
+    issue1: "配色随机",
+    issue2: "动效生硬",
+    issue3: "代码冗余",
+    conclusionPrefix: "问题不在模型，是你",
+    conclusionEmphasis: "少了准备这一步",
+  };
+  const workflowPrerequisite = documentContext?.workflowPrerequisite ?? {
+    kicker: "动手做网页之前",
+    titleEmphasis: "先装工作流，",
+    titleSuffix: "再动手",
+    subtitleLine1: "先把这套 Skill 工作流装好，",
+    subtitleLine2: "AI 才知道该按什么规矩走。",
+    workflowLabel: "THE WORKFLOW",
+    stepCount: 4,
+    step1: "审美",
+    step2: "动效",
+    step3: "工程",
+    step4: "自测",
+    footerEmphasis: "顺序不能反",
+    footerText: "先定审美，最后自测",
+  };
+  const skillIdentity = documentContext?.skillIdentity ?? {
+    sequenceText: "01",
+    title: "我自己做的 Skill",
+    subtitle: "UI 审美 · 全流程规范",
+    badge: "C 位",
+    updateText: "持续更新中 · 新规则滚动迭代",
+  };
+  const skillSourceFusion = documentContext?.skillSourceFusion ?? {
+    sequenceText: "01",
+    title: "我自己做的 Skill",
+    subtitle: "UI 审美 · 全流程规范",
+    badge: "C 位",
+    sourceCount: 3,
+    source1: "TASTE",
+    source1Detail: "审美判断 · 来自 Taste",
+    source2: "IMPECCABLE",
+    source2Detail: "反廉价规则 · 来自 Impeccable",
+    source3: "自己的经验",
+    source3Detail: "日常实战 · 持续积累",
+  };
+  const designRules = documentContext?.designRules ?? {
+    ruleCount: 4,
+    rule1: "排版网格",
+    rule2: "留白密度",
+    rule3: "配色层级",
+    rule4: "视觉一致性",
+  };
+  const skillResultComparison = documentContext?.skillResultComparison ?? {
+    materialCount: 3,
+    material1Eyebrow: "WITHOUT THE SKILL",
+    material1Title: "没装它",
+    material1Detail: "AI 随手做出来的默认效果",
+    material2Eyebrow: "WITH THE SKILL",
+    material2Title: "装了它",
+    material2Detail: "同一个 AI，同一句话",
+    material3Eyebrow: "ANOTHER INDUSTRY",
+    material3Title: "换个行业",
+    material3Detail: "质感照样稳定",
+    firstSwitchSeconds: 3.1,
+    materialIntervalSeconds: 3.5,
+  };
+  const promptIterations = documentContext?.promptIterations ?? {
+    iterationCount: 3,
+    eyebrow: "HOW TO USE",
+    title: "怎么用？",
+    emphasis: "一句话，改一版",
+    ghostNumber: "01",
+    waitingText: "等待第一句话",
+    iteration1Prompt: "做一个摄影工作室的品牌官网",
+    iteration1Badge: "品牌官网",
+    iteration2Prompt: "改成数据后台，深色",
+    iteration2Badge: "数据后台",
+    iteration3Prompt: "换成产品落地页",
+    iteration3Badge: "产品落地页",
+    firstResultSeconds: 3.1,
+    iterationIntervalSeconds: 5.2,
+  };
+  const gsapSkill = documentContext?.gsapSkill ?? {
+    sequenceText: "02",
+    title: "GSAP Skills",
+    subtitle: "动效引擎 · 高级动画",
+    badge: "★ 26K",
+    capabilityCount: 3,
+    capability1Title: "ScrollTrigger",
+    capability1Detail: "滚动进度驱动动画",
+    capability2Title: "Timeline",
+    capability2Detail: "时间轴精确编排",
+    capability3Title: "Stagger",
+    capability3Detail: "多元素错峰入场",
+    controlLead: "什么时候出现、什么时候结束、快慢怎么给——",
+    controlEmphasis: "它全管。",
+    firstSkillTitle: "我自己做的 Skill",
+    firstSkillDetail: "管页面好不好看",
+    secondSkillTitle: "GSAP Skills",
+    secondSkillDetail: "管它动得好不好看",
+    conclusionLead: "一个定住美感，",
+    conclusionEmphasis: "一个让它动起来",
+    capabilityStartSeconds: 2.8,
+    capabilityIntervalSeconds: 1.15,
+    pairRevealSeconds: 11.2,
+    conclusionRevealSeconds: 14.1,
+  };
+  const codeDecisionChecklist = documentContext?.codeDecisionChecklist ?? {
+    questionCount: 6,
+    question1: "这个功能真的需要吗",
+    question2: "现有代码里有没有",
+    question3: "标准库有没有",
+    question4: "原生平台有没有",
+    question5: "已装依赖有没有",
+    question6: "一行能搞定吗",
+    firstHighlightSeconds: 1.15,
+    questionIntervalSeconds: 1.11,
+  };
+  const browserRepairLoop = documentContext?.browserRepairLoop ?? {
+    stepCount: 6,
+    step1: "打开浏览器",
+    step2: "运行页面",
+    step3: "自动截图",
+    step4: "发现问题",
+    step5: "自动修复",
+    step6: "再验证",
+    centerTitle: "一直循环",
+    centerSubtitle: "直到没问题",
+    firstNodeHighlightSeconds: 0.2,
+    nextNodeHighlightIntervalSeconds: 1.26,
+    loopIntervalSeconds: 0.5,
+  };
+  const browserSelfCheckMedia = documentContext?.browserSelfCheckMedia ?? {
+    titlePrefix: "Agent 自己开浏览器，",
+    titleHighlight: "逐屏自查",
+    browserLabel: "playwright · headed",
+  };
   const fallbackItems = labels.length >= 2
     ? labels.slice(0, 4).map((label, index) => ({
         label,
@@ -924,6 +1390,8 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     "info-callout": "补充说明",
     "evidence-source": "检测证据",
     "enumerated-tool-list": "4 个 Skill",
+    "direct-prompt-mistake": "错误提问",
+    "workflow-prerequisite": "先装工作流",
     "metric-decision": "推荐方案",
     "process-steps": "执行流程",
     "action-advice": "行动建议",
@@ -935,6 +1403,8 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     "info-callout": shorten(fragments[0] || text, 14),
     "evidence-source": shorten(fragments[0] || text, 14),
     "enumerated-tool-list": "多项能力准备",
+    "direct-prompt-mistake": "直接提问",
+    "workflow-prerequisite": "审美到自测",
     "metric-decision": shorten(text, 18),
     "process-steps": "操作步骤",
     "action-advice": shorten(fragments[0] || text, 14),
@@ -948,10 +1418,26 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
   const segmentSeconds = (timing.endFrame - timing.startFrame) / fps;
   const animationSeconds = route.id === "enumerated-tool-list"
     ? Math.max(1.8, Math.min(3.2, Number((segmentSeconds - 0.15).toFixed(2))))
-    : Math.max(
-        0.4,
-        Math.min(1.6, Number((segmentSeconds / 2).toFixed(2))),
-      );
+    : route.id === "direct-prompt-mistake"
+      ? Math.max(4.5, Math.min(8, Number((segmentSeconds - 0.25).toFixed(2))))
+      : route.id === "workflow-prerequisite"
+        ? Math.max(3.5, Math.min(6, Number((segmentSeconds - 0.2).toFixed(2))))
+      : route.id === "skill-result-comparison"
+        ? Math.max(6, Math.min(14, Number(segmentSeconds.toFixed(2))))
+      : route.id === "prompt-iteration-showcase"
+        ? Math.max(10, Math.min(24, Number(segmentSeconds.toFixed(2))))
+      : route.id === "gsap-skill-showcase"
+        ? Math.max(10, Math.min(24, Number(segmentSeconds.toFixed(2))))
+      : route.id === "code-decision-checklist"
+        ? Math.max(4, Math.min(12, Number(segmentSeconds.toFixed(2))))
+      : route.id === "browser-repair-loop"
+        ? Math.max(6, Math.min(16, Number(segmentSeconds.toFixed(2))))
+      : route.id === "browser-self-check-media"
+        ? Math.max(3, Math.min(12, Number(segmentSeconds.toFixed(2))))
+      : Math.max(
+          0.4,
+          Math.min(1.6, Number((segmentSeconds / 2).toFixed(2))),
+        );
   const symbolSet =
     route.id === "risk-boundary"
       ? ["×", "!", "⌁"]
@@ -1003,6 +1489,17 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
         3: enumeratedItems[2]?.badge ?? "03",
         4: enumeratedItems[3]?.badge ?? "04",
       },
+      promptDiagnosis,
+      workflowPrerequisite,
+      skillIdentity,
+      skillSourceFusion,
+      designRules,
+      skillResultComparison,
+      promptIterations,
+      gsapSkill,
+      codeDecisionChecklist,
+      browserRepairLoop,
+      browserSelfCheckMedia,
       steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
       risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
       elimination,
@@ -1045,6 +1542,15 @@ const activationAllows = (activation, context) => {
 };
 
 const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
+  "code-decision-checklist": [
+    { componentId: "PortraitCodeDecisionChecklist", reason: "按字幕顺序逐行点亮六个代码决策问题" },
+  ],
+  "browser-repair-loop": [
+    { componentId: "PortraitBrowserRepairLoop", reason: "用六个环形节点循环展示浏览器自动测试、修复与复验流程" },
+  ],
+  "browser-self-check-media": [
+    { componentId: "PortraitAgentBrowserMedia", reason: "用可上传的图片或视频展示 Agent 浏览器逐屏自查结果" },
+  ],
   "chapter-transition": [
     { componentId: "PortraitChapterRail", reason: "突出章节标题和阶段切换" },
     { componentId: "PortraitInfoCallout", reason: "用轻量说明卡承接新章节" },
@@ -1060,6 +1566,46 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitStaggeredToolList", reason: "按口播节奏错峰列出多个工具、技能或方法" },
     { componentId: "PortraitStepChecklist", reason: "当条目强调先后顺序时可改用步骤清单" },
     { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
+  ],
+  "direct-prompt-mistake": [
+    { componentId: "PortraitPromptMistakeDiagnosis", reason: "逐字展示错误提问，并错峰标出视觉与代码问题" },
+    { componentId: "PortraitRiskWarning", reason: "当内容只需保留风险结论时可改用提醒卡" },
+    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
+  ],
+  "workflow-prerequisite": [
+    { componentId: "PortraitWorkflowPrerequisite", reason: "横向点亮审美、动效、工程、自测四步前置流程" },
+    { componentId: "PortraitStepChecklist", reason: "当流程更适合纵向阅读时可改用步骤清单" },
+    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为工作流说明卡" },
+  ],
+  "skill-identity": [
+    { componentId: "PortraitSkillIdentityCard", reason: "用编号、身份标题、徽标和更新状态介绍首个 Skill" },
+    { componentId: "PortraitInfoCallout", reason: "当身份信息较短时可压缩为说明卡" },
+  ],
+  "skill-source-fusion": [
+    { componentId: "PortraitSkillSourceFusion", reason: "依次展示 Taste、Impeccable 与个人经验，并收束为一个 Skill" },
+    { componentId: "PortraitStaggeredToolList", reason: "当来源数量继续增加时可改用错峰列表" },
+    { componentId: "PortraitInfoCallout", reason: "当只需保留合成结论时可压缩为说明卡" },
+  ],
+  "design-rule-checklist": [
+    { componentId: "PortraitDesignRuleChecklist", reason: "按口播顺序逐项点亮排版、留白、配色和层级规则" },
+    { componentId: "PortraitStepChecklist", reason: "当规则需要强调执行先后时可改用步骤清单" },
+    { componentId: "PortraitInfoCallout", reason: "当只需保留规则结论时可压缩为说明卡" },
+  ],
+  "skill-result-comparison": [
+    { componentId: "PortraitSkillResultComparison", reason: "用发光擦除线依次对比默认效果、Skill 优化效果和另一行业案例" },
+    { componentId: "MediaSpotlightCard", reason: "当只需展示单个案例画面时可改用媒体聚焦卡" },
+    { componentId: "PortraitDecisionTagStack", reason: "当没有案例素材时可压缩为文字对比标签" },
+  ],
+  "prompt-iteration-showcase": [
+    { componentId: "PortraitPromptIterationShowcase", reason: "用提示词输入条和发光擦除转场连续展示多次改版结果" },
+    { componentId: "PortraitSkillResultComparison", reason: "当重点是结果差异而不是操作过程时可改用素材对比" },
+    { componentId: "MediaSpotlightCard", reason: "当只展示最终页面时可压缩为单个媒体聚焦卡" },
+  ],
+  "gsap-skill-showcase": [
+    { componentId: "PortraitGsapSkillShowcase", reason: "用能力卡、时间控制说明和双 Skill 配合关系呈现 GSAP 高级动画能力" },
+    { componentId: "PortraitSkillIdentityHeaderBar", reason: "用独立身份条呈现编号、Skill 名称、副标题和徽标" },
+    { componentId: "PortraitStepChecklist", reason: "当重点是滚动触发、时间轴和错峰入场的执行顺序时可改用步骤清单" },
+    { componentId: "PortraitInfoCallout", reason: "当只需介绍 GSAP 定位时可压缩为说明卡" },
   ],
   "metric-decision": [
     { componentId: "PortraitMetricDecision", reason: "突出核心数字和推荐结论" },
@@ -1220,6 +1766,41 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["left-top", "right-top"],
     preferredScale: 0.92,
   },
+  PortraitSkillIdentityCard: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitSkillSourceFusion: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitDesignRuleChecklist: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitSkillResultComparison: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitPromptIterationShowcase: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitGsapSkillShowcase: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
+  PortraitSkillIdentityHeaderBar: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 1,
+  },
   PortraitRiskWarning: {
     anchor: "left-top",
     fallbackAnchors: ["right-top", "left-center", "right-center"],
@@ -1271,6 +1852,20 @@ const selectDiversePortraitCandidates = ({
       (candidate) => candidate.componentId === "LegacyModelEliminationWarning",
     );
     return eliminationCandidate ? [eliminationCandidate] : [];
+  }
+
+  const requiredSelections = activeSelections.filter(
+    (selection) => selection.required === true,
+  );
+  if (requiredSelections.length > 0) {
+    return activeSelections
+      .filter((selection) => selection.role === "primary" || selection.required === true)
+      .flatMap((selection) => {
+        const candidate = candidates.find(
+          (item) => item.componentId === selection.componentId,
+        );
+        return candidate ? [candidate] : [];
+      });
   }
 
   const routeUseCount = diversityState.routeUsage.get(route.id) ?? 0;
@@ -1403,9 +1998,49 @@ const buildPortraitSemanticSrtArrangement = ({
     selectedRoutes.forEach(({ route, matchResult }, routeIndex) => {
       const sequence = String(entry.index).padStart(3, "0");
       const intentId = `intent-${sequence}-${route.id}`;
+      const workflowEndFrame = route.id === "workflow-prerequisite" &&
+        Number.isFinite(Number(resolvedDocumentContext.workflowPrerequisite?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.workflowPrerequisite.endMs) / 1000) * fps)
+        : endFrame;
+      const skillIdentityEndFrame = route.id === "skill-identity" &&
+        Number.isFinite(Number(resolvedDocumentContext.skillIdentity?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.skillIdentity.endMs) / 1000) * fps)
+        : endFrame;
+      const skillSourceFusionEndFrame = route.id === "skill-source-fusion" &&
+        Number.isFinite(Number(resolvedDocumentContext.skillSourceFusion?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.skillSourceFusion.endMs) / 1000) * fps)
+        : endFrame;
+      const designRulesEndFrame = route.id === "design-rule-checklist" &&
+        Number.isFinite(Number(resolvedDocumentContext.designRules?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.designRules.endMs) / 1000) * fps)
+        : endFrame;
+      const skillResultEndFrame = route.id === "skill-result-comparison" &&
+        Number.isFinite(Number(resolvedDocumentContext.skillResultComparison?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.skillResultComparison.endMs) / 1000) * fps)
+        : endFrame;
+      const promptIterationEndFrame = route.id === "prompt-iteration-showcase" &&
+        Number.isFinite(Number(resolvedDocumentContext.promptIterations?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.promptIterations.endMs) / 1000) * fps)
+        : endFrame;
+      const gsapSkillEndFrame = route.id === "gsap-skill-showcase" &&
+        Number.isFinite(Number(resolvedDocumentContext.gsapSkill?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.gsapSkill.endMs) / 1000) * fps)
+        : endFrame;
+      const codeDecisionEndFrame = route.id === "code-decision-checklist" &&
+        Number.isFinite(Number(resolvedDocumentContext.codeDecisionChecklist?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.codeDecisionChecklist.endMs) / 1000) * fps)
+        : endFrame;
+      const browserRepairEndFrame = route.id === "browser-repair-loop" &&
+        Number.isFinite(Number(resolvedDocumentContext.browserRepairLoop?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.browserRepairLoop.endMs) / 1000) * fps)
+        : endFrame;
+      const browserSelfCheckEndFrame = route.id === "browser-self-check-media" &&
+        Number.isFinite(Number(resolvedDocumentContext.browserSelfCheckMedia?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.browserSelfCheckMedia.endMs) / 1000) * fps)
+        : endFrame;
       const timing = spanForPortraitIntent(
         startFrame,
-        endFrame,
+        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, gsapSkillEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame),
         routeIndex,
         selectedRoutes.length,
       );

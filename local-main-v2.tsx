@@ -1467,6 +1467,210 @@ const StudioPreviewComposition = ({
   );
 };
 
+type FontSizeStepperProps = {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+};
+
+const FontSizeStepper = ({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: FontSizeStepperProps) => {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  const commit = (candidate = draft) => {
+    const parsed = Number(candidate);
+    if (candidate.trim() === "" || !Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
+    }
+    const nextValue = clamp(parsed, min, max);
+    setDraft(String(nextValue));
+    onChange(nextValue);
+  };
+
+  const adjust = (direction: -1 | 1) => {
+    const parsed = Number(draft);
+    const baseValue =
+      draft.trim() !== "" && Number.isFinite(parsed) ? parsed : value;
+    commit(String(baseValue + direction * step));
+  };
+
+  return (
+    <label className="font-size-field">
+      <span>{label}</span>
+      <div className="font-size-stepper">
+        <button
+          type="button"
+          aria-label={`${label}减小`}
+          onClick={() => adjust(-1)}
+        >
+          −
+        </button>
+        <div className="font-size-input-wrap">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={draft}
+            aria-label={label}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={() => commit()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+              if (event.key === "Escape") {
+                setDraft(String(value));
+                event.currentTarget.blur();
+              }
+            }}
+          />
+          <span aria-hidden="true">px</span>
+        </div>
+        <button
+          type="button"
+          aria-label={`${label}增大`}
+          onClick={() => adjust(1)}
+        >
+          +
+        </button>
+      </div>
+    </label>
+  );
+};
+
+type TimingStepperProps = {
+  label: string;
+  value: number;
+  min: number;
+  step: number;
+  onChange: (value: number) => void;
+};
+
+type StepCountStepperProps = {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  itemNoun?: string;
+  onChange: (value: number) => void;
+};
+
+const StepCountStepper = ({
+  label,
+  value,
+  min,
+  max,
+  itemNoun = "步骤",
+  onChange,
+}: StepCountStepperProps) => (
+  <label className="step-count-field">
+    <span>{label}</span>
+    <div className="step-count-stepper">
+      <button
+        type="button"
+        aria-label={`减少一个${itemNoun}`}
+        disabled={value <= min}
+        onClick={() => onChange(clamp(value - 1, min, max))}
+      >
+        −
+      </button>
+      <output aria-live="polite">{value} 个{itemNoun}</output>
+      <button
+        type="button"
+        aria-label={`增加一个${itemNoun}`}
+        disabled={value >= max}
+        onClick={() => onChange(clamp(value + 1, min, max))}
+      >
+        +
+      </button>
+    </div>
+  </label>
+);
+
+const TimingStepper = ({
+  label,
+  value,
+  min,
+  step,
+  onChange,
+}: TimingStepperProps) => {
+  const format = (nextValue: number) => nextValue.toFixed(1);
+  const [draft, setDraft] = useState(format(value));
+
+  useEffect(() => {
+    setDraft(format(value));
+  }, [value]);
+
+  const commit = (candidate = draft) => {
+    const parsed = Number(candidate);
+    if (candidate.trim() === "" || !Number.isFinite(parsed)) {
+      setDraft(format(value));
+      return;
+    }
+    const nextValue = Math.max(min, parsed);
+    setDraft(format(nextValue));
+    onChange(nextValue);
+  };
+
+  const adjust = (direction: -1 | 1) => {
+    const parsed = Number(draft);
+    const baseValue =
+      draft.trim() !== "" && Number.isFinite(parsed) ? parsed : value;
+    commit(String(baseValue + direction * step));
+  };
+
+  return (
+    <label className="timing-stepper-field">
+      <span>{label}</span>
+      <div className="timing-stepper">
+        <button
+          type="button"
+          aria-label={`${label}减小`}
+          onClick={() => adjust(-1)}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min={min}
+          step={step}
+          value={draft}
+          aria-label={label}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => commit()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              setDraft(format(value));
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <button
+          type="button"
+          aria-label={`${label}增大`}
+          onClick={() => adjust(1)}
+        >
+          +
+        </button>
+      </div>
+    </label>
+  );
+};
+
 const App = () => {
   const playerRef = useRef<PlayerRef>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -3174,7 +3378,7 @@ const App = () => {
     const instance = createInstance(
       definition,
       currentFrame,
-      durationInFrames,
+      Math.max(durationInFrames, currentFrame + definition.durationInFrames),
       {
         position: getRegisteredEffectPosition(definition, canvasOrientation),
         // 新效果插入到轨道列表最上方（最小序号），同时位于预览图层最前面
@@ -3188,6 +3392,9 @@ const App = () => {
       },
     );
     setInstances((current) => [...current, instance]);
+    setManualTimelineEndFrame((current) =>
+      Math.max(current, instance.startFrame + instance.durationInFrames),
+    );
     selectOnlyInstance(instance.id);
     setNotice({ tone: "ok", text: `已添加 ${definition.name} 到时间轴。` });
   };
@@ -7813,11 +8020,117 @@ const App = () => {
   ) => {
     const label = schema.label ?? key;
     if (
+      ((selectedDefinition?.id === "PortraitWorkflowPrerequisite" &&
+        key === "stepCount") ||
+        (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
+          key === "stepCount") ||
+        (selectedDefinition?.id === "PortraitSkillSourceFusion" &&
+          key === "sourceCount") ||
+        (selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
+          key === "ruleCount") ||
+        (selectedDefinition?.id === "PortraitSkillResultComparison" &&
+          key === "materialCount") ||
+        (selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
+          key === "iterationCount") ||
+        (selectedDefinition?.id === "PortraitGsapSkillShowcase" &&
+          key === "capabilityCount") ||
+        (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
+          key === "questionCount"))
+    ) {
+      const min = typeof schema.min === "number" ? schema.min : 1;
+      const max = typeof schema.max === "number" ? schema.max : 8;
+      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "questionCount" || selectedDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
+      const numericValue = clamp(
+        Math.round(Number(value ?? schema.default ?? fallbackValue)),
+        min,
+        max,
+      );
+      return (
+        <StepCountStepper
+          key={key}
+          label={label}
+          value={numericValue}
+          min={min}
+          max={max}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : "步骤"}
+          onChange={(nextValue) => {
+            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount"].includes(key) || !selectedInstance) {
+              updateSelectedProp(key, nextValue);
+              return;
+            }
+            if (key === "questionCount") {
+              const firstHighlight = Math.max(0, Number(selectedInstance.props.firstHighlightSeconds ?? 0.6));
+              const questionInterval = Math.max(0.1, Number(selectedInstance.props.questionIntervalSeconds ?? 0.9));
+              const requiredSeconds = firstHighlight + Math.max(0, nextValue - 1) * questionInterval + 0.8;
+              const nextAnimationSeconds = Math.max(Number(selectedInstance.props.animationSeconds ?? 6.72), requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, questionCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            if (key === "capabilityCount") {
+              const capabilityStart = Math.max(0, Number(selectedInstance.props.capabilityStartSeconds ?? 2.8));
+              const capabilityInterval = Math.max(0, Number(selectedInstance.props.capabilityIntervalSeconds ?? 1.15));
+              const pairReveal = Math.max(0, Number(selectedInstance.props.pairRevealSeconds ?? 11.2));
+              const conclusionReveal = Math.max(0, Number(selectedInstance.props.conclusionRevealSeconds ?? 14.1));
+              const requiredSeconds = Math.max(
+                capabilityStart + Math.max(0, nextValue - 1) * capabilityInterval + 1.2,
+                pairReveal + 1.5,
+                conclusionReveal + 1.6,
+              );
+              const nextAnimationSeconds = Math.max(
+                Number(selectedInstance.props.animationSeconds ?? 18.73),
+                requiredSeconds,
+              );
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, capabilityCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            const isIteration = key === "iterationCount";
+            const firstSwitch = Math.max(0, Number(selectedInstance.props[isIteration ? "firstResultSeconds" : "firstSwitchSeconds"] ?? 3.1));
+            const interval = Math.max(0, Number(selectedInstance.props[isIteration ? "iterationIntervalSeconds" : "materialIntervalSeconds"] ?? (isIteration ? 5.2 : 3.5)));
+            const wipeDuration = Math.max(0.1, Number(selectedInstance.props.wipeDurationSeconds ?? 0.75));
+            const requiredSeconds = nextValue > 1
+              ? firstSwitch + Math.max(0, nextValue - (isIteration ? 1 : 2)) * interval + wipeDuration + 0.6
+              : 1.5;
+            const nextAnimationSeconds = Math.max(
+              Number(selectedInstance.props.animationSeconds ?? (isIteration ? 18.9 : 9.1)),
+              requiredSeconds,
+            );
+            const nextDuration = Math.max(
+              selectedInstance.durationInFrames,
+              Math.ceil(nextAnimationSeconds * fps),
+            );
+            updateInstance(selectedInstance.id, (instance) => ({
+              ...instance,
+              durationInFrames: nextDuration,
+              props: {
+                ...instance.props,
+                [key]: nextValue,
+                animationSeconds: Number(nextAnimationSeconds.toFixed(2)),
+              },
+            }));
+            setManualTimelineEndFrame((current) =>
+              Math.max(current, selectedInstance.startFrame + nextDuration),
+            );
+          }}
+        />
+      );
+    }
+    const isSpotlightMediaUrl =
       key === "mediaUrl" &&
       ["MediaSpotlightCard", "MaterialCard"].includes(
         selectedDefinition?.id ?? "",
-      )
-    ) {
+      ) ||
+      (key === "mediaUrl" && selectedDefinition?.id === "PortraitAgentBrowserMedia");
+    const isComparisonMediaUrl =
+      selectedDefinition?.id === "PortraitSkillResultComparison" &&
+      /^material[1-8]Url$/.test(key);
+    const isIterationMediaUrl =
+      selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
+      /^iteration[1-8]Url$/.test(key);
+    if (isSpotlightMediaUrl || isComparisonMediaUrl || isIterationMediaUrl) {
       const handleMediaUpload = async (
         event: React.ChangeEvent<HTMLInputElement>,
       ) => {
@@ -7832,8 +8145,8 @@ const App = () => {
         if (!res.ok) return;
         const data = await res.json();
         if (data.ok) {
-          updateSelectedProp("mediaUrl", data.mediaUrl);
-          if (data.mediaType) {
+          updateSelectedProp(key, data.mediaUrl);
+          if (isSpotlightMediaUrl && data.mediaType) {
             updateSelectedProp("mediaType", data.mediaType);
           }
           const nextMediaUrl = String(data.mediaUrl ?? "").split("?")[0];
@@ -7850,22 +8163,23 @@ const App = () => {
         }
         event.target.value = "";
       };
+      const uploadInputId = `media-upload-${selectedInstance?.id ?? "selected"}-${key}`;
       return (
         <label className="prop-field" key={key}>
           <span>{label}</span>
           <div className="media-upload-row">
             <input
               type="file"
-              accept="image/*,video/*"
+              accept={isComparisonMediaUrl || isIterationMediaUrl ? "image/*" : "image/*,video/*"}
               onChange={handleMediaUpload}
               style={{ display: "none" }}
-              id="media-spotlight-upload"
+              id={uploadInputId}
             />
             <button
               type="button"
               className="media-upload-btn"
               onClick={() =>
-                document.getElementById("media-spotlight-upload")?.click()
+                document.getElementById(uploadInputId)?.click()
               }
             >
               选择文件上传
@@ -7875,7 +8189,7 @@ const App = () => {
               value={String(value ?? "")}
               placeholder="或粘贴素材地址"
               onChange={(event) =>
-                updateSelectedProp("mediaUrl", event.target.value)
+                updateSelectedProp(key, event.target.value)
               }
             />
           </div>
@@ -7928,6 +8242,111 @@ const App = () => {
             onChange={(event) => updateSelectedProp(key, event.target.value)}
           />
         </label>
+      );
+    }
+    if (schema.type === "number" && key.endsWith("FontSize")) {
+      const min = typeof schema.min === "number" ? schema.min : 1;
+      const max = typeof schema.max === "number" ? schema.max : 200;
+      const step = typeof schema.step === "number" ? schema.step : 1;
+      const numericValue = clamp(
+        Number(value ?? schema.default ?? min),
+        min,
+        max,
+      );
+      return (
+        <FontSizeStepper
+          key={key}
+          label={label}
+          value={numericValue}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(nextValue) => updateSelectedProp(key, nextValue)}
+        />
+      );
+    }
+    if (
+      schema.type === "number" &&
+      ((selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
+        key === "ruleIntervalSeconds") ||
+        (selectedDefinition?.id === "PortraitSkillResultComparison" &&
+          [
+            "firstSwitchSeconds",
+            "materialIntervalSeconds",
+            "wipeDurationSeconds",
+            "animationSeconds",
+          ].includes(key)) ||
+        (selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
+          [
+            "firstResultSeconds",
+            "iterationIntervalSeconds",
+            "wipeDurationSeconds",
+            "animationSeconds",
+          ].includes(key)) ||
+        (selectedDefinition?.id === "PortraitGsapSkillShowcase" &&
+          [
+            "capabilityStartSeconds",
+            "capabilityIntervalSeconds",
+            "pairRevealSeconds",
+            "conclusionRevealSeconds",
+            "animationSeconds",
+          ].includes(key)) ||
+        (selectedDefinition?.id === "PortraitSkillIdentityHeaderBar" &&
+          key === "enterDurationSeconds") ||
+        (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
+          ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
+          ["nodeEnterIntervalSeconds", "firstNodeHighlightSeconds", "nextNodeHighlightIntervalSeconds", "loopIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitAgentBrowserMedia" &&
+          ["titleEnterSeconds", "mediaEnterSeconds", "animationSeconds"].includes(key)))
+    ) {
+      const min = typeof schema.min === "number" ? schema.min : 0;
+      const step = typeof schema.step === "number" ? schema.step : 0.1;
+      const numericValue = Math.max(
+        min,
+        Number(value ?? schema.default ?? min),
+      );
+      return (
+        <TimingStepper
+          key={key}
+          label={label}
+          value={numericValue}
+          min={min}
+          step={step}
+          onChange={(nextValue) => {
+            if (
+              selectedDefinition?.id !== "PortraitCodeDecisionChecklist" ||
+              key === "animationSeconds" ||
+              !selectedInstance
+            ) {
+              updateSelectedProp(key, nextValue);
+              return;
+            }
+            updateInstance(selectedInstance.id, (instance) => {
+              const nextProps = { ...instance.props, [key]: nextValue };
+              const count = Math.max(1, Number(nextProps.questionCount ?? 6));
+              const enterInterval = Math.max(0, Number(nextProps.questionEnterIntervalSeconds ?? 0.1));
+              const firstHighlight = Math.max(0, Number(nextProps.firstHighlightSeconds ?? 0.6));
+              const highlightInterval = Math.max(0.1, Number(nextProps.questionIntervalSeconds ?? 0.9));
+              const requiredSeconds = Math.max(
+                (count - 1) * enterInterval + 0.5,
+                firstHighlight + (count - 1) * highlightInterval + 0.8,
+              );
+              const nextAnimationSeconds = Math.max(
+                Number(nextProps.animationSeconds ?? 6.72),
+                requiredSeconds,
+              );
+              return {
+                ...instance,
+                durationInFrames: Math.max(instance.durationInFrames, Math.ceil(nextAnimationSeconds * fps)),
+                props: {
+                  ...nextProps,
+                  animationSeconds: Number(nextAnimationSeconds.toFixed(2)),
+                },
+              };
+            });
+          }}
+        />
       );
     }
     if (
@@ -10144,12 +10563,133 @@ const App = () => {
                   </div>
                   <div className="dynamic-prop-fields">
                     {Object.entries(selectedDefinition.propsSchema).map(
-                      ([key, schema]) =>
-                        renderPropControl(
+                      ([key, schema]) => {
+                        if (
+                          selectedDefinition.id === "PortraitWorkflowPrerequisite"
+                        ) {
+                          const match = key.match(/^step(?:Color)?(\d+)$/);
+                          const activeStepCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.stepCount ?? 4),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitSkillSourceFusion"
+                        ) {
+                          const match = key.match(/^source(\d+)(?:Detail|Color)?$/);
+                          const activeSourceCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.sourceCount ?? 3),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeSourceCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitDesignRuleChecklist"
+                        ) {
+                          const match = key.match(/^rule(\d+)$/);
+                          const activeRuleCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.ruleCount ?? 4),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeRuleCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitSkillResultComparison"
+                        ) {
+                          const match = key.match(/^material(\d+)(?:Url|Eyebrow|Title|Detail|Color)$/);
+                          const activeMaterialCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.materialCount ?? 3),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeMaterialCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitPromptIterationShowcase"
+                        ) {
+                          const match = key.match(/^iteration(\d+)(?:Url|Prompt|Badge|Color)$/);
+                          const activeIterationCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.iterationCount ?? 3),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeIterationCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitGsapSkillShowcase"
+                        ) {
+                          const match = key.match(/^capability(\d+)(?:Title|Detail)$/);
+                          const activeCapabilityCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.capabilityCount ?? 3),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeCapabilityCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitCodeDecisionChecklist"
+                        ) {
+                          const match = key.match(/^question(\d+)$/);
+                          const activeQuestionCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.questionCount ?? 6),
+                            ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeQuestionCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitBrowserRepairLoop"
+                        ) {
+                          const match = key.match(/^step(\d+)$/);
+                          const activeStepCount = clamp(
+                            Math.round(
+                              Number(selectedInstance.props.stepCount ?? 6),
+                            ),
+                            2,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        return renderPropControl(
                           key,
                           schema,
                           selectedInstance.props[key] ?? schema.default,
-                        ),
+                        );
+                      },
                     )}
                   </div>
                 </section>
@@ -10158,52 +10698,50 @@ const App = () => {
                     <strong>时间范围</strong><small>TIMING</small>
                   </div>
                   <div className="dynamic-prop-fields">
-                    <label className="prop-field">
-                      <span>开始时间(秒)</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={Math.max(0, timelineSeconds - 0.1)}
-                        step={0.1}
-                        value={(selectedInstance.startFrame / fps).toFixed(1)}
-                        onChange={(event) => {
-                          const nextStart = clamp(
-                            Math.round(Number(event.target.value) * fps),
-                            0,
-                            Math.max(0, durationInFrames - 3),
-                          );
-                          updateInstance(selectedInstance.id, (instance) => ({
-                            ...instance,
-                            startFrame: nextStart,
-                            durationInFrames: Math.min(
-                              instance.durationInFrames,
-                              durationInFrames - nextStart,
-                            ),
-                          }));
-                        }}
-                      />
-                    </label>
-                    <label className="prop-field">
-                      <span>卡片时长(秒)</span>
-                      <input
-                        type="number"
-                        min={3 / fps}
-                        max={(durationInFrames - selectedInstance.startFrame) / fps}
-                        step={0.1}
-                        value={(selectedInstance.durationInFrames / fps).toFixed(1)}
-                        onChange={(event) => {
-                          const nextDuration = clamp(
-                            Math.round(Number(event.target.value) * fps),
-                            3,
-                            durationInFrames - selectedInstance.startFrame,
-                          );
-                          updateInstance(selectedInstance.id, (instance) => ({
-                            ...instance,
-                            durationInFrames: nextDuration,
-                          }));
-                        }}
-                      />
-                    </label>
+                    <TimingStepper
+                      label="开始时间(秒)"
+                      value={selectedInstance.startFrame / fps}
+                      min={0}
+                      step={0.1}
+                      onChange={(nextSeconds) => {
+                        const nextStart = Math.max(
+                          0,
+                          Math.round(nextSeconds * fps),
+                        );
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          startFrame: nextStart,
+                        }));
+                        setManualTimelineEndFrame((current) =>
+                          Math.max(
+                            current,
+                            nextStart + selectedInstance.durationInFrames,
+                          ),
+                        );
+                      }}
+                    />
+                    <TimingStepper
+                      label="卡片时长(秒)"
+                      value={selectedInstance.durationInFrames / fps}
+                      min={3 / fps}
+                      step={0.1}
+                      onChange={(nextSeconds) => {
+                        const nextDuration = Math.max(
+                          3,
+                          Math.round(nextSeconds * fps),
+                        );
+                        updateInstance(selectedInstance.id, (instance) => ({
+                          ...instance,
+                          durationInFrames: nextDuration,
+                        }));
+                        setManualTimelineEndFrame((current) =>
+                          Math.max(
+                            current,
+                            selectedInstance.startFrame + nextDuration,
+                          ),
+                        );
+                      }}
+                    />
                   </div>
                 </section>
               </>

@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **29** 个注册组件。
+当前覆盖 **41** 个注册组件。
 
 ## 核心语义
 
@@ -98,6 +98,78 @@
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：3–9 秒
   - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
+- **竖屏口播·错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
+  - 主要：风险提醒
+  - 次要：概念解释、重点强调
+  - 内容：short-text、list
+  - 方向：portrait；密度：heavy；建议时长：3–9 秒
+  - 检索词：直接提问、官网、页面普通、问题不在模型、缺少准备
+- **竖屏口播·先装工作流**（`PortraitWorkflowPrerequisite`）
+  - 主要：流程说明
+  - 次要：概念解释、列举要点、重点强调
+  - 内容：process、list、short-text
+  - 方向：portrait；密度：heavy；建议时长：4–8 秒
+  - 检索词：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
+- **竖屏口播·Skill 身份卡**（`PortraitSkillIdentityCard`）
+  - 主要：概念解释
+  - 次要：重点强调、案例与素材
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：2.5–6 秒
+  - 检索词：第一个skill、我自己做的UI skill、持续更新、身份介绍
+- **竖屏口播·Skill 来源合成**（`PortraitSkillSourceFusion`）
+  - 主要：案例与素材
+  - 次要：概念解释、列举要点、重点强调
+  - 内容：list、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：taste、impeccable、自己的经验、三样拼成一个、经验来源
+- **竖屏口播·网页设计规则清单**（`PortraitDesignRuleChecklist`）
+  - 主要：概念解释
+  - 次要：列举要点、流程说明、重点强调
+  - 内容：list、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
+- **竖屏口播·Skill 效果前后对比**（`PortraitSkillResultComparison`）
+  - 主要：对比差异
+  - 次要：案例与素材、概念解释、重点强调
+  - 内容：comparison、media、short-text
+  - 方向：portrait；密度：heavy；建议时长：6–14 秒
+  - 检索词：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
+- **竖屏口播·一句话连续改版**（`PortraitPromptIterationShowcase`）
+  - 主要：流程说明
+  - 次要：案例与素材、概念解释、对比差异
+  - 内容：process、media、short-text
+  - 方向：portrait；密度：heavy；建议时长：10–24 秒
+  - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
+- **竖屏口播·GSAP 高级动画**（`PortraitGsapSkillShowcase`）
+  - 主要：流程说明
+  - 次要：概念解释、列举要点、对比差异
+  - 内容：list、process、short-text
+  - 方向：portrait；密度：heavy；建议时长：10–24 秒
+  - 检索词：第二个skill、GSAP、高级动画、滚动触发、时间轴编排、错峰入场、什么时候出现、快慢怎么给、一起用、动得好不好看
+- **竖屏口播·Skill 身份条**（`PortraitSkillIdentityHeaderBar`）
+  - 主要：概念解释
+  - 次要：重点强调、列举要点、流程说明
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：skill、技能、GSAP、动效引擎、高级动画、编号、徽标
+- **竖屏口播·代码决策检查清单**（`PortraitCodeDecisionChecklist`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、风险提醒
+  - 内容：list、process、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
+- **竖屏口播·浏览器自动修复闭环**（`PortraitBrowserRepairLoop`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、案例与素材
+  - 内容：process、list、short-text
+  - 方向：portrait；密度：heavy；建议时长：6–16 秒
+  - 检索词：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
+- **竖屏口播·Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
+  - 主要：案例与素材
+  - 次要：流程说明、概念解释、重点强调
+  - 内容：media、short-text
+  - 方向：portrait；密度：heavy；建议时长：3–12 秒
+  - 检索词：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
 - **竖屏口播·风险提醒卡**（`PortraitRiskWarning`）
   - 主要：风险提醒
   - 次要：重点强调、列举要点、概念解释

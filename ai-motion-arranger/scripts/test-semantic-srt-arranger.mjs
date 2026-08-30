@@ -173,6 +173,18 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
   (id) => ![
     "PortraitDecisionTagStack",
     "PortraitStaggeredToolList",
+    "PortraitPromptMistakeDiagnosis",
+    "PortraitWorkflowPrerequisite",
+    "PortraitSkillIdentityCard",
+    "PortraitSkillSourceFusion",
+    "PortraitDesignRuleChecklist",
+    "PortraitSkillResultComparison",
+    "PortraitPromptIterationShowcase",
+    "PortraitGsapSkillShowcase",
+    "PortraitSkillIdentityHeaderBar",
+    "PortraitCodeDecisionChecklist",
+    "PortraitBrowserRepairLoop",
+    "PortraitAgentBrowserMedia",
     "LegacyModelEliminationWarning",
   ].includes(id),
 )) {
@@ -221,6 +233,431 @@ if (
   skillListIntent.componentCandidates[0]?.semanticMatch?.strength !== "primary"
 ) {
   throw new Error("错峰工具列表没有作为列举语义的主要候选。");
+}
+
+const promptMistakeResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  availableComponentIds: ["PortraitPromptMistakeDiagnosis"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitPromptMistakeDiagnosis")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    {
+      index: 1,
+      startMs: 12566,
+      endMs: 20933,
+      text: "你是不是也这样，打开AI就直接说帮我做一个官网，结果代码是有了页面却很普通，问题不在模型，是你少了准备这一步",
+    },
+  ],
+});
+const promptMistakeMotion = promptMistakeResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitPromptMistakeDiagnosis",
+);
+if (!promptMistakeMotion) {
+  throw new Error("错误提问语义没有生成逐字输入诊断组件。");
+}
+if (
+  promptMistakeMotion.props.prompt !== "帮我做一个官网" ||
+  promptMistakeMotion.props.issue1 !== "配色随机" ||
+  promptMistakeMotion.props.issue2 !== "动效生硬" ||
+  promptMistakeMotion.props.issue3 !== "代码冗余" ||
+  promptMistakeMotion.props.conclusionEmphasis !== "少了准备这一步"
+) {
+  throw new Error("错误提问诊断组件没有按整段 SRT 绑定提问、问题标签和结论。");
+}
+const promptMistakeIntent = promptMistakeResult.semanticAnalysis.cueAnalyses
+  .flatMap((cue) => cue.intents)
+  .find((intent) => intent.id.endsWith("direct-prompt-mistake"));
+if (
+  !promptMistakeIntent ||
+  promptMistakeIntent.type !== "warning" ||
+  promptMistakeIntent.componentCandidates[0]?.componentId !==
+    "PortraitPromptMistakeDiagnosis"
+) {
+  throw new Error("错误提问诊断没有作为该风险语义的主要候选。");
+}
+
+const workflowPrerequisiteResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 1200,
+  availableComponentIds: ["PortraitWorkflowPrerequisite"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitWorkflowPrerequisite")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 16, startMs: 20966, endMs: 22566, text: "动手之前先把这套" },
+    { index: 17, startMs: 22566, endMs: 23850, text: "Skill工作流装好" },
+    { index: 18, startMs: 23850, endMs: 25250, text: "按审美动效工程" },
+    { index: 19, startMs: 25250, endMs: 26483, text: "自测这个顺序来" },
+  ],
+});
+const workflowMotion = workflowPrerequisiteResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitWorkflowPrerequisite",
+);
+if (!workflowMotion) {
+  throw new Error("工作流前置语义没有生成动态步骤流程组件。");
+}
+if (
+  workflowMotion.props.stepCount !== 4 ||
+  workflowMotion.props.step1 !== "审美" ||
+  workflowMotion.props.step2 !== "动效" ||
+  workflowMotion.props.step3 !== "工程" ||
+  workflowMotion.props.step4 !== "自测" ||
+  workflowMotion.props.footerEmphasis !== "顺序不能反"
+) {
+  throw new Error("动态工作流组件没有绑定默认四步数量与文案。");
+}
+const expectedWorkflowFrames = Math.round(((26483 - 20966) / 1000) * 30);
+if (Math.abs(workflowMotion.durationInFrames - expectedWorkflowFrames) > 1) {
+  throw new Error("横向工作流组件没有覆盖 20.966–26.483 秒完整 SRT 语义段。");
+}
+const workflowIntent = workflowPrerequisiteResult.semanticAnalysis.cueAnalyses
+  .flatMap((cue) => cue.intents)
+  .find((intent) => intent.id.endsWith("workflow-prerequisite"));
+if (
+  !workflowIntent ||
+  workflowIntent.type !== "process" ||
+  workflowIntent.componentCandidates[0]?.componentId !==
+    "PortraitWorkflowPrerequisite"
+) {
+  throw new Error("工作流前置组件没有作为该流程语义的主要候选。");
+}
+
+const skillIdentityResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 1200,
+  availableComponentIds: ["PortraitSkillIdentityCard"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitSkillIdentityCard")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 20, startMs: 26966, endMs: 28000, text: "第一个skill是" },
+    { index: 21, startMs: 28000, endMs: 29366, text: "我自己做的UI skill" },
+    { index: 22, startMs: 29366, endMs: 30650, text: "一直在持续更新" },
+  ],
+});
+const skillIdentityMotion = skillIdentityResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitSkillIdentityCard",
+);
+if (!skillIdentityMotion) {
+  throw new Error("Skill 身份语义没有生成身份卡组件。");
+}
+if (
+  skillIdentityMotion.props.sequenceText !== "01" ||
+  skillIdentityMotion.props.title !== "我自己做的 Skill" ||
+  skillIdentityMotion.props.badge !== "C 位" ||
+  !String(skillIdentityMotion.props.updateText).includes("持续更新")
+) {
+  throw new Error("Skill 身份卡没有绑定编号、身份标题、徽标与更新说明。");
+}
+const expectedSkillIdentityFrames = Math.round(((30650 - 26966) / 1000) * 30);
+if (Math.abs(skillIdentityMotion.durationInFrames - expectedSkillIdentityFrames) > 1) {
+  throw new Error("Skill 身份卡没有覆盖 26.966–30.650 秒完整 SRT 语义段。");
+}
+const skillSourceFusionResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 1500,
+  availableComponentIds: ["PortraitSkillSourceFusion"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitSkillSourceFusion")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 23, startMs: 30883, endMs: 32283, text: "它不是凭空来的" },
+    { index: 24, startMs: 32283, endMs: 34166, text: "审美判断是跟taste学的" },
+    { index: 25, startMs: 34283, endMs: 35400, text: "反廉价那一套是" },
+    { index: 26, startMs: 35400, endMs: 36766, text: "跟Impeccable学的" },
+    { index: 27, startMs: 36766, endMs: 38283, text: "再加上我自己攒的经验" },
+    { index: 28, startMs: 38283, endMs: 39566, text: "三样拼成一个" },
+  ],
+});
+const skillSourceFusionMotion = skillSourceFusionResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitSkillSourceFusion",
+);
+if (!skillSourceFusionMotion) {
+  throw new Error("Skill 来源语义没有生成三来源合成组件。");
+}
+if (
+  skillSourceFusionMotion.props.sourceCount !== 3 ||
+  skillSourceFusionMotion.props.source1 !== "TASTE" ||
+  skillSourceFusionMotion.props.source2 !== "IMPECCABLE" ||
+  skillSourceFusionMotion.props.source3 !== "自己的经验" ||
+  "resultText" in skillSourceFusionMotion.props
+) {
+  throw new Error("Skill 来源组件没有绑定动态数量和三个默认来源，或仍残留合成结论。");
+}
+const expectedSkillSourceFrames = Math.round(((39566 - 30883) / 1000) * 30);
+if (Math.abs(skillSourceFusionMotion.durationInFrames - expectedSkillSourceFrames) > 1) {
+  throw new Error("Skill 来源合成组件没有覆盖 30.883–39.566 秒完整 SRT 语义段。");
+}
+const designRulesResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 1800,
+  availableComponentIds: ["PortraitDesignRuleChecklist"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitDesignRuleChecklist")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 29, startMs: 39566, endMs: 41733, text: "它负责整个网页的设计审美" },
+    { index: 30, startMs: 41766, endMs: 42733, text: "怎么排版" },
+    { index: 31, startMs: 42733, endMs: 43600, text: "怎么留白" },
+    { index: 32, startMs: 43600, endMs: 44450, text: "怎么配色" },
+    { index: 33, startMs: 44450, endMs: 45400, text: "怎么做层级" },
+    { index: 34, startMs: 45800, endMs: 47683, text: "全是他替AI定好的规矩" },
+  ],
+});
+const designRulesMotion = designRulesResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitDesignRuleChecklist",
+);
+if (!designRulesMotion) {
+  throw new Error("网页设计审美语义没有生成设计规则清单。");
+}
+if (
+  designRulesMotion.props.ruleCount !== 4 ||
+  designRulesMotion.props.rule1 !== "排版网格" ||
+  designRulesMotion.props.rule2 !== "留白密度" ||
+  designRulesMotion.props.rule3 !== "配色层级" ||
+  designRulesMotion.props.rule4 !== "视觉一致性"
+) {
+  throw new Error("设计规则清单没有绑定四条参考规则。");
+}
+const expectedDesignRulesFrames = Math.round(((47683 - 39566) / 1000) * 30);
+if (Math.abs(designRulesMotion.durationInFrames - expectedDesignRulesFrames) > 1) {
+  throw new Error("设计规则清单没有覆盖 39.566–47.683 秒完整 SRT 语义段。");
+}
+const skillResultComparisonResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 2100,
+  availableComponentIds: ["PortraitSkillResultComparison"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitSkillResultComparison")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 35, startMs: 47733, endMs: 49083, text: "这是没装他的时候" },
+    { index: 36, startMs: 49166, endMs: 50800, text: "AI随手做出来的默认效果" },
+    { index: 37, startMs: 50800, endMs: 51766, text: "这是装了之后" },
+    { index: 38, startMs: 51766, endMs: 53250, text: "同一个AI同一句话" },
+    { index: 39, startMs: 53250, endMs: 54200, text: "做出来的样子" },
+    { index: 40, startMs: 54333, endMs: 55133, text: "换个题材" },
+    { index: 41, startMs: 55133, endMs: 55966, text: "换个行业" },
+    { index: 42, startMs: 56000, endMs: 56800, text: "他一样稳" },
+  ],
+});
+const skillResultComparisonMotion = skillResultComparisonResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitSkillResultComparison",
+);
+if (!skillResultComparisonMotion) {
+  throw new Error("Skill 安装前后语义没有生成效果对比组件。");
+}
+if (
+  skillResultComparisonMotion.props.materialCount !== 3 ||
+  skillResultComparisonMotion.props.material1Title !== "没装它" ||
+  skillResultComparisonMotion.props.material2Title !== "装了它" ||
+  skillResultComparisonMotion.props.material3Title !== "换个行业" ||
+  Math.abs(skillResultComparisonMotion.props.firstSwitchSeconds - 3.07) > 0.01 ||
+  Math.abs(skillResultComparisonMotion.props.materialIntervalSeconds - 3.53) > 0.01
+) {
+  throw new Error("Skill 效果对比组件没有绑定动态素材数量、前三个阶段或按 SRT 计算切换间隔。");
+}
+const expectedSkillResultFrames = Math.round(((56800 - 47733) / 1000) * 30);
+if (Math.abs(skillResultComparisonMotion.durationInFrames - expectedSkillResultFrames) > 1) {
+  throw new Error("Skill 效果对比组件没有覆盖 47.733–56.800 秒完整 SRT 语义段。");
+}
+const promptIterationResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 2400,
+  availableComponentIds: ["PortraitPromptIterationShowcase"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitPromptIterationShowcase")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 43, startMs: 57933, endMs: 59083, text: "那具体怎么用" },
+    { index: 44, startMs: 59083, endMs: 60850, text: "你只要把想要什么讲清楚" },
+    { index: 45, startMs: 61000, endMs: 62450, text: "第一句做一个摄影" },
+    { index: 46, startMs: 62450, endMs: 63683, text: "工作室的品牌官网" },
+    { index: 47, startMs: 63683, endMs: 65250, text: "它直接给你一版能看的" },
+    { index: 48, startMs: 65250, endMs: 66250, text: "想换方向" },
+    { index: 49, startMs: 66250, endMs: 67050, text: "再说一句" },
+    { index: 50, startMs: 67050, endMs: 68933, text: "改成数据后台深色" },
+    { index: 51, startMs: 69000, endMs: 70483, text: "整页的排版和配色" },
+    { index: 52, startMs: 70483, endMs: 71400, text: "它自己重排" },
+    { index: 53, startMs: 71450, endMs: 72250, text: "再来一句" },
+    { index: 54, startMs: 72283, endMs: 73683, text: "换成产品落地页" },
+    { index: 55, startMs: 73850, endMs: 74800, text: "它照样接得住" },
+    { index: 56, startMs: 74800, endMs: 76800, text: "你从头到尾只管说要什么" },
+  ],
+});
+const promptIterationMotion = promptIterationResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitPromptIterationShowcase",
+);
+if (!promptIterationMotion) {
+  throw new Error("一句话连续改版语义没有生成提示词迭代组件。");
+}
+if (
+  promptIterationMotion.props.iterationCount !== 3 ||
+  promptIterationMotion.props.iteration1Badge !== "品牌官网" ||
+  promptIterationMotion.props.iteration2Badge !== "数据后台" ||
+  promptIterationMotion.props.iteration3Badge !== "产品落地页" ||
+  Math.abs(promptIterationMotion.props.firstResultSeconds - 3.07) > 0.01 ||
+  Math.abs(promptIterationMotion.props.iterationIntervalSeconds - 5.64) > 0.01
+) {
+  throw new Error("一句话连续改版组件没有绑定三次改版内容或按 SRT 计算切换间隔。");
+}
+const expectedPromptIterationFrames = Math.round(((76800 - 57933) / 1000) * 30);
+if (Math.abs(promptIterationMotion.durationInFrames - expectedPromptIterationFrames) > 1) {
+  throw new Error("一句话连续改版组件没有覆盖 57.933–76.800 秒完整 SRT 语义段。");
+}
+const gsapSkillResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 3000,
+  availableComponentIds: ["PortraitGsapSkillShowcase", "PortraitSkillIdentityHeaderBar"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => ["PortraitGsapSkillShowcase", "PortraitSkillIdentityHeaderBar"].includes(card.id))
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 57, startMs: 77000, endMs: 78883, text: "第二个skill GSAP" },
+    { index: 58, startMs: 78933, endMs: 80533, text: "负责网页的高级动画" },
+    { index: 59, startMs: 80600, endMs: 82166, text: "很多AI做的网页会动" },
+    { index: 60, startMs: 82166, endMs: 83333, text: "但动的不好看" },
+    { index: 61, startMs: 83450, endMs: 84283, text: "滚动触发" },
+    { index: 62, startMs: 84283, endMs: 85483, text: "时间轴编排" },
+    { index: 63, startMs: 85600, endMs: 86450, text: "错峰入场" },
+    { index: 64, startMs: 86450, endMs: 87366, text: "什么时候出现" },
+    { index: 65, startMs: 87366, endMs: 88366, text: "什么时候结束" },
+    { index: 66, startMs: 88450, endMs: 90533, text: "快慢怎么给它全管" },
+    { index: 67, startMs: 90566, endMs: 91600, text: "它是配着第一个" },
+    { index: 68, startMs: 91600, endMs: 92566, text: "skill一起用的" },
+    { index: 69, startMs: 92566, endMs: 94083, text: "一个管页面好不好看" },
+    { index: 70, startMs: 94083, endMs: 95733, text: "一个管它动的好不好看" },
+  ],
+});
+const gsapSkillMotion = gsapSkillResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitGsapSkillShowcase",
+);
+if (!gsapSkillMotion) {
+  throw new Error("GSAP 高级动画语义没有生成 Skill 能力组件。");
+}
+const gsapHeaderMotion = gsapSkillResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitSkillIdentityHeaderBar",
+);
+if (!gsapHeaderMotion || gsapHeaderMotion.props.title !== "GSAP Skills") {
+  throw new Error("GSAP 高级动画语义没有把独立 Skill 身份条作为第二条动效轨道生成。");
+}
+if (
+  gsapSkillMotion.props.capabilityCount !== 3 ||
+  gsapSkillMotion.props.capability1Title !== "ScrollTrigger" ||
+  gsapSkillMotion.props.capability2Title !== "Timeline" ||
+  gsapSkillMotion.props.capability3Title !== "Stagger" ||
+  Math.abs(gsapSkillMotion.props.pairRevealSeconds - 13.57) > 0.01 ||
+  Math.abs(gsapSkillMotion.props.conclusionRevealSeconds - 15.57) > 0.01
+) {
+  throw new Error("GSAP 高级动画组件没有绑定三项能力或按 SRT 计算双 Skill 联动时序。");
+}
+const expectedGsapSkillFrames = Math.round(((95733 - 77000) / 1000) * 30);
+if (Math.abs(gsapSkillMotion.durationInFrames - expectedGsapSkillFrames) > 1) {
+  throw new Error("GSAP 高级动画组件没有覆盖 77.000–95.733 秒完整 SRT 语义段。");
+}
+const codeDecisionResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 3600,
+  availableComponentIds: ["PortraitCodeDecisionChecklist"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitCodeDecisionChecklist")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 75, startMs: 102333, endMs: 103483, text: "让AI先想" },
+    { index: 76, startMs: 103483, endMs: 104966, text: "这个功能真的需要吗" },
+    { index: 77, startMs: 104966, endMs: 106333, text: "现有代码里有没有" },
+    { index: 78, startMs: 106333, endMs: 107450, text: "标准库有没有" },
+    { index: 79, startMs: 107450, endMs: 109050, text: "实在不行才自己写" },
+  ],
+});
+const codeDecisionMotion = codeDecisionResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitCodeDecisionChecklist",
+);
+if (!codeDecisionMotion) {
+  throw new Error("代码决策语义没有生成竖向编号检查清单。");
+}
+if (
+  codeDecisionMotion.props.questionCount !== 6 ||
+  codeDecisionMotion.props.question1 !== "这个功能真的需要吗" ||
+  codeDecisionMotion.props.question3 !== "标准库有没有" ||
+  codeDecisionMotion.props.question6 !== "一行能搞定吗" ||
+  Math.abs(codeDecisionMotion.props.firstHighlightSeconds - 1.15) > 0.01 ||
+  Math.abs(codeDecisionMotion.props.questionIntervalSeconds - 1.11) > 0.01
+) {
+  throw new Error("代码决策检查清单没有绑定六个问题或 SRT 点亮间隔。");
+}
+const expectedCodeDecisionFrames = Math.round(((109050 - 102333) / 1000) * 30);
+if (Math.abs(codeDecisionMotion.durationInFrames - expectedCodeDecisionFrames) > 1) {
+  throw new Error("代码决策检查清单没有覆盖 102.333–109.050 秒完整 SRT 语义段。");
+}
+const browserRepairResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 4500,
+  availableComponentIds: ["PortraitBrowserRepairLoop"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitBrowserRepairLoop")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 88, startMs: 123050, endMs: 124883, text: "让agent自己打开浏览器" },
+    { index: 89, startMs: 124883, endMs: 125566, text: "自己运行" },
+    { index: 90, startMs: 125566, endMs: 126166, text: "自己点击" },
+    { index: 91, startMs: 126166, endMs: 127250, text: "自己截图检查" },
+    { index: 92, startMs: 127333, endMs: 128766, text: "发现问题自己改" },
+    { index: 93, startMs: 128766, endMs: 130133, text: "改完再验证一遍" },
+    { index: 94, startMs: 130133, endMs: 131083, text: "一直循环" },
+    { index: 95, startMs: 131133, endMs: 132850, text: "直到整页真的没问题" },
+  ],
+});
+const browserRepairMotion = browserRepairResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitBrowserRepairLoop",
+);
+if (!browserRepairMotion) {
+  throw new Error("浏览器自动测试语义没有生成六步修复闭环。");
+}
+if (
+  browserRepairMotion.props.stepCount !== 6 ||
+  browserRepairMotion.props.step1 !== "打开浏览器" ||
+  browserRepairMotion.props.step3 !== "自动截图" ||
+  browserRepairMotion.props.step6 !== "再验证" ||
+  browserRepairMotion.props.centerTitle !== "一直循环" ||
+  Math.abs(browserRepairMotion.props.nextNodeHighlightIntervalSeconds - 1.26) > 0.01 ||
+  browserRepairMotion.props.loopIntervalSeconds !== 0.5
+) {
+  throw new Error("浏览器自动修复闭环没有绑定六个节点、中心结论或 SRT 点亮间隔。");
+}
+const expectedBrowserRepairFrames = Math.round(((132850 - 123050) / 1000) * 30);
+if (Math.abs(browserRepairMotion.durationInFrames - expectedBrowserRepairFrames) > 1) {
+  throw new Error("浏览器自动修复闭环没有覆盖 123.050–132.850 秒完整 SRT 语义段。");
+}
+const browserSelfCheckResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 4500,
+  availableComponentIds: ["PortraitAgentBrowserMedia"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitAgentBrowserMedia")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 96, startMs: 133083, endMs: 134733, text: "你现在看到的这一整页" },
+    { index: 97, startMs: 134733, endMs: 136600, text: "就是这么一遍遍自查过来的" },
+  ],
+});
+const browserSelfCheckMotion = browserSelfCheckResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitAgentBrowserMedia",
+);
+if (!browserSelfCheckMotion) {
+  throw new Error("整页自查语义没有生成可上传图片或视频的浏览器组件。");
+}
+if (
+  browserSelfCheckMotion.props.titlePrefix !== "Agent 自己开浏览器，" ||
+  browserSelfCheckMotion.props.titleHighlight !== "逐屏自查" ||
+  browserSelfCheckMotion.props.browserLabel !== "playwright · headed"
+) {
+  throw new Error("浏览器逐屏自查组件没有绑定标题或浏览器栏文字。");
+}
+const expectedBrowserSelfCheckFrames = Math.round(((136600 - 133083) / 1000) * 30);
+if (Math.abs(browserSelfCheckMotion.durationInFrames - expectedBrowserSelfCheckFrames) > 1) {
+  throw new Error("浏览器逐屏自查组件没有覆盖 133.083–136.600 秒完整 SRT 语义段。");
 }
 if (
   !portraitFirst.motionTimeline.every((item) =>

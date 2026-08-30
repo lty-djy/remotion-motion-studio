@@ -16,6 +16,11 @@ type Props = {
   titleMain?: string;
   titleEmphasis?: string;
   titleSuffix?: string;
+  eyebrowFontSize?: number;
+  titlePrefixFontSize?: number;
+  titleMainFontSize?: number;
+  titleEmphasisFontSize?: number;
+  titleSuffixFontSize?: number;
   item1?: string;
   item2?: string;
   item3?: string;
@@ -28,6 +33,9 @@ type Props = {
   badge2?: string;
   badge3?: string;
   badge4?: string;
+  itemFontSize?: number;
+  detailFontSize?: number;
+  badgeFontSize?: number;
   color1?: string;
   color2?: string;
   color3?: string;
@@ -46,6 +54,11 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
   titleMain = "怎么用 Codex 做出",
   titleEmphasis = "这种审美",
   titleSuffix = "的网页？",
+  eyebrowFontSize = 22,
+  titlePrefixFontSize = 56,
+  titleMainFontSize = 56,
+  titleEmphasisFontSize = 56,
+  titleSuffixFontSize = 56,
   item1 = "我自己做的 Skill",
   item2 = "GSAP Skills",
   item3 = "Ponytail",
@@ -58,6 +71,9 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
   badge2 = "★ 26K",
   badge3 = "★ 80K",
   badge4 = "★ 35K",
+  itemFontSize = 32,
+  detailFontSize = 18,
+  badgeFontSize = 16,
   color1 = "#19DCE8",
   color2 = "#20E878",
   color3 = "#9B6CFF",
@@ -135,7 +151,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
         <div
           style={{
             color: highlightColor,
-            fontSize: 15,
+            fontSize: eyebrowFontSize,
             fontWeight: 900,
             letterSpacing: 4.2,
             lineHeight: 1,
@@ -148,18 +164,17 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
             marginTop: 18,
             color: textColor,
             fontFamily: '"Songti SC", "SimSun", serif',
-            fontSize: 56,
             fontWeight: 900,
             lineHeight: 1.13,
             letterSpacing: -1.8,
             textShadow: "0 8px 26px rgba(0, 0, 0, 0.72)",
           }}
         >
-          <div>{titlePrefix}</div>
-          <div>{titleMain}</div>
+          <div style={{ fontSize: titlePrefixFontSize }}>{titlePrefix}</div>
+          <div style={{ fontSize: titleMainFontSize }}>{titleMain}</div>
           <div>
-            <span style={{ color: highlightColor }}>{titleEmphasis}</span>
-            {titleSuffix}
+            <span style={{ color: highlightColor, fontSize: titleEmphasisFontSize }}>{titleEmphasis}</span>
+            <span style={{ fontSize: titleSuffixFontSize }}>{titleSuffix}</span>
           </div>
         </div>
         <div
@@ -262,7 +277,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
                     display: "block",
                     overflow: "hidden",
                     color: textColor,
-                    fontSize: 25,
+                    fontSize: itemFontSize,
                     fontWeight: 900,
                     lineHeight: 1.08,
                     textOverflow: "ellipsis",
@@ -277,7 +292,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
                     marginTop: 6,
                     overflow: "hidden",
                     color: "rgba(245, 247, 250, 0.48)",
-                    fontSize: 14,
+                    fontSize: detailFontSize,
                     fontWeight: 700,
                     lineHeight: 1,
                     letterSpacing: 0.4,
@@ -298,7 +313,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
                   backgroundColor: `color-mix(in srgb, ${row.color} 10%, transparent)`,
                   boxShadow: `inset 0 0 18px color-mix(in srgb, ${row.color} 9%, transparent)`,
                   fontFamily: '"SFMono-Regular", Consolas, monospace',
-                  fontSize: 14,
+                  fontSize: badgeFontSize,
                   fontWeight: 900,
                   lineHeight: 1,
                   textAlign: "center",
@@ -336,6 +351,11 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     titleMain: "怎么用 Codex 做出",
     titleEmphasis: "这种审美",
     titleSuffix: "的网页？",
+    eyebrowFontSize: 22,
+    titlePrefixFontSize: 56,
+    titleMainFontSize: 56,
+    titleEmphasisFontSize: 56,
+    titleSuffixFontSize: 56,
     item1: "我自己做的 Skill",
     item2: "GSAP Skills",
     item3: "Ponytail",
@@ -348,6 +368,9 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     badge2: "★ 26K",
     badge3: "★ 80K",
     badge4: "★ 35K",
+    itemFontSize: 32,
+    detailFontSize: 18,
+    badgeFontSize: 16,
     color1: "#19DCE8",
     color2: "#20E878",
     color3: "#9B6CFF",
@@ -364,6 +387,11 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     titleMain: { type: "text", label: "标题第二行" },
     titleEmphasis: { type: "text", label: "标题强调词" },
     titleSuffix: { type: "text", label: "标题强调后缀" },
+    eyebrowFontSize: { type: "number", label: "顶部引导词字号(px)", default: 22, min: 10, max: 72, step: 1 },
+    titlePrefixFontSize: { type: "number", label: "标题第一行字号(px)", default: 56, min: 24, max: 96, step: 1 },
+    titleMainFontSize: { type: "number", label: "标题第二行字号(px)", default: 56, min: 24, max: 96, step: 1 },
+    titleEmphasisFontSize: { type: "number", label: "标题强调词字号(px)", default: 56, min: 24, max: 96, step: 1 },
+    titleSuffixFontSize: { type: "number", label: "标题强调后缀字号(px)", default: 56, min: 24, max: 96, step: 1 },
     item1: { type: "text", label: "工具一" },
     item2: { type: "text", label: "工具二" },
     item3: { type: "text", label: "工具三" },
@@ -376,6 +404,9 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     badge2: { type: "text", label: "工具二徽标" },
     badge3: { type: "text", label: "工具三徽标" },
     badge4: { type: "text", label: "工具四徽标" },
+    itemFontSize: { type: "number", label: "工具字号(px)", default: 32, min: 14, max: 64, step: 1 },
+    detailFontSize: { type: "number", label: "工具说明字号(px)", default: 18, min: 10, max: 40, step: 1 },
+    badgeFontSize: { type: "number", label: "工具徽标字号(px)", default: 16, min: 10, max: 36, step: 1 },
     color1: { type: "color", label: "工具一颜色", default: "#19DCE8" },
     color2: { type: "color", label: "工具二颜色", default: "#20E878" },
     color3: { type: "color", label: "工具三颜色", default: "#9B6CFF" },

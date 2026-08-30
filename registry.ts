@@ -24,6 +24,18 @@ import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecisio
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
 import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
 import { PortraitStaggeredToolListEffectDef } from "./effects/PortraitStaggeredToolList";
+import { PortraitPromptMistakeDiagnosisEffectDef } from "./effects/PortraitPromptMistakeDiagnosis";
+import { PortraitWorkflowPrerequisiteEffectDef } from "./effects/PortraitWorkflowPrerequisite";
+import { PortraitSkillIdentityCardEffectDef } from "./effects/PortraitSkillIdentityCard";
+import { PortraitSkillSourceFusionEffectDef } from "./effects/PortraitSkillSourceFusion";
+import { PortraitDesignRuleChecklistEffectDef } from "./effects/PortraitDesignRuleChecklist";
+import { PortraitSkillResultComparisonEffectDef } from "./effects/PortraitSkillResultComparison";
+import { PortraitPromptIterationShowcaseEffectDef } from "./effects/PortraitPromptIterationShowcase";
+import { PortraitGsapSkillShowcaseEffectDef } from "./effects/PortraitGsapSkillShowcase";
+import { PortraitSkillIdentityHeaderBarEffectDef } from "./effects/PortraitSkillIdentityHeaderBar";
+import { PortraitCodeDecisionChecklistEffectDef } from "./effects/PortraitCodeDecisionChecklist";
+import { PortraitBrowserRepairLoopEffectDef } from "./effects/PortraitBrowserRepairLoop";
+import { PortraitAgentBrowserMediaEffectDef } from "./effects/PortraitAgentBrowserMedia";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
@@ -65,6 +77,28 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitStepChecklistEffectDef,
 
   PortraitStaggeredToolListEffectDef,
+
+  PortraitPromptMistakeDiagnosisEffectDef,
+
+  PortraitWorkflowPrerequisiteEffectDef,
+
+  PortraitSkillIdentityCardEffectDef,
+
+  PortraitSkillSourceFusionEffectDef,
+
+  PortraitDesignRuleChecklistEffectDef,
+
+  PortraitSkillResultComparisonEffectDef,
+
+  PortraitPromptIterationShowcaseEffectDef,
+
+  PortraitGsapSkillShowcaseEffectDef,
+
+  PortraitSkillIdentityHeaderBarEffectDef,
+
+  PortraitCodeDecisionChecklistEffectDef,
+  PortraitBrowserRepairLoopEffectDef,
+  PortraitAgentBrowserMediaEffectDef,
 
   PortraitRiskWarningEffectDef,
 
