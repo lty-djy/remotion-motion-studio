@@ -121,9 +121,56 @@ const ARRANGEMENT_PREVIEW_DIALOG_GEOMETRY_STORAGE_KEY =
   "motion-studio-arrangement-preview-dialog-geometry-v1";
 const ARRANGEMENT_PREVIEW_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
   "motion-studio-arrangement-preview-dialog-default-size-v1";
+const ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY =
+  "motion-studio-arrangement-preview-popup-size-v1";
+const REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY =
+  "motion-studio-realtime-preview-popup-size-v1";
+const SRT_DIALOG_GEOMETRY_STORAGE_KEY =
+  "motion-studio-srt-dialog-geometry-v1";
+const SRT_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
+  "motion-studio-srt-dialog-default-size-v1";
 const ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP = 16;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH = 720;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT = 480;
+
+type PopupWindowSize = { width: number; height: number };
+
+const loadPopupWindowSize = (
+  storageKey: string,
+  fallback: PopupWindowSize,
+): PopupWindowSize => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(storageKey) ?? "null",
+    ) as Partial<PopupWindowSize> | null;
+    const width = Number(saved?.width);
+    const height = Number(saved?.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return fallback;
+    return {
+      width: Math.max(640, Math.round(width)),
+      height: Math.max(480, Math.round(height)),
+    };
+  } catch {
+    return fallback;
+  }
+};
+
+const rememberPopupWindowSize = (
+  storageKey: string,
+  previewWindow: Window | null,
+) => {
+  if (!previewWindow || previewWindow.closed) return;
+  const width = Number(previewWindow.outerWidth);
+  const height = Number(previewWindow.outerHeight);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return;
+  window.localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      width: Math.max(640, Math.round(width)),
+      height: Math.max(480, Math.round(height)),
+    }),
+  );
+};
 
 const defaultArrangementPreviewDialogGeometry = (): ArrangementPreviewDialogGeometry => {
   const maxWidth = Math.max(
@@ -230,6 +277,45 @@ const loadArrangementPreviewDialogGeometry = (): ArrangementPreviewDialogGeometr
     });
   } catch {
     return defaultArrangementPreviewDialogGeometry();
+  }
+};
+
+const loadSrtDialogGeometry = (): ArrangementPreviewDialogGeometry => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(SRT_DIALOG_GEOMETRY_STORAGE_KEY) ?? "null",
+    ) as Partial<ArrangementPreviewDialogGeometry> | null;
+    if (!saved) return defaultArrangementPreviewDialogGeometry();
+    return constrainArrangementPreviewDialogGeometry({
+      x: Number(saved.x),
+      y: Number(saved.y),
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+  } catch {
+    return defaultArrangementPreviewDialogGeometry();
+  }
+};
+
+const srtDialogGeometryFromDefaultSize = (): ArrangementPreviewDialogGeometry => {
+  const fallback = defaultArrangementPreviewDialogGeometry();
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(SRT_DIALOG_DEFAULT_SIZE_STORAGE_KEY) ?? "null",
+    ) as Partial<ArrangementPreviewDialogDefaultSize> | null;
+    if (!saved) return fallback;
+    const constrained = constrainArrangementPreviewDialogGeometry({
+      ...fallback,
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+    return {
+      ...constrained,
+      x: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerWidth - constrained.width) / 2),
+      y: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerHeight - constrained.height) / 2),
+    };
+  } catch {
+    return fallback;
   }
 };
 
@@ -2019,6 +2105,8 @@ const TimingStepper = ({
 
 const App = () => {
   const playerRef = useRef<PlayerRef>(null);
+  const realtimePreviewPlayerRef = useRef<PlayerRef>(null);
+  const realtimePreviewWindowRef = useRef<Window | null>(null);
   const arrangementPreviewPopoutPlayerRef = useRef<PlayerRef>(null);
   const arrangementPreviewWindowRef = useRef<Window | null>(null);
   const arrangementPreviewDialogDragRef = useRef<{
@@ -2028,6 +2116,19 @@ const App = () => {
     geometry: ArrangementPreviewDialogGeometry;
   } | null>(null);
   const arrangementPreviewDialogResizeRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+    direction: ArrangementPreviewResizeDirection;
+  } | null>(null);
+  const srtDialogDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+  } | null>(null);
+  const srtDialogResizeRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
@@ -2065,6 +2166,9 @@ const App = () => {
     useState<ArrangementPreviewDialogGeometry>(
       loadArrangementPreviewDialogGeometry,
     );
+  const [srtDialogGeometry, setSrtDialogGeometry] = useState<ArrangementPreviewDialogGeometry>(
+    loadSrtDialogGeometry,
+  );
   const [arrangementPreferences, setArrangementPreferences] =
     useState<ArrangementPreferences>(loadActiveArrangementPreferences);
   const [arrangementRules, setArrangementRules] = useState<
@@ -2092,6 +2196,8 @@ const App = () => {
   const [selectedPendingPreviewInstanceId, setSelectedPendingPreviewInstanceId] =
     useState("");
   const [arrangementPreviewWindow, setArrangementPreviewWindow] =
+    useState<Window | null>(null);
+  const [realtimePreviewWindow, setRealtimePreviewWindow] =
     useState<Window | null>(null);
   const [arrangementComponentPicker, setArrangementComponentPicker] =
     useState<ArrangementComponentPicker | null>(null);
@@ -2130,6 +2236,10 @@ const App = () => {
 
   const closeArrangementPreviewWindow = useCallback(() => {
     const previewWindow = arrangementPreviewWindowRef.current;
+    rememberPopupWindowSize(
+      ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+      previewWindow,
+    );
     arrangementPreviewWindowRef.current = null;
     setArrangementPreviewWindow(null);
     if (previewWindow && !previewWindow.closed) previewWindow.close();
@@ -2148,7 +2258,13 @@ const App = () => {
       const previewWindow = window.open(
         "",
         `ai-motion-arrangement-preview-${Date.now()}`,
-        "popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes",
+        (() => {
+          const { width, height } = loadPopupWindowSize(
+            ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+            { width: 1200, height: 900 },
+          );
+          return `popup=yes,width=${width},height=${height},resizable=yes,scrollbars=yes`;
+        })(),
       );
       if (!previewWindow) {
         setNotice({ tone: "error", text: "浏览器阻止了独立预览窗口，请允许此页面打开弹出式窗口后重试。" });
@@ -2164,7 +2280,17 @@ const App = () => {
       arrangementPreviewWindowRef.current = previewWindow;
       setArrangementPreviewWindow(previewWindow);
       previewWindow.focus();
+      previewWindow.addEventListener("resize", () => {
+        rememberPopupWindowSize(
+          ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+          previewWindow,
+        );
+      });
       previewWindow.addEventListener("beforeunload", () => {
+        rememberPopupWindowSize(
+          ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+          previewWindow,
+        );
         if (arrangementPreviewWindowRef.current === previewWindow) {
           arrangementPreviewWindowRef.current = null;
           setArrangementPreviewWindow(null);
@@ -2174,6 +2300,66 @@ const App = () => {
     [],
   );
 
+  const closeRealtimePreviewWindow = useCallback(() => {
+    const previewWindow = realtimePreviewWindowRef.current;
+    rememberPopupWindowSize(
+      REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+      previewWindow,
+    );
+    realtimePreviewWindowRef.current = null;
+    setRealtimePreviewWindow(null);
+    if (previewWindow && !previewWindow.closed) previewWindow.close();
+  }, []);
+
+  const openRealtimePreviewWindow = useCallback(() => {
+    const existingWindow = realtimePreviewWindowRef.current;
+    if (existingWindow && !existingWindow.closed) {
+      existingWindow.focus();
+      setRealtimePreviewWindow(existingWindow);
+      return;
+    }
+    const previewWindow = window.open(
+      "",
+      `ai-motion-realtime-preview-${Date.now()}`,
+      (() => {
+        const { width, height } = loadPopupWindowSize(
+          REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+          { width: 1280, height: 900 },
+        );
+        return `popup=yes,width=${width},height=${height},resizable=yes,scrollbars=yes`;
+      })(),
+    );
+    if (!previewWindow) {
+      setNotice({ tone: "error", text: "浏览器阻止了独立预览窗口，请允许弹出式窗口后重试。" });
+      return;
+    }
+    previewWindow.document.title = "AI 动效工作台 · 实时预览";
+    previewWindow.document.documentElement.lang = "zh-CN";
+    previewWindow.document.body.className = "arrangement-preview-popout-body";
+    document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]').forEach((sourceNode) => {
+      previewWindow.document.head.appendChild(sourceNode.cloneNode(true));
+    });
+    realtimePreviewWindowRef.current = previewWindow;
+    setRealtimePreviewWindow(previewWindow);
+    previewWindow.focus();
+    previewWindow.addEventListener("resize", () => {
+      rememberPopupWindowSize(
+        REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+        previewWindow,
+      );
+    });
+    previewWindow.addEventListener("beforeunload", () => {
+      rememberPopupWindowSize(
+        REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+        previewWindow,
+      );
+      if (realtimePreviewWindowRef.current === previewWindow) {
+        realtimePreviewWindowRef.current = null;
+        setRealtimePreviewWindow(null);
+      }
+    }, { once: true });
+  }, []);
+
   useEffect(() => {
     if (!pendingArrangement) closeArrangementPreviewWindow();
   }, [closeArrangementPreviewWindow, pendingArrangement]);
@@ -2181,6 +2367,12 @@ const App = () => {
   useEffect(() => () => {
     const previewWindow = arrangementPreviewWindowRef.current;
     arrangementPreviewWindowRef.current = null;
+    if (previewWindow && !previewWindow.closed) previewWindow.close();
+  }, []);
+
+  useEffect(() => () => {
+    const previewWindow = realtimePreviewWindowRef.current;
+    realtimePreviewWindowRef.current = null;
     if (previewWindow && !previewWindow.closed) previewWindow.close();
   }, []);
 
@@ -3864,6 +4056,10 @@ const App = () => {
     pendingArrangementSegments,
     selectedPendingPreviewInstanceId,
   ]);
+
+  useEffect(() => {
+    realtimePreviewPlayerRef.current?.seekTo(Math.max(0, currentFrame));
+  }, [currentFrame, realtimePreviewWindow]);
 
   const workspaceSnapshot = useMemo<ProjectSnapshot>(
     () => ({
@@ -9153,6 +9349,8 @@ const App = () => {
           key === "sourceCount") ||
         (selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
           key === "ruleCount") ||
+        (selectedDefinition?.id === "PortraitRiskWarning" &&
+          key === "riskCount") ||
         (selectedDefinition?.id === "PortraitSkillResultComparison" &&
           key === "materialCount") ||
         (selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
@@ -9164,7 +9362,7 @@ const App = () => {
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
       const max = typeof schema.max === "number" ? schema.max : 8;
-      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "questionCount" || selectedDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
+      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || selectedDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
       const numericValue = clamp(
         Math.round(Number(value ?? schema.default ?? fallbackValue)),
         min,
@@ -9177,10 +9375,20 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : selectedDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : selectedDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
-            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount"].includes(key) || !selectedInstance) {
+            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount"].includes(key) || !selectedInstance) {
               updateSelectedProp(key, nextValue);
+              return;
+            }
+            if (key === "riskCount") {
+              const animationSeconds = Math.max(0.95, Number(selectedInstance.props.animationSeconds ?? 0.95));
+              const interval = Math.max(0, Number(selectedInstance.props.riskIntervalSeconds ?? 0.45));
+              const requiredSeconds = 0.34 * animationSeconds + Math.max(0, nextValue - 1) * interval + 0.62 * animationSeconds;
+              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, riskCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
             if (key === "questionCount") {
@@ -9397,6 +9605,8 @@ const App = () => {
       schema.type === "number" &&
       ((selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
         key === "ruleIntervalSeconds") ||
+        (selectedDefinition?.id === "PortraitRiskWarning" &&
+          ["riskIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillResultComparison" &&
           [
             "firstSwitchSeconds",
@@ -9450,6 +9660,20 @@ const App = () => {
           min={min}
           step={step}
           onChange={(nextValue) => {
+            if (
+              selectedDefinition?.id === "PortraitRiskWarning" &&
+              key === "riskIntervalSeconds" &&
+              selectedInstance
+            ) {
+              const count = clamp(Math.round(Number(selectedInstance.props.riskCount ?? 3)), 1, 8);
+              const animationSeconds = Math.max(0.95, Number(selectedInstance.props.animationSeconds ?? 0.95));
+              const requiredSeconds = 0.34 * animationSeconds + Math.max(0, count - 1) * nextValue + 0.62 * animationSeconds;
+              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, riskIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
             if (
               selectedDefinition?.id !== "PortraitCodeDecisionChecklist" ||
               key === "animationSeconds" ||
@@ -9764,6 +9988,9 @@ const App = () => {
           <button onClick={togglePlayback}>
             {isPlaying ? <Pause weight="fill" /> : <Play weight="fill" />}
             {isPlaying ? "暂停" : "播放"}
+          </button>
+          <button onClick={openRealtimePreviewWindow} title="在独立浏览器窗口打开实时预览">
+            <FrameCorners />预览窗口
           </button>
           <button onClick={goToTimelineStart}><ArrowCounterClockwise />归零</button>
           <button
@@ -11952,6 +12179,17 @@ const App = () => {
                             return null;
                           }
                         }
+                        if (selectedDefinition.id === "PortraitRiskWarning") {
+                          const match = key.match(/^(?:risk|icon)(\d+)$/);
+                          const activeRiskCount = clamp(
+                            Math.round(Number(selectedInstance.props.riskCount ?? 3)),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeRiskCount) {
+                            return null;
+                          }
+                        }
                         if (
                           selectedDefinition.id === "PortraitSkillResultComparison"
                         ) {
@@ -13461,114 +13699,6 @@ const App = () => {
                           </div>
                         );
                       })}
-                      {activePendingPreviewSegmentId === segment.id &&
-                      selectedPendingPreviewInstance &&
-                      segment.motionInstances.some(
-                        (instance) =>
-                          instance.id === selectedPendingPreviewInstance.id,
-                      ) ? (
-                        <section className="arrangement-position-editor arrangement-inline-position-editor">
-                          <header>
-                            <span>
-                              <strong>
-                                {definitionMap.get(
-                                  selectedPendingPreviewInstance.componentId,
-                                )?.name ??
-                                  selectedPendingPreviewInstance.componentId}
-                              </strong>
-                              <small>只调整当前待确认组件；可在本段打开大窗口查看效果。</small>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                resetPendingArrangementMotionPosition(
-                                  selectedPendingPreviewInstance.id,
-                                )
-                              }
-                            >
-                              自动位置
-                            </button>
-                          </header>
-                          <div className="arrangement-inline-position-fields">
-                            <label>
-                              <span>
-                                水平位置
-                                <b>
-                                  {Math.round(
-                                    selectedPendingPreviewInstance.position.x,
-                                  )}
-                                  px
-                                </b>
-                              </span>
-                              <input
-                                type="range"
-                                min={-canvasWidth}
-                                max={canvasWidth}
-                                step={1}
-                                value={selectedPendingPreviewInstance.position.x}
-                                onChange={(event) =>
-                                  updatePendingArrangementMotionPosition(
-                                    selectedPendingPreviewInstance.id,
-                                    { x: Number(event.target.value) },
-                                  )
-                                }
-                              />
-                            </label>
-                            <label>
-                              <span>
-                                垂直位置
-                                <b>
-                                  {Math.round(
-                                    selectedPendingPreviewInstance.position.y,
-                                  )}
-                                  px
-                                </b>
-                              </span>
-                              <input
-                                type="range"
-                                min={-canvasHeight}
-                                max={canvasHeight}
-                                step={1}
-                                value={selectedPendingPreviewInstance.position.y}
-                                onChange={(event) =>
-                                  updatePendingArrangementMotionPosition(
-                                    selectedPendingPreviewInstance.id,
-                                    { y: Number(event.target.value) },
-                                  )
-                                }
-                              />
-                            </label>
-                            <label>
-                              <span>
-                                动效大小
-                                <b>
-                                  {Math.round(
-                                    selectedPendingPreviewInstance.position
-                                      .scale * 100,
-                                  )}
-                                  %
-                                </b>
-                              </span>
-                              <input
-                                type="range"
-                                min={20}
-                                max={200}
-                                step={1}
-                                value={Math.round(
-                                  selectedPendingPreviewInstance.position.scale *
-                                    100,
-                                )}
-                                onChange={(event) =>
-                                  updatePendingArrangementMotionPosition(
-                                    selectedPendingPreviewInstance.id,
-                                    { scale: Number(event.target.value) / 100 },
-                                  )
-                                }
-                              />
-                            </label>
-                          </div>
-                        </section>
-                      ) : null}
                       {segment.resourceTracks.map((track) => {
                         const key = `resource:${track.id}`;
                         return (
@@ -13692,21 +13822,17 @@ const App = () => {
           }}
         >
           <section
-            className="srt-dialog"
+            className="srt-dialog arrangement-preview-dialog"
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <header>
+            <header className="arrangement-preview-titlebar">
               <div className="srt-dialog-title">
                 <small>AI AUTO ARRANGE</small>
                 <strong>字幕驱动的自动视觉编排</strong>
               </div>
-              <button
-                aria-label="关闭"
-                disabled={srtGenerating}
-                onClick={() => setSrtDialogOpen(false)}
-              >
-                <X />
-              </button>
+              <div className="arrangement-preview-titlebar-actions">
+                <button aria-label="关闭" disabled={srtGenerating} onClick={() => setSrtDialogOpen(false)}><X /></button>
+              </div>
             </header>
 
             <div className="ai-arrangement-progress" role="status" aria-live="polite">
@@ -13868,49 +13994,51 @@ const App = () => {
               </label>
             </div>
 
-            <div className="srt-dialog-list">
-              {srtEntries.length === 0 ? (
-                <button
-                  type="button"
-                  className="srt-dialog-empty"
-                  disabled={srtGenerating}
-                  onClick={openSrtPicker}
-                  title="点击选择 SRT 字幕文件"
-                >
-                  <UploadSimple weight="bold" />
-                  <strong>点击选择 SRT 文件</strong>
-                  <span>
-                    {videoUrl || videoTracks.length > 0
-                      ? "已检测到当前视频。选择对应 SRT 后会立即完成语义分析、选效果、布局和质检。"
-                      : "选择后立即完成语义分析、选效果、布局和质检；先生成预览，不会直接修改时间线。"}
-                  </span>
-                </button>
-              ) : (
-                srtEntries.map((entry) => (
-                  <div className="srt-dialog-row" key={entry.index}>
-                    <i>{String(entry.index).padStart(2, "0")}</i>
-                    <small>
-                      {new Date(entry.startMs)
-                        .toISOString()
-                        .substring(11, 21)
-                        .replace(".", ",")}
-                    </small>
-                    <span>{entry.text}</span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {srtResult && srtResult.messages.length > 0 ? (
-              <div className="srt-dialog-reminders">
-                {srtResult.messages.slice(0, 6).map((message, index) => (
-                  <p key={index}>· {message}</p>
-                ))}
-                {srtResult.messages.length > 6 ? (
-                  <p>· … 其余 {srtResult.messages.length - 6} 条省略</p>
-                ) : null}
+            <div className="srt-dialog-content">
+              <div className="srt-dialog-list">
+                {srtEntries.length === 0 ? (
+                  <button
+                    type="button"
+                    className="srt-dialog-empty"
+                    disabled={srtGenerating}
+                    onClick={openSrtPicker}
+                    title="点击选择 SRT 字幕文件"
+                  >
+                    <UploadSimple weight="bold" />
+                    <strong>点击选择 SRT 文件</strong>
+                    <span>
+                      {videoUrl || videoTracks.length > 0
+                        ? "已检测到当前视频。选择对应 SRT 后会立即完成语义分析、选效果、布局和质检。"
+                        : "选择后立即完成语义分析、选效果、布局和质检；先生成预览，不会直接修改时间线。"}
+                    </span>
+                  </button>
+                ) : (
+                  srtEntries.map((entry) => (
+                    <div className="srt-dialog-row" key={entry.index}>
+                      <i>{String(entry.index).padStart(2, "0")}</i>
+                      <small>
+                        {new Date(entry.startMs)
+                          .toISOString()
+                          .substring(11, 21)
+                          .replace(".", ",")}
+                      </small>
+                      <span>{entry.text}</span>
+                    </div>
+                  ))
+                )}
               </div>
-            ) : null}
+
+              {srtResult && srtResult.messages.length > 0 ? (
+                <div className="srt-dialog-reminders">
+                  {srtResult.messages.slice(0, 6).map((message, index) => (
+                    <p key={index}>· {message}</p>
+                  ))}
+                  {srtResult.messages.length > 6 ? (
+                    <p>· … 其余 {srtResult.messages.length - 6} 条省略</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
 
             <footer>
               {srtEntries.length > 0 ? (
@@ -14155,27 +14283,6 @@ const App = () => {
       pendingArrangement
         ? createPortal(
             <main className="arrangement-popout-shell">
-              <header>
-                <div>
-                  <small>ARRANGEMENT LIVE PREVIEW</small>
-                  <strong>独立编排预览</strong>
-                  <span>
-                    {activePendingPreviewSegment
-                      ? `语义段 ${pendingArrangementSegments.indexOf(activePendingPreviewSegment) + 1} · ${formatTime(activePendingPreviewSegment.startFrame / fps)}–${formatTime(activePendingPreviewSegment.endFrame / fps)}`
-                      : "请在主窗口选择要预览的语义段"}
-                  </span>
-                </div>
-                <div className="arrangement-popout-status">
-                  <b>主窗口修改会实时同步</b>
-                  <button
-                    type="button"
-                    onClick={closeArrangementPreviewWindow}
-                  >
-                    <X />关闭窗口
-                  </button>
-                </div>
-              </header>
-
               <section
                 className={`arrangement-popout-player ${canvasOrientation}`}
               >
@@ -14206,44 +14313,90 @@ const App = () => {
                 </div>
               </section>
 
-              <footer>
-                <div className="arrangement-popout-source">
-                  <b>
-                    {activePendingPreviewSemanticSource?.sourceCueIndices.length
-                      ? `SRT ${String(activePendingPreviewSemanticSource.sourceCueIndices[0]).padStart(2, "0")}${
-                          activePendingPreviewSemanticSource.sourceCueIndices.length > 1
-                            ? `–${String(activePendingPreviewSemanticSource.sourceCueIndices.at(-1)).padStart(2, "0")}`
-                            : ""
-                        }`
-                      : "当前 SRT"}
-                  </b>
-                  <p>
-                    {activePendingPreviewSemanticSource?.text ??
-                      "在主窗口选择语义段、替换组件或调整位置。"}
-                  </p>
-                </div>
-                <div className="arrangement-popout-selection">
-                  <span>当前动效</span>
+              <aside className="arrangement-popout-controls">
+                <header>
+                  <small>COMPONENT CONTROL</small>
                   <strong>
                     {selectedPendingPreviewInstance
-                      ? definitionMap.get(
-                          selectedPendingPreviewInstance.componentId,
-                        )?.name ?? selectedPendingPreviewInstance.componentId
-                      : "本段暂无动效"}
+                      ? definitionMap.get(selectedPendingPreviewInstance.componentId)?.name ?? "当前动效"
+                      : "未选择动效"}
                   </strong>
-                  {selectedPendingPreviewInstance ? (
-                    <small>
-                      X {Math.round(selectedPendingPreviewInstance.position.x)} · Y{" "}
-                      {Math.round(selectedPendingPreviewInstance.position.y)} ·{" "}
-                      {Math.round(
-                        selectedPendingPreviewInstance.position.scale * 100,
-                      )}%
-                    </small>
-                  ) : null}
-                </div>
-              </footer>
+                  <span>调整结果会同步回主窗口，确认后才写入时间线。</span>
+                </header>
+                <section>
+                  <div className="arrangement-popout-control-title"><strong>全局控制</strong><small>GLOBAL</small></div>
+                  <label className="arrangement-popout-range">
+                    <span>特效整体大小 <b>{Math.round(globalCardScale * 100)}%</b></span>
+                    <input type="range" min="50" max="200" value={Math.round(globalCardScale * 100)} onChange={(event) => setGlobalCardScale(Number(event.target.value) / 100)} />
+                  </label>
+                </section>
+                {selectedPendingPreviewInstance ? (
+                  <section>
+                    <div className="arrangement-popout-control-title"><strong>独立大小与位置</strong><small>SIZE · POSITION</small></div>
+                    <label className="arrangement-popout-range">
+                      <span>独立大小 <b>{Math.round(selectedPendingPreviewInstance.position.scale * 100)}%</b></span>
+                      <input type="range" min="20" max="300" value={Math.round(selectedPendingPreviewInstance.position.scale * 100)} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { scale: Number(event.target.value) / 100 })} />
+                    </label>
+                    <label className="arrangement-popout-range">
+                      <span>水平位置 <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b></span>
+                      <input type="range" min={-canvasWidth} max={canvasWidth} value={selectedPendingPreviewInstance.position.x} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { x: Number(event.target.value) })} />
+                    </label>
+                    <label className="arrangement-popout-range">
+                      <span>垂直位置 <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b></span>
+                      <input type="range" min={-canvasHeight} max={canvasHeight} value={selectedPendingPreviewInstance.position.y} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { y: Number(event.target.value) })} />
+                    </label>
+                    <button type="button" className="arrangement-popout-auto" onClick={() => resetPendingArrangementMotionPosition(selectedPendingPreviewInstance.id)}>自动位置</button>
+                  </section>
+                ) : (
+                  <p className="arrangement-popout-controls-empty">请先在主窗口选择一个动效组件。</p>
+                )}
+              </aside>
             </main>,
             arrangementPreviewWindow.document.body,
+          )
+        : null}
+
+      {realtimePreviewWindow && !realtimePreviewWindow.closed
+        ? createPortal(
+            <main className="arrangement-popout-shell realtime-preview-shell">
+              <section className={`arrangement-popout-player ${canvasOrientation}`}>
+                <div className="arrangement-popout-player-frame">
+                  {motionModule ? (
+                    <Player
+                      ref={realtimePreviewPlayerRef}
+                      component={StudioPreviewComposition}
+                      inputProps={previewInputProps}
+                      durationInFrames={durationInFrames}
+                      fps={fps}
+                      compositionWidth={canvasWidth}
+                      compositionHeight={canvasHeight}
+                      controls
+                      loop
+                      clickToPlay={false}
+                      spaceKeyToPlayOrPause
+                      acknowledgeRemotionLicense
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: solidBackgroundEnabled
+                          ? "#05070a"
+                          : "transparent",
+                        backgroundImage: solidBackgroundEnabled
+                          ? "none"
+                          : "linear-gradient(45deg, #181b22 25%, transparent 25%), linear-gradient(-45deg, #181b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181b22 75%), linear-gradient(-45deg, transparent 75%, #181b22 75%)",
+                        backgroundPosition: solidBackgroundEnabled
+                          ? undefined
+                          : "0 0, 0 8px, 8px -8px, -8px 0",
+                        backgroundSize: solidBackgroundEnabled
+                          ? undefined
+                          : "16px 16px",
+                      }}
+                    />
+                  ) : <span>正在启动实时预览…</span>}
+                </div>
+              </section>
+            </main>,
+            realtimePreviewWindow.document.body,
           )
         : null}
 

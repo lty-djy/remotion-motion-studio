@@ -11,15 +11,27 @@ import type { EffectDef } from "../registry";
 type Props = {
   enabled?: boolean;
   backgroundOpacity?: number;
+  riskCount?: number;
   eyebrow?: string;
   title?: string;
   emphasis?: string;
   risk1?: string;
   risk2?: string;
   risk3?: string;
+  risk4?: string;
+  risk5?: string;
+  risk6?: string;
+  risk7?: string;
+  risk8?: string;
   icon1?: string;
   icon2?: string;
   icon3?: string;
+  icon4?: string;
+  icon5?: string;
+  icon6?: string;
+  icon7?: string;
+  icon8?: string;
+  riskIntervalSeconds?: number;
   accentColor?: string;
   panelColor?: string;
   textColor?: string;
@@ -28,6 +40,7 @@ type Props = {
 
 export const PortraitRiskWarning: React.FC<Props> = ({
   backgroundOpacity = 0,
+  riskCount = 3,
   enabled = true,
   eyebrow = "使用边界",
   title = "高清放大",
@@ -35,9 +48,20 @@ export const PortraitRiskWarning: React.FC<Props> = ({
   risk1 = "错误口型",
   risk2 = "表情失真",
   risk3 = "细节异常",
+  risk4 = "使用受限",
+  risk5 = "效果不稳定",
+  risk6 = "需要复核",
+  risk7 = "存在误差",
+  risk8 = "不可替代人工判断",
   icon1 = "×",
   icon2 = "!",
   icon3 = "⌁",
+  icon4 = "!",
+  icon5 = "×",
+  icon6 = "?",
+  icon7 = "⌁",
+  icon8 = "!",
+  riskIntervalSeconds = 0.45,
   accentColor = "#FF493D",
   panelColor = "#111318",
   textColor = "#FFFFFF",
@@ -47,11 +71,19 @@ export const PortraitRiskWarning: React.FC<Props> = ({
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(14, Math.round(animationSeconds * fps));
   const staggerFrames = Math.max(4, Math.round(enterFrames * 0.18));
+  const normalizedRiskCount = Math.min(8, Math.max(1, Math.round(riskCount)));
   const risks = [
     { text: risk1, icon: icon1 },
     { text: risk2, icon: icon2 },
     { text: risk3, icon: icon3 },
-  ];
+    { text: risk4, icon: icon4 },
+    { text: risk5, icon: icon5 },
+    { text: risk6, icon: icon6 },
+    { text: risk7, icon: icon7 },
+    { text: risk8, icon: icon8 },
+  ].slice(0, normalizedRiskCount);
+  const intervalFrames = Math.max(0, Math.round(riskIntervalSeconds * fps));
+  const panelHeight = Math.max(420, 150 + normalizedRiskCount * 70 + Math.max(0, normalizedRiskCount - 1) * 12 + 20);
 
   const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
@@ -62,7 +94,7 @@ export const PortraitRiskWarning: React.FC<Props> = ({
       style={{
         position: "relative",
         width: 500,
-        height: 420,
+        height: panelHeight,
         color: textColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
         pointerEvents: "none",
@@ -173,7 +205,7 @@ export const PortraitRiskWarning: React.FC<Props> = ({
         }}
       >
         {risks.map((risk, index) => {
-          const startFrame = enterFrames * 0.34 + index * staggerFrames;
+          const startFrame = enterFrames * 0.34 + index * Math.max(staggerFrames, intervalFrames);
           const endFrame = startFrame + enterFrames * 0.62;
           return (
             <Interactive.Div
@@ -273,19 +305,31 @@ export const PortraitRiskWarningEffectDef: EffectDef = {
   placement: "left",
   component: PortraitRiskWarning as React.ComponentType<Record<string, unknown>>,
   durationInFrames: 150,
-  bounds: { x: 0, y: 0, width: 500, height: 420 },
+  bounds: { x: 0, y: 0, width: 500, height: 900 },
   defaultPosition: { x: 58, y: 292, scale: 1 },
   defaultProps: {
     enabled: true,
+    riskCount: 3,
     eyebrow: "使用边界",
     title: "高清放大",
     emphasis: "≠ 万能修复",
     risk1: "错误口型",
     risk2: "表情失真",
     risk3: "细节异常",
+    risk4: "使用受限",
+    risk5: "效果不稳定",
+    risk6: "需要复核",
+    risk7: "存在误差",
+    risk8: "不可替代人工判断",
     icon1: "×",
     icon2: "!",
     icon3: "⌁",
+    icon4: "!",
+    icon5: "×",
+    icon6: "?",
+    icon7: "⌁",
+    icon8: "!",
+    riskIntervalSeconds: 0.45,
     accentColor: "#FF493D",
     panelColor: "#111318",
     textColor: "#FFFFFF",
@@ -293,15 +337,27 @@ export const PortraitRiskWarningEffectDef: EffectDef = {
   },
   propsSchema: {
     enabled: { type: "boolean", label: "显示风险提醒", default: true },
+    riskCount: { type: "number", label: "风险数量", default: 3, min: 1, max: 8, step: 1 },
     eyebrow: { type: "text", label: "警示引导语" },
     title: { type: "text", label: "结论标题" },
     emphasis: { type: "text", label: "强调结论" },
     risk1: { type: "text", label: "风险一" },
     risk2: { type: "text", label: "风险二" },
     risk3: { type: "text", label: "风险三" },
+    risk4: { type: "text", label: "风险四" },
+    risk5: { type: "text", label: "风险五" },
+    risk6: { type: "text", label: "风险六" },
+    risk7: { type: "text", label: "风险七" },
+    risk8: { type: "text", label: "风险八" },
     icon1: { type: "text", label: "图标一" },
     icon2: { type: "text", label: "图标二" },
     icon3: { type: "text", label: "图标三" },
+    icon4: { type: "text", label: "图标四" },
+    icon5: { type: "text", label: "图标五" },
+    icon6: { type: "text", label: "图标六" },
+    icon7: { type: "text", label: "图标七" },
+    icon8: { type: "text", label: "图标八" },
+    riskIntervalSeconds: { type: "number", label: "下一条风险入场间隔(秒)", default: 0.45, min: 0, step: 0.05 },
     accentColor: { type: "color", label: "警示色", default: "#FF493D" },
     panelColor: { type: "color", label: "底板颜色", default: "#111318" },
     textColor: { type: "color", label: "文字颜色", default: "#FFFFFF" },
