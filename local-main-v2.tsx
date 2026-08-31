@@ -81,6 +81,158 @@ import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
 
+type ArrangementPreviewDialogGeometry = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type ArrangementPreviewDialogDefaultSize = Pick<
+  ArrangementPreviewDialogGeometry,
+  "width" | "height"
+>;
+
+type ArrangementPreviewResizeDirection =
+  | "n"
+  | "s"
+  | "e"
+  | "w"
+  | "ne"
+  | "nw"
+  | "se"
+  | "sw";
+
+const ARRANGEMENT_PREVIEW_RESIZE_DIRECTIONS: Array<{
+  direction: ArrangementPreviewResizeDirection;
+  label: string;
+}> = [
+  { direction: "n", label: "拖动上边调整窗口高度" },
+  { direction: "s", label: "拖动下边调整窗口高度" },
+  { direction: "e", label: "拖动右边调整窗口宽度" },
+  { direction: "w", label: "拖动左边调整窗口宽度" },
+  { direction: "ne", label: "拖动右上角调整窗口大小" },
+  { direction: "nw", label: "拖动左上角调整窗口大小" },
+  { direction: "se", label: "拖动右下角调整窗口大小" },
+  { direction: "sw", label: "拖动左下角调整窗口大小" },
+];
+
+const ARRANGEMENT_PREVIEW_DIALOG_GEOMETRY_STORAGE_KEY =
+  "motion-studio-arrangement-preview-dialog-geometry-v1";
+const ARRANGEMENT_PREVIEW_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
+  "motion-studio-arrangement-preview-dialog-default-size-v1";
+const ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP = 16;
+const ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH = 720;
+const ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT = 480;
+
+const defaultArrangementPreviewDialogGeometry = (): ArrangementPreviewDialogGeometry => {
+  const maxWidth = Math.max(
+    320,
+    window.innerWidth - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2,
+  );
+  const maxHeight = Math.max(
+    320,
+    window.innerHeight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2,
+  );
+  const width = Math.min(1480, maxWidth);
+  const height = Math.min(860, maxHeight);
+  return {
+    x: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerWidth - width) / 2),
+    y: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerHeight - height) / 2),
+    width,
+    height,
+  };
+};
+
+const loadArrangementPreviewDialogDefaultSize = (): ArrangementPreviewDialogDefaultSize | null => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(
+        ARRANGEMENT_PREVIEW_DIALOG_DEFAULT_SIZE_STORAGE_KEY,
+      ) ?? "null",
+    ) as Partial<ArrangementPreviewDialogDefaultSize> | null;
+    if (!saved) return null;
+    const constrained = constrainArrangementPreviewDialogGeometry({
+      ...defaultArrangementPreviewDialogGeometry(),
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+    return { width: constrained.width, height: constrained.height };
+  } catch {
+    return null;
+  }
+};
+
+const arrangementPreviewDialogGeometryFromDefaultSize = (): ArrangementPreviewDialogGeometry => {
+  const fallback = defaultArrangementPreviewDialogGeometry();
+  const savedDefaultSize = loadArrangementPreviewDialogDefaultSize();
+  if (!savedDefaultSize) return fallback;
+  const width = savedDefaultSize.width;
+  const height = savedDefaultSize.height;
+  return {
+    x: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerWidth - width) / 2),
+    y: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerHeight - height) / 2),
+    width,
+    height,
+  };
+};
+
+const constrainArrangementPreviewDialogGeometry = (
+  geometry: ArrangementPreviewDialogGeometry,
+): ArrangementPreviewDialogGeometry => {
+  const maxWidth = Math.max(
+    320,
+    window.innerWidth - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2,
+  );
+  const maxHeight = Math.max(
+    320,
+    window.innerHeight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2,
+  );
+  const width = clamp(
+    Number.isFinite(geometry.width) ? geometry.width : maxWidth,
+    Math.min(ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH, maxWidth),
+    maxWidth,
+  );
+  const height = clamp(
+    Number.isFinite(geometry.height) ? geometry.height : maxHeight,
+    Math.min(ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT, maxHeight),
+    maxHeight,
+  );
+  return {
+    x: clamp(
+      Number.isFinite(geometry.x) ? geometry.x : ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, window.innerWidth - width - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP),
+    ),
+    y: clamp(
+      Number.isFinite(geometry.y) ? geometry.y : ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, window.innerHeight - height - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP),
+    ),
+    width,
+    height,
+  };
+};
+
+const loadArrangementPreviewDialogGeometry = (): ArrangementPreviewDialogGeometry => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(
+        ARRANGEMENT_PREVIEW_DIALOG_GEOMETRY_STORAGE_KEY,
+      ) ?? "null",
+    ) as Partial<ArrangementPreviewDialogGeometry> | null;
+    if (!saved) return defaultArrangementPreviewDialogGeometry();
+    return constrainArrangementPreviewDialogGeometry({
+      x: Number(saved.x),
+      y: Number(saved.y),
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+  } catch {
+    return defaultArrangementPreviewDialogGeometry();
+  }
+};
+
 type IconResource = {
   id: string;
   label: string;
@@ -1867,9 +2019,21 @@ const TimingStepper = ({
 
 const App = () => {
   const playerRef = useRef<PlayerRef>(null);
-  const arrangementPreviewPlayerRef = useRef<PlayerRef>(null);
   const arrangementPreviewPopoutPlayerRef = useRef<PlayerRef>(null);
   const arrangementPreviewWindowRef = useRef<Window | null>(null);
+  const arrangementPreviewDialogDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+  } | null>(null);
+  const arrangementPreviewDialogResizeRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+    direction: ArrangementPreviewResizeDirection;
+  } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const playheadDragCleanupRef = useRef<(() => void) | null>(null);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
@@ -1897,6 +2061,10 @@ const App = () => {
   const [instances, setInstances] = useState<MotionInstance[]>([]);
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
+  const [arrangementPreviewDialogGeometry, setArrangementPreviewDialogGeometry] =
+    useState<ArrangementPreviewDialogGeometry>(
+      loadArrangementPreviewDialogGeometry,
+    );
   const [arrangementPreferences, setArrangementPreferences] =
     useState<ArrangementPreferences>(loadActiveArrangementPreferences);
   const [arrangementRules, setArrangementRules] = useState<
@@ -1967,75 +2135,214 @@ const App = () => {
     if (previewWindow && !previewWindow.closed) previewWindow.close();
   }, []);
 
-  const openArrangementPreviewWindow = useCallback(() => {
-    const existingWindow = arrangementPreviewWindowRef.current;
-    if (existingWindow && !existingWindow.closed) {
-      existingWindow.focus();
-      setArrangementPreviewWindow(existingWindow);
-      return;
-    }
-
-    const previewWindow = window.open(
-      "",
-      `ai-motion-arrangement-preview-${Date.now()}`,
-      "popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes",
-    );
-    if (!previewWindow) {
-      setNotice({
-        tone: "error",
-        text: "浏览器阻止了独立预览窗口，请允许此页面打开弹出式窗口后重试。",
-      });
-      return;
-    }
-
-    previewWindow.document.title = "AI 动效工作台 · 独立编排预览";
-    previewWindow.document.documentElement.lang = "zh-CN";
-    previewWindow.document.body.className = "arrangement-preview-popout-body";
-    previewWindow.document.head
-      .querySelectorAll("[data-arrangement-preview-style]")
-      .forEach((node) => node.remove());
-    document
-      .querySelectorAll<HTMLStyleElement | HTMLLinkElement>(
-        'style, link[rel="stylesheet"]',
-      )
-      .forEach((sourceNode) => {
-        const clonedNode = sourceNode.cloneNode(true) as
-          | HTMLStyleElement
-          | HTMLLinkElement;
-        clonedNode.dataset.arrangementPreviewStyle = "true";
-        if (clonedNode instanceof HTMLLinkElement && sourceNode instanceof HTMLLinkElement) {
-          clonedNode.href = sourceNode.href;
-        }
+  const openArrangementPreviewWindow = useCallback(
+    (segmentId?: string, instanceId?: string) => {
+      if (segmentId) setActivePendingPreviewSegmentId(segmentId);
+      if (instanceId) setSelectedPendingPreviewInstanceId(instanceId);
+      const existingWindow = arrangementPreviewWindowRef.current;
+      if (existingWindow && !existingWindow.closed) {
+        existingWindow.focus();
+        setArrangementPreviewWindow(existingWindow);
+        return;
+      }
+      const previewWindow = window.open(
+        "",
+        `ai-motion-arrangement-preview-${Date.now()}`,
+        "popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes",
+      );
+      if (!previewWindow) {
+        setNotice({ tone: "error", text: "浏览器阻止了独立预览窗口，请允许此页面打开弹出式窗口后重试。" });
+        return;
+      }
+      previewWindow.document.title = "AI 动效工作台 · 独立编排预览";
+      previewWindow.document.documentElement.lang = "zh-CN";
+      previewWindow.document.body.className = "arrangement-preview-popout-body";
+      document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]').forEach((sourceNode) => {
+        const clonedNode = sourceNode.cloneNode(true) as HTMLStyleElement | HTMLLinkElement;
         previewWindow.document.head.appendChild(clonedNode);
       });
-
-    arrangementPreviewWindowRef.current = previewWindow;
-    setArrangementPreviewWindow(previewWindow);
-    previewWindow.focus();
-    previewWindow.addEventListener(
-      "beforeunload",
-      () => {
+      arrangementPreviewWindowRef.current = previewWindow;
+      setArrangementPreviewWindow(previewWindow);
+      previewWindow.focus();
+      previewWindow.addEventListener("beforeunload", () => {
         if (arrangementPreviewWindowRef.current === previewWindow) {
           arrangementPreviewWindowRef.current = null;
           setArrangementPreviewWindow(null);
         }
-      },
-      { once: true },
-    );
-  }, []);
+      }, { once: true });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!pendingArrangement) closeArrangementPreviewWindow();
   }, [closeArrangementPreviewWindow, pendingArrangement]);
 
-  useEffect(
-    () => () => {
-      const previewWindow = arrangementPreviewWindowRef.current;
-      arrangementPreviewWindowRef.current = null;
-      if (previewWindow && !previewWindow.closed) previewWindow.close();
-    },
-    [],
-  );
+  useEffect(() => () => {
+    const previewWindow = arrangementPreviewWindowRef.current;
+    arrangementPreviewWindowRef.current = null;
+    if (previewWindow && !previewWindow.closed) previewWindow.close();
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ARRANGEMENT_PREVIEW_DIALOG_GEOMETRY_STORAGE_KEY,
+      JSON.stringify(arrangementPreviewDialogGeometry),
+    );
+  }, [arrangementPreviewDialogGeometry]);
+
+  useEffect(() => {
+    const constrainDialogToViewport = () => {
+      setArrangementPreviewDialogGeometry((current) =>
+        constrainArrangementPreviewDialogGeometry(current),
+      );
+    };
+    window.addEventListener("resize", constrainDialogToViewport);
+    return () => window.removeEventListener("resize", constrainDialogToViewport);
+  }, []);
+
+  const resetArrangementPreviewDialogGeometry = () => {
+    setArrangementPreviewDialogGeometry(
+      arrangementPreviewDialogGeometryFromDefaultSize(),
+    );
+  };
+
+  const saveArrangementPreviewDialogDefaultSize = () => {
+    const { width, height } = arrangementPreviewDialogGeometry;
+    window.localStorage.setItem(
+      ARRANGEMENT_PREVIEW_DIALOG_DEFAULT_SIZE_STORAGE_KEY,
+      JSON.stringify({ width, height }),
+    );
+    setNotice({ tone: "ok", text: "已将当前窗口大小设为默认大小。" });
+  };
+
+  const beginArrangementPreviewDialogDrag = (
+    event: React.PointerEvent<HTMLElement>,
+  ) => {
+    if (
+      event.button !== 0 ||
+      (event.target as HTMLElement).closest("button, input, select, textarea")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    arrangementPreviewDialogDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      geometry: arrangementPreviewDialogGeometry,
+    };
+  };
+
+  const moveArrangementPreviewDialog = (
+    event: React.PointerEvent<HTMLElement>,
+  ) => {
+    const drag = arrangementPreviewDialogDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setArrangementPreviewDialogGeometry(
+      constrainArrangementPreviewDialogGeometry({
+        ...drag.geometry,
+        x: drag.geometry.x + event.clientX - drag.startX,
+        y: drag.geometry.y + event.clientY - drag.startY,
+      }),
+    );
+  };
+
+  const endArrangementPreviewDialogDrag = (
+    event: React.PointerEvent<HTMLElement>,
+  ) => {
+    if (arrangementPreviewDialogDragRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+    arrangementPreviewDialogDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const beginArrangementPreviewDialogResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    direction: ArrangementPreviewResizeDirection,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    arrangementPreviewDialogResizeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      geometry: arrangementPreviewDialogGeometry,
+      direction,
+    };
+  };
+
+  const resizeArrangementPreviewDialog = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    const resize = arrangementPreviewDialogResizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - resize.startX;
+    const deltaY = event.clientY - resize.startY;
+    const next = { ...resize.geometry };
+    const minimumWidth = Math.min(
+      ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH,
+      Math.max(320, window.innerWidth - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2),
+    );
+    const minimumHeight = Math.min(
+      ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT,
+      Math.max(320, window.innerHeight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2),
+    );
+    const fixedRight = resize.geometry.x + resize.geometry.width;
+    const fixedBottom = resize.geometry.y + resize.geometry.height;
+
+    if (resize.direction.includes("e")) {
+      next.width = clamp(
+        resize.geometry.width + deltaX,
+        minimumWidth,
+        window.innerWidth - resize.geometry.x - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+    }
+    if (resize.direction.includes("s")) {
+      next.height = clamp(
+        resize.geometry.height + deltaY,
+        minimumHeight,
+        window.innerHeight - resize.geometry.y - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+    }
+    if (resize.direction.includes("w")) {
+      next.width = clamp(
+        resize.geometry.width - deltaX,
+        minimumWidth,
+        fixedRight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+      next.x = fixedRight - next.width;
+    }
+    if (resize.direction.includes("n")) {
+      next.height = clamp(
+        resize.geometry.height - deltaY,
+        minimumHeight,
+        fixedBottom - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+      next.y = fixedBottom - next.height;
+    }
+    setArrangementPreviewDialogGeometry(
+      constrainArrangementPreviewDialogGeometry(next),
+    );
+  };
+
+  const endArrangementPreviewDialogResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (arrangementPreviewDialogResizeRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+    arrangementPreviewDialogResizeRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
   const [globalCardScale, setGlobalCardScale] = useState(() => {
     const saved = localStorage.getItem("motion-studio-global-card-scale");
     const parsed = saved ? Number(saved) : NaN;
@@ -3548,7 +3855,6 @@ const App = () => {
     );
     window.requestAnimationFrame(() => {
       const frame = Math.max(0, previewFrame);
-      arrangementPreviewPlayerRef.current?.seekTo(frame);
       arrangementPreviewPopoutPlayerRef.current?.seekTo(frame);
     });
   }, [
@@ -12226,26 +12532,55 @@ const App = () => {
             aria-modal="true"
             aria-labelledby="arrangement-preview-title"
             onPointerDown={(event) => event.stopPropagation()}
+            style={{
+              left: `${arrangementPreviewDialogGeometry.x}px`,
+              top: `${arrangementPreviewDialogGeometry.y}px`,
+              width: `${arrangementPreviewDialogGeometry.width}px`,
+              height: `${arrangementPreviewDialogGeometry.height}px`,
+            }}
           >
-            <header>
+            <header
+              className="arrangement-preview-titlebar"
+              onPointerDown={beginArrangementPreviewDialogDrag}
+              onPointerMove={moveArrangementPreviewDialog}
+              onPointerUp={endArrangementPreviewDialogDrag}
+              onPointerCancel={endArrangementPreviewDialogDrag}
+            >
               <div>
                 <small>ARRANGEMENT PREVIEW</small>
                 <strong id="arrangement-preview-title">编排预览 · 尚未写入时间线</strong>
                 <span>{pendingArrangement.fileName}</span>
               </div>
-              <button
-                type="button"
-                aria-label="关闭编排预览"
-                onClick={() => {
-                  stopArrangementAudioPreview();
-                  setPendingArrangement(null);
-                  setArrangementComponentPicker(null);
-                  setArrangementResourcePicker(null);
-                  setArrangementResourceSearch("");
-                }}
-              >
-                <X />
-              </button>
+              <div className="arrangement-preview-titlebar-actions">
+                <button
+                  type="button"
+                  className="arrangement-preview-set-default"
+                  onClick={saveArrangementPreviewDialogDefaultSize}
+                >
+                  <FloppyDisk />设为默认大小
+                </button>
+                <button
+                  type="button"
+                  className="arrangement-preview-reset-layout"
+                  onClick={resetArrangementPreviewDialogGeometry}
+                >
+                  <ArrowCounterClockwise />恢复窗口
+                </button>
+                <button
+                  type="button"
+                  aria-label="关闭编排预览"
+                  title="关闭编排预览"
+                  onClick={() => {
+                    stopArrangementAudioPreview();
+                    setPendingArrangement(null);
+                    setArrangementComponentPicker(null);
+                    setArrangementResourcePicker(null);
+                    setArrangementResourceSearch("");
+                  }}
+                >
+                  <X />
+                </button>
+              </div>
             </header>
 
             <div className="arrangement-preview-summary">
@@ -12513,146 +12848,6 @@ const App = () => {
             </div>
 
             <div className="arrangement-preview-editor">
-              <aside className="arrangement-stage-panel">
-                <header>
-                  <span>
-                    <strong>段落画面预览</strong>
-                    <small>
-                      {activePendingPreviewSegment
-                        ? `语义段 ${pendingArrangementSegments.indexOf(activePendingPreviewSegment) + 1} · ${formatTime(activePendingPreviewSegment.startFrame / fps)}–${formatTime(activePendingPreviewSegment.endFrame / fps)}`
-                        : "选择右侧动效开始预览"}
-                    </small>
-                  </span>
-                  <div className="arrangement-stage-actions">
-                    <b>安全区已显示</b>
-                    <button
-                      type="button"
-                      onClick={openArrangementPreviewWindow}
-                    >
-                      <FrameCorners />打开大窗口
-                    </button>
-                  </div>
-                </header>
-                <div
-                  className={`arrangement-stage-player ${canvasOrientation}`}
-                >
-                  {motionModule && activePendingPreviewSegment ? (
-                    <Player
-                      ref={arrangementPreviewPlayerRef}
-                      component={StudioPreviewComposition}
-                      inputProps={pendingArrangementPreviewInputProps}
-                      durationInFrames={durationInFrames}
-                      fps={fps}
-                      compositionWidth={canvasWidth}
-                      compositionHeight={canvasHeight}
-                      controls
-                      loop
-                      clickToPlay={false}
-                      spaceKeyToPlayOrPause={false}
-                      acknowledgeRemotionLicense
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "#05070a",
-                      }}
-                    />
-                  ) : (
-                    <span>选择一个语义段或动效进行预览</span>
-                  )}
-                </div>
-                {selectedPendingPreviewInstance ? (
-                  <section className="arrangement-position-editor">
-                    <header>
-                      <span>
-                        <strong>
-                          {definitionMap.get(
-                            selectedPendingPreviewInstance.componentId,
-                          )?.name ?? selectedPendingPreviewInstance.componentId}
-                        </strong>
-                        <small>位置修改只作用于当前待确认动效</small>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          resetPendingArrangementMotionPosition(
-                            selectedPendingPreviewInstance.id,
-                          )
-                        }
-                      >
-                        自动位置
-                      </button>
-                    </header>
-                    <label>
-                      <span>
-                        水平位置
-                        <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b>
-                      </span>
-                      <input
-                        type="range"
-                        min={-canvasWidth}
-                        max={canvasWidth}
-                        step={1}
-                        value={selectedPendingPreviewInstance.position.x}
-                        onChange={(event) =>
-                          updatePendingArrangementMotionPosition(
-                            selectedPendingPreviewInstance.id,
-                            { x: Number(event.target.value) },
-                          )
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>
-                        垂直位置
-                        <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b>
-                      </span>
-                      <input
-                        type="range"
-                        min={-canvasHeight}
-                        max={canvasHeight}
-                        step={1}
-                        value={selectedPendingPreviewInstance.position.y}
-                        onChange={(event) =>
-                          updatePendingArrangementMotionPosition(
-                            selectedPendingPreviewInstance.id,
-                            { y: Number(event.target.value) },
-                          )
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>
-                        动效大小
-                        <b>
-                          {Math.round(
-                            selectedPendingPreviewInstance.position.scale * 100,
-                          )}%
-                        </b>
-                      </span>
-                      <input
-                        type="range"
-                        min={20}
-                        max={200}
-                        step={1}
-                        value={Math.round(
-                          selectedPendingPreviewInstance.position.scale * 100,
-                        )}
-                        onChange={(event) =>
-                          updatePendingArrangementMotionPosition(
-                            selectedPendingPreviewInstance.id,
-                            { scale: Number(event.target.value) / 100 },
-                          )
-                        }
-                      />
-                    </label>
-                  </section>
-                ) : (
-                  <div className="arrangement-position-empty">
-                    本段暂无动效；点击右侧“添加效果”选择组件。
-                  </div>
-                )}
-              </aside>
-
               <div className="arrangement-preview-list">
               {pendingArrangementSegments.map((segment, segmentIndex) => {
                 const locked = pendingArrangement.lockedSegmentIds.includes(
@@ -12803,7 +12998,18 @@ const App = () => {
                             )
                           }
                         >
-                          <Play weight="fill" />预览本段
+                          调节本段
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openArrangementPreviewWindow(
+                              segment.id,
+                              segment.motionInstances[0]?.id,
+                            )
+                          }
+                        >
+                          <FrameCorners />打开大窗口
                         </button>
                         <button
                           type="button"
@@ -13225,14 +13431,14 @@ const App = () => {
                                     ? "active"
                                     : undefined
                                 }
-                                onClick={() =>
-                                  previewPendingArrangementMotion(
-                                    segment.id,
-                                    instance.id,
-                                  )
-                                }
-                              >
-                                预览调整
+                              onClick={() =>
+                                previewPendingArrangementMotion(
+                                  segment.id,
+                                  instance.id,
+                                )
+                              }
+                            >
+                                调节
                               </button>
                               <button
                                 type="button"
@@ -13255,6 +13461,114 @@ const App = () => {
                           </div>
                         );
                       })}
+                      {activePendingPreviewSegmentId === segment.id &&
+                      selectedPendingPreviewInstance &&
+                      segment.motionInstances.some(
+                        (instance) =>
+                          instance.id === selectedPendingPreviewInstance.id,
+                      ) ? (
+                        <section className="arrangement-position-editor arrangement-inline-position-editor">
+                          <header>
+                            <span>
+                              <strong>
+                                {definitionMap.get(
+                                  selectedPendingPreviewInstance.componentId,
+                                )?.name ??
+                                  selectedPendingPreviewInstance.componentId}
+                              </strong>
+                              <small>只调整当前待确认组件；可在本段打开大窗口查看效果。</small>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                resetPendingArrangementMotionPosition(
+                                  selectedPendingPreviewInstance.id,
+                                )
+                              }
+                            >
+                              自动位置
+                            </button>
+                          </header>
+                          <div className="arrangement-inline-position-fields">
+                            <label>
+                              <span>
+                                水平位置
+                                <b>
+                                  {Math.round(
+                                    selectedPendingPreviewInstance.position.x,
+                                  )}
+                                  px
+                                </b>
+                              </span>
+                              <input
+                                type="range"
+                                min={-canvasWidth}
+                                max={canvasWidth}
+                                step={1}
+                                value={selectedPendingPreviewInstance.position.x}
+                                onChange={(event) =>
+                                  updatePendingArrangementMotionPosition(
+                                    selectedPendingPreviewInstance.id,
+                                    { x: Number(event.target.value) },
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span>
+                                垂直位置
+                                <b>
+                                  {Math.round(
+                                    selectedPendingPreviewInstance.position.y,
+                                  )}
+                                  px
+                                </b>
+                              </span>
+                              <input
+                                type="range"
+                                min={-canvasHeight}
+                                max={canvasHeight}
+                                step={1}
+                                value={selectedPendingPreviewInstance.position.y}
+                                onChange={(event) =>
+                                  updatePendingArrangementMotionPosition(
+                                    selectedPendingPreviewInstance.id,
+                                    { y: Number(event.target.value) },
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span>
+                                动效大小
+                                <b>
+                                  {Math.round(
+                                    selectedPendingPreviewInstance.position
+                                      .scale * 100,
+                                  )}
+                                  %
+                                </b>
+                              </span>
+                              <input
+                                type="range"
+                                min={20}
+                                max={200}
+                                step={1}
+                                value={Math.round(
+                                  selectedPendingPreviewInstance.position.scale *
+                                    100,
+                                )}
+                                onChange={(event) =>
+                                  updatePendingArrangementMotionPosition(
+                                    selectedPendingPreviewInstance.id,
+                                    { scale: Number(event.target.value) / 100 },
+                                  )
+                                }
+                              />
+                            </label>
+                          </div>
+                        </section>
+                      ) : null}
                       {segment.resourceTracks.map((track) => {
                         const key = `resource:${track.id}`;
                         return (
@@ -13348,6 +13662,25 @@ const App = () => {
                 </button>
               </div>
             </footer>
+            {ARRANGEMENT_PREVIEW_RESIZE_DIRECTIONS.map(
+              ({ direction, label }) => (
+                <button
+                  type="button"
+                  className={`arrangement-preview-resize-handle ${direction}`}
+                  aria-label={label}
+                  title={label}
+                  key={direction}
+                  onPointerDown={(event) =>
+                    beginArrangementPreviewDialogResize(event, direction)
+                  }
+                  onPointerMove={resizeArrangementPreviewDialog}
+                  onPointerUp={endArrangementPreviewDialogResize}
+                  onPointerCancel={endArrangementPreviewDialogResize}
+                >
+                  {direction === "se" ? <ArrowsOutLineVertical /> : null}
+                </button>
+              ),
+            )}
           </section>
         </div>
       ) : null}

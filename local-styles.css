@@ -4374,16 +4374,19 @@ aside {
 
 .arrangement-preview-layer {
   z-index: 116;
+  display: block;
 }
 
 .arrangement-preview-dialog {
+  position: fixed;
   display: flex;
   flex-direction: column;
-  width: 1480px;
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 24px);
-  max-height: calc(100dvh - 24px);
+  min-width: min(720px, calc(100vw - 32px));
+  min-height: min(480px, calc(100dvh - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
   padding: 18px;
+  overflow: hidden;
   border: 1px solid rgba(104, 232, 255, 0.28);
   border-radius: 16px;
   color: var(--text);
@@ -4397,6 +4400,13 @@ aside {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.arrangement-preview-dialog > header:active {
+  cursor: grabbing;
 }
 
 .arrangement-preview-dialog > header > div {
@@ -4422,7 +4432,16 @@ aside {
   line-height: 1.4;
 }
 
-.arrangement-preview-dialog > header > button {
+.arrangement-preview-dialog > header > .arrangement-preview-titlebar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-direction: row;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.arrangement-preview-titlebar-actions > button {
   display: grid;
   place-items: center;
   width: 28px;
@@ -4435,10 +4454,28 @@ aside {
   cursor: pointer;
 }
 
-.arrangement-preview-dialog > header > button:hover {
+.arrangement-preview-titlebar-actions > button:hover {
   color: var(--text);
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.arrangement-preview-titlebar-actions > .arrangement-preview-reset-layout,
+.arrangement-preview-titlebar-actions > .arrangement-preview-set-default {
+  display: inline-flex;
+  width: auto;
+  height: 28px;
+  gap: 5px;
+  padding: 0 9px;
+  border-color: rgba(104, 232, 255, 0.24);
+  color: #a9eaf4;
+  background: rgba(104, 232, 255, 0.06);
+  font-size: 10px;
+}
+
+.arrangement-preview-titlebar-actions svg {
+  width: 14px;
+  height: 14px;
 }
 
 .arrangement-preview-summary {
@@ -4929,12 +4966,14 @@ aside {
 }
 
 .arrangement-preview-editor {
-  display: grid;
+  display: flex;
   flex: 1 1 320px;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 10px;
   min-height: 280px;
   overflow: hidden;
+}
+
+.arrangement-preview-editor > .arrangement-preview-list {
+  width: 100%;
 }
 
 .arrangement-stage-panel {
@@ -5093,6 +5132,45 @@ aside {
 }
 
 .arrangement-position-editor input[type="range"] {
+  width: 100%;
+  accent-color: var(--cyan);
+}
+
+.arrangement-inline-position-editor {
+  margin: 8px 10px 10px;
+  border-color: rgba(104, 232, 255, 0.2);
+  background: rgba(104, 232, 255, 0.035);
+}
+
+.arrangement-inline-position-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.arrangement-inline-position-fields > label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.arrangement-inline-position-fields > label > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.arrangement-inline-position-fields > label b {
+  color: #c9f8ff;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.arrangement-inline-position-fields input[type="range"] {
   width: 100%;
   accent-color: var(--cyan);
 }
@@ -5907,6 +5985,99 @@ aside {
   cursor: default;
 }
 
+.arrangement-preview-resize-handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: rgba(169, 234, 244, 0.72);
+  background: transparent;
+  touch-action: none;
+  z-index: 3;
+}
+
+.arrangement-preview-resize-handle:hover {
+  color: #c9f8ff;
+  background: rgba(104, 232, 255, 0.14);
+}
+
+.arrangement-preview-resize-handle svg {
+  width: 14px;
+  height: 14px;
+  transform: rotate(90deg);
+}
+
+.arrangement-preview-resize-handle.n,
+.arrangement-preview-resize-handle.s {
+  left: 18px;
+  right: 18px;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.arrangement-preview-resize-handle.n {
+  top: 0;
+}
+
+.arrangement-preview-resize-handle.s {
+  bottom: 0;
+}
+
+.arrangement-preview-resize-handle.e,
+.arrangement-preview-resize-handle.w {
+  top: 18px;
+  bottom: 18px;
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.arrangement-preview-resize-handle.e {
+  right: 0;
+}
+
+.arrangement-preview-resize-handle.w {
+  left: 0;
+}
+
+.arrangement-preview-resize-handle.ne,
+.arrangement-preview-resize-handle.nw,
+.arrangement-preview-resize-handle.se,
+.arrangement-preview-resize-handle.sw {
+  width: 20px;
+  height: 20px;
+}
+
+.arrangement-preview-resize-handle.ne,
+.arrangement-preview-resize-handle.sw {
+  cursor: nesw-resize;
+}
+
+.arrangement-preview-resize-handle.nw,
+.arrangement-preview-resize-handle.se {
+  cursor: nwse-resize;
+}
+
+.arrangement-preview-resize-handle.ne {
+  top: 0;
+  right: 0;
+}
+
+.arrangement-preview-resize-handle.nw {
+  top: 0;
+  left: 0;
+}
+
+.arrangement-preview-resize-handle.se {
+  right: 0;
+  bottom: 0;
+}
+
+.arrangement-preview-resize-handle.sw {
+  bottom: 0;
+  left: 0;
+}
+
 body.arrangement-preview-popout-body {
   --muted: #8791a1;
   --text: #f5f7fa;
@@ -6042,6 +6213,23 @@ body.arrangement-preview-popout-body {
   text-align: center;
 }
 
+/* Remotion's fullscreen target keeps the preview frame's portrait/landscape
+   constraints unless they are explicitly cleared in fullscreen mode. */
+.arrangement-popout-shell :fullscreen,
+.arrangement-popout-shell :fullscreen > * {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+}
+
+.arrangement-popout-shell :fullscreen {
+  display: grid !important;
+  place-items: center !important;
+  background: #020305 !important;
+}
+
 .arrangement-popout-shell > footer {
   align-items: stretch;
 }
@@ -6077,19 +6265,27 @@ body.arrangement-preview-popout-body {
 }
 
 @media (max-width: 760px) {
-  .arrangement-preview-editor {
-    display: flex;
-    overflow-y: auto;
+  .arrangement-popout-shell {
+    padding: 10px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+
+  .arrangement-popout-shell > header,
+  .arrangement-popout-shell > footer {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .arrangement-stage-panel {
-    flex: 0 0 auto;
-    overflow: visible;
+  .arrangement-popout-status,
+  .arrangement-popout-selection {
+    align-items: flex-start;
+    text-align: left;
   }
 
-  .arrangement-stage-player.portrait {
-    height: min(44vh, 340px);
+  .arrangement-preview-editor {
+    display: flex;
+    overflow: hidden;
   }
 
   .arrangement-preview-list {
@@ -6107,6 +6303,10 @@ body.arrangement-preview-popout-body {
   }
 
   .arrangement-qc-list {
+    grid-template-columns: 1fr;
+  }
+
+  .arrangement-inline-position-fields {
     grid-template-columns: 1fr;
   }
 }
