@@ -88,6 +88,8 @@ type ArrangementPreviewDialogGeometry = {
   height: number;
 };
 
+type ArrangementPreviewMinimizedPosition = { x: number; y: number };
+
 type ArrangementPreviewDialogDefaultSize = Pick<
   ArrangementPreviewDialogGeometry,
   "width" | "height"
@@ -132,6 +134,9 @@ const SRT_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
 const ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP = 16;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH = 720;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT = 480;
+const ARRANGEMENT_PREVIEW_MINIMIZED_WIDTH = 300;
+const ARRANGEMENT_PREVIEW_MINIMIZED_HEIGHT = 56;
+const ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP = 24;
 
 type PopupWindowSize = { width: number; height: number };
 
@@ -2119,6 +2124,14 @@ const App = () => {
     startY: number;
     geometry: ArrangementPreviewDialogGeometry;
   } | null>(null);
+  const arrangementPreviewMinimizedDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    position: ArrangementPreviewMinimizedPosition;
+    moved: boolean;
+  } | null>(null);
+  const arrangementPreviewMinimizedSuppressClickRef = useRef(false);
   const arrangementPreviewDialogResizeRef = useRef<{
     pointerId: number;
     startX: number;
@@ -2166,6 +2179,19 @@ const App = () => {
   const [instances, setInstances] = useState<MotionInstance[]>([]);
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
+  const [arrangementPreviewMinimized, setArrangementPreviewMinimized] =
+    useState(false);
+  const [arrangementPreviewMinimizedPosition, setArrangementPreviewMinimizedPosition] =
+    useState<ArrangementPreviewMinimizedPosition>(() => ({
+      x: Math.max(
+        ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+        window.innerWidth - ARRANGEMENT_PREVIEW_MINIMIZED_WIDTH - ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+      ),
+      y: Math.max(
+        ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+        window.innerHeight - ARRANGEMENT_PREVIEW_MINIMIZED_HEIGHT - ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+      ),
+    }));
   const [arrangementPreviewDialogGeometry, setArrangementPreviewDialogGeometry] =
     useState<ArrangementPreviewDialogGeometry>(
       loadArrangementPreviewDialogGeometry,
@@ -2397,6 +2423,9 @@ const App = () => {
     const constrainDialogToViewport = () => {
       setArrangementPreviewDialogGeometry((current) =>
         constrainArrangementPreviewDialogGeometry(current),
+      );
+      setArrangementPreviewMinimizedPosition((current) =>
+        constrainArrangementPreviewMinimizedPosition(current),
       );
     };
     window.addEventListener("resize", constrainDialogToViewport);
@@ -4411,6 +4440,39 @@ const App = () => {
     [],
   );
 
+  const pendingPreviewInspectorInstance =
+    arrangementPreviewWindow &&
+    !arrangementPreviewWindow.closed &&
+    selectedPendingPreviewInstance
+      ? selectedPendingPreviewInstance
+      : null;
+  const inspectorInstance = pendingPreviewInspectorInstance ?? selectedInstance;
+  const inspectorDefinition = inspectorInstance
+    ? definitionMap.get(inspectorInstance.componentId) ?? null
+    : null;
+  const updateInspectorInstance = useCallback(
+    (
+      instanceId: string,
+      updater: (instance: MotionInstance) => MotionInstance,
+    ) => {
+      if (pendingPreviewInspectorInstance?.id === instanceId) {
+        setPendingArrangement((current) =>
+          current
+            ? markPendingArrangementQualityChecksStale({
+                ...current,
+                motionInstances: current.motionInstances.map((instance) =>
+                  instance.id === instanceId ? updater(instance) : instance,
+                ),
+              })
+            : current,
+        );
+        return;
+      }
+      updateInstance(instanceId, updater);
+    },
+    [pendingPreviewInspectorInstance, updateInstance],
+  );
+
   const addInstance = (componentId: string) => {
     const definition = definitionMap.get(componentId);
     if (!definition) return;
@@ -5902,6 +5964,7 @@ const App = () => {
       ...arrangementBatch.resourceItems.map((track) => `resource:${track.id}`),
       ...(captionInstance ? [`caption:${captionInstance.id}`] : []),
     ];
+    setArrangementPreviewMinimized(false);
     setPendingArrangement({
       fileName: file.name,
       batchId: arrangementBatch.batchId,
@@ -5944,58 +6007,6 @@ const App = () => {
     setArrangementComponentPicker(null);
     setArrangementResourcePicker(null);
     stopArrangementAudioPreview();
-  };
-
-  const updatePendingArrangementMotionPosition = (
-    instanceId: string,
-    patch: Partial<MotionInstance["position"]>,
-  ) => {
-    updatePendingArrangementMotionInstance(instanceId, (instance) => ({
-      ...instance,
-      position: {
-        ...instance.position,
-        ...patch,
-      },
-    }));
-  };
-
-  const updatePendingArrangementMotionInstance = (
-    instanceId: string,
-    updater: (instance: MotionInstance) => MotionInstance,
-  ) => {
-    setPendingArrangement((current) =>
-      current
-        ? markPendingArrangementQualityChecksStale({
-            ...current,
-            motionInstances: current.motionInstances.map((instance) =>
-              instance.id === instanceId ? updater(instance) : instance,
-            ),
-          })
-        : current,
-    );
-  };
-
-  const updatePendingArrangementMotionProp = (
-    instanceId: string,
-    key: string,
-    value: unknown,
-  ) => {
-    updatePendingArrangementMotionInstance(instanceId, (instance) => ({
-      ...instance,
-      props: { ...instance.props, [key]: value },
-    }));
-  };
-
-  const resetPendingArrangementMotionPosition = (instanceId: string) => {
-    const instance = pendingArrangement?.motionInstances.find(
-      (candidate) => candidate.id === instanceId,
-    );
-    const definition = instance ? definitionMap.get(instance.componentId) : null;
-    if (!instance || !definition) return;
-    updatePendingArrangementMotionPosition(
-      instanceId,
-      getRegisteredEffectPosition(definition, canvasOrientation),
-    );
   };
 
   const activeArrangementRule =
@@ -6875,21 +6886,72 @@ const App = () => {
     }
   };
 
+  const constrainArrangementPreviewMinimizedPosition = (
+    position: ArrangementPreviewMinimizedPosition,
+  ): ArrangementPreviewMinimizedPosition => ({
+    x: Math.min(
+      Math.max(ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP, position.x),
+      Math.max(
+        ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+        window.innerWidth - ARRANGEMENT_PREVIEW_MINIMIZED_WIDTH - ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+      ),
+    ),
+    y: Math.min(
+      Math.max(ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP, position.y),
+      Math.max(
+        ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+        window.innerHeight - ARRANGEMENT_PREVIEW_MINIMIZED_HEIGHT - ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP,
+      ),
+    ),
+  });
+
+  const beginArrangementPreviewMinimizedDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    arrangementPreviewMinimizedSuppressClickRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    arrangementPreviewMinimizedDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      position: arrangementPreviewMinimizedPosition,
+      moved: false,
+    };
+  };
+
+  const moveArrangementPreviewMinimized = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    const drag = arrangementPreviewMinimizedDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) drag.moved = true;
+    setArrangementPreviewMinimizedPosition(
+      constrainArrangementPreviewMinimizedPosition({
+        x: drag.position.x + deltaX,
+        y: drag.position.y + deltaY,
+      }),
+    );
+  };
+
+  const endArrangementPreviewMinimizedDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    const drag = arrangementPreviewMinimizedDragRef.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    arrangementPreviewMinimizedSuppressClickRef.current = drag.moved;
+    arrangementPreviewMinimizedDragRef.current = null;
+  };
+
   const exportInstanceTransparentMov = () => {
     if (!selectedInstance || !selectedDefinition) return;
     return exportMotionInstanceTransparentMov(selectedInstance, selectedDefinition);
-  };
-
-  const exportPendingArrangementInstanceTransparentMov = () => {
-    if (!selectedPendingPreviewInstance) return;
-    const definition = definitionMap.get(
-      selectedPendingPreviewInstance.componentId,
-    );
-    if (!definition) return;
-    return exportMotionInstanceTransparentMov(
-      selectedPendingPreviewInstance,
-      definition,
-    );
   };
 
   const seekFromPointer = (
@@ -9803,145 +9865,6 @@ const App = () => {
     );
   };
 
-  const selectedPendingPreviewDefinition = selectedPendingPreviewInstance
-    ? definitionMap.get(selectedPendingPreviewInstance.componentId) ?? null
-    : null;
-
-  const shouldShowPendingArrangementProp = (key: string) => {
-    if (!selectedPendingPreviewInstance || !selectedPendingPreviewDefinition) {
-      return false;
-    }
-    const props = selectedPendingPreviewInstance.props;
-    const definitionId = selectedPendingPreviewDefinition.id;
-    const indexedRules: Array<{
-      definitionId: string;
-      pattern: RegExp;
-      countKey: string;
-      fallback: number;
-      minimum?: number;
-    }> = [
-      { definitionId: "PortraitWorkflowPrerequisite", pattern: /^step(?:Color)?(\d+)$/, countKey: "stepCount", fallback: 4 },
-      { definitionId: "PortraitSkillSourceFusion", pattern: /^source(\d+)(?:Detail|Color)?$/, countKey: "sourceCount", fallback: 3 },
-      { definitionId: "PortraitDesignRuleChecklist", pattern: /^rule(\d+)$/, countKey: "ruleCount", fallback: 4 },
-      { definitionId: "PortraitRiskWarning", pattern: /^(?:risk|icon)(\d+)$/, countKey: "riskCount", fallback: 3 },
-      { definitionId: "PortraitSkillResultComparison", pattern: /^material(\d+)(?:Url|Eyebrow|Title|Detail|Color)$/, countKey: "materialCount", fallback: 3 },
-      { definitionId: "PortraitPromptIterationShowcase", pattern: /^iteration(\d+)(?:Url|Prompt|Badge|Color)$/, countKey: "iterationCount", fallback: 3 },
-      { definitionId: "PortraitGsapSkillShowcase", pattern: /^capability(\d+)(?:Title|Detail)$/, countKey: "capabilityCount", fallback: 3 },
-      { definitionId: "PortraitCodeDecisionChecklist", pattern: /^question(\d+)$/, countKey: "questionCount", fallback: 6 },
-      { definitionId: "PortraitBrowserRepairLoop", pattern: /^step(\d+)$/, countKey: "stepCount", fallback: 6, minimum: 2 },
-      { definitionId: "PortraitSkillStepGrid", pattern: /^step(\d+)(?:Title|Subtitle)$/, countKey: "stepCount", fallback: 4 },
-    ];
-    const rule = indexedRules.find((candidate) => candidate.definitionId === definitionId);
-    if (!rule) return true;
-    const match = key.match(rule.pattern);
-    if (!match) return true;
-    const activeCount = clamp(
-      Math.round(Number(props[rule.countKey] ?? rule.fallback)),
-      rule.minimum ?? 1,
-      8,
-    );
-    return Number(match[1]) <= activeCount;
-  };
-
-  const renderPendingArrangementPropControl = (
-    key: string,
-    schema: MotionPropSchema,
-  ) => {
-    if (!selectedPendingPreviewInstance || !shouldShowPendingArrangementProp(key)) {
-      return null;
-    }
-    const value =
-      selectedPendingPreviewInstance.props[key] ?? schema.default ?? "";
-    const label = schema.label ?? key;
-    const updateValue = (nextValue: unknown) =>
-      updatePendingArrangementMotionProp(
-        selectedPendingPreviewInstance.id,
-        key,
-        nextValue,
-      );
-
-    if (schema.type === "boolean") {
-      return (
-        <label className="arrangement-popout-toggle" key={key}>
-          <span>{label}</span>
-          <input
-            type="checkbox"
-            checked={Boolean(value)}
-            onChange={(event) => updateValue(event.target.checked)}
-          />
-        </label>
-      );
-    }
-    if (schema.type === "select") {
-      return (
-        <label className="arrangement-popout-field" key={key}>
-          <span>{label}</span>
-          <select
-            value={String(value)}
-            onChange={(event) => updateValue(event.target.value)}
-          >
-            {(schema.options ?? []).map((option) => {
-              const optionValue = typeof option === "string" ? option : option.value;
-              const optionLabel = typeof option === "string" ? option : option.label;
-              return <option value={optionValue} key={optionValue}>{optionLabel}</option>;
-            })}
-          </select>
-        </label>
-      );
-    }
-    if (schema.type === "color") {
-      return (
-        <label className="arrangement-popout-field arrangement-popout-color" key={key}>
-          <span>{label}</span>
-          <input
-            type="color"
-            value={String(value || "#65dff7")}
-            onChange={(event) => updateValue(event.target.value)}
-          />
-        </label>
-      );
-    }
-    if (
-      schema.type === "number" &&
-      typeof schema.min === "number" &&
-      typeof schema.max === "number"
-    ) {
-      const numericValue = clamp(Number(value), schema.min, schema.max);
-      return (
-        <label className="arrangement-popout-range" key={key}>
-          <span>{label} <b>{numericValue.toFixed(schema.step && schema.step < 1 ? 2 : 0)}</b></span>
-          <input
-            type="range"
-            min={schema.min}
-            max={schema.max}
-            step={schema.step ?? 1}
-            value={numericValue}
-            onChange={(event) => updateValue(Number(event.target.value))}
-          />
-        </label>
-      );
-    }
-    return (
-      <label className="arrangement-popout-field" key={key}>
-        <span>{label}</span>
-        <input
-          type={schema.type === "number" ? "number" : "text"}
-          min={schema.type === "number" ? schema.min : undefined}
-          max={schema.type === "number" ? schema.max : undefined}
-          step={schema.type === "number" ? schema.step ?? 1 : undefined}
-          value={String(value)}
-          onChange={(event) =>
-            updateValue(
-              schema.type === "number"
-                ? Number(event.target.value)
-                : event.target.value,
-            )
-          }
-        />
-      </label>
-    );
-  };
-
   const visibleCanvasItems = useMemo(
     () =>
       instances.flatMap((instance, index) => {
@@ -12051,7 +11974,7 @@ const App = () => {
                 </section>
               </>
             ) : null}
-            {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
+            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition ? (
               <section className="reference-inspector-section">
                 <div className="reference-section-title">
                   <strong>独立大小与位置</strong><small>SIZE · POSITION</small>
@@ -12060,14 +11983,14 @@ const App = () => {
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>独立大小</label>
-                      <b>{Math.round(selectedInstance.position.scale * 100)}%</b>
+                      <b>{Math.round(inspectorInstance.position.scale * 100)}%</b>
                     </div>
                     <input
                       type="range"
                       min={0.1}
                       max={3}
                       step={0.01}
-                      value={clamp(selectedInstance.position.scale, 0.1, 3)}
+                      value={clamp(inspectorInstance.position.scale, 0.1, 3)}
                       title="只缩放当前选中组件，与全局整体大小相乘"
                       onChange={(event) => {
                         const nextScale = Number(event.target.value);
@@ -12075,34 +11998,34 @@ const App = () => {
                           0,
                           Math.round(
                             canvasWidth -
-                              selectedDefinition.bounds.width * nextScale,
+                              inspectorDefinition.bounds.width * nextScale,
                           ),
                         );
                         const nextMinX =
-                          selectedDefinition.id === "QuickSetupProof"
+                          inspectorDefinition.id === "QuickSetupProof"
                             ? 0
                             : Math.min(
                                 0,
                                 Math.round(
                                   canvasWidth -
-                                    selectedDefinition.bounds.width * nextScale,
+                                  inspectorDefinition.bounds.width * nextScale,
                                 ),
                               );
                         const nextMaxY = Math.max(
                           0,
                           Math.round(
                             canvasHeight -
-                              selectedDefinition.bounds.height * nextScale,
+                              inspectorDefinition.bounds.height * nextScale,
                           ),
                         );
                         const nextMinY = Math.min(
                           0,
                           Math.round(
                             canvasHeight -
-                              selectedDefinition.bounds.height * nextScale,
+                              inspectorDefinition.bounds.height * nextScale,
                           ),
                         );
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           position: {
                             ...instance.position,
@@ -12117,19 +12040,19 @@ const App = () => {
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>水平位置</label>
-                      <b>{Math.round(selectedInstance.position.x)}px</b>
+                      <b>{Math.round(inspectorInstance.position.x)}px</b>
                     </div>
                     <input
                       type="range"
                       min={
-                        selectedDefinition.id === "QuickSetupProof"
+                        inspectorDefinition.id === "QuickSetupProof"
                           ? 0
                           : Math.min(
                               0,
                               Math.round(
                                 canvasWidth -
-                                  selectedDefinition.bounds.width *
-                                    selectedInstance.position.scale,
+                                inspectorDefinition.bounds.width *
+                                    inspectorInstance.position.scale,
                               ),
                             )
                       }
@@ -12137,34 +12060,34 @@ const App = () => {
                         0,
                         Math.round(
                           canvasWidth -
-                            selectedDefinition.bounds.width *
-                              selectedInstance.position.scale,
+                            inspectorDefinition.bounds.width *
+                              inspectorInstance.position.scale,
                         ),
                       )}
                       step={1}
                       value={clamp(
-                        Math.round(selectedInstance.position.x),
-                        selectedDefinition.id === "QuickSetupProof"
+                        Math.round(inspectorInstance.position.x),
+                        inspectorDefinition.id === "QuickSetupProof"
                           ? 0
                           : Math.min(
                               0,
                               Math.round(
                                 canvasWidth -
-                                  selectedDefinition.bounds.width *
-                                    selectedInstance.position.scale,
+                                inspectorDefinition.bounds.width *
+                                  inspectorInstance.position.scale,
                               ),
                             ),
                         Math.max(
                           0,
                           Math.round(
                             canvasWidth -
-                              selectedDefinition.bounds.width *
-                                selectedInstance.position.scale,
+                            inspectorDefinition.bounds.width *
+                              inspectorInstance.position.scale,
                           ),
                         ),
                       )}
                       onChange={(event) =>
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           position: {
                             ...instance.position,
@@ -12177,7 +12100,7 @@ const App = () => {
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>垂直位置</label>
-                      <b>{Math.round(selectedInstance.position.y)}px</b>
+                      <b>{Math.round(inspectorInstance.position.y)}px</b>
                     </div>
                     <input
                       type="range"
@@ -12185,40 +12108,40 @@ const App = () => {
                         0,
                         Math.round(
                           canvasHeight -
-                            selectedDefinition.bounds.height *
-                              selectedInstance.position.scale,
+                            inspectorDefinition.bounds.height *
+                              inspectorInstance.position.scale,
                         ),
                       )}
                       max={Math.max(
                         0,
                         Math.round(
                           canvasHeight -
-                            selectedDefinition.bounds.height *
-                              selectedInstance.position.scale,
+                            inspectorDefinition.bounds.height *
+                              inspectorInstance.position.scale,
                         ),
                       )}
                       step={1}
                       value={clamp(
-                        Math.round(selectedInstance.position.y),
+                        Math.round(inspectorInstance.position.y),
                         Math.min(
                           0,
                           Math.round(
                             canvasHeight -
-                              selectedDefinition.bounds.height *
-                                selectedInstance.position.scale,
+                            inspectorDefinition.bounds.height *
+                              inspectorInstance.position.scale,
                           ),
                         ),
                         Math.max(
                           0,
                           Math.round(
                             canvasHeight -
-                              selectedDefinition.bounds.height *
-                                selectedInstance.position.scale,
+                            inspectorDefinition.bounds.height *
+                              inspectorInstance.position.scale,
                           ),
                         ),
                       )}
                       onChange={(event) =>
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           position: {
                             ...instance.position,
@@ -12231,18 +12154,18 @@ const App = () => {
                 </div>
               </section>
             ) : null}
-            {!selectedResourceTrack && selectedInstance && selectedDefinition ? (
+            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition ? (
               <section className="reference-inspector-section">
                 <div className="reference-section-title">
                   <strong>卡片底色</strong><small>OPACITY</small>
                 </div>
                 <div className="dynamic-prop-fields">
                   <span
-                    className={`pill-toggle${selectedInstance.backgroundOpacity > 0 ? ' active' : ''}`}
+                    className={`pill-toggle${inspectorInstance.backgroundOpacity > 0 ? ' active' : ''}`}
                     role="switch"
-                    aria-checked={selectedInstance.backgroundOpacity > 0}
+                    aria-checked={inspectorInstance.backgroundOpacity > 0}
                     onClick={() =>
-                      updateInstance(selectedInstance.id, (instance) => ({
+                      updateInspectorInstance(inspectorInstance.id, (instance) => ({
                         ...instance,
                         backgroundOpacity: instance.backgroundOpacity > 0 ? 0 : 1,
                       }))
@@ -12256,7 +12179,7 @@ const App = () => {
                       <label>底色透明度</label>
                       <b>
                         {Math.round(
-                          clamp(selectedInstance.backgroundOpacity, 0, 1) * 100,
+                          clamp(inspectorInstance.backgroundOpacity, 0, 1) * 100,
                         )}
                         %
                       </b>
@@ -12266,10 +12189,10 @@ const App = () => {
                       min={0}
                       max={1}
                       step={0.01}
-                      value={clamp(selectedInstance.backgroundOpacity, 0, 1)}
+                      value={clamp(inspectorInstance.backgroundOpacity, 0, 1)}
                       title="只调整当前选中组件的卡片底色：100% 为原设计底色，0% 为完全透明"
                       onChange={(event) =>
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           backgroundOpacity: clamp(
                             Number(event.target.value),
@@ -12939,15 +12862,53 @@ const App = () => {
       ) : null}
       {pendingArrangement ? (
         <div
-          className="export-dialog-layer arrangement-preview-layer"
-          onPointerDown={() => {
-            stopArrangementAudioPreview();
-            setPendingArrangement(null);
-            setArrangementComponentPicker(null);
-            setArrangementResourcePicker(null);
-            setArrangementResourceSearch("");
-          }}
+          className={`export-dialog-layer arrangement-preview-layer${
+            arrangementPreviewMinimized ? " is-minimized" : ""
+          }`}
+          onPointerDown={
+            arrangementPreviewMinimized
+              ? undefined
+              : () => {
+                  stopArrangementAudioPreview();
+                  setPendingArrangement(null);
+                  setArrangementComponentPicker(null);
+                  setArrangementResourcePicker(null);
+                  setArrangementResourceSearch("");
+                }
+          }
         >
+          {arrangementPreviewMinimized ? (
+            <button
+              type="button"
+              className="arrangement-preview-minimized"
+              aria-label="恢复编排预览"
+              style={{
+                left: `${arrangementPreviewMinimizedPosition.x}px`,
+                top: `${arrangementPreviewMinimizedPosition.y}px`,
+              }}
+              onPointerDown={beginArrangementPreviewMinimizedDrag}
+              onPointerMove={moveArrangementPreviewMinimized}
+              onPointerUp={endArrangementPreviewMinimizedDrag}
+              onPointerCancel={endArrangementPreviewMinimizedDrag}
+              onClick={(event) => {
+                if (arrangementPreviewMinimizedSuppressClickRef.current) {
+                  event.preventDefault();
+                  arrangementPreviewMinimizedSuppressClickRef.current = false;
+                  return;
+                }
+                setArrangementPreviewMinimized(false);
+              }}
+            >
+              <span>
+                <small>ARRANGEMENT PREVIEW</small>
+                <strong>编排预览已最小化</strong>
+              </span>
+              <b>已选 {pendingArrangement.selectedKeys.length} 项</b>
+              <span className="arrangement-preview-minimized-restore">
+                <ArrowsOutLineVertical />恢复
+              </span>
+            </button>
+          ) : (
           <section
             className="arrangement-preview-dialog"
             role="dialog"
@@ -12974,6 +12935,21 @@ const App = () => {
                 <span>{pendingArrangement.fileName}</span>
               </div>
               <div className="arrangement-preview-titlebar-actions">
+                <button
+                  type="button"
+                  aria-label="最小化编排预览"
+                  title="最小化（保留当前编排）"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    stopArrangementAudioPreview();
+                    setArrangementComponentPicker(null);
+                    setArrangementResourcePicker(null);
+                    setArrangementResourceSearch("");
+                    setArrangementPreviewMinimized(true);
+                  }}
+                >
+                  <Minus />
+                </button>
                 <button
                   type="button"
                   className="arrangement-preview-set-default"
@@ -13996,6 +13972,7 @@ const App = () => {
               ),
             )}
           </section>
+          )}
         </div>
       ) : null}
       {srtDialogOpen ? (
@@ -14516,13 +14493,9 @@ const App = () => {
 
               <aside className="arrangement-popout-controls">
                 <header>
-                  <small>COMPONENT CONTROL</small>
-                  <strong>
-                    {selectedPendingPreviewInstance
-                      ? definitionMap.get(selectedPendingPreviewInstance.componentId)?.name ?? "当前动效"
-                      : "未选择动效"}
-                  </strong>
-                  <span>调整结果会同步回主窗口，确认后才写入时间线。</span>
+                  <small>GLOBAL CONTROL</small>
+                  <strong>独立预览</strong>
+                  <span>仅保留与主界面实时同步的全局控制。</span>
                 </header>
                 <section>
                   <div className="arrangement-popout-control-title"><strong>全局控制</strong><small>GLOBAL</small></div>
@@ -14531,136 +14504,6 @@ const App = () => {
                     <input type="range" min="50" max="200" value={Math.round(globalCardScale * 100)} onChange={(event) => setGlobalCardScale(Number(event.target.value) / 100)} />
                   </label>
                 </section>
-                {selectedPendingPreviewInstance ? (
-                  <>
-                    <section>
-                      <div className="arrangement-popout-control-title"><strong>独立大小与位置</strong><small>SIZE · POSITION</small></div>
-                      <label className="arrangement-popout-range">
-                        <span>独立大小 <b>{Math.round(selectedPendingPreviewInstance.position.scale * 100)}%</b></span>
-                        <input type="range" min="20" max="300" value={Math.round(selectedPendingPreviewInstance.position.scale * 100)} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { scale: Number(event.target.value) / 100 })} />
-                      </label>
-                      <label className="arrangement-popout-range">
-                        <span>水平位置 <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b></span>
-                        <input type="range" min={-canvasWidth} max={canvasWidth} value={selectedPendingPreviewInstance.position.x} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { x: Number(event.target.value) })} />
-                      </label>
-                      <label className="arrangement-popout-range">
-                        <span>垂直位置 <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b></span>
-                        <input type="range" min={-canvasHeight} max={canvasHeight} value={selectedPendingPreviewInstance.position.y} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { y: Number(event.target.value) })} />
-                      </label>
-                      <button type="button" className="arrangement-popout-auto" onClick={() => resetPendingArrangementMotionPosition(selectedPendingPreviewInstance.id)}>自动位置</button>
-                    </section>
-
-                    <section>
-                      <div className="arrangement-popout-control-title"><strong>卡片底色</strong><small>OPACITY</small></div>
-                      <label className="arrangement-popout-toggle">
-                        <span>显示卡片底色</span>
-                        <input
-                          type="checkbox"
-                          checked={selectedPendingPreviewInstance.backgroundOpacity > 0}
-                          onChange={(event) =>
-                            updatePendingArrangementMotionInstance(
-                              selectedPendingPreviewInstance.id,
-                              (instance) => ({
-                                ...instance,
-                                backgroundOpacity: event.target.checked ? 1 : 0,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-                      <label className="arrangement-popout-range">
-                        <span>底色透明度 <b>{Math.round(clamp(selectedPendingPreviewInstance.backgroundOpacity, 0, 1) * 100)}%</b></span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={clamp(selectedPendingPreviewInstance.backgroundOpacity, 0, 1)}
-                          onChange={(event) =>
-                            updatePendingArrangementMotionInstance(
-                              selectedPendingPreviewInstance.id,
-                              (instance) => ({
-                                ...instance,
-                                backgroundOpacity: Number(event.target.value),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-                    </section>
-
-                    <section>
-                      <div className="arrangement-popout-control-title"><strong>单组件导出</strong><small>EXPORT</small></div>
-                      <button
-                        type="button"
-                        className="arrangement-popout-export"
-                        disabled={rendering}
-                        onClick={exportPendingArrangementInstanceTransparentMov}
-                      >
-                        <DownloadSimple />
-                        {rendering ? "正在导出…" : "导出透明 MOV"}
-                      </button>
-                    </section>
-
-                    {selectedPendingPreviewDefinition ? (
-                      <>
-                        <section>
-                          <div className="arrangement-popout-control-title"><strong>当前效果</strong><small>COMPONENT</small></div>
-                          <div className="arrangement-popout-current-effect">
-                            <strong>{selectedPendingPreviewDefinition.name}</strong>
-                            <span>{selectedPendingPreviewDefinition.description}</span>
-                          </div>
-                          <label className="arrangement-popout-toggle">
-                            <span>显示组件</span>
-                            <input
-                              type="checkbox"
-                              checked={selectedPendingPreviewInstance.visible !== false}
-                              onChange={(event) =>
-                                updatePendingArrangementMotionInstance(
-                                  selectedPendingPreviewInstance.id,
-                                  (instance) => ({ ...instance, visible: event.target.checked }),
-                                )
-                              }
-                            />
-                          </label>
-                        </section>
-
-                        <section>
-                          <div className="arrangement-popout-control-title"><strong>组件参数</strong><small>PROPERTIES</small></div>
-                          <div className="arrangement-popout-fields">
-                            {Object.entries(selectedPendingPreviewDefinition.propsSchema).map(
-                              ([key, schema]) => renderPendingArrangementPropControl(key, schema),
-                            )}
-                          </div>
-                        </section>
-
-                        <section>
-                          <div className="arrangement-popout-control-title"><strong>时间范围</strong><small>TIMING</small></div>
-                          <label className="arrangement-popout-field">
-                            <span>组件时长（秒）</span>
-                            <input
-                              type="number"
-                              min={3 / fps}
-                              step="0.1"
-                              value={(selectedPendingPreviewInstance.durationInFrames / fps).toFixed(1)}
-                              onChange={(event) =>
-                                updatePendingArrangementMotionInstance(
-                                  selectedPendingPreviewInstance.id,
-                                  (instance) => ({
-                                    ...instance,
-                                    durationInFrames: Math.max(3, Math.round(Number(event.target.value) * fps)),
-                                  }),
-                                )
-                              }
-                            />
-                          </label>
-                        </section>
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="arrangement-popout-controls-empty">请先在主窗口选择一个动效组件。</p>
-                )}
               </aside>
             </main>,
             arrangementPreviewWindow.document.body,
