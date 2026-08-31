@@ -163,13 +163,17 @@ const rememberPopupWindowSize = (
   const width = Number(previewWindow.outerWidth);
   const height = Number(previewWindow.outerHeight);
   if (!Number.isFinite(width) || !Number.isFinite(height)) return;
-  window.localStorage.setItem(
-    storageKey,
-    JSON.stringify({
-      width: Math.max(640, Math.round(width)),
-      height: Math.max(480, Math.round(height)),
-    }),
-  );
+  try {
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        width: Math.max(640, Math.round(width)),
+        height: Math.max(480, Math.round(height)),
+      }),
+    );
+  } catch {
+    // Private-mode storage or a browser policy must not prevent the popup closing.
+  }
 };
 
 const defaultArrangementPreviewDialogGeometry = (): ArrangementPreviewDialogGeometry => {
@@ -2280,17 +2284,16 @@ const App = () => {
       arrangementPreviewWindowRef.current = previewWindow;
       setArrangementPreviewWindow(previewWindow);
       previewWindow.focus();
-      previewWindow.addEventListener("resize", () => {
+      const persistPopupSize = () => {
         rememberPopupWindowSize(
           ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
           previewWindow,
         );
-      });
+      };
+      previewWindow.addEventListener("resize", persistPopupSize);
+      previewWindow.addEventListener("pagehide", persistPopupSize, { once: true });
       previewWindow.addEventListener("beforeunload", () => {
-        rememberPopupWindowSize(
-          ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
-          previewWindow,
-        );
+        persistPopupSize();
         if (arrangementPreviewWindowRef.current === previewWindow) {
           arrangementPreviewWindowRef.current = null;
           setArrangementPreviewWindow(null);
@@ -2342,17 +2345,16 @@ const App = () => {
     realtimePreviewWindowRef.current = previewWindow;
     setRealtimePreviewWindow(previewWindow);
     previewWindow.focus();
-    previewWindow.addEventListener("resize", () => {
+    const persistPopupSize = () => {
       rememberPopupWindowSize(
         REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
         previewWindow,
       );
-    });
+    };
+    previewWindow.addEventListener("resize", persistPopupSize);
+    previewWindow.addEventListener("pagehide", persistPopupSize, { once: true });
     previewWindow.addEventListener("beforeunload", () => {
-      rememberPopupWindowSize(
-        REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
-        previewWindow,
-      );
+      persistPopupSize();
       if (realtimePreviewWindowRef.current === previewWindow) {
         realtimePreviewWindowRef.current = null;
         setRealtimePreviewWindow(null);
@@ -2366,12 +2368,20 @@ const App = () => {
 
   useEffect(() => () => {
     const previewWindow = arrangementPreviewWindowRef.current;
+    rememberPopupWindowSize(
+      ARRANGEMENT_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+      previewWindow,
+    );
     arrangementPreviewWindowRef.current = null;
     if (previewWindow && !previewWindow.closed) previewWindow.close();
   }, []);
 
   useEffect(() => () => {
     const previewWindow = realtimePreviewWindowRef.current;
+    rememberPopupWindowSize(
+      REALTIME_PREVIEW_POPUP_SIZE_STORAGE_KEY,
+      previewWindow,
+    );
     realtimePreviewWindowRef.current = null;
     if (previewWindow && !previewWindow.closed) previewWindow.close();
   }, []);
@@ -4017,9 +4027,9 @@ const App = () => {
       resourceTracks: pendingArrangement.resourceTracks.filter((track) =>
         selectedKeys.has(`resource:${track.id}`),
       ),
-      safetyGuideVisible: true,
+      safetyGuideVisible,
     };
-  }, [globalCardBase, pendingArrangement, previewInputProps]);
+  }, [globalCardBase, pendingArrangement, previewInputProps, safetyGuideVisible]);
 
   useEffect(() => {
     if (!pendingArrangement || pendingArrangementSegments.length === 0) {
@@ -5940,24 +5950,40 @@ const App = () => {
     instanceId: string,
     patch: Partial<MotionInstance["position"]>,
   ) => {
+    updatePendingArrangementMotionInstance(instanceId, (instance) => ({
+      ...instance,
+      position: {
+        ...instance.position,
+        ...patch,
+      },
+    }));
+  };
+
+  const updatePendingArrangementMotionInstance = (
+    instanceId: string,
+    updater: (instance: MotionInstance) => MotionInstance,
+  ) => {
     setPendingArrangement((current) =>
       current
         ? markPendingArrangementQualityChecksStale({
             ...current,
             motionInstances: current.motionInstances.map((instance) =>
-              instance.id === instanceId
-                ? {
-                    ...instance,
-                    position: {
-                      ...instance.position,
-                      ...patch,
-                    },
-                  }
-                : instance,
+              instance.id === instanceId ? updater(instance) : instance,
             ),
           })
         : current,
     );
+  };
+
+  const updatePendingArrangementMotionProp = (
+    instanceId: string,
+    key: string,
+    value: unknown,
+  ) => {
+    updatePendingArrangementMotionInstance(instanceId, (instance) => ({
+      ...instance,
+      props: { ...instance.props, [key]: value },
+    }));
   };
 
   const resetPendingArrangementMotionPosition = (instanceId: string) => {
@@ -6781,9 +6807,11 @@ const App = () => {
     }
   };
 
-  const exportInstanceTransparentMov = async () => {
-    if (!selectedInstance || !selectedDefinition) return;
-    if (selectedInstance.visible === false) {
+  const exportMotionInstanceTransparentMov = async (
+    instance: MotionInstance,
+    definition: MotionComponentDefinition,
+  ) => {
+    if (instance.visible === false) {
       setNotice({ tone: "error", text: "当前组件处于隐藏状态，请先显示后再导出。" });
       return;
     }
@@ -6798,7 +6826,7 @@ const App = () => {
     }
     const now = new Date();
     const pad = (value: number) => String(value).padStart(2, "0");
-    const fileName = `${selectedDefinition.name}-透明导出-${now.getFullYear()}${pad(
+    const fileName = `${definition.name}-透明导出-${now.getFullYear()}${pad(
       now.getMonth() + 1,
     )}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(
       now.getSeconds(),
@@ -6808,7 +6836,7 @@ const App = () => {
     setRenderResult(null);
     setNotice({
       tone: "info",
-      text: `正在单独导出「${selectedDefinition.name}」透明 MOV（仅该组件、无背景视频）…`,
+      text: `正在单独导出「${definition.name}」透明 MOV（仅该组件、无背景视频）…`,
     });
     try {
       const response = await fetch("/api/render", {
@@ -6820,10 +6848,10 @@ const App = () => {
           resourceTracks: [],
           sourceIncludesVideo: false,
           soundEnabled: false,
-          instances: [{ ...selectedInstance, startFrame: 0 }],
+          instances: [{ ...instance, startFrame: 0 }],
           timelineDurationInFrames: Math.max(
             3,
-            selectedInstance.durationInFrames,
+            instance.durationInFrames,
           ),
           canvasWidth,
           canvasHeight,
@@ -6845,6 +6873,23 @@ const App = () => {
     } finally {
       setRendering(false);
     }
+  };
+
+  const exportInstanceTransparentMov = () => {
+    if (!selectedInstance || !selectedDefinition) return;
+    return exportMotionInstanceTransparentMov(selectedInstance, selectedDefinition);
+  };
+
+  const exportPendingArrangementInstanceTransparentMov = () => {
+    if (!selectedPendingPreviewInstance) return;
+    const definition = definitionMap.get(
+      selectedPendingPreviewInstance.componentId,
+    );
+    if (!definition) return;
+    return exportMotionInstanceTransparentMov(
+      selectedPendingPreviewInstance,
+      definition,
+    );
   };
 
   const seekFromPointer = (
@@ -9748,6 +9793,145 @@ const App = () => {
           onChange={(event) =>
             updateSelectedProp(
               key,
+              schema.type === "number"
+                ? Number(event.target.value)
+                : event.target.value,
+            )
+          }
+        />
+      </label>
+    );
+  };
+
+  const selectedPendingPreviewDefinition = selectedPendingPreviewInstance
+    ? definitionMap.get(selectedPendingPreviewInstance.componentId) ?? null
+    : null;
+
+  const shouldShowPendingArrangementProp = (key: string) => {
+    if (!selectedPendingPreviewInstance || !selectedPendingPreviewDefinition) {
+      return false;
+    }
+    const props = selectedPendingPreviewInstance.props;
+    const definitionId = selectedPendingPreviewDefinition.id;
+    const indexedRules: Array<{
+      definitionId: string;
+      pattern: RegExp;
+      countKey: string;
+      fallback: number;
+      minimum?: number;
+    }> = [
+      { definitionId: "PortraitWorkflowPrerequisite", pattern: /^step(?:Color)?(\d+)$/, countKey: "stepCount", fallback: 4 },
+      { definitionId: "PortraitSkillSourceFusion", pattern: /^source(\d+)(?:Detail|Color)?$/, countKey: "sourceCount", fallback: 3 },
+      { definitionId: "PortraitDesignRuleChecklist", pattern: /^rule(\d+)$/, countKey: "ruleCount", fallback: 4 },
+      { definitionId: "PortraitRiskWarning", pattern: /^(?:risk|icon)(\d+)$/, countKey: "riskCount", fallback: 3 },
+      { definitionId: "PortraitSkillResultComparison", pattern: /^material(\d+)(?:Url|Eyebrow|Title|Detail|Color)$/, countKey: "materialCount", fallback: 3 },
+      { definitionId: "PortraitPromptIterationShowcase", pattern: /^iteration(\d+)(?:Url|Prompt|Badge|Color)$/, countKey: "iterationCount", fallback: 3 },
+      { definitionId: "PortraitGsapSkillShowcase", pattern: /^capability(\d+)(?:Title|Detail)$/, countKey: "capabilityCount", fallback: 3 },
+      { definitionId: "PortraitCodeDecisionChecklist", pattern: /^question(\d+)$/, countKey: "questionCount", fallback: 6 },
+      { definitionId: "PortraitBrowserRepairLoop", pattern: /^step(\d+)$/, countKey: "stepCount", fallback: 6, minimum: 2 },
+      { definitionId: "PortraitSkillStepGrid", pattern: /^step(\d+)(?:Title|Subtitle)$/, countKey: "stepCount", fallback: 4 },
+    ];
+    const rule = indexedRules.find((candidate) => candidate.definitionId === definitionId);
+    if (!rule) return true;
+    const match = key.match(rule.pattern);
+    if (!match) return true;
+    const activeCount = clamp(
+      Math.round(Number(props[rule.countKey] ?? rule.fallback)),
+      rule.minimum ?? 1,
+      8,
+    );
+    return Number(match[1]) <= activeCount;
+  };
+
+  const renderPendingArrangementPropControl = (
+    key: string,
+    schema: MotionPropSchema,
+  ) => {
+    if (!selectedPendingPreviewInstance || !shouldShowPendingArrangementProp(key)) {
+      return null;
+    }
+    const value =
+      selectedPendingPreviewInstance.props[key] ?? schema.default ?? "";
+    const label = schema.label ?? key;
+    const updateValue = (nextValue: unknown) =>
+      updatePendingArrangementMotionProp(
+        selectedPendingPreviewInstance.id,
+        key,
+        nextValue,
+      );
+
+    if (schema.type === "boolean") {
+      return (
+        <label className="arrangement-popout-toggle" key={key}>
+          <span>{label}</span>
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => updateValue(event.target.checked)}
+          />
+        </label>
+      );
+    }
+    if (schema.type === "select") {
+      return (
+        <label className="arrangement-popout-field" key={key}>
+          <span>{label}</span>
+          <select
+            value={String(value)}
+            onChange={(event) => updateValue(event.target.value)}
+          >
+            {(schema.options ?? []).map((option) => {
+              const optionValue = typeof option === "string" ? option : option.value;
+              const optionLabel = typeof option === "string" ? option : option.label;
+              return <option value={optionValue} key={optionValue}>{optionLabel}</option>;
+            })}
+          </select>
+        </label>
+      );
+    }
+    if (schema.type === "color") {
+      return (
+        <label className="arrangement-popout-field arrangement-popout-color" key={key}>
+          <span>{label}</span>
+          <input
+            type="color"
+            value={String(value || "#65dff7")}
+            onChange={(event) => updateValue(event.target.value)}
+          />
+        </label>
+      );
+    }
+    if (
+      schema.type === "number" &&
+      typeof schema.min === "number" &&
+      typeof schema.max === "number"
+    ) {
+      const numericValue = clamp(Number(value), schema.min, schema.max);
+      return (
+        <label className="arrangement-popout-range" key={key}>
+          <span>{label} <b>{numericValue.toFixed(schema.step && schema.step < 1 ? 2 : 0)}</b></span>
+          <input
+            type="range"
+            min={schema.min}
+            max={schema.max}
+            step={schema.step ?? 1}
+            value={numericValue}
+            onChange={(event) => updateValue(Number(event.target.value))}
+          />
+        </label>
+      );
+    }
+    return (
+      <label className="arrangement-popout-field" key={key}>
+        <span>{label}</span>
+        <input
+          type={schema.type === "number" ? "number" : "text"}
+          min={schema.type === "number" ? schema.min : undefined}
+          max={schema.type === "number" ? schema.max : undefined}
+          step={schema.type === "number" ? schema.step ?? 1 : undefined}
+          value={String(value)}
+          onChange={(event) =>
+            updateValue(
               schema.type === "number"
                 ? Number(event.target.value)
                 : event.target.value,
@@ -14286,7 +14470,13 @@ const App = () => {
               <section
                 className={`arrangement-popout-player ${canvasOrientation}`}
               >
-                <div className="arrangement-popout-player-frame">
+                <div
+                  className={
+                    solidBackgroundEnabled
+                      ? "arrangement-popout-player-frame"
+                      : "arrangement-popout-player-frame transparent-grid"
+                  }
+                >
                   {motionModule && activePendingPreviewSegment ? (
                     <Player
                       ref={arrangementPreviewPopoutPlayerRef}
@@ -14304,7 +14494,18 @@ const App = () => {
                       style={{
                         width: "100%",
                         height: "100%",
-                        backgroundColor: "#05070a",
+                        backgroundColor: solidBackgroundEnabled
+                          ? "#05070a"
+                          : "transparent",
+                        backgroundImage: solidBackgroundEnabled
+                          ? "none"
+                          : "linear-gradient(45deg, #181b22 25%, transparent 25%), linear-gradient(-45deg, #181b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181b22 75%), linear-gradient(-45deg, transparent 75%, #181b22 75%)",
+                        backgroundPosition: solidBackgroundEnabled
+                          ? undefined
+                          : "0 0, 0 8px, 8px -8px, -8px 0",
+                        backgroundSize: solidBackgroundEnabled
+                          ? undefined
+                          : "16px 16px",
                       }}
                     />
                   ) : (
@@ -14331,22 +14532,132 @@ const App = () => {
                   </label>
                 </section>
                 {selectedPendingPreviewInstance ? (
-                  <section>
-                    <div className="arrangement-popout-control-title"><strong>独立大小与位置</strong><small>SIZE · POSITION</small></div>
-                    <label className="arrangement-popout-range">
-                      <span>独立大小 <b>{Math.round(selectedPendingPreviewInstance.position.scale * 100)}%</b></span>
-                      <input type="range" min="20" max="300" value={Math.round(selectedPendingPreviewInstance.position.scale * 100)} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { scale: Number(event.target.value) / 100 })} />
-                    </label>
-                    <label className="arrangement-popout-range">
-                      <span>水平位置 <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b></span>
-                      <input type="range" min={-canvasWidth} max={canvasWidth} value={selectedPendingPreviewInstance.position.x} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { x: Number(event.target.value) })} />
-                    </label>
-                    <label className="arrangement-popout-range">
-                      <span>垂直位置 <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b></span>
-                      <input type="range" min={-canvasHeight} max={canvasHeight} value={selectedPendingPreviewInstance.position.y} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { y: Number(event.target.value) })} />
-                    </label>
-                    <button type="button" className="arrangement-popout-auto" onClick={() => resetPendingArrangementMotionPosition(selectedPendingPreviewInstance.id)}>自动位置</button>
-                  </section>
+                  <>
+                    <section>
+                      <div className="arrangement-popout-control-title"><strong>独立大小与位置</strong><small>SIZE · POSITION</small></div>
+                      <label className="arrangement-popout-range">
+                        <span>独立大小 <b>{Math.round(selectedPendingPreviewInstance.position.scale * 100)}%</b></span>
+                        <input type="range" min="20" max="300" value={Math.round(selectedPendingPreviewInstance.position.scale * 100)} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { scale: Number(event.target.value) / 100 })} />
+                      </label>
+                      <label className="arrangement-popout-range">
+                        <span>水平位置 <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b></span>
+                        <input type="range" min={-canvasWidth} max={canvasWidth} value={selectedPendingPreviewInstance.position.x} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { x: Number(event.target.value) })} />
+                      </label>
+                      <label className="arrangement-popout-range">
+                        <span>垂直位置 <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b></span>
+                        <input type="range" min={-canvasHeight} max={canvasHeight} value={selectedPendingPreviewInstance.position.y} onChange={(event) => updatePendingArrangementMotionPosition(selectedPendingPreviewInstance.id, { y: Number(event.target.value) })} />
+                      </label>
+                      <button type="button" className="arrangement-popout-auto" onClick={() => resetPendingArrangementMotionPosition(selectedPendingPreviewInstance.id)}>自动位置</button>
+                    </section>
+
+                    <section>
+                      <div className="arrangement-popout-control-title"><strong>卡片底色</strong><small>OPACITY</small></div>
+                      <label className="arrangement-popout-toggle">
+                        <span>显示卡片底色</span>
+                        <input
+                          type="checkbox"
+                          checked={selectedPendingPreviewInstance.backgroundOpacity > 0}
+                          onChange={(event) =>
+                            updatePendingArrangementMotionInstance(
+                              selectedPendingPreviewInstance.id,
+                              (instance) => ({
+                                ...instance,
+                                backgroundOpacity: event.target.checked ? 1 : 0,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="arrangement-popout-range">
+                        <span>底色透明度 <b>{Math.round(clamp(selectedPendingPreviewInstance.backgroundOpacity, 0, 1) * 100)}%</b></span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={clamp(selectedPendingPreviewInstance.backgroundOpacity, 0, 1)}
+                          onChange={(event) =>
+                            updatePendingArrangementMotionInstance(
+                              selectedPendingPreviewInstance.id,
+                              (instance) => ({
+                                ...instance,
+                                backgroundOpacity: Number(event.target.value),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+                    </section>
+
+                    <section>
+                      <div className="arrangement-popout-control-title"><strong>单组件导出</strong><small>EXPORT</small></div>
+                      <button
+                        type="button"
+                        className="arrangement-popout-export"
+                        disabled={rendering}
+                        onClick={exportPendingArrangementInstanceTransparentMov}
+                      >
+                        <DownloadSimple />
+                        {rendering ? "正在导出…" : "导出透明 MOV"}
+                      </button>
+                    </section>
+
+                    {selectedPendingPreviewDefinition ? (
+                      <>
+                        <section>
+                          <div className="arrangement-popout-control-title"><strong>当前效果</strong><small>COMPONENT</small></div>
+                          <div className="arrangement-popout-current-effect">
+                            <strong>{selectedPendingPreviewDefinition.name}</strong>
+                            <span>{selectedPendingPreviewDefinition.description}</span>
+                          </div>
+                          <label className="arrangement-popout-toggle">
+                            <span>显示组件</span>
+                            <input
+                              type="checkbox"
+                              checked={selectedPendingPreviewInstance.visible !== false}
+                              onChange={(event) =>
+                                updatePendingArrangementMotionInstance(
+                                  selectedPendingPreviewInstance.id,
+                                  (instance) => ({ ...instance, visible: event.target.checked }),
+                                )
+                              }
+                            />
+                          </label>
+                        </section>
+
+                        <section>
+                          <div className="arrangement-popout-control-title"><strong>组件参数</strong><small>PROPERTIES</small></div>
+                          <div className="arrangement-popout-fields">
+                            {Object.entries(selectedPendingPreviewDefinition.propsSchema).map(
+                              ([key, schema]) => renderPendingArrangementPropControl(key, schema),
+                            )}
+                          </div>
+                        </section>
+
+                        <section>
+                          <div className="arrangement-popout-control-title"><strong>时间范围</strong><small>TIMING</small></div>
+                          <label className="arrangement-popout-field">
+                            <span>组件时长（秒）</span>
+                            <input
+                              type="number"
+                              min={3 / fps}
+                              step="0.1"
+                              value={(selectedPendingPreviewInstance.durationInFrames / fps).toFixed(1)}
+                              onChange={(event) =>
+                                updatePendingArrangementMotionInstance(
+                                  selectedPendingPreviewInstance.id,
+                                  (instance) => ({
+                                    ...instance,
+                                    durationInFrames: Math.max(3, Math.round(Number(event.target.value) * fps)),
+                                  }),
+                                )
+                              }
+                            />
+                          </label>
+                        </section>
+                      </>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="arrangement-popout-controls-empty">请先在主窗口选择一个动效组件。</p>
                 )}
@@ -14360,7 +14671,13 @@ const App = () => {
         ? createPortal(
             <main className="arrangement-popout-shell realtime-preview-shell">
               <section className={`arrangement-popout-player ${canvasOrientation}`}>
-                <div className="arrangement-popout-player-frame">
+                <div
+                  className={
+                    solidBackgroundEnabled
+                      ? "arrangement-popout-player-frame"
+                      : "arrangement-popout-player-frame transparent-grid"
+                  }
+                >
                   {motionModule ? (
                     <Player
                       ref={realtimePreviewPlayerRef}

@@ -12,7 +12,8 @@
       "componentScores": {
         "PortraitRiskWarning": 12,
         "PortraitInfoCallout": 12,
-        "PortraitMetricDecision": 12
+        "PortraitMetricDecision": 12,
+        "PortraitDecisionTagStack": 2
       }
     }
   ]

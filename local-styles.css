@@ -6041,7 +6041,7 @@ body.arrangement-preview-popout-body {
   width: 100vw;
   height: 100vh;
   padding: 16px;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
   color: var(--text);
@@ -6147,6 +6147,116 @@ body.arrangement-preview-popout-body {
   font-size: 10px;
 }
 
+.arrangement-popout-export {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(104, 232, 255, 0.28);
+  border-radius: 8px;
+  color: #c8f7fd;
+  background: rgba(104, 232, 255, 0.08);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.arrangement-popout-export:hover:not(:disabled),
+.arrangement-popout-auto:hover {
+  border-color: rgba(104, 232, 255, 0.58);
+  background: rgba(104, 232, 255, 0.13);
+}
+
+.arrangement-popout-export:disabled {
+  cursor: wait;
+  opacity: 0.48;
+}
+
+.arrangement-popout-export svg {
+  width: 15px;
+  height: 15px;
+}
+
+.arrangement-popout-current-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.arrangement-popout-current-effect strong {
+  color: #effcff;
+  font-size: 11px;
+}
+
+.arrangement-popout-current-effect span {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.arrangement-popout-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.arrangement-popout-field,
+.arrangement-popout-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #cde9ed;
+  font-size: 10px;
+}
+
+.arrangement-popout-field > span,
+.arrangement-popout-toggle > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.arrangement-popout-field input[type="text"],
+.arrangement-popout-field input[type="number"],
+.arrangement-popout-field select {
+  min-width: 0;
+  width: 58%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  outline: none;
+  color: #effcff;
+  background: rgba(2, 5, 9, 0.72);
+  font: inherit;
+}
+
+.arrangement-popout-field input:focus,
+.arrangement-popout-field select:focus {
+  border-color: rgba(104, 232, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(104, 232, 255, 0.08);
+}
+
+.arrangement-popout-color input[type="color"] {
+  width: 46px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(2, 5, 9, 0.72);
+}
+
+.arrangement-popout-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cyan);
+}
+
 .arrangement-popout-shell > header,
 .arrangement-popout-shell > footer {
   display: flex;
@@ -6234,6 +6344,17 @@ body.arrangement-preview-popout-body {
   place-items: center;
   overflow: hidden;
   background: #05070a;
+}
+
+.arrangement-popout-player-frame.transparent-grid {
+  background-color: #0f1218;
+  background-image:
+    linear-gradient(45deg, #181b22 25%, transparent 25%),
+    linear-gradient(-45deg, #181b22 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181b22 75%),
+    linear-gradient(-45deg, transparent 75%, #181b22 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
 }
 
 .arrangement-popout-player.portrait .arrangement-popout-player-frame {
@@ -6400,11 +6521,9 @@ body.arrangement-preview-popout-body {
   left: 50%;
   top: 50%;
   width: 760px;
-  height: 800px;
   min-width: 760px;
-  min-height: 800px;
   max-width: none;
-  max-height: none;
+  max-height: min(800px, calc(100dvh - 40px));
   overflow: hidden;
   transform: translate(-50%, -50%);
 }
