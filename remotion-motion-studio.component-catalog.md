@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **47** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **40** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -61,16 +61,6 @@
 
 - `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
-
-## WorkBuddy效果
-
-- `TitleReveal`：章节标题揭示 — 开场钩子：超大数字年份 + 副标题逐层揭示（仅工作台可用；props：`kicker`、`titleLead`、`titleNumber`、`titleTail`、`subtitle`、`footerTag`、`accentColor`、`subtitleStart`、`exitSeconds`）
-- `LineTrend`：折线趋势 — 风险预警：逐年下滑折线 + 跌幅徽章（仅工作台可用；props：`title`、`subtitle`、`points`、`xLabels`、`deltaLabel`、`note`、`accentColor`、`noteStart`、`exitSeconds`）
-- `StepFlow`：步骤流 — OMO 路径：线上引流 → 线下成交 双节点动画（仅工作台可用；props：`title`、`subtitle`、`item1`、`item1Note`、`item2`、`item2Note`、`footer`、`itemStarts`、`accentColor`、`exitSeconds`）
-- `CompareSplit`：左右对比卡 — 双引擎对比：短视频种草 × 直播转化（仅工作台可用；props：`title`、`subtitle`、`leftTitle`、`leftNote`、`leftTag`、`rightTitle`、`rightNote`、`rightTag`、`leftColor`、`rightColor`、`itemStarts`、`exitSeconds`）
-- `BulletStack`：逐条要点 — 转型红利：勾选动画逐条弹出（仅工作台可用；props：`title`、`subtitle`、`item1`、`item1Note`、`item2`、`item2Note`、`itemStarts`、`accentColor`、`exitSeconds`）
-- `BarChart`：柱状图 — 业绩突破：柱体增长冲破瓶颈虚线（仅工作台可用；props：`title`、`subtitle`、`bars`、`ceiling`、`ceilingLabel`、`xLabels`、`badgeText`、`unit`、`accentColor`、`badgeStart`、`exitSeconds`）
-- `EndLockup`：结尾锁定 — 行动收尾：¥100万 数字滚动 + 行动号召（仅工作台可用；props：`kicker`、`amountPrefix`、`amount`、`amountUnit`、`amountNote`、`cta`、`accentColor`、`exitSeconds`）
 
 ## 数字与指标
 

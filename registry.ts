@@ -48,7 +48,6 @@ import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
 import { LegacyModelEliminationWarningEffectDef } from "./effects/LegacyModelEliminationWarning";
 import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { MaterialCardEffectDef } from "./effects/MaterialCard";
-import { WORKBUDDY_EFFECT_DEFS } from "./effects/WorkBuddyCards";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -123,8 +122,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   MediaSpotlightCardEffectDef,
 
   MaterialCardEffectDef,
-
-  ...WORKBUDDY_EFFECT_DEFS,
 
   ...LEGACY_EFFECT_DEFS,
 ];

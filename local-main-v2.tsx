@@ -411,6 +411,7 @@ const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
 const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
 const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
 const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
+const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 278;
@@ -1468,6 +1469,36 @@ const StudioPreviewComposition = ({
   );
 };
 
+const EFFECT_GROUP_ACCENTS = [
+  "#4f9dff",
+  "#27c4e8",
+  "#20d7a0",
+  "#f2b93d",
+  "#a776f7",
+  "#ff7c96",
+  "#b5f23d",
+];
+
+const loadEffectGroupColorOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(EFFECT_GROUP_COLOR_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([id, accent]) =>
+              typeof id === "string" &&
+              typeof accent === "string" &&
+              /^#[0-9a-f]{6}$/i.test(accent),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
+};
+
 type FontSizeStepperProps = {
   label: string;
   value: number;
@@ -1875,6 +1906,9 @@ const App = () => {
   );
   const [effectGroupNameOverrides, setEffectGroupNameOverrides] = useState(
     loadEffectGroupNameOverrides,
+  );
+  const [effectGroupColorOverrides, setEffectGroupColorOverrides] = useState(
+    loadEffectGroupColorOverrides,
   );
   const [effectRenameTarget, setEffectRenameTarget] =
     useState<EffectRenameTarget | null>(null);
@@ -2320,12 +2354,23 @@ const App = () => {
   );
   const effectCatalog = useMemo(() => {
     const groups = [
-      ...BUILT_IN_CATALOG.map((group) => ({
+      ...BUILT_IN_CATALOG.map((group, index) => ({
         ...group,
         name: effectGroupNameOverrides[group.id] ?? group.name,
+        accent:
+          effectGroupColorOverrides[group.id] ??
+          EFFECT_GROUP_ACCENTS[index % EFFECT_GROUP_ACCENTS.length],
         items: [] as typeof group.items,
       })),
-      ...customCatalogGroups.map((group) => ({ ...group, items: [] })),
+      ...customCatalogGroups.map((group, index) => ({
+        ...group,
+        accent:
+          effectGroupColorOverrides[group.id] ??
+          EFFECT_GROUP_ACCENTS[
+            (BUILT_IN_CATALOG.length + index) % EFFECT_GROUP_ACCENTS.length
+          ],
+        items: [],
+      })),
     ];
     const availableGroupIds = new Set(groups.map((group) => group.id));
     const sourceByComponentId = new Map<string, string>();
@@ -2363,6 +2408,7 @@ const App = () => {
     customDefinitions,
     definitionMap,
     effectGroupAssignments,
+    effectGroupColorOverrides,
     effectGroupNameOverrides,
     effectNameOverrides,
   ]);
@@ -2403,6 +2449,15 @@ const App = () => {
       );
     });
   }, [customCatalogGroups, effectCatalog, effectSearch]);
+  const availableEffectMoveGroups = useMemo(
+    () =>
+      effectCatalog.filter(
+        (group) =>
+          group.items.length > 0 ||
+          customCatalogGroups.some((customGroup) => customGroup.id === group.id),
+      ),
+    [customCatalogGroups, effectCatalog],
+  );
   const visibleBuiltInEffectCount = useMemo(
     () =>
       filteredEffectCatalog.reduce(
@@ -7454,6 +7509,19 @@ const App = () => {
     setNotice({ tone: "ok", text: `已将“${previousName}”重命名为“${name}”。` });
   };
 
+  const updateEffectGroupColor = (groupId: string, groupName: string, accent: string) => {
+    if (!/^#[0-9a-f]{6}$/i.test(accent)) return;
+    setEffectGroupColorOverrides((current) => {
+      const next = { ...current, [groupId]: accent.toLowerCase() };
+      window.localStorage.setItem(
+        EFFECT_GROUP_COLOR_STORAGE_KEY,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+    setNotice({ tone: "ok", text: `已更新“${groupName}”的分组颜色。` });
+  };
+
   const requestDeleteCatalogGroup = (
     groupId: string,
     groupName: string,
@@ -8756,7 +8824,14 @@ const App = () => {
               </div>
             </div>
           ) : activeWorkspace === "effects" ? (
-            <div className="effect-library-panel">
+            <div
+              className="effect-library-panel"
+              onContextMenu={(event) => {
+                if (event.target instanceof Element && event.target.closest("button, input, textarea, select, a")) return;
+                showLibraryRootMenu(event);
+              }}
+              title="左侧空白处右键可新建分组"
+            >
               <header className="effect-library-header">
                 <div>
                   <small>LIBRARY</small>
@@ -8780,17 +8855,17 @@ const App = () => {
                 <span>{filteredEffectCatalog.length} 个分类</span>
               </div>
 
-              <div
-                className="effect-library-catalog"
-                onContextMenu={showLibraryRootMenu}
-                title="在空白处右键可新建分组"
-              >
+              <div className="effect-library-catalog">
                 {filteredEffectCatalog.map((category) => {
                   const isOpen =
                     Boolean(effectSearch.trim()) ||
                     openCatalogCategories.includes(category.id);
                   return (
-                    <section className="effect-library-category" key={category.id}>
+                    <section
+                      className="effect-library-category"
+                      key={category.id}
+                      style={{ "--effect-group-accent": category.accent } as React.CSSProperties}
+                    >
                       <button
                         className={isOpen ? "category-toggle open" : "category-toggle"}
                         onContextMenu={(event) =>
@@ -8805,6 +8880,22 @@ const App = () => {
                         }
                       >
                         <span>{category.name}</span>
+                        <input
+                          className="effect-group-color-swatch"
+                          type="color"
+                          value={category.accent}
+                          title="选择分组颜色"
+                          aria-label={`选择“${category.name}”的分组颜色`}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          onInput={(event) =>
+                            updateEffectGroupColor(
+                              category.id,
+                              category.name,
+                              event.currentTarget.value,
+                            )
+                          }
+                        />
                         <b>{category.items.length}</b>
                         <CaretDown />
                       </button>
@@ -8890,7 +8981,14 @@ const App = () => {
               ) : null}
             </div>
           ) : activeWorkspace === "icons" ? (
-            <div className="icon-library-panel">
+            <div
+              className="icon-library-panel"
+              onContextMenu={(event) => {
+                if (event.target instanceof Element && event.target.closest("button, input, textarea, select, a")) return;
+                showIconLibraryMenu(event);
+              }}
+              title="左侧空白处右键可新建分组"
+            >
               <header className="icon-library-header">
                 <div>
                   <small>REAL ICONS</small>
@@ -8919,11 +9017,7 @@ const App = () => {
                 <div className="effect-library-empty">{iconLibraryError}</div>
               ) : null}
 
-              <div
-                className="icon-library-catalog"
-                onContextMenu={(event) => showIconLibraryMenu(event)}
-                title="右键可新建分组或导入 SVG 图标"
-              >
+              <div className="icon-library-catalog">
                 {filteredIconCatalog.map((category) => {
                   const isOpen =
                     Boolean(iconSearch.trim()) ||
@@ -9003,7 +9097,14 @@ const App = () => {
               ) : null}
             </div>
           ) : activeWorkspace === "sfx" ? (
-            <div className="sfx-library-panel">
+            <div
+              className="sfx-library-panel"
+              onContextMenu={(event) => {
+                if (event.target instanceof Element && event.target.closest("button, input, textarea, select, a")) return;
+                showSfxLibraryMenu(event);
+              }}
+              title="左侧空白处右键可新建分组"
+            >
               <header className="sfx-library-header">
                 <div>
                   <small>SOUND EFFECTS</small>
@@ -9046,14 +9147,7 @@ const App = () => {
                 <span>{arrangementResourceLibrary.sfx.filter((sound) => sound.source === "manual").length} 个手动导入</span>
               </div>
 
-              <div
-                className="sfx-library-list"
-                onContextMenu={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  showSfxLibraryMenu(event);
-                }}
-                title="右键可新建分组"
-              >
+              <div className="sfx-library-list">
                 {sfxCatalog.map((section) => {
                   const isOpen =
                     Boolean(sfxSearch.trim()) ||
@@ -11159,7 +11253,7 @@ const App = () => {
               </button>
             </header>
             <div className="effect-move-groups">
-              {effectCatalog
+              {availableEffectMoveGroups
                 .filter((group) => group.id !== effectMoveTarget.currentGroupId)
                 .map((group) => (
                   <button

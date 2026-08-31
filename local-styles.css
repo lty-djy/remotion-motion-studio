@@ -617,44 +617,53 @@ main.is-resizing-sidebar * {
 
 .effect-library-category {
   overflow: hidden;
-  background: #18191d;
-  border: 1px solid #2d2f34;
-  border-radius: 4px;
+  background: #101925;
+  border: 1px solid color-mix(in srgb, var(--effect-group-accent) 42%, #26303c);
+  border-radius: 8px;
 }
 
 .category-toggle {
   width: 100%;
-  height: 46px;
-  display: flex;
+  height: 38px;
+  display: grid;
+  grid-template-columns: 1fr 24px auto 14px;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
   border: 0;
-  color: #a6a8ad;
+  color: var(--effect-group-accent);
   background: transparent;
-  font-size: 16px;
+  font-size: 13px;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
 
 .category-toggle:hover,
 .category-toggle.open {
-  color: #f0f0f2;
-  background: #1e2025;
+  color: var(--effect-group-accent);
+  background: color-mix(in srgb, var(--effect-group-accent) 8%, #111b28);
 }
 
 .category-toggle span {
-  flex: 1;
+  min-width: 0;
 }
 
 .category-toggle b {
-  color: #666970;
+  min-width: 23px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  color: #8190a5;
+  background: #07111f;
+  border-radius: 10px;
   font-family: Consolas, monospace;
-  font-size: 14px;
+  font-size: 11px;
 }
 
 .category-toggle svg {
   width: 12px;
+  color: #667386;
   transition: transform 140ms ease;
 }
 
@@ -666,7 +675,29 @@ main.is-resizing-sidebar * {
   display: grid;
   gap: 5px;
   padding: 6px;
-  border-top: 1px solid #2b2d32;
+  border-top: 1px solid color-mix(in srgb, var(--effect-group-accent) 24%, #2b2d32);
+}
+
+.effect-group-color-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--effect-group-accent) 72%, white);
+  border-radius: 5px;
+  box-shadow: 0 0 0 2px rgba(3, 8, 15, 0.75), 0 0 10px color-mix(in srgb, var(--effect-group-accent) 45%, transparent);
+  cursor: pointer;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.effect-group-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.effect-group-color-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
 }
 
 .effect-library-item {
