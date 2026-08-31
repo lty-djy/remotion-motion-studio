@@ -4441,8 +4441,9 @@ const App = () => {
   );
 
   const pendingPreviewInspectorInstance =
-    arrangementPreviewWindow &&
-    !arrangementPreviewWindow.closed &&
+    pendingArrangement &&
+    (arrangementPreviewMinimized ||
+      (arrangementPreviewWindow && !arrangementPreviewWindow.closed)) &&
     selectedPendingPreviewInstance
       ? selectedPendingPreviewInstance
       : null;
@@ -6004,9 +6005,13 @@ const App = () => {
   ) => {
     setActivePendingPreviewSegmentId(segmentId);
     if (instanceId) setSelectedPendingPreviewInstanceId(instanceId);
+    setSelectedResourceTrackId("");
     setArrangementComponentPicker(null);
     setArrangementResourcePicker(null);
     stopArrangementAudioPreview();
+    // Keep the pending arrangement alive while exposing its selected card to
+    // the main inspector. The preview is minimized, not discarded.
+    setArrangementPreviewMinimized(true);
   };
 
   const activeArrangementRule =
@@ -9432,8 +9437,8 @@ const App = () => {
   ]);
 
   const updateSelectedProp = (key: string, value: unknown) => {
-    if (!selectedInstance) return;
-    updateInstance(selectedInstance.id, (instance) => ({
+    if (!inspectorInstance) return;
+    updateInspectorInstance(inspectorInstance.id, (instance) => ({
       ...instance,
       props: { ...instance.props, [key]: value },
     }));
@@ -9446,30 +9451,30 @@ const App = () => {
   ) => {
     const label = schema.label ?? key;
     if (
-      ((selectedDefinition?.id === "PortraitWorkflowPrerequisite" &&
+      ((inspectorDefinition?.id === "PortraitWorkflowPrerequisite" &&
         key === "stepCount") ||
-        (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
+        (inspectorDefinition?.id === "PortraitBrowserRepairLoop" &&
           key === "stepCount") ||
-        (selectedDefinition?.id === "PortraitSkillStepGrid" &&
+        (inspectorDefinition?.id === "PortraitSkillStepGrid" &&
           key === "stepCount") ||
-        (selectedDefinition?.id === "PortraitSkillSourceFusion" &&
+        (inspectorDefinition?.id === "PortraitSkillSourceFusion" &&
           key === "sourceCount") ||
-        (selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
+        (inspectorDefinition?.id === "PortraitDesignRuleChecklist" &&
           key === "ruleCount") ||
-        (selectedDefinition?.id === "PortraitRiskWarning" &&
+        (inspectorDefinition?.id === "PortraitRiskWarning" &&
           key === "riskCount") ||
-        (selectedDefinition?.id === "PortraitSkillResultComparison" &&
+        (inspectorDefinition?.id === "PortraitSkillResultComparison" &&
           key === "materialCount") ||
-        (selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
+        (inspectorDefinition?.id === "PortraitPromptIterationShowcase" &&
           key === "iterationCount") ||
-        (selectedDefinition?.id === "PortraitGsapSkillShowcase" &&
+        (inspectorDefinition?.id === "PortraitGsapSkillShowcase" &&
           key === "capabilityCount") ||
-        (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
+        (inspectorDefinition?.id === "PortraitCodeDecisionChecklist" &&
           key === "questionCount"))
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
       const max = typeof schema.max === "number" ? schema.max : 8;
-      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || selectedDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
+      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
       const numericValue = clamp(
         Math.round(Number(value ?? schema.default ?? fallbackValue)),
         min,
@@ -9482,9 +9487,9 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : selectedDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
-            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount"].includes(key) || !selectedInstance) {
+            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount"].includes(key) || !inspectorInstance) {
               updateSelectedProp(key, nextValue);
               return;
             }
@@ -11728,10 +11733,10 @@ const App = () => {
               单卡参数 <i>·</i>{" "}
               {selectedResourceTrack
                 ? `RESOURCE · ${selectedResourceTrack.kind.toUpperCase()}`
-                : selectedInstance
+                : inspectorInstance
                 ? `CARD-${String(
                     instances.findIndex(
-                      (instance) => instance.id === selectedInstance.id,
+                      (instance) => instance.id === inspectorInstance.id,
                     ) + 1,
                   ).padStart(2, "0")}`
                 : "NO SELECTION"}
@@ -11739,12 +11744,12 @@ const App = () => {
             <div>
               <SlidersHorizontal weight="fill" />
               <strong>
-                {selectedResourceTrack?.name ?? selectedDefinition?.name ?? "未选择效果"}
+                {selectedResourceTrack?.name ?? inspectorDefinition?.name ?? "未选择效果"}
               </strong>
               <span>
                 {selectedResourceTrack
                   ? `${selectedResourceTrack.kind.toUpperCase()} · ${selectedResourceTrack.resourceId}`
-                  : selectedDefinition?.description ?? "从时间轴或效果库选择一个组件"}
+                  : inspectorDefinition?.description ?? "从时间轴或效果库选择一个组件"}
               </span>
             </div>
           </header>
@@ -12222,7 +12227,7 @@ const App = () => {
                 </button>
               </section>
             ) : null}
-            {selectedResourceTrack ? null : !selectedInstance || !selectedDefinition ? (
+            {selectedResourceTrack ? null : !inspectorInstance || !inspectorDefinition ? (
               <div className="reference-inspector-empty">
                 在时间轴中选择组件或资源后，可在这里修改参数。
               </div>
@@ -12239,15 +12244,15 @@ const App = () => {
                     <strong>组件参数</strong><small>PROPERTIES</small>
                   </div>
                   <div className="dynamic-prop-fields">
-                    {Object.entries(selectedDefinition.propsSchema).map(
+                    {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
                         if (
-                          selectedDefinition.id === "PortraitWorkflowPrerequisite"
+                          inspectorDefinition.id === "PortraitWorkflowPrerequisite"
                         ) {
                           const match = key.match(/^step(?:Color)?(\d+)$/);
                           const activeStepCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.stepCount ?? 4),
+                              Number(inspectorInstance.props.stepCount ?? 4),
                             ),
                             1,
                             8,
@@ -12257,12 +12262,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitSkillSourceFusion"
+                          inspectorDefinition.id === "PortraitSkillSourceFusion"
                         ) {
                           const match = key.match(/^source(\d+)(?:Detail|Color)?$/);
                           const activeSourceCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.sourceCount ?? 3),
+                              Number(inspectorInstance.props.sourceCount ?? 3),
                             ),
                             1,
                             8,
@@ -12272,12 +12277,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitDesignRuleChecklist"
+                          inspectorDefinition.id === "PortraitDesignRuleChecklist"
                         ) {
                           const match = key.match(/^rule(\d+)$/);
                           const activeRuleCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.ruleCount ?? 4),
+                              Number(inspectorInstance.props.ruleCount ?? 4),
                             ),
                             1,
                             8,
@@ -12286,10 +12291,10 @@ const App = () => {
                             return null;
                           }
                         }
-                        if (selectedDefinition.id === "PortraitRiskWarning") {
+                        if (inspectorDefinition.id === "PortraitRiskWarning") {
                           const match = key.match(/^(?:risk|icon)(\d+)$/);
                           const activeRiskCount = clamp(
-                            Math.round(Number(selectedInstance.props.riskCount ?? 3)),
+                            Math.round(Number(inspectorInstance.props.riskCount ?? 3)),
                             1,
                             8,
                           );
@@ -12298,12 +12303,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitSkillResultComparison"
+                          inspectorDefinition.id === "PortraitSkillResultComparison"
                         ) {
                           const match = key.match(/^material(\d+)(?:Url|Eyebrow|Title|Detail|Color)$/);
                           const activeMaterialCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.materialCount ?? 3),
+                              Number(inspectorInstance.props.materialCount ?? 3),
                             ),
                             1,
                             8,
@@ -12313,12 +12318,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitPromptIterationShowcase"
+                          inspectorDefinition.id === "PortraitPromptIterationShowcase"
                         ) {
                           const match = key.match(/^iteration(\d+)(?:Url|Prompt|Badge|Color)$/);
                           const activeIterationCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.iterationCount ?? 3),
+                              Number(inspectorInstance.props.iterationCount ?? 3),
                             ),
                             1,
                             8,
@@ -12328,12 +12333,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitGsapSkillShowcase"
+                          inspectorDefinition.id === "PortraitGsapSkillShowcase"
                         ) {
                           const match = key.match(/^capability(\d+)(?:Title|Detail)$/);
                           const activeCapabilityCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.capabilityCount ?? 3),
+                              Number(inspectorInstance.props.capabilityCount ?? 3),
                             ),
                             1,
                             8,
@@ -12343,12 +12348,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitCodeDecisionChecklist"
+                          inspectorDefinition.id === "PortraitCodeDecisionChecklist"
                         ) {
                           const match = key.match(/^question(\d+)$/);
                           const activeQuestionCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.questionCount ?? 6),
+                              Number(inspectorInstance.props.questionCount ?? 6),
                             ),
                             1,
                             8,
@@ -12358,12 +12363,12 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitBrowserRepairLoop"
+                          inspectorDefinition.id === "PortraitBrowserRepairLoop"
                         ) {
                           const match = key.match(/^step(\d+)$/);
                           const activeStepCount = clamp(
                             Math.round(
-                              Number(selectedInstance.props.stepCount ?? 6),
+                              Number(inspectorInstance.props.stepCount ?? 6),
                             ),
                             2,
                             8,
@@ -12373,11 +12378,11 @@ const App = () => {
                           }
                         }
                         if (
-                          selectedDefinition.id === "PortraitSkillStepGrid"
+                          inspectorDefinition.id === "PortraitSkillStepGrid"
                         ) {
                           const match = key.match(/^step(\d+)(?:Title|Subtitle)$/);
                           const activeStepCount = clamp(
-                            Math.round(Number(selectedInstance.props.stepCount ?? 4)),
+                            Math.round(Number(inspectorInstance.props.stepCount ?? 4)),
                             1,
                             8,
                           );
@@ -12388,7 +12393,7 @@ const App = () => {
                         return renderPropControl(
                           key,
                           schema,
-                          selectedInstance.props[key] ?? schema.default,
+                          inspectorInstance.props[key] ?? schema.default,
                         );
                       },
                     )}
@@ -12401,7 +12406,7 @@ const App = () => {
                   <div className="dynamic-prop-fields">
                     <TimingStepper
                       label="开始时间(秒)"
-                      value={selectedInstance.startFrame / fps}
+                      value={inspectorInstance.startFrame / fps}
                       min={0}
                       step={0.1}
                       onChange={(nextSeconds) => {
@@ -12409,21 +12414,21 @@ const App = () => {
                           0,
                           Math.round(nextSeconds * fps),
                         );
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           startFrame: nextStart,
                         }));
                         setManualTimelineEndFrame((current) =>
                           Math.max(
                             current,
-                            nextStart + selectedInstance.durationInFrames,
+                            nextStart + inspectorInstance.durationInFrames,
                           ),
                         );
                       }}
                     />
                     <TimingStepper
                       label="卡片时长(秒)"
-                      value={selectedInstance.durationInFrames / fps}
+                      value={inspectorInstance.durationInFrames / fps}
                       min={3 / fps}
                       step={0.1}
                       onChange={(nextSeconds) => {
@@ -12431,14 +12436,14 @@ const App = () => {
                           3,
                           Math.round(nextSeconds * fps),
                         );
-                        updateInstance(selectedInstance.id, (instance) => ({
+                        updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           durationInFrames: nextDuration,
                         }));
                         setManualTimelineEndFrame((current) =>
                           Math.max(
                             current,
-                            selectedInstance.startFrame + nextDuration,
+                            inspectorInstance.startFrame + nextDuration,
                           ),
                         );
                       }}
@@ -14491,20 +14496,6 @@ const App = () => {
                 </div>
               </section>
 
-              <aside className="arrangement-popout-controls">
-                <header>
-                  <small>GLOBAL CONTROL</small>
-                  <strong>独立预览</strong>
-                  <span>仅保留与主界面实时同步的全局控制。</span>
-                </header>
-                <section>
-                  <div className="arrangement-popout-control-title"><strong>全局控制</strong><small>GLOBAL</small></div>
-                  <label className="arrangement-popout-range">
-                    <span>特效整体大小 <b>{Math.round(globalCardScale * 100)}%</b></span>
-                    <input type="range" min="50" max="200" value={Math.round(globalCardScale * 100)} onChange={(event) => setGlobalCardScale(Number(event.target.value) / 100)} />
-                  </label>
-                </section>
-              </aside>
             </main>,
             arrangementPreviewWindow.document.body,
           )
