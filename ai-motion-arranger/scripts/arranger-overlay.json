@@ -25,31 +25,6 @@
     }
   },
   {
-    "id": "DualMetricBar",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "left",
-    "purpose": "A/B 双向条形差异对比。中心基线两侧分别表达 A 和 B。",
-    "whenToUse": "口播里明确对比 A vs B / 两者差距。",
-    "role": "compare",
-    "preferredPalettes": [
-      "violet",
-      "cyan",
-      "amber"
-    ],
-    "propsFieldSemantics": {
-      "title": "对比标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "差值数字（带正负号字符串，比如 -20）",
-      "item1": "A 侧标签 + 数字（用 item1 表达 A）",
-      "item2": "B 侧标签 + 数字（用 item2 表达 B）",
-      "item3": "补充说明（可留空）",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
     "id": "WaveformMetric",
     "catalogGroup": "数字与指标",
     "category": "metric",

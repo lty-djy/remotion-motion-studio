@@ -14,7 +14,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
-import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, type Plugin } from "vite";
@@ -29,6 +29,11 @@ const iconResourceDir = join(resourceRoot, "icons");
 const sfxResourceDir = join(resourceRoot, "sfx");
 const resourceManifestPath = join(resourceRoot, "resource-manifest.json");
 const resourceIndexPath = join(resourceRoot, "resource-index.json");
+const arrangementRulesDir = join(resourceRoot, "arrangement-rules");
+const arrangementRulesManifestPath = join(
+  arrangementRulesDir,
+  "rule-manifest.json",
+);
 const projectDir = join(rootDir, "local-projects");
 const renderDir = join(rootDir, "outputs", "renders");
 const renderEntry = join(rootDir, "local-render-entry-v2.tsx");
@@ -750,6 +755,85 @@ const getBody = async (req: IncomingMessage, maxBytes: number) => {
   return Buffer.concat(chunks);
 };
 
+type ArrangementRuleManifest = {
+  version: 1;
+  activeRuleId: string;
+  rules: Array<{
+    id: string;
+    name: string;
+    keepStyleConsistent: boolean;
+    accentColor: string;
+    autoAddIcons: boolean;
+    learnFromConfirmedChoices: boolean;
+    componentScores: Record<string, number>;
+  }>;
+};
+
+const normalizeArrangementRuleManifest = (
+  input: unknown,
+): ArrangementRuleManifest => {
+  if (!input || typeof input !== "object") {
+    throw new Error("编排规则清单格式无效");
+  }
+  const raw = input as Record<string, unknown>;
+  if (!Array.isArray(raw.rules) || raw.rules.length === 0) {
+    throw new Error("至少需要一条编排规则");
+  }
+  if (raw.rules.length > 100) throw new Error("编排规则数量不能超过 100 条");
+  const ids = new Set<string>();
+  const rules = raw.rules.map((rawRule, index) => {
+    if (!rawRule || typeof rawRule !== "object") {
+      throw new Error(`第 ${index + 1} 条编排规则格式无效`);
+    }
+    const rule = rawRule as Record<string, unknown>;
+    const id = typeof rule.id === "string" ? rule.id.trim() : "";
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id) || ids.has(id)) {
+      throw new Error(`第 ${index + 1} 条编排规则 ID 无效或重复`);
+    }
+    ids.add(id);
+    const name = typeof rule.name === "string" ? rule.name.trim().slice(0, 40) : "";
+    if (!name) throw new Error(`第 ${index + 1} 条编排规则名称不能为空`);
+    const accentColor =
+      typeof rule.accentColor === "string" &&
+      /^#[0-9a-f]{6}$/i.test(rule.accentColor)
+        ? rule.accentColor.toLowerCase()
+        : "";
+    if (!accentColor) throw new Error(`第 ${index + 1} 条编排规则主色无效`);
+    const componentScores =
+      rule.componentScores && typeof rule.componentScores === "object"
+        ? Object.fromEntries(
+            Object.entries(rule.componentScores as Record<string, unknown>)
+              .filter(
+                ([componentId, score]) =>
+                  /^[A-Za-z0-9_-]{1,100}$/.test(componentId) &&
+                  Number.isFinite(Number(score)),
+              )
+              .slice(0, 500)
+              .map(([componentId, score]) => [
+                componentId,
+                Math.max(-8, Math.min(12, Number(score))),
+              ]),
+          )
+        : {};
+    return {
+      id,
+      name,
+      keepStyleConsistent: rule.keepStyleConsistent !== false,
+      accentColor,
+      autoAddIcons: rule.autoAddIcons === true,
+      learnFromConfirmedChoices: rule.learnFromConfirmedChoices !== false,
+      componentScores,
+    };
+  });
+  const requestedActiveId =
+    typeof raw.activeRuleId === "string" ? raw.activeRuleId : "";
+  return {
+    version: 1,
+    activeRuleId: ids.has(requestedActiveId) ? requestedActiveId : rules[0].id,
+    rules,
+  };
+};
+
 const ICON_CATEGORY_ACCENTS: Record<string, string> = {
   "内容与素材": "#2f8cff",
   "自动化与流程": "#27c4e8",
@@ -1408,6 +1492,7 @@ const localApi = (): Plugin => {
     mkdirSync(mediaTempDir, { recursive: true });
     mkdirSync(iconResourceDir, { recursive: true });
     mkdirSync(sfxResourceDir, { recursive: true });
+    mkdirSync(arrangementRulesDir, { recursive: true });
     mkdirSync(projectDir, { recursive: true });
     mkdirSync(renderDir, { recursive: true });
     mkdirSync(componentStoreDir, { recursive: true });
@@ -1420,6 +1505,45 @@ const localApi = (): Plugin => {
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
         if (url.pathname === "/api/health") {
           sendJson(res, 200, { ok: true, localOnly: true });
+          return;
+        }
+
+        if (url.pathname === "/api/arrangement-rules" && req.method === "GET") {
+          const manifest = normalizeArrangementRuleManifest(
+            JSON.parse(await readFile(arrangementRulesManifestPath, "utf8")),
+          );
+          sendJson(res, 200, { ok: true, manifest });
+          return;
+        }
+
+        if (url.pathname === "/api/arrangement-rules" && req.method === "PUT") {
+          const manifest = normalizeArrangementRuleManifest(
+            JSON.parse((await getBody(req, 1024 * 1024)).toString("utf8")),
+          );
+          const temporaryPath = `${arrangementRulesManifestPath}.tmp`;
+          await writeFile(
+            temporaryPath,
+            `${JSON.stringify(manifest, null, 2)}\n`,
+            "utf8",
+          );
+          await rename(temporaryPath, arrangementRulesManifestPath);
+          sendJson(res, 200, {
+            ok: true,
+            manifest,
+            path: "public/input/arrangement-rules/rule-manifest.json",
+          });
+          return;
+        }
+
+        if (
+          url.pathname === "/api/open-arrangement-rules-location" &&
+          req.method === "POST"
+        ) {
+          if (!existsSync(arrangementRulesManifestPath)) {
+            throw new Error("编排规则文件不存在");
+          }
+          runOpenFolder(arrangementRulesManifestPath);
+          sendJson(res, 200, { ok: true });
           return;
         }
 

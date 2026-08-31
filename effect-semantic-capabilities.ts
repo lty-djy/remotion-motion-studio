@@ -314,12 +314,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["metric", "process"],
     ["容量", "阶段", "进度", "性能", "分段"],
   ),
-  DualMetricBar: capability(
-    "comparison",
-    ["metric", "emphasis"],
-    ["metric", "comparison"],
-    ["对比", "差异", "竞争", "前后", "双向"],
-  ),
   WaveformMetric: capability(
     "metric",
     ["evidence", "emphasis"],

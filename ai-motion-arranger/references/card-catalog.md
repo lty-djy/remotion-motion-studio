@@ -8,10 +8,10 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：5 张
+**当前卡片总数**：4 张
 **覆盖分组**：1 个（数字与指标）
-**registry 集合**：5 个 id
-**overlay 集合**：5 个 id
+**registry 集合**：4 个 id
+**overlay 集合**：4 个 id
 ## 数字与指标
 
 ### `SegmentedMeter`
@@ -30,26 +30,6 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `item1` — 补充说明一
 - `item2` — 补充说明二
 - `item3` — 补充说明三
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
-
-### `DualMetricBar`
-
-**角色**：compare  
-**画布落点**：left  
-**推荐调色板**：violet / cyan / amber  
-**何时使用**：口播里明确对比 A vs B / 两者差距。  
-**视觉/语义**：A/B 双向条形差异对比。中心基线两侧分别表达 A 和 B。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 对比标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 差值数字（带正负号字符串，比如 -20）
-- `item1` — A 侧标签 + 数字（用 item1 表达 A）
-- `item2` — B 侧标签 + 数字（用 item2 表达 B）
-- `item3` — 补充说明（可留空）
 - `animationSeconds` — 动画时长
 - `accentColor` — accent token
 - `secondaryColor` — support token
@@ -115,8 +95,8 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：5
-- overlay 条目数：5
+- registry 条目数：4
+- overlay 条目数：4
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

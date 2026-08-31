@@ -160,6 +160,28 @@ if (JSON.stringify(portraitFirst) !== JSON.stringify(portraitSecond)) {
 if (portraitFirst.semanticAnalysis.routingProfile !== "portrait-v1") {
   throw new Error("竖屏字幕没有进入新的语义路由表");
 }
+const learnedPreferenceResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  entries: [
+    {
+      index: 1,
+      startMs: 0,
+      endMs: 3600,
+      text: "接下来进入新的章节，先说明这个方法。",
+    },
+  ],
+  durationInFrames: 120,
+  componentPreferenceScores: {
+    PortraitInfoCallout: 10,
+    PortraitChapterRail: -8,
+  },
+});
+if (
+  learnedPreferenceResult.motionTimeline[0]?.componentId !==
+  "PortraitInfoCallout"
+) {
+  throw new Error("已确认的组件偏好没有影响下一次竖屏编排推荐");
+}
 if (
   portraitFirst.semanticAnalysis.cueCount !== portraitInput.entries.length ||
   portraitFirst.semanticAnalysis.semanticSegmentCount !== portraitInput.entries.length

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "activeRuleId": "default-semantic-style",
+  "rules": [
+    {
+      "id": "default-semantic-style",
+      "name": "我的语义风格",
+      "keepStyleConsistent": true,
+      "accentColor": "#d30d5c",
+      "autoAddIcons": true,
+      "learnFromConfirmedChoices": true,
+      "componentScores": {
+        "PortraitRiskWarning": 12,
+        "PortraitInfoCallout": 12,
+        "PortraitMetricDecision": 12
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { AbsoluteFill, Audio, Html5Video, Img, Sequence } from "remotion";
@@ -219,6 +220,14 @@ type PendingArrangement = {
     repeatedAvoidedCount?: number;
     supportingSuppressedCount?: number;
   };
+  semanticSourcesBySegment?: Record<
+    string,
+    {
+      text: string;
+      sourceCueIndices: number[];
+      semanticLabel: string;
+    }
+  >;
   layoutSummary?: {
     obstacleLabels: string[];
     visualCount: number;
@@ -1469,6 +1478,159 @@ const StudioPreviewComposition = ({
   );
 };
 
+type ArrangementPreferences = {
+  keepStyleConsistent: boolean;
+  accentColor: string;
+  autoAddIcons: boolean;
+  learnFromConfirmedChoices: boolean;
+  componentScores: Record<string, number>;
+};
+
+type ArrangementStyleRule = ArrangementPreferences & {
+  id: string;
+  name: string;
+};
+
+const ARRANGEMENT_PREFERENCES_STORAGE_KEY =
+  "motion-studio-ai-arrangement-preferences-v1";
+const ARRANGEMENT_RULES_STORAGE_KEY =
+  "motion-studio-ai-arrangement-rules-v1";
+const ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY =
+  "motion-studio-ai-arrangement-active-rule-v1";
+const DEFAULT_ARRANGEMENT_PREFERENCES: ArrangementPreferences = {
+  keepStyleConsistent: true,
+  accentColor: "#68e8ff",
+  autoAddIcons: false,
+  learnFromConfirmedChoices: true,
+  componentScores: {},
+};
+
+const loadArrangementPreferences = (): ArrangementPreferences => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(ARRANGEMENT_PREFERENCES_STORAGE_KEY) ?? "{}",
+    ) as Partial<ArrangementPreferences>;
+    return {
+      keepStyleConsistent: saved.keepStyleConsistent !== false,
+      accentColor:
+        typeof saved.accentColor === "string" &&
+        /^#[0-9a-f]{6}$/iu.test(saved.accentColor)
+          ? saved.accentColor
+          : DEFAULT_ARRANGEMENT_PREFERENCES.accentColor,
+      autoAddIcons: saved.autoAddIcons === true,
+      learnFromConfirmedChoices: saved.learnFromConfirmedChoices !== false,
+      componentScores:
+        saved.componentScores && typeof saved.componentScores === "object"
+          ? Object.fromEntries(
+              Object.entries(saved.componentScores).flatMap(([id, score]) =>
+                Number.isFinite(Number(score))
+                  ? [[id, Math.max(-8, Math.min(12, Number(score)))]]
+                  : [],
+              ),
+            )
+          : {},
+    };
+  } catch {
+    return DEFAULT_ARRANGEMENT_PREFERENCES;
+  }
+};
+
+const normalizeArrangementStyleRules = (
+  input: unknown,
+  fallback: ArrangementPreferences,
+): ArrangementStyleRule[] => {
+  const rules = Array.isArray(input)
+    ? (input as Array<Partial<ArrangementStyleRule>>).flatMap((rule, index) => {
+          if (!rule || typeof rule !== "object") return [];
+          const accentColor =
+            typeof rule.accentColor === "string" &&
+            /^#[0-9a-f]{6}$/iu.test(rule.accentColor)
+              ? rule.accentColor
+              : fallback.accentColor;
+          return [
+            {
+              id:
+                typeof rule.id === "string" && rule.id
+                  ? rule.id
+                  : `semantic-style-${index + 1}`,
+              name:
+                typeof rule.name === "string" && rule.name.trim()
+                  ? rule.name.trim()
+                  : `语义风格 ${index + 1}`,
+              keepStyleConsistent: rule.keepStyleConsistent !== false,
+              accentColor,
+              autoAddIcons: rule.autoAddIcons === true,
+              learnFromConfirmedChoices:
+                rule.learnFromConfirmedChoices !== false,
+              componentScores:
+                rule.componentScores && typeof rule.componentScores === "object"
+                  ? Object.fromEntries(
+                      Object.entries(rule.componentScores).flatMap(
+                        ([componentId, score]) =>
+                          Number.isFinite(Number(score))
+                            ? [
+                                [
+                                  componentId,
+                                  Math.max(-8, Math.min(12, Number(score))),
+                                ],
+                              ]
+                            : [],
+                      ),
+                    )
+                  : {},
+            },
+          ];
+        })
+    : [];
+  return rules;
+};
+
+const loadArrangementStyleRules = (
+  fallback: ArrangementPreferences,
+): ArrangementStyleRule[] => {
+  try {
+    const rules = normalizeArrangementStyleRules(
+      JSON.parse(
+        window.localStorage.getItem(ARRANGEMENT_RULES_STORAGE_KEY) ?? "[]",
+      ),
+      fallback,
+    );
+    if (rules.length > 0) return rules;
+  } catch {
+    // 旧版单条偏好会在下面迁移为第一条语义风格规则。
+  }
+  return [{ id: "default-semantic-style", name: "我的语义风格", ...fallback }];
+};
+
+const loadActiveArrangementPreferences = (): ArrangementPreferences => {
+  const fallback = loadArrangementPreferences();
+  const rules = loadArrangementStyleRules(fallback);
+  const activeId = window.localStorage.getItem(
+    ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY,
+  );
+  const activeRule = rules.find((rule) => rule.id === activeId) ?? rules[0];
+  const { id: _id, name: _name, ...preferences } = activeRule;
+  return preferences;
+};
+
+const applyConsistentAccent = (
+  props: Record<string, unknown>,
+  accentColor: string,
+) => {
+  const colorKeys = [
+    "accentColor",
+    "highlightColor",
+    "headerColor",
+    "frameColor",
+    "lineColor",
+    "primaryColor",
+  ];
+  return colorKeys.reduce<Record<string, unknown>>(
+    (next, key) => (key in props ? { ...next, [key]: accentColor } : next),
+    props,
+  );
+};
+
 const EFFECT_GROUP_ACCENTS = [
   "#4f9dff",
   "#27c4e8",
@@ -1705,6 +1867,9 @@ const TimingStepper = ({
 
 const App = () => {
   const playerRef = useRef<PlayerRef>(null);
+  const arrangementPreviewPlayerRef = useRef<PlayerRef>(null);
+  const arrangementPreviewPopoutPlayerRef = useRef<PlayerRef>(null);
+  const arrangementPreviewWindowRef = useRef<Window | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const playheadDragCleanupRef = useRef<(() => void) | null>(null);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
@@ -1732,6 +1897,34 @@ const App = () => {
   const [instances, setInstances] = useState<MotionInstance[]>([]);
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
+  const [arrangementPreferences, setArrangementPreferences] =
+    useState<ArrangementPreferences>(loadActiveArrangementPreferences);
+  const [arrangementRules, setArrangementRules] = useState<
+    ArrangementStyleRule[]
+  >(() => loadArrangementStyleRules(loadArrangementPreferences()));
+  const [activeArrangementRuleId, setActiveArrangementRuleId] = useState(
+    () => {
+      const saved = window.localStorage.getItem(
+        ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY,
+      );
+      const rules = loadArrangementStyleRules(loadArrangementPreferences());
+      return rules.some((rule) => rule.id === saved) ? saved! : rules[0].id;
+    },
+  );
+  const [arrangementRulesFileReady, setArrangementRulesFileReady] =
+    useState(false);
+  const [arrangementRulesSaveStatus, setArrangementRulesSaveStatus] = useState<
+    "loading" | "saving" | "saved" | "error"
+  >("loading");
+  const [openingArrangementRulesLocation, setOpeningArrangementRulesLocation] =
+    useState(false);
+  const [newArrangementRuleName, setNewArrangementRuleName] = useState("");
+  const [activePendingPreviewSegmentId, setActivePendingPreviewSegmentId] =
+    useState("");
+  const [selectedPendingPreviewInstanceId, setSelectedPendingPreviewInstanceId] =
+    useState("");
+  const [arrangementPreviewWindow, setArrangementPreviewWindow] =
+    useState<Window | null>(null);
   const [arrangementComponentPicker, setArrangementComponentPicker] =
     useState<ArrangementComponentPicker | null>(null);
   const [arrangementResourcePicker, setArrangementResourcePicker] =
@@ -1766,6 +1959,83 @@ const App = () => {
   const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
   const [selectedResourceTrackId, setSelectedResourceTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
+
+  const closeArrangementPreviewWindow = useCallback(() => {
+    const previewWindow = arrangementPreviewWindowRef.current;
+    arrangementPreviewWindowRef.current = null;
+    setArrangementPreviewWindow(null);
+    if (previewWindow && !previewWindow.closed) previewWindow.close();
+  }, []);
+
+  const openArrangementPreviewWindow = useCallback(() => {
+    const existingWindow = arrangementPreviewWindowRef.current;
+    if (existingWindow && !existingWindow.closed) {
+      existingWindow.focus();
+      setArrangementPreviewWindow(existingWindow);
+      return;
+    }
+
+    const previewWindow = window.open(
+      "",
+      `ai-motion-arrangement-preview-${Date.now()}`,
+      "popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes",
+    );
+    if (!previewWindow) {
+      setNotice({
+        tone: "error",
+        text: "浏览器阻止了独立预览窗口，请允许此页面打开弹出式窗口后重试。",
+      });
+      return;
+    }
+
+    previewWindow.document.title = "AI 动效工作台 · 独立编排预览";
+    previewWindow.document.documentElement.lang = "zh-CN";
+    previewWindow.document.body.className = "arrangement-preview-popout-body";
+    previewWindow.document.head
+      .querySelectorAll("[data-arrangement-preview-style]")
+      .forEach((node) => node.remove());
+    document
+      .querySelectorAll<HTMLStyleElement | HTMLLinkElement>(
+        'style, link[rel="stylesheet"]',
+      )
+      .forEach((sourceNode) => {
+        const clonedNode = sourceNode.cloneNode(true) as
+          | HTMLStyleElement
+          | HTMLLinkElement;
+        clonedNode.dataset.arrangementPreviewStyle = "true";
+        if (clonedNode instanceof HTMLLinkElement && sourceNode instanceof HTMLLinkElement) {
+          clonedNode.href = sourceNode.href;
+        }
+        previewWindow.document.head.appendChild(clonedNode);
+      });
+
+    arrangementPreviewWindowRef.current = previewWindow;
+    setArrangementPreviewWindow(previewWindow);
+    previewWindow.focus();
+    previewWindow.addEventListener(
+      "beforeunload",
+      () => {
+        if (arrangementPreviewWindowRef.current === previewWindow) {
+          arrangementPreviewWindowRef.current = null;
+          setArrangementPreviewWindow(null);
+        }
+      },
+      { once: true },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!pendingArrangement) closeArrangementPreviewWindow();
+  }, [closeArrangementPreviewWindow, pendingArrangement]);
+
+  useEffect(
+    () => () => {
+      const previewWindow = arrangementPreviewWindowRef.current;
+      arrangementPreviewWindowRef.current = null;
+      if (previewWindow && !previewWindow.closed) previewWindow.close();
+    },
+    [],
+  );
   const [globalCardScale, setGlobalCardScale] = useState(() => {
     const saved = localStorage.getItem("motion-studio-global-card-scale");
     const parsed = saved ? Number(saved) : NaN;
@@ -1855,7 +2125,9 @@ const App = () => {
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
-    useState<"editor" | "effects" | "icons" | "sfx" | "code">("editor");
+    useState<"editor" | "effects" | "rules" | "icons" | "sfx" | "code">(
+      "editor",
+    );
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
   const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
   const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
@@ -2270,6 +2542,18 @@ const App = () => {
       (left, right) => left.startFrame - right.startFrame,
     );
   }, [pendingArrangement]);
+  const activePendingPreviewSegment =
+    pendingArrangementSegments.find(
+      (segment) => segment.id === activePendingPreviewSegmentId,
+    ) ?? pendingArrangementSegments[0] ?? null;
+  const activePendingPreviewSemanticSource = activePendingPreviewSegment
+    ? pendingArrangement?.semanticSourcesBySegment?.[
+        activePendingPreviewSegment.id
+      ]
+    : undefined;
+  const selectedPendingPreviewInstance = pendingArrangement?.motionInstances.find(
+    (instance) => instance.id === selectedPendingPreviewInstanceId,
+  ) ?? activePendingPreviewSegment?.motionInstances[0] ?? null;
   const selectedInstance =
     instances.find((instance) => instance.id === selectedInstanceId) ?? null;
   const selectedDefinition = selectedInstance
@@ -2348,7 +2632,9 @@ const App = () => {
       definitions.filter(
         (definition) =>
           !BUILT_IN_COMPONENT_IDS.has(definition.id) &&
-          !isBuiltInDefinition(definition),
+          !isBuiltInDefinition(definition) &&
+          EFFECT_REGISTRY_BY_ID.get(definition.id)?.semantic.systemRole !==
+            "caption-track",
       ),
     [definitions],
   );
@@ -2376,7 +2662,12 @@ const App = () => {
     const sourceByComponentId = new Map<string, string>();
     const items = BUILT_IN_CATALOG.flatMap((group) =>
       group.items
-        .filter((item) => definitionMap.has(item.ids[0]))
+        .filter(
+          (item) =>
+            definitionMap.has(item.ids[0]) &&
+            EFFECT_REGISTRY_BY_ID.get(item.ids[0])?.semantic.systemRole !==
+              "caption-track",
+        )
         .map((item) => {
           sourceByComponentId.set(item.ids[0], group.id);
           const renamed = effectNameOverrides[item.ids[0]];
@@ -2916,6 +3207,121 @@ const App = () => {
   }, [workspaceZoom]);
 
   useEffect(() => {
+    window.localStorage.setItem(
+      ARRANGEMENT_PREFERENCES_STORAGE_KEY,
+      JSON.stringify(arrangementPreferences),
+    );
+  }, [arrangementPreferences]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateArrangementRules = async () => {
+      try {
+        const response = await fetch("/api/arrangement-rules", {
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload?.ok || !payload.manifest) {
+          throw new Error(payload?.error ?? "无法读取项目编排规则清单");
+        }
+        const fileRules = normalizeArrangementStyleRules(
+          payload.manifest.rules,
+          DEFAULT_ARRANGEMENT_PREFERENCES,
+        );
+        if (fileRules.length === 0) throw new Error("项目编排规则清单为空");
+        const requestedActiveId = String(payload.manifest.activeRuleId ?? "");
+        const nextActiveRule =
+          fileRules.find((rule) => rule.id === requestedActiveId) ?? fileRules[0];
+        const { id: _id, name: _name, ...preferences } = nextActiveRule;
+        if (!cancelled) {
+          setArrangementRules(fileRules);
+          setActiveArrangementRuleId(nextActiveRule.id);
+          setArrangementPreferences(preferences);
+        }
+        if (!cancelled) {
+          setArrangementRulesFileReady(true);
+          setArrangementRulesSaveStatus("saved");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setArrangementRulesSaveStatus("error");
+          setNotice({
+            tone: "error",
+            text:
+              error instanceof Error
+                ? error.message
+                : "项目编排规则读取失败",
+          });
+        }
+      }
+    };
+    void hydrateArrangementRules();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId
+          ? { ...rule, ...arrangementPreferences }
+          : rule,
+      ),
+    );
+  }, [activeArrangementRuleId, arrangementPreferences]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ARRANGEMENT_RULES_STORAGE_KEY,
+      JSON.stringify(arrangementRules),
+    );
+  }, [arrangementRules]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY,
+      activeArrangementRuleId,
+    );
+  }, [activeArrangementRuleId]);
+
+  useEffect(() => {
+    if (!arrangementRulesFileReady) return;
+    setArrangementRulesSaveStatus("saving");
+    const timer = window.setTimeout(() => {
+      void fetch("/api/arrangement-rules", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          version: 1,
+          activeRuleId: activeArrangementRuleId,
+          rules: arrangementRules,
+        }),
+      })
+        .then(async (response) => {
+          const payload = await response.json();
+          if (!response.ok || !payload?.ok) {
+            throw new Error(payload?.error ?? "编排规则保存失败");
+          }
+          setArrangementRulesSaveStatus("saved");
+        })
+        .catch((error) => {
+          setArrangementRulesSaveStatus("error");
+          setNotice({
+            tone: "error",
+            text:
+              error instanceof Error ? error.message : "编排规则保存失败",
+          });
+        });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeArrangementRuleId,
+    arrangementRules,
+    arrangementRulesFileReady,
+  ]);
+
+  useEffect(() => {
     setWorkspaceZoomInput(String(workspaceZoom));
   }, [workspaceZoom]);
 
@@ -3087,6 +3493,71 @@ const App = () => {
       globalCardScale,
     ],
   );
+  const pendingArrangementPreviewInputProps = useMemo<StudioPreviewProps>(() => {
+    if (!pendingArrangement) return previewInputProps;
+    const selectedKeys = new Set(pendingArrangement.selectedKeys);
+    const previewInstances = pendingArrangement.motionInstances.filter((instance) =>
+      selectedKeys.has(`motion:${instance.id}`),
+    );
+    if (
+      pendingArrangement.captionInstance &&
+      selectedKeys.has(`caption:${pendingArrangement.captionInstance.id}`)
+    ) {
+      previewInstances.push(pendingArrangement.captionInstance);
+    }
+    return {
+      ...previewInputProps,
+      instances:
+        globalCardBase === "light"
+          ? previewInstances.map((instance) => ({
+              ...instance,
+              backgroundOpacity: 0,
+              props: { ...instance.props, cardTransparent: true },
+            }))
+          : previewInstances,
+      resourceTracks: pendingArrangement.resourceTracks.filter((track) =>
+        selectedKeys.has(`resource:${track.id}`),
+      ),
+      safetyGuideVisible: true,
+    };
+  }, [globalCardBase, pendingArrangement, previewInputProps]);
+
+  useEffect(() => {
+    if (!pendingArrangement || pendingArrangementSegments.length === 0) {
+      setActivePendingPreviewSegmentId("");
+      setSelectedPendingPreviewInstanceId("");
+      return;
+    }
+    const segment =
+      pendingArrangementSegments.find(
+        (candidate) => candidate.id === activePendingPreviewSegmentId,
+      ) ?? pendingArrangementSegments[0];
+    if (segment.id !== activePendingPreviewSegmentId) {
+      setActivePendingPreviewSegmentId(segment.id);
+    }
+    if (
+      !segment.motionInstances.some(
+        (instance) => instance.id === selectedPendingPreviewInstanceId,
+      )
+    ) {
+      setSelectedPendingPreviewInstanceId(segment.motionInstances[0]?.id ?? "");
+    }
+    const previewFrame = Math.min(
+      segment.endFrame - 1,
+      segment.startFrame + Math.max(1, Math.round(fps * 0.2)),
+    );
+    window.requestAnimationFrame(() => {
+      const frame = Math.max(0, previewFrame);
+      arrangementPreviewPlayerRef.current?.seekTo(frame);
+      arrangementPreviewPopoutPlayerRef.current?.seekTo(frame);
+    });
+  }, [
+    activePendingPreviewSegmentId,
+    fps,
+    pendingArrangement,
+    pendingArrangementSegments,
+    selectedPendingPreviewInstanceId,
+  ]);
 
   const workspaceSnapshot = useMemo<ProjectSnapshot>(
     () => ({
@@ -3662,6 +4133,7 @@ const App = () => {
             : [];
         }),
         resourceIndex,
+        componentPreferenceScores: arrangementPreferences.componentScores,
       });
       const analysis = semanticTimeline.semanticAnalysis;
       const captionDefinition = definitionMap.get("SrtSemanticCaptions");
@@ -3696,6 +4168,39 @@ const App = () => {
       const cueAnalyses = Array.isArray(analysis.cueAnalyses)
         ? analysis.cueAnalyses
         : [];
+      const semanticSourcesBySegment = Object.fromEntries(
+        cueAnalyses.flatMap((rawCue) => {
+          if (!isRecord(rawCue)) return [];
+          const text = typeof rawCue.text === "string" ? rawCue.text.trim() : "";
+          const sourceCueIndices = Array.isArray(rawCue.sourceCueIndices)
+            ? rawCue.sourceCueIndices
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value))
+            : Number.isFinite(Number(rawCue.cueIndex))
+              ? [Number(rawCue.cueIndex)]
+              : [];
+          const intents = [
+            ...(Array.isArray(rawCue.intents) ? rawCue.intents : []),
+            ...(Array.isArray(rawCue.suppressedIntents)
+              ? rawCue.suppressedIntents
+              : []),
+          ];
+          return intents.flatMap((rawIntent) => {
+            if (!isRecord(rawIntent) || typeof rawIntent.id !== "string") return [];
+            return [
+              [
+                rawIntent.id,
+                {
+                  text,
+                  sourceCueIndices,
+                  semanticLabel:
+                    typeof rawIntent.label === "string" ? rawIntent.label : "",
+                },
+              ],
+            ];
+          });
+        }),
+      );
       const captionCues = entriesOverride.map((entry) => {
         const cueAnalysis = cueAnalyses.find((rawCue) => {
           if (!isRecord(rawCue)) return false;
@@ -3743,12 +4248,31 @@ const App = () => {
               : "",
         };
       });
+      const preferredMotionTimeline = (
+        Array.isArray(checkedTimeline.motionTimeline)
+          ? checkedTimeline.motionTimeline
+          : []
+      ).map((item) => ({
+        ...item,
+        props:
+          arrangementPreferences.keepStyleConsistent && isRecord(item.props)
+            ? applyConsistentAccent(
+                item.props,
+                arrangementPreferences.accentColor,
+              )
+            : item.props,
+      }));
+      const preferredResourceTracks = (
+        Array.isArray(checkedTimeline.resourceTracks)
+          ? checkedTimeline.resourceTracks
+          : []
+      ).filter(
+        (track) => arrangementPreferences.autoAddIcons || track.kind !== "icon",
+      );
       const timelineWithCaption = {
         ...checkedTimeline,
         motionTimeline: [
-          ...(Array.isArray(checkedTimeline.motionTimeline)
-            ? checkedTimeline.motionTimeline
-            : []),
+          ...preferredMotionTimeline,
           {
             componentId: "SrtSemanticCaptions",
             startFrame: 0,
@@ -3768,6 +4292,7 @@ const App = () => {
             sourceIntentId: SRT_CAPTION_TRACK_ID,
           },
         ],
+        resourceTracks: preferredResourceTracks,
       };
       await showStage("preview");
       const baseName = (fileNameOverride || "字幕")
@@ -3797,6 +4322,7 @@ const App = () => {
                 supportingSuppressedCount:
                   analysis.diversitySummary?.supportingSuppressedCount,
               },
+              semanticSourcesBySegment,
               layoutSummary: checkedTimeline.layoutSummary,
             }
           : current,
@@ -4897,6 +5423,215 @@ const App = () => {
     });
   };
 
+  const previewPendingArrangementMotion = (
+    segmentId: string,
+    instanceId?: string,
+  ) => {
+    setActivePendingPreviewSegmentId(segmentId);
+    if (instanceId) setSelectedPendingPreviewInstanceId(instanceId);
+    setArrangementComponentPicker(null);
+    setArrangementResourcePicker(null);
+    stopArrangementAudioPreview();
+  };
+
+  const updatePendingArrangementMotionPosition = (
+    instanceId: string,
+    patch: Partial<MotionInstance["position"]>,
+  ) => {
+    setPendingArrangement((current) =>
+      current
+        ? markPendingArrangementQualityChecksStale({
+            ...current,
+            motionInstances: current.motionInstances.map((instance) =>
+              instance.id === instanceId
+                ? {
+                    ...instance,
+                    position: {
+                      ...instance.position,
+                      ...patch,
+                    },
+                  }
+                : instance,
+            ),
+          })
+        : current,
+    );
+  };
+
+  const resetPendingArrangementMotionPosition = (instanceId: string) => {
+    const instance = pendingArrangement?.motionInstances.find(
+      (candidate) => candidate.id === instanceId,
+    );
+    const definition = instance ? definitionMap.get(instance.componentId) : null;
+    if (!instance || !definition) return;
+    updatePendingArrangementMotionPosition(
+      instanceId,
+      getRegisteredEffectPosition(definition, canvasOrientation),
+    );
+  };
+
+  const activeArrangementRule =
+    arrangementRules.find((rule) => rule.id === activeArrangementRuleId) ??
+    arrangementRules[0];
+
+  const openArrangementRulesLocation = async () => {
+    setOpeningArrangementRulesLocation(true);
+    try {
+      const response = await fetch("/api/open-arrangement-rules-location", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error ?? "无法打开编排规则文件夹");
+      }
+      setNotice({ tone: "ok", text: "已打开自动编排规则 JSON 所在位置。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text:
+          error instanceof Error ? error.message : "无法打开编排规则文件夹",
+      });
+    } finally {
+      setOpeningArrangementRulesLocation(false);
+    }
+  };
+
+  const activateArrangementRule = (ruleId: string) => {
+    const rule = arrangementRules.find((candidate) => candidate.id === ruleId);
+    if (!rule) return;
+    const { id: _id, name: _name, ...preferences } = rule;
+    setActiveArrangementRuleId(rule.id);
+    setArrangementPreferences(preferences);
+    setNotice({ tone: "ok", text: `已启用编排规则“${rule.name}”。` });
+  };
+
+  const createArrangementRule = () => {
+    const id = `semantic-style-${Date.now()}`;
+    const name = `语义风格 ${arrangementRules.length + 1}`;
+    const nextPreferences = {
+      ...arrangementPreferences,
+      componentScores: {},
+    };
+    const rule: ArrangementStyleRule = { id, name, ...nextPreferences };
+    setArrangementRules((current) => [...current, rule]);
+    setActiveArrangementRuleId(id);
+    setArrangementPreferences(nextPreferences);
+    setNotice({ tone: "ok", text: `已新建并启用“${name}”。` });
+  };
+
+  const savePendingArrangementAsNewStyle = () => {
+    const name = newArrangementRuleName.trim().slice(0, 40);
+    if (!name) {
+      setNotice({ tone: "info", text: "请先为这套语义风格填写名称。" });
+      return;
+    }
+    if (
+      arrangementRules.some(
+        (rule) => rule.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
+      )
+    ) {
+      setNotice({ tone: "info", text: `语义风格“${name}”已存在，请换一个名称。` });
+      return;
+    }
+
+    // 当前预览仍可继续编辑；组件偏好只在用户确认插入后才会学习。
+    const nextPreferences = {
+      ...arrangementPreferences,
+      componentScores: { ...arrangementPreferences.componentScores },
+    };
+    const rule: ArrangementStyleRule = {
+      id: `semantic-style-${Date.now()}`,
+      name,
+      ...nextPreferences,
+    };
+    setArrangementRules((current) => [...current, rule]);
+    setActiveArrangementRuleId(rule.id);
+    setArrangementPreferences(nextPreferences);
+    setNewArrangementRuleName("");
+    setNotice({
+      tone: "ok",
+      text: `已保存“${name}”。下次 AI 自动编排可直接调用这套语义风格。`,
+    });
+  };
+
+  const renameActiveArrangementRule = (name: string) => {
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId ? { ...rule, name } : rule,
+      ),
+    );
+  };
+
+  const deleteActiveArrangementRule = () => {
+    if (arrangementRules.length <= 1) {
+      setNotice({ tone: "info", text: "至少需要保留一条编排规则。" });
+      return;
+    }
+    const remaining = arrangementRules.filter(
+      (rule) => rule.id !== activeArrangementRuleId,
+    );
+    const nextRule = remaining[0];
+    const { id: _id, name: _name, ...preferences } = nextRule;
+    setArrangementRules(remaining);
+    setActiveArrangementRuleId(nextRule.id);
+    setArrangementPreferences(preferences);
+    setNotice({ tone: "ok", text: "已删除当前规则并切换到下一条规则。" });
+  };
+
+  const updateArrangementPreferences = (
+    patch: Partial<Omit<ArrangementPreferences, "componentScores">>,
+  ) => {
+    setArrangementPreferences((current) => ({ ...current, ...patch }));
+    if (patch.accentColor || patch.keepStyleConsistent === true) {
+      const accentColor = patch.accentColor ?? arrangementPreferences.accentColor;
+      setPendingArrangement((current) =>
+        current
+          ? {
+              ...current,
+              motionInstances: current.motionInstances.map((instance) => ({
+                ...instance,
+                props: applyConsistentAccent(instance.props, accentColor),
+              })),
+            }
+          : current,
+      );
+    }
+    if (patch.autoAddIcons === false) {
+      setPendingArrangement((current) => {
+        if (!current) return current;
+        const removedIds = new Set(
+          current.resourceTracks
+            .filter(
+              (track) =>
+                track.kind === "icon" &&
+                typeof track.sourceExpressionId === "string" &&
+                track.sourceExpressionId.startsWith("icon-"),
+            )
+            .map((track) => track.id),
+        );
+        return {
+          ...current,
+          resourceTracks: current.resourceTracks.filter(
+            (track) => !removedIds.has(track.id),
+          ),
+          selectedKeys: current.selectedKeys.filter(
+            (key) =>
+              !key.startsWith("resource:") ||
+              !removedIds.has(key.slice("resource:".length)),
+          ),
+        };
+      });
+    }
+  };
+
+  const clearLearnedArrangementPreferences = () => {
+    setArrangementPreferences((current) => ({
+      ...current,
+      componentScores: {},
+    }));
+    setNotice({ tone: "ok", text: "已清空 AI 编排的组件选择习惯。" });
+  };
+
   const setAllPendingArrangementItems = (selected: boolean) => {
     setPendingArrangement((current) => {
       if (!current) return current;
@@ -5318,6 +6053,19 @@ const App = () => {
     }
     setActiveArrangementBatchId(pendingArrangement.batchId);
     setActiveArrangementIntentId("");
+    if (arrangementPreferences.learnFromConfirmedChoices) {
+      setArrangementPreferences((current) => {
+        const nextScores = { ...current.componentScores };
+        pendingArrangement.motionInstances.forEach((instance) => {
+          const delta = selectedKeys.has(`motion:${instance.id}`) ? 2 : -1;
+          nextScores[instance.componentId] = Math.max(
+            -8,
+            Math.min(12, (nextScores[instance.componentId] ?? 0) + delta),
+          );
+        });
+        return { ...current, componentScores: nextScores };
+      });
+    }
     seekEditorFrame(
       Math.min(
         ...selectedTimelineInstances.map((instance) => instance.startFrame),
@@ -8608,6 +9356,12 @@ const App = () => {
             效果库
           </button>
           <button
+            className={activeWorkspace === "rules" ? "active" : ""}
+            onClick={() => setActiveWorkspace("rules")}
+          >
+            编排规则
+          </button>
+          <button
             className={activeWorkspace === "icons" ? "active" : ""}
             onClick={() => setActiveWorkspace("icons")}
           >
@@ -8821,6 +9575,181 @@ const App = () => {
                 >
                   导入到时间轴
                 </button>
+              </div>
+            </div>
+          ) : activeWorkspace === "rules" ? (
+            <div className="semantic-rules-panel">
+              <header className="semantic-rules-header">
+                <div>
+                  <small>AI ARRANGEMENT RULES</small>
+                  <strong>编排规则</strong>
+                  <span>自动编排只读取当前启用的语义风格</span>
+                </div>
+                <div className="semantic-rules-header-actions">
+                  <span className={arrangementRulesSaveStatus}>
+                    {arrangementRulesSaveStatus === "loading"
+                      ? "读取中"
+                      : arrangementRulesSaveStatus === "saving"
+                        ? "保存中"
+                        : arrangementRulesSaveStatus === "saved"
+                          ? "已写入项目"
+                          : "保存失败"}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!arrangementRulesFileReady}
+                    onClick={createArrangementRule}
+                  >
+                    <Plus weight="bold" />新建
+                  </button>
+                </div>
+              </header>
+
+              <div className="semantic-rule-list" aria-label="语义风格规则列表">
+                {arrangementRules.map((rule) => (
+                  <button
+                    type="button"
+                    key={rule.id}
+                    className={
+                      rule.id === activeArrangementRuleId ? "active" : undefined
+                    }
+                    onClick={() => activateArrangementRule(rule.id)}
+                  >
+                    <i style={{ backgroundColor: rule.accentColor }} />
+                    <span>
+                      <strong>{rule.name}</strong>
+                      <small>
+                        {rule.keepStyleConsistent ? "统一风格" : "语义自动配色"}
+                        {rule.autoAddIcons ? " · 自动图标" : " · 图标手动"}
+                      </small>
+                    </span>
+                    <b>{rule.id === activeArrangementRuleId ? "使用中" : "启用"}</b>
+                  </button>
+                ))}
+              </div>
+
+              {activeArrangementRule ? (
+                <section className="semantic-rule-editor">
+                  <div className="semantic-rule-editor-title">
+                    <span>
+                      <small>ACTIVE SEMANTIC STYLE</small>
+                      <strong>编辑当前规则</strong>
+                    </span>
+                    <i style={{ backgroundColor: arrangementPreferences.accentColor }} />
+                  </div>
+
+                  <label className="semantic-rule-name">
+                    <span>规则名称</span>
+                    <input
+                      type="text"
+                      value={activeArrangementRule.name}
+                      onChange={(event) =>
+                        renameActiveArrangementRule(event.target.value)
+                      }
+                      onBlur={(event) => {
+                        if (!event.currentTarget.value.trim()) {
+                          renameActiveArrangementRule("未命名语义风格");
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <div className="semantic-rule-fields">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={arrangementPreferences.keepStyleConsistent}
+                        onChange={(event) =>
+                          updateArrangementPreferences({
+                            keepStyleConsistent: event.target.checked,
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>保持统一视觉风格</strong>
+                        <small>统一组件主强调色</small>
+                      </span>
+                    </label>
+                    <label className="semantic-rule-color">
+                      <input
+                        type="color"
+                        value={arrangementPreferences.accentColor}
+                        disabled={!arrangementPreferences.keepStyleConsistent}
+                        onChange={(event) =>
+                          updateArrangementPreferences({
+                            accentColor: event.target.value,
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>规则主色</strong>
+                        <small>{arrangementPreferences.accentColor.toUpperCase()}</small>
+                      </span>
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={arrangementPreferences.autoAddIcons}
+                        onChange={(event) =>
+                          updateArrangementPreferences({
+                            autoAddIcons: event.target.checked,
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>自动添加独立图标</strong>
+                        <small>关闭后仅允许手动添加</small>
+                      </span>
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={
+                          arrangementPreferences.learnFromConfirmedChoices
+                        }
+                        onChange={(event) =>
+                          updateArrangementPreferences({
+                            learnFromConfirmedChoices: event.target.checked,
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>学习确认插入项</strong>
+                        <small>
+                          已记录 {Object.keys(arrangementPreferences.componentScores).length} 个组件
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="semantic-rule-actions">
+                    <button
+                      type="button"
+                      disabled={
+                        Object.keys(arrangementPreferences.componentScores)
+                          .length === 0
+                      }
+                      onClick={clearLearnedArrangementPreferences}
+                    >
+                      清空组件习惯
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={arrangementRules.length <= 1}
+                      onClick={deleteActiveArrangementRule}
+                    >
+                      删除规则
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
+              <div className="semantic-rule-system-note">
+                <strong>规则文件已纳入项目</strong>
+                <span>
+                  保存位置：public/input/arrangement-rules/rule-manifest.json。该文件可以随 Git、备份或复制到其他工作台长期复用。
+                </span>
               </div>
             </div>
           ) : activeWorkspace === "effects" ? (
@@ -11376,6 +12305,107 @@ const App = () => {
               <span className="preserve">原时间线将保留</span>
             </div>
 
+            <div className="arrangement-preferences" aria-label="AI 编排偏好">
+              <div className="arrangement-preferences-title">
+                <span>
+                  <strong>
+                    编排规则 · {activeArrangementRule?.name ?? "我的语义风格"}
+                  </strong>
+                  <small>偏好保存在本机，只从最终确认插入的选择中学习</small>
+                </span>
+                <div className="arrangement-preferences-title-actions">
+                  <input
+                    type="text"
+                    value={newArrangementRuleName}
+                    maxLength={40}
+                    placeholder="给这套风格命名"
+                    aria-label="新语义风格名称"
+                    onChange={(event) => setNewArrangementRuleName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") savePendingArrangementAsNewStyle();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="arrangement-save-style"
+                    disabled={!arrangementRulesFileReady}
+                    onClick={savePendingArrangementAsNewStyle}
+                  >
+                    <Plus weight="bold" />保存为新风格
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      Object.keys(arrangementPreferences.componentScores).length === 0
+                    }
+                    onClick={clearLearnedArrangementPreferences}
+                  >
+                    清空学习记录
+                  </button>
+                </div>
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.keepStyleConsistent}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      keepStyleConsistent: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>保持统一视觉风格</strong>
+                  <small>统一当前编排的主强调色，风险色仍保留语义区分</small>
+                </span>
+              </label>
+              <label className="arrangement-accent-field">
+                <input
+                  type="color"
+                  value={arrangementPreferences.accentColor}
+                  disabled={!arrangementPreferences.keepStyleConsistent}
+                  aria-label="统一风格主色"
+                  onChange={(event) =>
+                    updateArrangementPreferences({ accentColor: event.target.value })
+                  }
+                />
+                <span>
+                  <strong>统一主色</strong>
+                  <small>{arrangementPreferences.accentColor.toUpperCase()}</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.autoAddIcons}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      autoAddIcons: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>自动添加独立图标</strong>
+                  <small>默认关闭；需要时仍可在每个语义段手动添加</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.learnFromConfirmedChoices}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      learnFromConfirmedChoices: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>记住我确认的组件</strong>
+                  <small>下次优先推荐保留的组件，降低未选组件权重</small>
+                </span>
+              </label>
+            </div>
+
             {pendingArrangement.captionInstance ? (
               <div className="arrangement-caption-controls">
                 <label className="arrangement-caption-toggle">
@@ -11482,7 +12512,148 @@ const App = () => {
               </button>
             </div>
 
-            <div className="arrangement-preview-list">
+            <div className="arrangement-preview-editor">
+              <aside className="arrangement-stage-panel">
+                <header>
+                  <span>
+                    <strong>段落画面预览</strong>
+                    <small>
+                      {activePendingPreviewSegment
+                        ? `语义段 ${pendingArrangementSegments.indexOf(activePendingPreviewSegment) + 1} · ${formatTime(activePendingPreviewSegment.startFrame / fps)}–${formatTime(activePendingPreviewSegment.endFrame / fps)}`
+                        : "选择右侧动效开始预览"}
+                    </small>
+                  </span>
+                  <div className="arrangement-stage-actions">
+                    <b>安全区已显示</b>
+                    <button
+                      type="button"
+                      onClick={openArrangementPreviewWindow}
+                    >
+                      <FrameCorners />打开大窗口
+                    </button>
+                  </div>
+                </header>
+                <div
+                  className={`arrangement-stage-player ${canvasOrientation}`}
+                >
+                  {motionModule && activePendingPreviewSegment ? (
+                    <Player
+                      ref={arrangementPreviewPlayerRef}
+                      component={StudioPreviewComposition}
+                      inputProps={pendingArrangementPreviewInputProps}
+                      durationInFrames={durationInFrames}
+                      fps={fps}
+                      compositionWidth={canvasWidth}
+                      compositionHeight={canvasHeight}
+                      controls
+                      loop
+                      clickToPlay={false}
+                      spaceKeyToPlayOrPause={false}
+                      acknowledgeRemotionLicense
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "#05070a",
+                      }}
+                    />
+                  ) : (
+                    <span>选择一个语义段或动效进行预览</span>
+                  )}
+                </div>
+                {selectedPendingPreviewInstance ? (
+                  <section className="arrangement-position-editor">
+                    <header>
+                      <span>
+                        <strong>
+                          {definitionMap.get(
+                            selectedPendingPreviewInstance.componentId,
+                          )?.name ?? selectedPendingPreviewInstance.componentId}
+                        </strong>
+                        <small>位置修改只作用于当前待确认动效</small>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          resetPendingArrangementMotionPosition(
+                            selectedPendingPreviewInstance.id,
+                          )
+                        }
+                      >
+                        自动位置
+                      </button>
+                    </header>
+                    <label>
+                      <span>
+                        水平位置
+                        <b>{Math.round(selectedPendingPreviewInstance.position.x)}px</b>
+                      </span>
+                      <input
+                        type="range"
+                        min={-canvasWidth}
+                        max={canvasWidth}
+                        step={1}
+                        value={selectedPendingPreviewInstance.position.x}
+                        onChange={(event) =>
+                          updatePendingArrangementMotionPosition(
+                            selectedPendingPreviewInstance.id,
+                            { x: Number(event.target.value) },
+                          )
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>
+                        垂直位置
+                        <b>{Math.round(selectedPendingPreviewInstance.position.y)}px</b>
+                      </span>
+                      <input
+                        type="range"
+                        min={-canvasHeight}
+                        max={canvasHeight}
+                        step={1}
+                        value={selectedPendingPreviewInstance.position.y}
+                        onChange={(event) =>
+                          updatePendingArrangementMotionPosition(
+                            selectedPendingPreviewInstance.id,
+                            { y: Number(event.target.value) },
+                          )
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>
+                        动效大小
+                        <b>
+                          {Math.round(
+                            selectedPendingPreviewInstance.position.scale * 100,
+                          )}%
+                        </b>
+                      </span>
+                      <input
+                        type="range"
+                        min={20}
+                        max={200}
+                        step={1}
+                        value={Math.round(
+                          selectedPendingPreviewInstance.position.scale * 100,
+                        )}
+                        onChange={(event) =>
+                          updatePendingArrangementMotionPosition(
+                            selectedPendingPreviewInstance.id,
+                            { scale: Number(event.target.value) / 100 },
+                          )
+                        }
+                      />
+                    </label>
+                  </section>
+                ) : (
+                  <div className="arrangement-position-empty">
+                    本段暂无动效；点击右侧“添加效果”选择组件。
+                  </div>
+                )}
+              </aside>
+
+              <div className="arrangement-preview-list">
               {pendingArrangementSegments.map((segment, segmentIndex) => {
                 const locked = pendingArrangement.lockedSegmentIds.includes(
                   segment.id,
@@ -11495,7 +12666,17 @@ const App = () => {
                     reason: "来自当前画幅的可编排组件库",
                     props: {},
                   }))
-                ).filter((candidate) => definitionMap.has(candidate.componentId));
+                )
+                  .filter((candidate) => definitionMap.has(candidate.componentId))
+                  .sort(
+                    (left, right) =>
+                      (arrangementPreferences.componentScores[
+                        right.componentId
+                      ] ?? 0) -
+                        (arrangementPreferences.componentScores[
+                          left.componentId
+                        ] ?? 0) || left.rank - right.rank,
+                  );
                 const candidateGroups = [...semanticCandidates.reduce(
                   (groups, candidate) => {
                     const definition = definitionMap.get(candidate.componentId)!;
@@ -11571,25 +12752,59 @@ const App = () => {
                   : null;
                 const pickerOpen =
                   arrangementComponentPicker?.segmentId === segment.id;
+                const semanticSource =
+                  pendingArrangement.semanticSourcesBySegment?.[segment.id];
+                const sourceCueLabel = semanticSource?.sourceCueIndices.length
+                  ? semanticSource.sourceCueIndices.length === 1
+                    ? String(semanticSource.sourceCueIndices[0]).padStart(2, "0")
+                    : `${String(semanticSource.sourceCueIndices[0]).padStart(2, "0")}–${String(semanticSource.sourceCueIndices.at(-1)).padStart(2, "0")}`
+                  : "";
                 return (
                   <section
                     className={`arrangement-segment${locked ? " locked" : ""}`}
                     key={segment.id}
                   >
                     <header className="arrangement-segment-header">
-                      <div>
-                        <strong>语义段 {segmentIndex + 1}</strong>
-                        <time>
-                          {formatTime(segment.startFrame / fps)} –{" "}
-                          {formatTime(segment.endFrame / fps)}
-                        </time>
-                        <small>
-                          {segment.motionInstances.length} 个动效 ·{" "}
-                          {segment.resourceTracks.length} 个资源 ·{" "}
-                          {semanticCandidates.length} 个语义候选
-                        </small>
+                      <div className="arrangement-segment-copy">
+                        <div className="arrangement-segment-meta">
+                          <strong>语义段 {segmentIndex + 1}</strong>
+                          <time>
+                            {formatTime(segment.startFrame / fps)} –{" "}
+                            {formatTime(segment.endFrame / fps)}
+                          </time>
+                          <small>
+                            {segment.motionInstances.length} 个动效 ·{" "}
+                            {segment.resourceTracks.length} 个资源 ·{" "}
+                            {semanticCandidates.length} 个语义候选
+                          </small>
+                        </div>
+                        {semanticSource?.text ? (
+                          <div className="arrangement-segment-source">
+                            <b>{sourceCueLabel ? `SRT ${sourceCueLabel}` : "SRT"}</b>
+                            <p>{semanticSource.text}</p>
+                            {semanticSource.semanticLabel ? (
+                              <i>{semanticSource.semanticLabel}</i>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="arrangement-segment-actions">
+                        <button
+                          type="button"
+                          className={
+                            activePendingPreviewSegmentId === segment.id
+                              ? "active"
+                              : undefined
+                          }
+                          onClick={() =>
+                            previewPendingArrangementMotion(
+                              segment.id,
+                              segment.motionInstances[0]?.id,
+                            )
+                          }
+                        >
+                          <Play weight="fill" />预览本段
+                        </button>
                         <button
                           type="button"
                           disabled={locked || semanticCandidates.length < 2}
@@ -12002,21 +13217,41 @@ const App = () => {
                               {formatTime(instance.startFrame / fps)} ·{" "}
                               {formatTime(instance.durationInFrames / fps)}
                             </time>
-                            <button
-                              type="button"
-                              disabled={locked || semanticCandidates.length === 0}
-                              onClick={() => {
-                                stopArrangementAudioPreview();
-                                setArrangementResourcePicker(null);
-                                setArrangementComponentPicker({
-                                  mode: "replace",
-                                  segmentId: segment.id,
-                                  instanceId: instance.id,
-                                });
-                              }}
-                            >
-                              替换
-                            </button>
+                            <div className="arrangement-item-actions">
+                              <button
+                                type="button"
+                                className={
+                                  selectedPendingPreviewInstance?.id === instance.id
+                                    ? "active"
+                                    : undefined
+                                }
+                                onClick={() =>
+                                  previewPendingArrangementMotion(
+                                    segment.id,
+                                    instance.id,
+                                  )
+                                }
+                              >
+                                预览调整
+                              </button>
+                              <button
+                                type="button"
+                                disabled={locked || semanticCandidates.length === 0}
+                                onClick={() => {
+                                  previewPendingArrangementMotion(
+                                    segment.id,
+                                    instance.id,
+                                  );
+                                  setArrangementComponentPicker({
+                                    mode: "replace",
+                                    segmentId: segment.id,
+                                    instanceId: instance.id,
+                                  });
+                                }}
+                              >
+                                替换
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -12072,6 +13307,7 @@ const App = () => {
                   </section>
                 );
               })}
+              </div>
             </div>
 
             <footer>
@@ -12186,6 +13422,117 @@ const App = () => {
                   {srtResult.motionCount} 个动效 · {srtResult.resourceCount} 个资源
                 </b>
               ) : null}
+            </div>
+
+            <div className="arrangement-preferences compact" aria-label="自动编排设置">
+              <div className="arrangement-active-rule-field">
+                <span>
+                  <strong>当前编排规则</strong>
+                  <small>自动编排按所选风格匹配组件</small>
+                </span>
+                <select
+                  value={activeArrangementRuleId}
+                  disabled={srtGenerating}
+                  onChange={(event) => activateArrangementRule(event.target.value)}
+                >
+                  {arrangementRules.map((rule) => (
+                    <option key={rule.id} value={rule.id}>
+                      {rule.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="arrangement-active-rule-actions">
+                  <button
+                    type="button"
+                    disabled={
+                      srtGenerating || openingArrangementRulesLocation
+                    }
+                    onClick={() => void openArrangementRulesLocation()}
+                    title="打开 rule-manifest.json 所在文件夹"
+                  >
+                    <FolderOpen weight="bold" />
+                    {openingArrangementRulesLocation ? "打开中…" : "打开位置"}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={srtGenerating || arrangementRules.length <= 1}
+                    onClick={deleteActiveArrangementRule}
+                    title={
+                      arrangementRules.length <= 1
+                        ? "至少保留一条规则"
+                        : "删除当前语义规则"
+                    }
+                  >
+                    删除规则
+                  </button>
+                </div>
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.keepStyleConsistent}
+                  disabled={srtGenerating}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      keepStyleConsistent: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>保持统一风格</strong>
+                  <small>同一主色贯穿本次编排</small>
+                </span>
+              </label>
+              <label className="arrangement-accent-field">
+                <input
+                  type="color"
+                  value={arrangementPreferences.accentColor}
+                  disabled={
+                    srtGenerating || !arrangementPreferences.keepStyleConsistent
+                  }
+                  aria-label="自动编排统一主色"
+                  onChange={(event) =>
+                    updateArrangementPreferences({ accentColor: event.target.value })
+                  }
+                />
+                <span>
+                  <strong>主色</strong>
+                  <small>{arrangementPreferences.accentColor.toUpperCase()}</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.autoAddIcons}
+                  disabled={srtGenerating}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      autoAddIcons: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>自动图标</strong>
+                  <small>默认关闭，避免无关图标</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={arrangementPreferences.learnFromConfirmedChoices}
+                  disabled={srtGenerating}
+                  onChange={(event) =>
+                    updateArrangementPreferences({
+                      learnFromConfirmedChoices: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>记住选择</strong>
+                  <small>只学习最终确认插入项</small>
+                </span>
+              </label>
             </div>
 
             <div className="srt-dialog-list">
@@ -12470,6 +13817,103 @@ const App = () => {
           ) : null}
         </aside>
       ) : null}
+      {arrangementPreviewWindow &&
+      !arrangementPreviewWindow.closed &&
+      pendingArrangement
+        ? createPortal(
+            <main className="arrangement-popout-shell">
+              <header>
+                <div>
+                  <small>ARRANGEMENT LIVE PREVIEW</small>
+                  <strong>独立编排预览</strong>
+                  <span>
+                    {activePendingPreviewSegment
+                      ? `语义段 ${pendingArrangementSegments.indexOf(activePendingPreviewSegment) + 1} · ${formatTime(activePendingPreviewSegment.startFrame / fps)}–${formatTime(activePendingPreviewSegment.endFrame / fps)}`
+                      : "请在主窗口选择要预览的语义段"}
+                  </span>
+                </div>
+                <div className="arrangement-popout-status">
+                  <b>主窗口修改会实时同步</b>
+                  <button
+                    type="button"
+                    onClick={closeArrangementPreviewWindow}
+                  >
+                    <X />关闭窗口
+                  </button>
+                </div>
+              </header>
+
+              <section
+                className={`arrangement-popout-player ${canvasOrientation}`}
+              >
+                <div className="arrangement-popout-player-frame">
+                  {motionModule && activePendingPreviewSegment ? (
+                    <Player
+                      ref={arrangementPreviewPopoutPlayerRef}
+                      component={StudioPreviewComposition}
+                      inputProps={pendingArrangementPreviewInputProps}
+                      durationInFrames={durationInFrames}
+                      fps={fps}
+                      compositionWidth={canvasWidth}
+                      compositionHeight={canvasHeight}
+                      controls
+                      loop
+                      clickToPlay={false}
+                      spaceKeyToPlayOrPause
+                      acknowledgeRemotionLicense
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "#05070a",
+                      }}
+                    />
+                  ) : (
+                    <span>主窗口选中语义段后，这里会显示对应画面。</span>
+                  )}
+                </div>
+              </section>
+
+              <footer>
+                <div className="arrangement-popout-source">
+                  <b>
+                    {activePendingPreviewSemanticSource?.sourceCueIndices.length
+                      ? `SRT ${String(activePendingPreviewSemanticSource.sourceCueIndices[0]).padStart(2, "0")}${
+                          activePendingPreviewSemanticSource.sourceCueIndices.length > 1
+                            ? `–${String(activePendingPreviewSemanticSource.sourceCueIndices.at(-1)).padStart(2, "0")}`
+                            : ""
+                        }`
+                      : "当前 SRT"}
+                  </b>
+                  <p>
+                    {activePendingPreviewSemanticSource?.text ??
+                      "在主窗口选择语义段、替换组件或调整位置。"}
+                  </p>
+                </div>
+                <div className="arrangement-popout-selection">
+                  <span>当前动效</span>
+                  <strong>
+                    {selectedPendingPreviewInstance
+                      ? definitionMap.get(
+                          selectedPendingPreviewInstance.componentId,
+                        )?.name ?? selectedPendingPreviewInstance.componentId
+                      : "本段暂无动效"}
+                  </strong>
+                  {selectedPendingPreviewInstance ? (
+                    <small>
+                      X {Math.round(selectedPendingPreviewInstance.position.x)} · Y{" "}
+                      {Math.round(selectedPendingPreviewInstance.position.y)} ·{" "}
+                      {Math.round(
+                        selectedPendingPreviewInstance.position.scale * 100,
+                      )}%
+                    </small>
+                  ) : null}
+                </div>
+              </footer>
+            </main>,
+            arrangementPreviewWindow.document.body,
+          )
+        : null}
+
       {contextMenu ? (
         <>
           <div

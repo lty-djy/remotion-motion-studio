@@ -1954,6 +1954,7 @@ const selectDiversePortraitCandidates = ({
   intentCountInCue,
   cueFrameCount,
   diversityState,
+  componentPreferenceScores,
 }) => {
   const candidates = portraitComponentCandidates(
     route,
@@ -1987,6 +1988,22 @@ const selectDiversePortraitCandidates = ({
         );
         return candidate ? [candidate] : [];
       });
+  }
+
+  const learnedCandidate = [...candidates].sort(
+    (left, right) =>
+      (Number(componentPreferenceScores?.[right.componentId]) || 0) -
+        (Number(componentPreferenceScores?.[left.componentId]) || 0) ||
+      left.rank - right.rank,
+  )[0];
+  if (
+    learnedCandidate &&
+    (Number(componentPreferenceScores?.[learnedCandidate.componentId]) || 0) > 0 &&
+    activeSelections.some(
+      (selection) => selection.componentId === learnedCandidate.componentId,
+    )
+  ) {
+    return [learnedCandidate];
   }
 
   const routeUseCount = diversityState.routeUsage.get(route.id) ?? 0;
@@ -2026,6 +2043,10 @@ const selectDiversePortraitCandidates = ({
           : 0) +
       (diversityState.componentUsage.get(candidate.componentId) ?? 0) *
         PORTRAIT_DIVERSITY_POLICY.usagePenalty +
+      Math.max(
+        -12,
+        Math.min(8, Number(componentPreferenceScores?.[candidate.componentId]) || 0),
+      ) * -600 +
       candidate.rank;
     return score(left) - score(right);
   });
@@ -2063,6 +2084,7 @@ const buildPortraitSemanticSrtArrangement = ({
   componentCapabilities,
   resourceIndex,
   documentContext,
+  componentPreferenceScores = {},
 }) => {
   const componentIds = new Set(availableComponentIds);
   const capabilitiesById = semanticCapabilityMap(componentCapabilities);
@@ -2197,6 +2219,7 @@ const buildPortraitSemanticSrtArrangement = ({
         intentCountInCue: selectedRoutes.length,
         cueFrameCount: endFrame - startFrame,
         diversityState,
+        componentPreferenceScores,
       });
 
       selectedCandidates.forEach((candidate, componentIndex) => {

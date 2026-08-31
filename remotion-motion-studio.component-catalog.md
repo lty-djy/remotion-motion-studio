@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **40** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **39** 个组件，其中 **4** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -65,7 +65,6 @@
 ## 数字与指标
 
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
-- `DualMetricBar`：双向指标差异 — 双向指标差异和竞争关系 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `WaveformMetric`：波形指标 — 连续波形和实时吞吐读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `LiquidGauge`：液态仪表 — 液态填充式完成率仪表 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 - `RadialTicks`：HUD 刻度环 — 科技 HUD 刻度与中心读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
