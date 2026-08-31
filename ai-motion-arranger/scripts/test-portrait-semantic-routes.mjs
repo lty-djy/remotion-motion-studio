@@ -39,6 +39,10 @@ const expectedComponentIds = [
   "PortraitCodeDecisionChecklist",
   "PortraitBrowserRepairLoop",
   "PortraitAgentBrowserMedia",
+  "PortraitSkillStepGrid",
+  "PortraitGapHeadline",
+  "PortraitAiOutputGapQuote",
+  "PortraitAiOutputGapComparison",
   "PortraitRiskWarning",
   "LegacyModelEliminationWarning",
   "PortraitNextEpisodeCta",
@@ -51,10 +55,10 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 20) {
-  throw new Error("竖屏语义路由必须覆盖 20 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 24) {
+  throw new Error("竖屏语义路由必须覆盖 24 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 20) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 24) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
@@ -151,6 +155,10 @@ const representativeCues = new Map([
   ["code-decision-checklist", "让AI先想这个功能真的需要吗。"],
   ["browser-repair-loop", "让agent自己打开浏览器并循环检查。"],
   ["browser-self-check-media", "你现在看到的这一整页就是逐屏自查结果。"],
+  ["skill-step-grid", "就是这4个skill，今天我一个一个讲清楚。"],
+  ["gap-headline", "其实现在真正拉开差距的，早就不是模型，是工作流。"],
+  ["ai-output-gap-quote", "同样一个 AI，有人做出来一眼就是 AI 糊的。"],
+  ["ai-output-gap-comparison", "有人做出来一眼就是 AI 糊的，有人能直接上线。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],
   ["action-advice", "购买时认准国家标准并去正规店铺。"],

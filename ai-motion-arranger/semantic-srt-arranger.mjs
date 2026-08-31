@@ -1125,6 +1125,71 @@ const portraitDocumentContextFor = (entries) => {
     titleHighlight: "逐屏自查",
     browserLabel: "playwright · headed",
   };
+  const skillStepStartIndex = entries.findIndex((entry) =>
+    /就是这(?:4|四)个skill/iu.test(String(entry?.text ?? "")),
+  );
+  const skillStepEntries = skillStepStartIndex >= 0
+    ? entries.slice(skillStepStartIndex).slice(0, 3)
+    : [];
+  const skillStepGrid = {
+    startMs: skillStepEntries[0]?.startMs,
+    endMs: skillStepEntries.at(-1)?.endMs,
+    stepCount: 4,
+    headerText: "STEP 1 → 4",
+    step1Title: "我自己做的 Skill", step1Subtitle: "定审美",
+    step2Title: "GSAP", step2Subtitle: "跟动效",
+    step3Title: "Ponytail", step3Subtitle: "保克制",
+    step4Title: "Playwright MCP", step4Subtitle: "自测自修",
+  };
+  const gapHeadlineStartIndex = entries.findIndex((entry) =>
+    /真正拉开差距/u.test(String(entry?.text ?? "")),
+  );
+  const gapHeadlineEntries = gapHeadlineStartIndex >= 0
+    ? entries.slice(gapHeadlineStartIndex).slice(0, 3)
+    : [];
+  const gapHeadlineEndEntry = gapHeadlineEntries.find((entry) =>
+    /是工作流/u.test(String(entry?.text ?? "")),
+  ) ?? gapHeadlineEntries.at(-1);
+  const gapHeadline = {
+    startMs: gapHeadlineEntries[0]?.startMs,
+    endMs: gapHeadlineEndEntry?.endMs,
+    badgeText: "最后说一句",
+    titlePrefix: "差距不在",
+    titleEmphasis: "模型",
+  };
+  const aiOutputGapStartIndex = entries.findIndex((entry) =>
+    /同样一个\s*AI/iu.test(String(entry?.text ?? "")),
+  );
+  const aiOutputGapEntries = aiOutputGapStartIndex >= 0
+    ? entries.slice(aiOutputGapStartIndex).slice(0, 3)
+    : [];
+  const aiOutputGapEndEntry = aiOutputGapEntries.find((entry) =>
+    /能直接上线/u.test(String(entry?.text ?? "")),
+  ) ?? aiOutputGapEntries.at(-1);
+  const aiOutputGapQuote = {
+    startMs: aiOutputGapEntries[0]?.startMs,
+    endMs: aiOutputGapEndEntry?.endMs,
+    leadText: "同样一个 AI，",
+    bodyText: "做出来的东西却差了一整个档次。",
+  };
+  const aiOutputGapComparisonStartIndex = entries.findIndex((entry) =>
+    /一眼就是\s*AI\s*糊/iu.test(String(entry?.text ?? "")),
+  );
+  const aiOutputGapComparisonEntries = aiOutputGapComparisonStartIndex >= 0
+    ? entries.slice(aiOutputGapComparisonStartIndex).slice(0, 2)
+    : [];
+  const aiOutputGapComparisonEndEntry = aiOutputGapComparisonEntries.find((entry) =>
+    /能直接上线/u.test(String(entry?.text ?? "")),
+  ) ?? aiOutputGapComparisonEntries.at(-1);
+  const aiOutputGapComparison = {
+    startMs: aiOutputGapComparisonEntries[0]?.startMs,
+    endMs: aiOutputGapComparisonEndEntry?.endMs,
+    gapLabel: "THE GAP",
+    badText: "一眼就是 AI 糊的",
+    goodText: "能直接上线",
+    badSymbol: "×",
+    goodSymbol: "✓",
+  };
 
   return {
     enumeratedItems: enumeratedItems.slice(0, 4),
@@ -1139,6 +1204,10 @@ const portraitDocumentContextFor = (entries) => {
     codeDecisionChecklist,
     browserRepairLoop,
     browserSelfCheckMedia,
+    skillStepGrid,
+    gapHeadline,
+    aiOutputGapQuote,
+    aiOutputGapComparison,
   };
 };
 
@@ -1159,6 +1228,9 @@ const portraitStyleForRoute = (routeId) => {
     "code-decision-checklist": "#9A73FF",
     "browser-repair-loop": "#4E85FF",
     "browser-self-check-media": "#638CFF",
+    "gap-headline": "#1FD9E8",
+    "ai-output-gap-quote": "#1FD9E8",
+    "ai-output-gap-comparison": "#1FD9E8",
     "process-steps": "#168CFF",
     "risk-boundary": "#FF493D",
     "next-episode-cta": "#168CFF",
@@ -1176,6 +1248,7 @@ const portraitStyleForRoute = (routeId) => {
     panelColor: "#111318",
     ringColor: "#27406E",
     textColor: "#FFFFFF",
+    mutedTextColor: "#777887",
     shadowColor: "#000000",
   };
 };
@@ -1357,6 +1430,30 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     titleHighlight: "逐屏自查",
     browserLabel: "playwright · headed",
   };
+  const skillStepGrid = documentContext?.skillStepGrid ?? {
+    stepCount: 4,
+    headerText: "STEP 1 → 4",
+    step1Title: "我自己做的 Skill", step1Subtitle: "定审美",
+    step2Title: "GSAP", step2Subtitle: "跟动效",
+    step3Title: "Ponytail", step3Subtitle: "保克制",
+    step4Title: "Playwright MCP", step4Subtitle: "自测自修",
+  };
+  const gapHeadline = documentContext?.gapHeadline ?? {
+    badgeText: "最后说一句",
+    titlePrefix: "差距不在",
+    titleEmphasis: "模型",
+  };
+  const aiOutputGapQuote = documentContext?.aiOutputGapQuote ?? {
+    leadText: "同样一个 AI，",
+    bodyText: "做出来的东西却差了一整个档次。",
+  };
+  const aiOutputGapComparison = documentContext?.aiOutputGapComparison ?? {
+    gapLabel: "THE GAP",
+    badText: "一眼就是 AI 糊的",
+    goodText: "能直接上线",
+    badSymbol: "×",
+    goodSymbol: "✓",
+  };
   const fallbackItems = labels.length >= 2
     ? labels.slice(0, 4).map((label, index) => ({
         label,
@@ -1434,6 +1531,14 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
         ? Math.max(6, Math.min(16, Number(segmentSeconds.toFixed(2))))
       : route.id === "browser-self-check-media"
         ? Math.max(3, Math.min(12, Number(segmentSeconds.toFixed(2))))
+      : route.id === "skill-step-grid"
+        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
+      : route.id === "gap-headline"
+        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
+      : route.id === "ai-output-gap-quote"
+        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
+      : route.id === "ai-output-gap-comparison"
+        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
       : Math.max(
           0.4,
           Math.min(1.6, Number((segmentSeconds / 2).toFixed(2))),
@@ -1500,6 +1605,10 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
       codeDecisionChecklist,
       browserRepairLoop,
       browserSelfCheckMedia,
+      skillStepGrid,
+      gapHeadline,
+      aiOutputGapQuote,
+      aiOutputGapComparison,
       steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
       risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
       elimination,
@@ -1550,6 +1659,18 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "browser-self-check-media": [
     { componentId: "PortraitAgentBrowserMedia", reason: "用可上传的图片或视频展示 Agent 浏览器逐屏自查结果" },
+  ],
+  "skill-step-grid": [
+    { componentId: "PortraitSkillStepGrid", reason: "用 STEP 1 到 4 的横向卡片清晰列出四个 Skill 分工" },
+  ],
+  "gap-headline": [
+    { componentId: "PortraitGapHeadline", reason: "用徽标与超大标题强调差距不在模型这一核心结论" },
+  ],
+  "ai-output-gap-quote": [
+    { componentId: "PortraitAiOutputGapQuote", reason: "用双行引用强调相同 AI 产生不同输出档次" },
+  ],
+  "ai-output-gap-comparison": [
+    { componentId: "PortraitAiOutputGapComparison", reason: "用红色叉号与青色勾号对比 AI 糊感和可直接上线的结果" },
   ],
   "chapter-transition": [
     { componentId: "PortraitChapterRail", reason: "突出章节标题和阶段切换" },
@@ -2038,9 +2159,25 @@ const buildPortraitSemanticSrtArrangement = ({
         Number.isFinite(Number(resolvedDocumentContext.browserSelfCheckMedia?.endMs))
         ? Math.round((Number(resolvedDocumentContext.browserSelfCheckMedia.endMs) / 1000) * fps)
         : endFrame;
+      const skillStepEndFrame = route.id === "skill-step-grid" &&
+        Number.isFinite(Number(resolvedDocumentContext.skillStepGrid?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.skillStepGrid.endMs) / 1000) * fps)
+        : endFrame;
+      const gapHeadlineEndFrame = route.id === "gap-headline" &&
+        Number.isFinite(Number(resolvedDocumentContext.gapHeadline?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.gapHeadline.endMs) / 1000) * fps)
+        : endFrame;
+      const aiOutputGapEndFrame = route.id === "ai-output-gap-quote" &&
+        Number.isFinite(Number(resolvedDocumentContext.aiOutputGapQuote?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.aiOutputGapQuote.endMs) / 1000) * fps)
+        : endFrame;
+      const aiOutputGapComparisonEndFrame = route.id === "ai-output-gap-comparison" &&
+        Number.isFinite(Number(resolvedDocumentContext.aiOutputGapComparison?.endMs))
+        ? Math.round((Number(resolvedDocumentContext.aiOutputGapComparison.endMs) / 1000) * fps)
+        : endFrame;
       const timing = spanForPortraitIntent(
         startFrame,
-        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, gsapSkillEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame),
+        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, gsapSkillEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapEndFrame, aiOutputGapComparisonEndFrame),
         routeIndex,
         selectedRoutes.length,
       );

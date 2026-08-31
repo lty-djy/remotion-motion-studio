@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **41** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **47** 个组件，其中 **5** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -26,6 +26,7 @@
 ## 竖屏口播信息层
 
 - `PortraitChapterRail`：竖屏口播·章节条 — 参考竖屏口播视频提炼的左上章节标签：强调竖线、蓝色标题和白色说明分层滑入。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`accentColor`、`textColor`、`animationSeconds`）
+- `PortraitIndexedChapterTitle`：竖屏口播·编号章节标题 — 参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。（仅工作台可用；props：`enabled`、`chapterNumber`、`eyebrow`、`title`、`subtitle`、`accentColor`、`titleColor`、`subtitleColor`、`numberFontSize`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`revealDelaySeconds`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitMetricDecision`：竖屏口播·数据决策卡 — 参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。（仅工作台可用；props：`enabled`、`lead`、`conclusion`、`metricLabel`、`value`、`unit`、`verdict`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitDecisionTagStack`：竖屏口播·优缺点标签组 — 从数据决策卡拆出的独立三标签组件，三张玻璃卡严格同宽对齐并依次滑入。（仅工作台可用；props：`enabled`、`tag1`、`tag2`、`tag3`、`symbol1`、`symbol2`、`symbol3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
@@ -43,6 +44,11 @@
 - `PortraitCodeDecisionChecklist`：竖屏口播·代码决策检查清单 — 只复刻参考视频 102.333–109.050 秒的六项代码决策问题，逐行点亮，不包含身份条或行数对比。（仅工作台可用；props：`enabled`、`backgroundOpacity`、`questionCount`、`question1`、`question2`、`question3`、`question4`、`question5`、`question6`、`question7`、`question8`、`numberFontSize`、`questionFontSize`、`questionEnterIntervalSeconds`、`firstHighlightSeconds`、`questionIntervalSeconds`、`accentColor`、`activeTextColor`、`inactiveTextColor`、`panelColor`、`animationSeconds`）
 - `PortraitBrowserRepairLoop`：竖屏口播·浏览器自动修复闭环 — 复刻参考视频 123.050–132.850 秒的六步浏览器自动测试与修复闭环，节点按口播顺序循环点亮。（仅工作台可用；props：`enabled`、`stepCount`、`step1`、`step2`、`step3`、`step4`、`step5`、`step6`、`step7`、`step8`、`centerTitle`、`centerSubtitle`、`numberFontSize`、`stepFontSize`、`centerTitleFontSize`、`centerSubtitleFontSize`、`nodeEnterIntervalSeconds`、`firstNodeHighlightSeconds`、`nextNodeHighlightIntervalSeconds`、`loopIntervalSeconds`、`loopPlayback`、`accentColor`、`textColor`、`inactiveColor`、`ringColor`、`animationSeconds`）
 - `PortraitAgentBrowserMedia`：竖屏口播·Agent 浏览器逐屏自查 — 顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。（仅工作台可用；props：`enabled`、`titlePrefix`、`titleHighlight`、`browserLabel`、`mediaUrl`、`mediaType`、`mediaFit`、`mediaPositionX`、`mediaPositionY`、`titlePrefixFontSize`、`titleHighlightFontSize`、`browserLabelFontSize`、`titleColor`、`highlightColor`、`frameColor`、`browserBarColor`、`browserLabelColor`、`cornerRadius`、`titleEnterSeconds`、`mediaEnterSeconds`、`animationSeconds`）
+- `PortraitMediaPosterReveal`：竖屏口播·右滑媒体海报 — 参考右侧竖版海报效果：图片或视频从左侧快速滑入并归正，底部带强调竖线标题。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`mediaFit`、`mediaPositionX`、`mediaPositionY`、`title`、`accentColor`、`titleColor`、`placeholderColor`、`cornerRadius`、`titleFontSize`、`enterDelaySeconds`、`enterDurationSeconds`、`slideDistance`、`videoMuted`、`videoVolume`、`videoLoop`、`animationSeconds`）
+- `PortraitSkillStepGrid`：竖屏口播·Skill 四步卡片 — 按参考图展示 STEP 1 → 4 与四张 Skill 卡片，支持按需增减步骤。（仅工作台可用；props：`enabled`、`stepCount`、`headerText`、`step1Title`、`step1Subtitle`、`step2Title`、`step2Subtitle`、`step3Title`、`step3Subtitle`、`step4Title`、`step4Subtitle`、`step5Title`、`step5Subtitle`、`step6Title`、`step6Subtitle`、`step7Title`、`step7Subtitle`、`step8Title`、`step8Subtitle`、`headerFontSize`、`numberFontSize`、`titleFontSize`、`subtitleFontSize`、`headerEnterSeconds`、`cardEnterIntervalSeconds`、`animationSeconds`、`headerColor`、`textColor`、`subtitleColor`）
+- `PortraitGapHeadline`：竖屏口播·差距不在模型标题 — 三段拆分中的第 1 个组件：最后说一句徽标与“差距不在模型”大标题。（仅工作台可用；props：`enabled`、`showBadge`、`badgeText`、`titlePrefix`、`titleEmphasis`、`badgeFontSize`、`titlePrefixFontSize`、`titleEmphasisFontSize`、`badgeColor`、`titleColor`、`emphasisColor`、`panelColor`、`badgeEnterSeconds`、`titleEnterSeconds`、`animationSeconds`）
+- `PortraitAiOutputGapQuote`：竖屏口播·同样 AI 输出差距引用 — 三段拆分中的第 2 个组件：同样一个 AI，却产生不同输出档次的双行引用。（仅工作台可用；props：`enabled`、`showAccentLine`、`leadText`、`bodyText`、`leadFontSize`、`bodyFontSize`、`leadColor`、`bodyColor`、`accentColor`、`panelColor`、`leadEnterSeconds`、`bodyEnterSeconds`、`animationSeconds`）
+- `PortraitAiOutputGapComparison`：竖屏口播·AI 输出差距对比 — 三段拆分中的第 3 个组件：AI 糊感与可直接上线的正反结果对比。（仅工作台可用；props：`enabled`、`showGapLabel`、`gapLabel`、`badText`、`goodText`、`badSymbol`、`goodSymbol`、`labelFontSize`、`itemFontSize`、`symbolFontSize`、`labelColor`、`textColor`、`badColor`、`goodColor`、`panelColor`、`labelEnterSeconds`、`firstRowEnterSeconds`、`nextRowEnterIntervalSeconds`、`animationSeconds`）
 - `PortraitRiskWarning`：竖屏口播·风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`icon1`、`icon2`、`icon3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitNextEpisodeCta`：竖屏口播·下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）

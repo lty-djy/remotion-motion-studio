@@ -1081,6 +1081,7 @@ const getRegisteredEffectPosition = (
       "PortraitStepChecklist",
       "PortraitRiskWarning",
       "PortraitNextEpisodeCta",
+      "PortraitMediaPosterReveal",
       "TitleReveal",
       "LineTrend",
       "StepFlow",
@@ -8024,6 +8025,8 @@ const App = () => {
         key === "stepCount") ||
         (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
           key === "stepCount") ||
+        (selectedDefinition?.id === "PortraitSkillStepGrid" &&
+          key === "stepCount") ||
         (selectedDefinition?.id === "PortraitSkillSourceFusion" &&
           key === "sourceCount") ||
         (selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
@@ -8052,7 +8055,7 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : selectedDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : selectedDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
             if (!["materialCount", "iterationCount", "capabilityCount", "questionCount"].includes(key) || !selectedInstance) {
               updateSelectedProp(key, nextValue);
@@ -8123,7 +8126,10 @@ const App = () => {
       ["MediaSpotlightCard", "MaterialCard"].includes(
         selectedDefinition?.id ?? "",
       ) ||
-      (key === "mediaUrl" && selectedDefinition?.id === "PortraitAgentBrowserMedia");
+      (key === "mediaUrl" &&
+        ["PortraitAgentBrowserMedia", "PortraitMediaPosterReveal"].includes(
+          selectedDefinition?.id ?? "",
+        ));
     const isComparisonMediaUrl =
       selectedDefinition?.id === "PortraitSkillResultComparison" &&
       /^material[1-8]Url$/.test(key);
@@ -8297,6 +8303,14 @@ const App = () => {
           ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
           ["nodeEnterIntervalSeconds", "firstNodeHighlightSeconds", "nextNodeHighlightIntervalSeconds", "loopIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitSkillStepGrid" &&
+          ["headerEnterSeconds", "cardEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitGapHeadline" &&
+          ["badgeEnterSeconds", "titleEnterSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitAiOutputGapQuote" &&
+          ["leadEnterSeconds", "bodyEnterSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitAiOutputGapComparison" &&
+          ["labelEnterSeconds", "firstRowEnterSeconds", "nextRowEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitAgentBrowserMedia" &&
           ["titleEnterSeconds", "mediaEnterSeconds", "animationSeconds"].includes(key)))
     ) {
@@ -10678,6 +10692,19 @@ const App = () => {
                               Number(selectedInstance.props.stepCount ?? 6),
                             ),
                             2,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          selectedDefinition.id === "PortraitSkillStepGrid"
+                        ) {
+                          const match = key.match(/^step(\d+)(?:Title|Subtitle)$/);
+                          const activeStepCount = clamp(
+                            Math.round(Number(selectedInstance.props.stepCount ?? 4)),
+                            1,
                             8,
                           );
                           if (match && Number(match[1]) > activeStepCount) {

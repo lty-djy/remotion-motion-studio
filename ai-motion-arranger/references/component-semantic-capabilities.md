@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **41** 个注册组件。
+当前覆盖 **47** 个注册组件。
 
 ## 核心语义
 
@@ -68,6 +68,12 @@
   - 内容：short-text、process
   - 方向：portrait；密度：light；建议时长：1.2–5 秒
   - 检索词：章节、下一步、接下来、阶段、开场
+- **竖屏口播·编号章节标题**（`PortraitIndexedChapterTitle`）
+  - 主要：章节转场
+  - 次要：重点强调、流程说明
+  - 内容：short-text、process
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
 - **竖屏口播·图标信息卡**（`PortraitInfoCallout`）
   - 主要：概念解释
   - 次要：重点强调、案例与素材、流程说明、章节转场、风险提醒、行动引导
@@ -170,6 +176,36 @@
   - 内容：media、short-text
   - 方向：portrait；密度：heavy；建议时长：3–12 秒
   - 检索词：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
+- **竖屏口播·右滑媒体海报**（`PortraitMediaPosterReveal`）
+  - 主要：案例与素材
+  - 次要：重点强调、概念解释、章节转场
+  - 内容：media、short-text
+  - 方向：portrait；密度：medium；建议时长：2–12 秒
+  - 检索词：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
+- **竖屏口播·Skill 四步卡片**（`PortraitSkillStepGrid`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、章节转场
+  - 内容：list、process、short-text
+  - 方向：portrait；密度：medium；建议时长：2–8 秒
+  - 检索词：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
+- **竖屏口播·差距不在模型标题**（`PortraitGapHeadline`）
+  - 主要：重点强调
+  - 次要：对比差异、概念解释、章节转场
+  - 内容：short-text、comparison
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：真正拉开差距、不是模型、差距不在模型、最后说一句、工作流
+- **竖屏口播·同样 AI 输出差距引用**（`PortraitAiOutputGapQuote`）
+  - 主要：对比差异
+  - 次要：概念解释、重点强调、案例与素材
+  - 内容：comparison、short-text
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：同样一个AI、同样一个 AI、做出来、差了一整个档次、一眼就是AI糊的、直接上线
+- **竖屏口播·AI 输出差距对比**（`PortraitAiOutputGapComparison`）
+  - 主要：对比差异
+  - 次要：重点强调、概念解释、案例与素材
+  - 内容：comparison、short-text
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
 - **竖屏口播·风险提醒卡**（`PortraitRiskWarning`）
   - 主要：风险提醒
   - 次要：重点强调、列举要点、概念解释

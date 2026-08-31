@@ -19,6 +19,7 @@ import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPane
 
 
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
+import { PortraitIndexedChapterTitleEffectDef } from "./effects/PortraitIndexedChapterTitle";
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
@@ -36,6 +37,11 @@ import { PortraitSkillIdentityHeaderBarEffectDef } from "./effects/PortraitSkill
 import { PortraitCodeDecisionChecklistEffectDef } from "./effects/PortraitCodeDecisionChecklist";
 import { PortraitBrowserRepairLoopEffectDef } from "./effects/PortraitBrowserRepairLoop";
 import { PortraitAgentBrowserMediaEffectDef } from "./effects/PortraitAgentBrowserMedia";
+import { PortraitMediaPosterRevealEffectDef } from "./effects/PortraitMediaPosterReveal";
+import { PortraitSkillStepGridEffectDef } from "./effects/PortraitSkillStepGrid";
+import { PortraitGapHeadlineEffectDef } from "./effects/PortraitGapHeadline";
+import { PortraitAiOutputGapQuoteEffectDef } from "./effects/PortraitAiOutputGapQuote";
+import { PortraitAiOutputGapComparisonEffectDef } from "./effects/PortraitAiOutputGapComparison";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
@@ -67,6 +73,7 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   TerminalPanelEffectDef,
   SoftTeachingGlassPanelEffectDef,
   PortraitChapterRailEffectDef,
+  PortraitIndexedChapterTitleEffectDef,
 
   PortraitInfoCalloutEffectDef,
 
@@ -99,6 +106,11 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitCodeDecisionChecklistEffectDef,
   PortraitBrowserRepairLoopEffectDef,
   PortraitAgentBrowserMediaEffectDef,
+  PortraitMediaPosterRevealEffectDef,
+  PortraitSkillStepGridEffectDef,
+  PortraitGapHeadlineEffectDef,
+  PortraitAiOutputGapQuoteEffectDef,
+  PortraitAiOutputGapComparisonEffectDef,
 
   PortraitRiskWarningEffectDef,
 

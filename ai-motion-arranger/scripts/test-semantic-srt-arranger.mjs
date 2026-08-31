@@ -185,6 +185,10 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
     "PortraitCodeDecisionChecklist",
     "PortraitBrowserRepairLoop",
     "PortraitAgentBrowserMedia",
+    "PortraitSkillStepGrid",
+    "PortraitGapHeadline",
+    "PortraitAiOutputGapQuote",
+    "PortraitAiOutputGapComparison",
     "LegacyModelEliminationWarning",
   ].includes(id),
 )) {
@@ -658,6 +662,124 @@ if (
 const expectedBrowserSelfCheckFrames = Math.round(((136600 - 133083) / 1000) * 30);
 if (Math.abs(browserSelfCheckMotion.durationInFrames - expectedBrowserSelfCheckFrames) > 1) {
   throw new Error("浏览器逐屏自查组件没有覆盖 133.083–136.600 秒完整 SRT 语义段。");
+}
+const skillStepGridResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 900,
+  availableComponentIds: ["PortraitSkillStepGrid"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitSkillStepGrid")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 7, startMs: 9450, endMs: 10683, text: "就是这4个skill" },
+    { index: 8, startMs: 10766, endMs: 12250, text: "今天我一个一个讲清楚" },
+  ],
+});
+const skillStepGridMotion = skillStepGridResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitSkillStepGrid",
+);
+if (!skillStepGridMotion) {
+  throw new Error("四步 Skill 语义没有生成横向卡片组件。");
+}
+if (
+  skillStepGridMotion.props.stepCount !== 4 ||
+  skillStepGridMotion.props.headerText !== "STEP 1 → 4" ||
+  skillStepGridMotion.props.step1Title !== "我自己做的 Skill" ||
+  skillStepGridMotion.props.step4Title !== "Playwright MCP"
+) {
+  throw new Error("四步 Skill 卡片没有绑定标题或四个 Skill 内容。");
+}
+const expectedSkillStepGridFrames = Math.round(((12250 - 9450) / 1000) * 30);
+if (Math.abs(skillStepGridMotion.durationInFrames - expectedSkillStepGridFrames) > 1) {
+  throw new Error("四步 Skill 卡片没有覆盖 9.450–12.250 秒完整 SRT 语义段。");
+}
+const gapHeadlineResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 5400,
+  availableComponentIds: ["PortraitGapHeadline"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitGapHeadline")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 118, startMs: 165000, endMs: 166883, text: "其实现在真正拉开差距的" },
+    { index: 119, startMs: 166883, endMs: 167966, text: "早就不是模型" },
+    { index: 120, startMs: 167966, endMs: 168966, text: "是工作流" },
+  ],
+});
+const gapHeadlineMotion = gapHeadlineResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitGapHeadline",
+);
+if (!gapHeadlineMotion) {
+  throw new Error("差距不在模型语义没有生成结论标题组件。");
+}
+if (
+  gapHeadlineMotion.props.badgeText !== "最后说一句" ||
+  gapHeadlineMotion.props.titlePrefix !== "差距不在" ||
+  gapHeadlineMotion.props.titleEmphasis !== "模型"
+) {
+  throw new Error("差距结论标题没有绑定徽标或拆分标题文字。");
+}
+const expectedGapHeadlineFrames = Math.round(((168966 - 165000) / 1000) * 30);
+if (Math.abs(gapHeadlineMotion.durationInFrames - expectedGapHeadlineFrames) > 1) {
+  throw new Error("差距结论标题没有覆盖 165.000–168.966 秒完整 SRT 语义段。");
+}
+const aiOutputGapQuoteResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 5400,
+  availableComponentIds: ["PortraitAiOutputGapQuote"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitAiOutputGapQuote")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 121, startMs: 169083, endMs: 170000, text: "同样一个AI" },
+    { index: 122, startMs: 170000, endMs: 172166, text: "有人做出来一眼就是AI糊的" },
+    { index: 123, startMs: 172200, endMs: 173883, text: "有人做出来能直接上线" },
+  ],
+});
+const aiOutputGapQuoteMotion = aiOutputGapQuoteResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitAiOutputGapQuote",
+);
+if (!aiOutputGapQuoteMotion) {
+  throw new Error("同样 AI 输出差距语义没有生成双行引用组件。");
+}
+if (
+  aiOutputGapQuoteMotion.props.leadText !== "同样一个 AI，" ||
+  aiOutputGapQuoteMotion.props.bodyText !== "做出来的东西却差了一整个档次。"
+) {
+  throw new Error("同样 AI 输出差距引用没有绑定两行压缩文案。");
+}
+const expectedAiOutputGapQuoteFrames = Math.round(((173883 - 169083) / 1000) * 30);
+if (Math.abs(aiOutputGapQuoteMotion.durationInFrames - expectedAiOutputGapQuoteFrames) > 1) {
+  throw new Error("同样 AI 输出差距引用没有覆盖 169.083–173.883 秒完整 SRT 语义段。");
+}
+const aiOutputGapComparisonResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  durationInFrames: 5400,
+  availableComponentIds: ["PortraitAiOutputGapComparison"],
+  componentCapabilities: runtimeRegistry
+    .filter((card) => card.id === "PortraitAiOutputGapComparison")
+    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
+  entries: [
+    { index: 122, startMs: 170000, endMs: 172166, text: "有人做出来一眼就是AI糊的" },
+    { index: 123, startMs: 172200, endMs: 173883, text: "有人做出来能直接上线" },
+  ],
+});
+const aiOutputGapComparisonMotion = aiOutputGapComparisonResult.motionTimeline.find(
+  (item) => item.componentId === "PortraitAiOutputGapComparison",
+);
+if (!aiOutputGapComparisonMotion) {
+  throw new Error("AI 糊与直接上线语义没有生成正反结果对比组件。");
+}
+if (
+  aiOutputGapComparisonMotion.props.gapLabel !== "THE GAP" ||
+  aiOutputGapComparisonMotion.props.badText !== "一眼就是 AI 糊的" ||
+  aiOutputGapComparisonMotion.props.goodText !== "能直接上线"
+) {
+  throw new Error("AI 输出差距对比没有绑定标签或正反结果文案。");
+}
+const expectedAiOutputGapComparisonFrames = Math.round(((173883 - 170000) / 1000) * 30);
+if (Math.abs(aiOutputGapComparisonMotion.durationInFrames - expectedAiOutputGapComparisonFrames) > 1) {
+  throw new Error("AI 输出差距对比没有覆盖 170.000–173.883 秒完整 SRT 语义段。");
 }
 if (
   !portraitFirst.motionTimeline.every((item) =>
