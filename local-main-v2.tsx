@@ -4090,6 +4090,7 @@ const App = () => {
     });
   }, [
     activePendingPreviewSegmentId,
+    arrangementPreviewWindow,
     fps,
     pendingArrangement,
     pendingArrangementSegments,
@@ -12236,7 +12237,7 @@ const App = () => {
                 <section className="reference-inspector-group">
                   <label>当前效果</label>
                   <button className="reference-inspector-select">
-                    <span>{selectedDefinition.name} · {selectedDefinition.description}</span>
+                    <span>{inspectorDefinition.name} · {inspectorDefinition.description}</span>
                   </button>
                 </section>
                 <section className="reference-inspector-section">
