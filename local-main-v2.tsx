@@ -13829,22 +13829,6 @@ const App = () => {
                             <div className="arrangement-item-actions">
                               <button
                                 type="button"
-                                className={
-                                  selectedPendingPreviewInstance?.id === instance.id
-                                    ? "active"
-                                    : undefined
-                                }
-                              onClick={() =>
-                                previewPendingArrangementMotion(
-                                  segment.id,
-                                  instance.id,
-                                )
-                              }
-                            >
-                                调节
-                              </button>
-                              <button
-                                type="button"
                                 disabled={locked || semanticCandidates.length === 0}
                                 onClick={() => {
                                   previewPendingArrangementMotion(
