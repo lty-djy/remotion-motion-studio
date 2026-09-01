@@ -6300,6 +6300,7 @@ const App = () => {
   const previewPendingArrangementMotion = (
     segmentId: string,
     instanceId?: string,
+    minimizePreview = true,
   ) => {
     setActivePendingPreviewSegmentId(segmentId);
     if (instanceId) setSelectedPendingPreviewInstanceId(instanceId);
@@ -6307,9 +6308,9 @@ const App = () => {
     setArrangementComponentPicker(null);
     setArrangementResourcePicker(null);
     stopArrangementAudioPreview();
-    // Keep the pending arrangement alive while exposing its selected card to
-    // the main inspector. The preview is minimized, not discarded.
-    setArrangementPreviewMinimized(true);
+    // “调节本段”需要让出工作区给主检查器；“替换”则要留在当前弹窗中
+    // 展示候选组件，不能因为复用选中逻辑而意外最小化。
+    setArrangementPreviewMinimized(minimizePreview);
   };
 
   const activeArrangementRule =
@@ -14140,7 +14141,11 @@ const App = () => {
                                             disabled={isCurrent}
                                             onClick={applyResource}
                                           >
-                                            <span className="arrangement-resource-preview">
+                                            <span
+                                              className={`arrangement-resource-preview${
+                                                resourcePickerKind === "icon" ? " is-icon" : ""
+                                              }`}
+                                            >
                                               {resourcePickerKind === "sfx" ? (
                                                 <i className="arrangement-waveform">
                                                   {Array.from({ length: 18 }, (_, index) => (
@@ -14395,6 +14400,7 @@ const App = () => {
                                   previewPendingArrangementMotion(
                                     segment.id,
                                     instance.id,
+                                    false,
                                   );
                                   setArrangementComponentPicker({
                                     mode: "replace",

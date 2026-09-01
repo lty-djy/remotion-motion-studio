@@ -5707,6 +5707,18 @@ aside {
   object-fit: contain;
 }
 
+/* 图标候选卡：SVG 若按预览框整幅 contain 会放大到近整卡大小，
+   细线图形糊成色块；收缩为固定小尺寸居中，保证一眼可辨。 */
+.arrangement-resource-preview.is-icon {
+  height: 40px;
+}
+
+.arrangement-resource-preview.is-icon img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
 .arrangement-resource-preview > b {
   position: absolute;
   top: 6px;
