@@ -294,6 +294,20 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["淘汰", "过时", "落后", "失效", "被取代"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 1.5, max: 7 } },
   ),
+  LegacyEliminationPanel: capability(
+    "warning",
+    ["comparison", "emphasis"],
+    ["comparison", "short-text"],
+    ["淘汰", "过时", "落后", "失效", "旧方案"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1, max: 7 } },
+  ),
+  MarketEliminationStamp: capability(
+    "warning",
+    ["emphasis", "call-to-action"],
+    ["short-text"],
+    ["市场淘汰", "淘汰", "出局", "取代"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 0.3, max: 4 } },
+  ),
   MediaSpotlightCard: capability(
     "evidence",
     ["explanation", "emphasis"],

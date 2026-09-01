@@ -46,6 +46,8 @@ import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
 import { LegacyModelEliminationWarningEffectDef } from "./effects/LegacyModelEliminationWarning";
+import { LegacyEliminationPanelEffectDef } from "./effects/LegacyEliminationPanel";
+import { MarketEliminationStampEffectDef } from "./effects/MarketEliminationStamp";
 import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { MaterialCardEffectDef } from "./effects/MaterialCard";
 
@@ -118,6 +120,8 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   QuickSetupProofEffectDef,
 
   LegacyModelEliminationWarningEffectDef,
+  LegacyEliminationPanelEffectDef,
+  MarketEliminationStampEffectDef,
 
   MediaSpotlightCardEffectDef,
 

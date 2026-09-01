@@ -1657,18 +1657,24 @@ const StudioPreviewComposition = ({
               />
             ) : null}
             <AbsoluteFill
-              className="studio-card-render-shell"
+              className={`studio-card-render-shell${
+                instance.backgroundOpacity <= 0
+                  ? " studio-card-background-off"
+                  : ""
+              }`}
               style={{
                 transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
                 transformOrigin: "0 0",
-                ...(typeof instance.props.cardBorderColor === "string" &&
-                instance.props.cardBorderColor
-                  ? {
-                      "--studio-card-border-color": String(
-                        instance.props.cardBorderColor,
-                      ),
-                    }
-                  : {}),
+                ...(instance.backgroundOpacity <= 0
+                  ? { "--studio-card-border-color": "transparent" }
+                  : typeof instance.props.cardBorderColor === "string" &&
+                      instance.props.cardBorderColor
+                    ? {
+                        "--studio-card-border-color": String(
+                          instance.props.cardBorderColor,
+                        ),
+                      }
+                    : {}),
               } as React.CSSProperties}
             >
               <Comp
@@ -4707,6 +4713,13 @@ const App = () => {
   const inspectorDefinition = inspectorInstance
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
+  const inspectorPositionXMax = (scale: number) =>
+    inspectorDefinition?.id === "MarketEliminationStamp"
+      ? 800
+      : Math.max(
+          0,
+          Math.round(canvasWidth - (inspectorDefinition?.bounds.width ?? 0) * scale),
+        );
   const inspectorPanelColorSchema = inspectorDefinition?.propsSchema.panelColor;
   const inspectorPanelColorValue = (() => {
     const candidate = String(
@@ -9934,15 +9947,19 @@ const App = () => {
         </label>
       );
     }
-    if (schema.type === "text" && selectedDefinition?.id === "TerminalPanel" && key === "command") {
+    if (
+      schema.type === "text" &&
+      ((selectedDefinition?.id === "TerminalPanel" && key === "command") ||
+        (selectedDefinition?.id === "MarketEliminationStamp" && key === "stampText"))
+    ) {
       return (
         <label className="prop-field prop-field-textarea" key={key}>
           <span>{label}</span>
           <textarea
             value={String(value ?? "")}
-            rows={4}
+            rows={selectedDefinition?.id === "MarketEliminationStamp" ? 2 : 4}
             aria-label={label}
-            placeholder="输入命令，可用换行分隔多行参数"
+            placeholder={selectedDefinition?.id === "MarketEliminationStamp" ? "输入文字；只有按 Enter 才会换行" : "输入命令，可用换行分隔多行参数"}
             onChange={(event) => updateSelectedProp(key, event.target.value)}
           />
         </label>
@@ -12424,13 +12441,7 @@ const App = () => {
                       title="只缩放当前选中组件，与全局整体大小相乘"
                       onChange={(event) => {
                         const nextScale = Number(event.target.value);
-                        const nextMaxX = Math.max(
-                          0,
-                          Math.round(
-                            canvasWidth -
-                              inspectorDefinition.bounds.width * nextScale,
-                          ),
-                        );
+                        const nextMaxX = inspectorPositionXMax(nextScale);
                         const nextMinX =
                           inspectorDefinition.id === "QuickSetupProof"
                             ? 0
@@ -12486,14 +12497,7 @@ const App = () => {
                               ),
                             )
                       }
-                      max={Math.max(
-                        0,
-                        Math.round(
-                          canvasWidth -
-                            inspectorDefinition.bounds.width *
-                              inspectorInstance.position.scale,
-                        ),
-                      )}
+                      max={inspectorPositionXMax(inspectorInstance.position.scale)}
                       step={1}
                       value={clamp(
                         Math.round(inspectorInstance.position.x),
@@ -12507,14 +12511,7 @@ const App = () => {
                                   inspectorInstance.position.scale,
                               ),
                             ),
-                        Math.max(
-                          0,
-                          Math.round(
-                            canvasWidth -
-                            inspectorDefinition.bounds.width *
-                              inspectorInstance.position.scale,
-                          ),
-                        ),
+                        inspectorPositionXMax(inspectorInstance.position.scale),
                       )}
                       onChange={(event) =>
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
