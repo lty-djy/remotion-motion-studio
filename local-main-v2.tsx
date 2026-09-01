@@ -883,6 +883,15 @@ type ProjectSnapshot = {
   canvasOrientation?: "landscape" | "portrait";
   globalCardScale?: number;
   globalCardBase?: "dark" | "light";
+  cardShadowEnabled?: boolean;
+  cardShadowStrength?: number;
+  cardShadowOpacity?: number;
+  cardShadowRadius?: number;
+  cardShadowRange?: number;
+  cardShadowRangeTop?: number;
+  cardShadowRangeRight?: number;
+  cardShadowRangeBottom?: number;
+  cardShadowRangeLeft?: number;
   safetyGuideVisible?: boolean;
   solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
@@ -1448,6 +1457,14 @@ type StudioPreviewProps = {
   solidBackgroundEnabled: boolean;
   soundEnabled: boolean;
   globalCardScale: number;
+  cardShadowEnabled: boolean;
+  cardShadowStrength: number;
+  cardShadowOpacity: number;
+  cardShadowRadius: number;
+  cardShadowRangeTop: number;
+  cardShadowRangeRight: number;
+  cardShadowRangeBottom: number;
+  cardShadowRangeLeft: number;
 };
 
 const StudioPreviewComposition = ({
@@ -1463,6 +1480,14 @@ const StudioPreviewComposition = ({
   solidBackgroundEnabled,
   soundEnabled,
   globalCardScale,
+  cardShadowEnabled,
+  cardShadowStrength,
+  cardShadowOpacity,
+  cardShadowRadius,
+  cardShadowRangeTop,
+  cardShadowRangeRight,
+  cardShadowRangeBottom,
+  cardShadowRangeLeft,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -1590,6 +1615,19 @@ const StudioPreviewComposition = ({
         const definition = previewDefinitionMap.get(instance.componentId);
         if (!definition) return null;
         const Comp = definition.component;
+        const cardScale = instance.position.scale * globalCardScale;
+        const cardWidth = Math.max(1, definition.bounds.width * cardScale);
+        const cardHeight = Math.max(1, definition.bounds.height * cardScale);
+        const shadowTop = Math.max(0, cardHeight * cardShadowRangeTop);
+        const shadowRight = Math.max(0, cardWidth * cardShadowRangeRight);
+        const shadowBottom = Math.max(0, cardHeight * cardShadowRangeBottom);
+        const shadowLeft = Math.max(0, cardWidth * cardShadowRangeLeft);
+        const shadowAlpha = cardShadowStrength * cardShadowOpacity;
+        const shadowWidth = cardWidth + shadowLeft + shadowRight;
+        const shadowHeight = cardHeight + shadowTop + shadowBottom;
+        const shadowRadius = Math.min(cardWidth, cardHeight) * 0.5 * cardShadowRadius;
+        const horizontalMask = `linear-gradient(90deg, transparent 0, black ${shadowLeft}px, black ${shadowLeft + cardWidth}px, transparent 100%)`;
+        const verticalMask = `linear-gradient(180deg, transparent 0, black ${shadowTop}px, black ${shadowTop + cardHeight}px, transparent 100%)`;
         return (
           <Sequence
             key={instance.id}
@@ -1597,11 +1635,41 @@ const StudioPreviewComposition = ({
             trimBefore={Math.max(0, instance.sourceStartFrame)}
             durationInFrames={Math.max(3, instance.durationInFrames)}
           >
+            {cardShadowEnabled ? (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: instance.position.x - shadowLeft,
+                  top: instance.position.y - shadowTop,
+                  width: shadowWidth,
+                  height: shadowHeight,
+                  pointerEvents: "none",
+                  backgroundColor: `rgba(0, 0, 0, ${shadowAlpha})`,
+                  borderRadius: shadowRadius,
+                  WebkitMaskImage: `${horizontalMask}, ${verticalMask}`,
+                  WebkitMaskComposite: "source-in",
+                  maskImage: `${horizontalMask}, ${verticalMask}`,
+                  maskComposite: "intersect",
+                  filter: "blur(6px)",
+                  transform: "translateZ(0)",
+                }}
+              />
+            ) : null}
             <AbsoluteFill
+              className="studio-card-render-shell"
               style={{
                 transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
                 transformOrigin: "0 0",
-              }}
+                ...(typeof instance.props.cardBorderColor === "string" &&
+                instance.props.cardBorderColor
+                  ? {
+                      "--studio-card-border-color": String(
+                        instance.props.cardBorderColor,
+                      ),
+                    }
+                  : {}),
+              } as React.CSSProperties}
             >
               <Comp
                 {...instance.props}
@@ -2589,6 +2657,64 @@ const App = () => {
       ? parsed
       : 1;
   });
+  const [cardShadowEnabled, setCardShadowEnabled] = useState(() => {
+    const saved = localStorage.getItem("motion-studio-card-shadow-enabled");
+    return saved === null ? true : saved === "true";
+  });
+  const [cardShadowControlsExpanded, setCardShadowControlsExpanded] = useState(true);
+  const [cardShadowStrength, setCardShadowStrength] = useState(() => {
+    const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
+    const raw = version === "1"
+      ? localStorage.getItem("motion-studio-card-shadow-strength")
+      : null;
+    const saved = raw === null ? NaN : Number(raw);
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 0.32;
+  });
+  const [cardShadowOpacity, setCardShadowOpacity] = useState(() => {
+    const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
+    const raw = version === "1"
+      ? localStorage.getItem("motion-studio-card-shadow-opacity")
+      : null;
+    const saved = raw === null ? NaN : Number(raw);
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 1;
+  });
+  const [cardShadowRadius, setCardShadowRadius] = useState(() => {
+    const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
+    const raw = version === "1"
+      ? localStorage.getItem("motion-studio-card-shadow-radius")
+      : null;
+    const saved = raw === null ? NaN : Number(raw);
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 0.16;
+  });
+  const readCardShadowRange = (key: string) => {
+    const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
+    const raw = version === "1"
+      ? localStorage.getItem(key) ?? localStorage.getItem("motion-studio-card-shadow-range")
+      : null;
+    const saved = raw === null ? NaN : Number(raw);
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 0.42;
+  };
+  const [cardShadowRangeTop, setCardShadowRangeTop] = useState(() =>
+    readCardShadowRange("motion-studio-card-shadow-range-top"),
+  );
+  const [cardShadowRangeRight, setCardShadowRangeRight] = useState(() =>
+    readCardShadowRange("motion-studio-card-shadow-range-right"),
+  );
+  const [cardShadowRangeBottom, setCardShadowRangeBottom] = useState(() =>
+    readCardShadowRange("motion-studio-card-shadow-range-bottom"),
+  );
+  const [cardShadowRangeLeft, setCardShadowRangeLeft] = useState(() =>
+    readCardShadowRange("motion-studio-card-shadow-range-left"),
+  );
+  const restoreCardShadowRanges = (snapshot?: ProjectSnapshot) => {
+    const valid = (value: unknown) =>
+      Number(value) >= 0 && Number(value) <= 1 ? Number(value) : undefined;
+    const fallback = valid(snapshot?.cardShadowRange) ?? 0.42;
+    setCardShadowRangeTop(valid(snapshot?.cardShadowRangeTop) ?? fallback);
+    setCardShadowRangeRight(valid(snapshot?.cardShadowRangeRight) ?? fallback);
+    setCardShadowRangeBottom(valid(snapshot?.cardShadowRangeBottom) ?? fallback);
+    setCardShadowRangeLeft(valid(snapshot?.cardShadowRangeLeft) ?? fallback);
+  };
   const [workspaceZoom, setWorkspaceZoom] = useState(() => {
     const saved = localStorage.getItem("motion-studio-workspace-zoom");
     const parsed = saved ? Number(saved) : NaN;
@@ -2657,6 +2783,10 @@ const App = () => {
   const [globalCardBase, setGlobalCardBase] = useState<"dark" | "light">(
     "dark",
   );
+  const [activeCardColorPicker, setActiveCardColorPicker] = useState<
+    "panel" | "border" | null
+  >(null);
+  const cardColorPickerSuppressClickRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shortcutPanelOpen, setShortcutPanelOpen] = useState(false);
   const [recordingShortcut, setRecordingShortcut] =
@@ -3687,6 +3817,29 @@ const App = () => {
           setGlobalCardScale(Number(draft?.globalCardScale));
         }
         setGlobalCardBase(draft?.globalCardBase === "light" ? "light" : "dark");
+        if (typeof draft?.cardShadowEnabled === "boolean") {
+          setCardShadowEnabled(draft.cardShadowEnabled);
+        }
+        if (Number(draft?.cardShadowStrength) >= 0 && Number(draft?.cardShadowStrength) <= 1) {
+          setCardShadowStrength(Number(draft.cardShadowStrength));
+        }
+        if (Number(draft?.cardShadowOpacity) >= 0 && Number(draft?.cardShadowOpacity) <= 1) {
+          setCardShadowOpacity(Number(draft.cardShadowOpacity));
+        }
+        if (Number(draft?.cardShadowRadius) >= 0 && Number(draft?.cardShadowRadius) <= 1) {
+          setCardShadowRadius(Number(draft.cardShadowRadius));
+        }
+        if (Number(draft?.cardShadowRange) >= 0 && Number(draft?.cardShadowRange) <= 1) {
+          restoreCardShadowRanges(draft);
+        }
+        if (
+          draft?.cardShadowRangeTop !== undefined ||
+          draft?.cardShadowRangeRight !== undefined ||
+          draft?.cardShadowRangeBottom !== undefined ||
+          draft?.cardShadowRangeLeft !== undefined
+        ) {
+          restoreCardShadowRanges(draft);
+        }
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
         setSolidBackgroundEnabled(
           draft?.solidBackgroundEnabled !== false,
@@ -3744,10 +3897,46 @@ const App = () => {
 
   useEffect(() => {
     window.localStorage.setItem(
+      "motion-studio-card-shadow-settings-version",
+      "1",
+    );
+    window.localStorage.setItem(
       "motion-studio-global-card-scale",
       String(globalCardScale),
     );
   }, [globalCardScale]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      "motion-studio-card-shadow-enabled",
+      String(cardShadowEnabled),
+    );
+    window.localStorage.setItem(
+      "motion-studio-card-shadow-strength",
+      String(cardShadowStrength),
+    );
+    window.localStorage.setItem(
+      "motion-studio-card-shadow-opacity",
+      String(cardShadowOpacity),
+    );
+    window.localStorage.setItem(
+      "motion-studio-card-shadow-radius",
+      String(cardShadowRadius),
+    );
+    window.localStorage.setItem("motion-studio-card-shadow-range-top", String(cardShadowRangeTop));
+    window.localStorage.setItem("motion-studio-card-shadow-range-right", String(cardShadowRangeRight));
+    window.localStorage.setItem("motion-studio-card-shadow-range-bottom", String(cardShadowRangeBottom));
+    window.localStorage.setItem("motion-studio-card-shadow-range-left", String(cardShadowRangeLeft));
+  }, [
+    cardShadowEnabled,
+    cardShadowOpacity,
+    cardShadowRadius,
+    cardShadowRangeBottom,
+    cardShadowRangeLeft,
+    cardShadowRangeRight,
+    cardShadowRangeTop,
+    cardShadowStrength,
+  ]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -4025,10 +4214,17 @@ const App = () => {
       canvasOrientation,
       globalCardScale,
       globalCardBase,
+      cardShadowEnabled,
+      cardShadowStrength,
+      cardShadowOpacity,
+      cardShadowRadius,
+      cardShadowRangeTop,
+      cardShadowRangeRight,
+      cardShadowRangeBottom,
+      cardShadowRangeLeft,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
-      globalCardScale,
     }),
     [
       definitions,
@@ -4043,6 +4239,14 @@ const App = () => {
       videoTracks,
       resourceTracks,
       globalCardScale,
+      cardShadowEnabled,
+      cardShadowOpacity,
+      cardShadowRadius,
+      cardShadowRangeTop,
+      cardShadowRangeRight,
+      cardShadowRangeBottom,
+      cardShadowRangeLeft,
+      cardShadowStrength,
     ],
   );
   const pendingArrangementPreviewInputProps = useMemo<StudioPreviewProps>(() => {
@@ -4142,6 +4346,14 @@ const App = () => {
       canvasOrientation,
       globalCardScale,
       globalCardBase,
+      cardShadowEnabled,
+      cardShadowStrength,
+      cardShadowOpacity,
+      cardShadowRadius,
+      cardShadowRangeTop,
+      cardShadowRangeRight,
+      cardShadowRangeBottom,
+      cardShadowRangeLeft,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
@@ -4152,6 +4364,14 @@ const App = () => {
       canvasOrientation,
       globalCardBase,
       globalCardScale,
+      cardShadowEnabled,
+      cardShadowRangeTop,
+      cardShadowRangeRight,
+      cardShadowRangeBottom,
+      cardShadowRangeLeft,
+      cardShadowOpacity,
+      cardShadowRadius,
+      cardShadowStrength,
       componentName,
       currentFrame,
       instances,
@@ -4396,6 +4616,19 @@ const App = () => {
         setGlobalCardScale(Number(snapshot.globalCardScale));
       }
       setGlobalCardBase(snapshot.globalCardBase === "light" ? "light" : "dark");
+      if (typeof snapshot.cardShadowEnabled === "boolean") {
+        setCardShadowEnabled(snapshot.cardShadowEnabled);
+      }
+      if (Number(snapshot.cardShadowStrength) >= 0 && Number(snapshot.cardShadowStrength) <= 1) {
+        setCardShadowStrength(Number(snapshot.cardShadowStrength));
+      }
+      if (Number(snapshot.cardShadowOpacity) >= 0 && Number(snapshot.cardShadowOpacity) <= 1) {
+        setCardShadowOpacity(Number(snapshot.cardShadowOpacity));
+      }
+      if (Number(snapshot.cardShadowRadius) >= 0 && Number(snapshot.cardShadowRadius) <= 1) {
+        setCardShadowRadius(Number(snapshot.cardShadowRadius));
+      }
+      restoreCardShadowRanges(snapshot);
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
       setSolidBackgroundEnabled(
         snapshot.solidBackgroundEnabled !== false,
@@ -4474,6 +4707,19 @@ const App = () => {
   const inspectorDefinition = inspectorInstance
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
+  const inspectorPanelColorSchema = inspectorDefinition?.propsSchema.panelColor;
+  const inspectorPanelColorValue = (() => {
+    const candidate = String(
+      inspectorInstance?.props.panelColor ??
+        inspectorPanelColorSchema?.default ??
+        "#111318",
+    );
+    return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : "#111318";
+  })();
+  const inspectorBorderColorValue = (() => {
+    const candidate = String(inspectorInstance?.props.cardBorderColor ?? "#2e3035");
+    return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : "#2e3035";
+  })();
   const updateInspectorInstance = useCallback(
     (
       instanceId: string,
@@ -10978,10 +11224,6 @@ const App = () => {
           </section>
 
           <div className="reference-switch-row">
-            <span>文字光晕(发虚就关)</span>
-            <button className="reference-switch" aria-label="文字光晕"><i /></button>
-          </div>
-          <div className="reference-switch-row">
             <span>安全区参考线</span>
             <button
               type="button"
@@ -11013,10 +11255,132 @@ const App = () => {
               <i />
             </button>
           </div>
-          <div className="reference-switch-row">
-            <span>运镜分屏(缩到左)</span>
-            <button className="reference-switch" aria-label="运镜分屏"><FrameCorners /><i /></button>
+          <div
+            className="reference-switch-row reference-collapsible-row"
+            onClick={() => setCardShadowControlsExpanded((expanded) => !expanded)}
+          >
+            <span
+              className="reference-collapsible-label"
+              role="button"
+              tabIndex={0}
+              aria-expanded={cardShadowControlsExpanded}
+              title={cardShadowControlsExpanded ? "折叠遮罩调节项" : "展开遮罩调节项"}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setCardShadowControlsExpanded((expanded) => !expanded);
+                }
+              }}
+            >
+              卡片黑色渐变遮罩
+            </span>
+            <button
+              type="button"
+              className={`reference-switch ${cardShadowEnabled ? "active" : ""}`}
+              aria-label="卡片黑色渐变遮罩"
+              aria-pressed={cardShadowEnabled}
+              title={cardShadowEnabled ? "关闭卡片自动渐变遮罩" : "开启卡片自动渐变遮罩"}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCardShadowEnabled((enabled) => !enabled);
+              }}
+            >
+              <i />
+            </button>
           </div>
+          {cardShadowEnabled && cardShadowControlsExpanded ? (
+            <section className="reference-control-group reference-shadow-controls">
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>遮罩强度</label>
+                  <b>{Math.round(cardShadowStrength * 100)}%</b>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(cardShadowStrength * 100)}
+                  onChange={(event) =>
+                    setCardShadowStrength(Number(event.target.value) / 100)
+                  }
+                  title="调节卡片后方黑色遮罩的不透明度"
+                />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>遮罩透明度</label>
+                  <b>{Math.round(cardShadowOpacity * 100)}%</b>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(cardShadowOpacity * 100)}
+                  onChange={(event) =>
+                    setCardShadowOpacity(Number(event.target.value) / 100)
+                  }
+                  title="调节卡片黑色渐变遮罩的整体透明度"
+                />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>遮罩圆角</label>
+                  <b>{Math.round(cardShadowRadius * 100)}%</b>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(cardShadowRadius * 100)}
+                  onChange={(event) =>
+                    setCardShadowRadius(Number(event.target.value) / 100)
+                  }
+                  title="调节黑色渐变遮罩的圆角程度"
+                />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>渐变范围 · 上</label>
+                  <b>{Math.round(cardShadowRangeTop * 100)}%</b>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(cardShadowRangeTop * 100)}
+                  onChange={(event) =>
+                    setCardShadowRangeTop(Number(event.target.value) / 100)
+                  }
+                  title="调节卡片上方向外渐隐的范围"
+                />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>渐变范围 · 右</label>
+                  <b>{Math.round(cardShadowRangeRight * 100)}%</b>
+                </div>
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeRight * 100)} onChange={(event) => setCardShadowRangeRight(Number(event.target.value) / 100)} title="调节卡片右方向外渐隐的范围" />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>渐变范围 · 下</label>
+                  <b>{Math.round(cardShadowRangeBottom * 100)}%</b>
+                </div>
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeBottom * 100)} onChange={(event) => setCardShadowRangeBottom(Number(event.target.value) / 100)} title="调节卡片下方向外渐隐的范围" />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>渐变范围 · 左</label>
+                  <b>{Math.round(cardShadowRangeLeft * 100)}%</b>
+                </div>
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeLeft * 100)} onChange={(event) => setCardShadowRangeLeft(Number(event.target.value) / 100)} title="调节卡片左方向外渐隐的范围" />
+              </div>
+            </section>
+          ) : null}
             </>
           )}
         </aside>
@@ -12240,6 +12604,78 @@ const App = () => {
                     <span className="pill-toggle-dot" />
                     <span className="pill-toggle-text">显示卡片底色</span>
                   </span>
+                  <div className="reference-card-color-row">
+                    {inspectorPanelColorSchema?.type === "color" ? (
+                      <label className="reference-card-color-picker">
+                        <span>底色颜色</span>
+                        <input
+                          type="color"
+                          value={inspectorPanelColorValue}
+                          aria-label="卡片底色颜色"
+                          aria-expanded={activeCardColorPicker === "panel"}
+                          onPointerDown={(event) => {
+                            if (activeCardColorPicker !== "panel") return;
+                            event.preventDefault();
+                            cardColorPickerSuppressClickRef.current = true;
+                            event.currentTarget.blur();
+                            setActiveCardColorPicker(null);
+                          }}
+                          onClick={(event) => {
+                            if (cardColorPickerSuppressClickRef.current) {
+                              cardColorPickerSuppressClickRef.current = false;
+                              event.preventDefault();
+                              return;
+                            }
+                            setActiveCardColorPicker("panel");
+                          }}
+                          onBlur={() => setActiveCardColorPicker(null)}
+                          onChange={(event) =>
+                            updateInspectorInstance(inspectorInstance.id, (instance) => ({
+                              ...instance,
+                              props: {
+                                ...instance.props,
+                                panelColor: event.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+                    ) : null}
+                    <label className="reference-card-color-picker">
+                      <span>边框颜色</span>
+                      <input
+                        type="color"
+                        value={inspectorBorderColorValue}
+                        aria-label="卡片边框颜色"
+                        aria-expanded={activeCardColorPicker === "border"}
+                        onPointerDown={(event) => {
+                          if (activeCardColorPicker !== "border") return;
+                          event.preventDefault();
+                          cardColorPickerSuppressClickRef.current = true;
+                          event.currentTarget.blur();
+                          setActiveCardColorPicker(null);
+                        }}
+                        onClick={(event) => {
+                          if (cardColorPickerSuppressClickRef.current) {
+                            cardColorPickerSuppressClickRef.current = false;
+                            event.preventDefault();
+                            return;
+                          }
+                          setActiveCardColorPicker("border");
+                        }}
+                        onBlur={() => setActiveCardColorPicker(null)}
+                        onChange={(event) =>
+                          updateInspectorInstance(inspectorInstance.id, (instance) => ({
+                            ...instance,
+                            props: {
+                              ...instance.props,
+                              cardBorderColor: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
                   <div className="reference-range-group">
                     <div className="reference-range-head">
                       <label>底色透明度</label>
@@ -12307,6 +12743,7 @@ const App = () => {
                   <div className="dynamic-prop-fields">
                     {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
+                        if (key === "panelColor") return null;
                         if (inspectorDefinition.id === "TerminalPanel") {
                           const match = key.match(/^item(\d+)$/);
                           const activeStepCount = clamp(Math.round(Number(inspectorInstance.props.stepCount ?? 3)), 1, 8);

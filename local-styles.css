@@ -1894,6 +1894,45 @@ main.is-resizing-sidebar * {
   accent-color: #f1f1f2;
 }
 
+.reference-card-color-picker {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #98999e;
+  font-size: 11px;
+}
+
+.reference-card-color-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.reference-card-color-row .reference-card-color-picker {
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.studio-card-render-shell > [data-effect] {
+  border-color: var(--studio-card-border-color) !important;
+}
+
+.reference-card-color-picker input[type="color"] {
+  width: 58px;
+  height: 27px;
+  padding: 2px;
+  border: 1px solid #393b41;
+  border-radius: 4px;
+  background: #1b1c20;
+  cursor: pointer;
+}
+
 .reference-switch-row {
   min-height: 42px;
   display: flex;
@@ -1902,6 +1941,40 @@ main.is-resizing-sidebar * {
   gap: 12px;
   color: #98999e;
   font-size: 12px;
+}
+
+.reference-collapsible-row {
+  cursor: pointer;
+}
+
+.reference-collapsible-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  outline: none;
+}
+
+.reference-collapsible-label::after {
+  content: "⌄";
+  color: #686a72;
+  font-size: 13px;
+  transform: translateY(-1px) rotate(0deg);
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.reference-collapsible-label[aria-expanded="false"]::after {
+  transform: translateY(-1px) rotate(-90deg);
+}
+
+.reference-collapsible-label:hover,
+.reference-collapsible-label:focus-visible {
+  color: #e4e4e7;
+}
+
+.reference-collapsible-label:focus-visible {
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px rgba(255, 75, 37, 0.35);
 }
 
 .reference-switch {
