@@ -30,6 +30,19 @@ export type MotionPosition = {
   scale: number;
 };
 
+export type CardMaskSettings = {
+  enabled: boolean;
+  strength: number;
+  opacity: number;
+  feather: number;
+  rangeTop: number;
+  rangeRight: number;
+  rangeBottom: number;
+  rangeLeft: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 export type MotionComponentDefinition = {
   id: string;
   name: string;
@@ -56,6 +69,7 @@ export type MotionInstance = {
   position: MotionPosition;
   cardBackgroundEnabled: boolean;
   backgroundOpacity: number;
+  cardMask: CardMaskSettings;
   props: Record<string, unknown>;
   sourceExpressionId?: string;
   sourceIntentId?: string;
@@ -70,6 +84,7 @@ export type MotionTimelinePreset = {
   position?: Partial<MotionPosition>;
   cardBackgroundEnabled?: boolean;
   backgroundOpacity?: number;
+  cardMask?: Partial<CardMaskSettings>;
   props?: Record<string, unknown>;
 };
 
@@ -263,10 +278,12 @@ export const getMotionTimeline = (
                   0,
                 ),
                 position: toRecord(record.position),
+                cardBackgroundEnabled: record.cardBackgroundEnabled !== false,
                 backgroundOpacity: toFiniteNumber(
                   record.backgroundOpacity,
                   0,
                 ),
+                cardMask: toRecord(record.cardMask),
                 props: toRecord(record.props),
               },
             ]

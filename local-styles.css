@@ -2344,6 +2344,17 @@ main.is-resizing-sidebar * {
   justify-content: space-between;
   margin-bottom: 16px;
   border-bottom: 1px solid #2b2d32;
+  cursor: pointer;
+  user-select: none;
+}
+
+.reference-inspector-section.collapsed > :not(.reference-section-title) {
+  display: none;
+}
+
+.reference-section-title:focus-visible {
+  outline: 1px solid #ff4f2f;
+  outline-offset: 3px;
 }
 
 .reference-section-title strong {

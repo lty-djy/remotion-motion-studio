@@ -25,6 +25,7 @@ import {
   CARD_BACKGROUND_CONTROL_CSS,
   getCardBackgroundControlVariables,
 } from "./card-background-control";
+import { CardMaskLayer } from "./card-mask-control";
 
 const motionModule = ImportedModule as MotionModule;
 const fps = getNumberExport(
@@ -221,6 +222,11 @@ const MultiComponentRender = ({
           trimBefore={Math.max(0, Math.round(instance.sourceStartFrame))}
           durationInFrames={Math.max(3, Math.round(instance.durationInFrames))}
         >
+          <CardMaskLayer
+            settings={instance.cardMask}
+            bounds={definition.bounds}
+            position={instance.position}
+          />
           <AbsoluteFill
             className={`studio-card-render-shell${
               instance.cardBackgroundEnabled === false
