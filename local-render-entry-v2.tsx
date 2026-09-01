@@ -21,6 +21,10 @@ import {
   type VideoTrack,
 } from "./local-protocol";
 import { mergeWithBuiltInDefinitions } from "./local-builtins";
+import {
+  CARD_BACKGROUND_CONTROL_CSS,
+  getCardBackgroundControlVariables,
+} from "./card-background-control";
 
 const motionModule = ImportedModule as MotionModule;
 const fps = getNumberExport(
@@ -131,6 +135,7 @@ const MultiComponentRender = ({
   return <AbsoluteFill
     style={transparent ? undefined : { backgroundColor: "#05070a" }}
   >
+    <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
     <WaitForFonts />
     <VirtualClock />
     {orderedLayers.map((layer) => {
@@ -217,10 +222,26 @@ const MultiComponentRender = ({
           durationInFrames={Math.max(3, Math.round(instance.durationInFrames))}
         >
           <AbsoluteFill
+            className={`studio-card-render-shell${
+              instance.cardBackgroundEnabled === false
+                ? " studio-card-background-off"
+                : ""
+            }${
+              typeof instance.props.cardBorderColor === "string" &&
+              instance.props.cardBorderColor.trim()
+                ? " studio-card-border-override"
+                : ""
+            }`}
             style={{
               transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale})`,
               transformOrigin: "0 0",
-            }}
+              ...getCardBackgroundControlVariables({
+                enabled: instance.cardBackgroundEnabled !== false,
+                opacity: instance.backgroundOpacity,
+                panelColor: instance.props.panelColor,
+                borderColor: instance.props.cardBorderColor,
+              }),
+            } as React.CSSProperties}
           >
             <Comp
               {...instance.props}
@@ -230,7 +251,15 @@ const MultiComponentRender = ({
               muted={!soundEnabled}
               muteVideo={!soundEnabled}
               videoVolume={soundEnabled ? 1 : 0}
-              backgroundOpacity={instance.backgroundOpacity}
+              backgroundOpacity={
+                instance.cardBackgroundEnabled !== false
+                  ? instance.backgroundOpacity
+                  : 0
+              }
+              cardTransparent={
+                instance.cardBackgroundEnabled === false ||
+                instance.props.cardTransparent === true
+              }
             />
           </AbsoluteFill>
         </Sequence>

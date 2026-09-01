@@ -77,6 +77,10 @@ import {
   removeArrangementBatch,
   summarizeArrangementBatch,
 } from "./ai-motion-arranger/arrangement-batch.mjs";
+import {
+  CARD_BACKGROUND_CONTROL_CSS,
+  getCardBackgroundControlVariables,
+} from "./card-background-control";
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
@@ -429,6 +433,7 @@ type TimelineJsonItem = {
   visible?: boolean;
   sourceStartFrame?: number;
   position?: Partial<MotionInstance["position"]>;
+  cardBackgroundEnabled?: boolean;
   backgroundOpacity?: number;
   props?: Record<string, unknown>;
   sourceExpressionId?: string;
@@ -1306,6 +1311,7 @@ const createInstance = (
       ...definition.defaultPosition,
       ...(overrides.position ?? {}),
     },
+    cardBackgroundEnabled: overrides.cardBackgroundEnabled !== false,
     backgroundOpacity: clamp(overrides.backgroundOpacity ?? 1, 0, 1),
     props: {
       ...defaultsFromDefinition(definition),
@@ -1535,6 +1541,7 @@ const StudioPreviewComposition = ({
 
   return (
     <AbsoluteFill>
+      <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
       {solidBackgroundEnabled ? (
         <AbsoluteFill style={{ backgroundColor: "#05070a" }} />
       ) : null}
@@ -1635,7 +1642,7 @@ const StudioPreviewComposition = ({
             trimBefore={Math.max(0, instance.sourceStartFrame)}
             durationInFrames={Math.max(3, instance.durationInFrames)}
           >
-            {cardShadowEnabled ? (
+            {cardShadowEnabled && instance.cardBackgroundEnabled ? (
               <div
                 aria-hidden="true"
                 style={{
@@ -1658,23 +1665,24 @@ const StudioPreviewComposition = ({
             ) : null}
             <AbsoluteFill
               className={`studio-card-render-shell${
-                instance.backgroundOpacity <= 0
+                !instance.cardBackgroundEnabled
                   ? " studio-card-background-off"
+                  : ""
+              }${
+                typeof instance.props.cardBorderColor === "string" &&
+                instance.props.cardBorderColor.trim()
+                  ? " studio-card-border-override"
                   : ""
               }`}
               style={{
                 transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
                 transformOrigin: "0 0",
-                ...(instance.backgroundOpacity <= 0
-                  ? { "--studio-card-border-color": "transparent" }
-                  : typeof instance.props.cardBorderColor === "string" &&
-                      instance.props.cardBorderColor
-                    ? {
-                        "--studio-card-border-color": String(
-                          instance.props.cardBorderColor,
-                        ),
-                      }
-                    : {}),
+                ...getCardBackgroundControlVariables({
+                  enabled: instance.cardBackgroundEnabled,
+                  opacity: instance.backgroundOpacity,
+                  panelColor: instance.props.panelColor,
+                  borderColor: instance.props.cardBorderColor,
+                }),
               } as React.CSSProperties}
             >
               <Comp
@@ -1685,7 +1693,15 @@ const StudioPreviewComposition = ({
                 muted={!soundEnabled}
                 muteVideo={!soundEnabled}
                 videoVolume={soundEnabled ? 1 : 0}
-                backgroundOpacity={instance.backgroundOpacity}
+                backgroundOpacity={
+                  instance.cardBackgroundEnabled
+                    ? instance.backgroundOpacity
+                    : 0
+                }
+                cardTransparent={
+                  !instance.cardBackgroundEnabled ||
+                  instance.props.cardTransparent === true
+                }
               />
             </AbsoluteFill>
           </Sequence>
@@ -3586,6 +3602,7 @@ const App = () => {
               laneId: savedInstance.laneId,
               trackOrder: savedInstance.trackOrder,
               position: savedInstance.position,
+              cardBackgroundEnabled: savedInstance.cardBackgroundEnabled,
               backgroundOpacity: savedInstance.backgroundOpacity,
               props: savedInstance.props,
               sourceExpressionId: savedInstance.sourceExpressionId,
@@ -3621,6 +3638,7 @@ const App = () => {
               ...definition.defaultPosition,
               ...(preset.position ?? {}),
             },
+            cardBackgroundEnabled: preset.cardBackgroundEnabled,
             backgroundOpacity: preset.backgroundOpacity,
             props: preset.props,
             trackOrder: presetIndex + 1,
@@ -6124,6 +6142,7 @@ const App = () => {
             ? { scale: positionSource.scale }
             : {}),
         },
+        cardBackgroundEnabled: rawItem.cardBackgroundEnabled !== false,
         backgroundOpacity:
           rawItem.backgroundOpacity === undefined
             ? undefined
@@ -6217,6 +6236,7 @@ const App = () => {
           visible: item.visible,
           sourceStartFrame: item.sourceStartFrame,
           position: item.position,
+          cardBackgroundEnabled: item.cardBackgroundEnabled,
           backgroundOpacity: item.backgroundOpacity,
           props: item.props,
           sourceExpressionId: item.sourceExpressionId,
@@ -9739,6 +9759,8 @@ const App = () => {
           key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitSkillStepGrid" &&
           key === "stepCount") ||
+        (inspectorDefinition?.id === "PortraitStepChecklist" &&
+          key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitSkillSourceFusion" &&
           key === "sourceCount") ||
         (inspectorDefinition?.id === "PortraitDesignRuleChecklist" &&
@@ -9753,11 +9775,13 @@ const App = () => {
           key === "capabilityCount") ||
         (inspectorDefinition?.id === "PortraitCodeDecisionChecklist" &&
           key === "questionCount") ||
+        (inspectorDefinition?.id === "PortraitDecisionTagStack" &&
+          key === "tagCount") ||
         (inspectorDefinition?.id === "TerminalPanel" && key === "stepCount"))
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
       const max = typeof schema.max === "number" ? schema.max : 8;
-      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : inspectorDefinition?.id === "TerminalPanel" ? 3 : 4;
+      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount", "tagCount", "stepCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : inspectorDefinition?.id === "TerminalPanel" ? 3 : 4;
       const numericValue = clamp(
         Math.round(Number(value ?? schema.default ?? fallbackValue)),
         min,
@@ -9770,7 +9794,7 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : key === "tagCount" ? "标签" : key === "stepCount" && inspectorDefinition?.id === "PortraitStepChecklist" ? "步骤" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
             if (key === "stepCount" && selectedDefinition?.id === "TerminalPanel" && selectedInstance) {
               const interval = Math.max(0, Number(selectedInstance.props.itemIntervalSeconds ?? 0.55));
@@ -9780,7 +9804,7 @@ const App = () => {
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
-            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount"].includes(key) || !inspectorInstance) {
+            if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount", "tagCount", "stepCount"].includes(key) || !inspectorInstance) {
               updateSelectedProp(key, nextValue);
               return;
             }
@@ -9801,6 +9825,26 @@ const App = () => {
               const nextAnimationSeconds = Math.max(Number(selectedInstance.props.animationSeconds ?? 6.72), requiredSeconds);
               const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
               updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, questionCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            if (key === "tagCount") {
+              const interval = Math.max(0, Number(selectedInstance.props.tagEnterIntervalSeconds ?? 0.15));
+              const animationSeconds = Math.max(0.4, Number(selectedInstance.props.animationSeconds ?? 0.9));
+              const requiredSeconds = Math.max(0.8, Math.max(0, nextValue - 1) * interval + animationSeconds * 0.68 + 0.2);
+              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, tagCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            if (key === "stepCount" && selectedDefinition?.id === "PortraitStepChecklist") {
+              const interval = Math.max(0, Number(selectedInstance.props.stepEnterIntervalSeconds ?? 0.2));
+              const animationSeconds = Math.max(0.4, Number(selectedInstance.props.animationSeconds ?? 1));
+              const requiredSeconds = Math.max(1, Math.max(0, nextValue - 1) * interval + animationSeconds * 0.62 + 0.6);
+              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, stepCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
@@ -10024,6 +10068,27 @@ const App = () => {
     }
     if (
       schema.type === "number" &&
+      ["PortraitDecisionTagStack", "PortraitStepChecklist"].includes(selectedDefinition?.id ?? "") &&
+      key === "iconSize"
+    ) {
+      const min = typeof schema.min === "number" ? schema.min : 1;
+      const max = typeof schema.max === "number" ? schema.max : 200;
+      const step = typeof schema.step === "number" ? schema.step : 1;
+      const numericValue = clamp(Number(value ?? schema.default ?? min), min, max);
+      return (
+        <FontSizeStepper
+          key={key}
+          label={label}
+          value={numericValue}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(nextValue) => updateSelectedProp(key, nextValue)}
+        />
+      );
+    }
+    if (
+      schema.type === "number" &&
       ((selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
         key === "ruleIntervalSeconds") ||
         (selectedDefinition?.id === "TerminalPanel" &&
@@ -10056,6 +10121,10 @@ const App = () => {
           key === "enterDurationSeconds") ||
         (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
           ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitDecisionTagStack" &&
+          ["tagEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
+        (selectedDefinition?.id === "PortraitStepChecklist" &&
+          ["stepEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
           ["nodeEnterIntervalSeconds", "firstNodeHighlightSeconds", "nextNodeHighlightIntervalSeconds", "loopIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillStepGrid" &&
@@ -10107,6 +10176,20 @@ const App = () => {
               const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
               const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
               updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, riskIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            if (
+              selectedDefinition?.id === "PortraitDecisionTagStack" &&
+              key === "tagEnterIntervalSeconds" &&
+              selectedInstance
+            ) {
+              const count = clamp(Math.round(Number(selectedInstance.props.tagCount ?? 3)), 1, 8);
+              const animationSeconds = Math.max(0.4, Number(selectedInstance.props.animationSeconds ?? 0.9));
+              const requiredSeconds = Math.max(0.8, Math.max(0, count - 1) * nextValue + animationSeconds * 0.68 + 0.2);
+              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, tagEnterIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
@@ -12588,13 +12671,13 @@ const App = () => {
                 </div>
                 <div className="dynamic-prop-fields">
                   <span
-                    className={`pill-toggle${inspectorInstance.backgroundOpacity > 0 ? ' active' : ''}`}
+                    className={`pill-toggle${inspectorInstance.cardBackgroundEnabled ? ' active' : ''}`}
                     role="switch"
-                    aria-checked={inspectorInstance.backgroundOpacity > 0}
+                    aria-checked={inspectorInstance.cardBackgroundEnabled}
                     onClick={() =>
                       updateInspectorInstance(inspectorInstance.id, (instance) => ({
                         ...instance,
-                        backgroundOpacity: instance.backgroundOpacity > 0 ? 0 : 1,
+                        cardBackgroundEnabled: !instance.cardBackgroundEnabled,
                       }))
                     }
                   >
@@ -12689,7 +12772,7 @@ const App = () => {
                       max={1}
                       step={0.01}
                       value={clamp(inspectorInstance.backgroundOpacity, 0, 1)}
-                      title="只调整当前选中组件的卡片底色：100% 为原设计底色，0% 为完全透明"
+                      title="只调整当前选中组件的底色透明度，不改变“显示卡片底色”开关"
                       onChange={(event) =>
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
@@ -12754,6 +12837,19 @@ const App = () => {
                             Math.round(
                               Number(inspectorInstance.props.stepCount ?? 4),
                             ),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          inspectorDefinition.id === "PortraitStepChecklist"
+                        ) {
+                          const match = key.match(/^(?:step|icon)(\d+)$/);
+                          const activeStepCount = clamp(
+                            Math.round(Number(inspectorInstance.props.stepCount ?? 3)),
                             1,
                             8,
                           );
@@ -12859,6 +12955,19 @@ const App = () => {
                             8,
                           );
                           if (match && Number(match[1]) > activeQuestionCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          inspectorDefinition.id === "PortraitDecisionTagStack"
+                        ) {
+                          const match = key.match(/^(?:tag|symbol)(\d+)$/);
+                          const activeTagCount = clamp(
+                            Math.round(Number(inspectorInstance.props.tagCount ?? 3)),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeTagCount) {
                             return null;
                           }
                         }

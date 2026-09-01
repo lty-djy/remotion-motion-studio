@@ -54,6 +54,7 @@ export type MotionInstance = {
   startFrame: number;
   durationInFrames: number;
   position: MotionPosition;
+  cardBackgroundEnabled: boolean;
   backgroundOpacity: number;
   props: Record<string, unknown>;
   sourceExpressionId?: string;
@@ -67,6 +68,7 @@ export type MotionTimelinePreset = {
   startFrame?: number;
   durationInFrames?: number;
   position?: Partial<MotionPosition>;
+  cardBackgroundEnabled?: boolean;
   backgroundOpacity?: number;
   props?: Record<string, unknown>;
 };

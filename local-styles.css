@@ -1919,19 +1919,6 @@ main.is-resizing-sidebar * {
   gap: 6px;
 }
 
-.studio-card-render-shell > [data-effect] {
-  border-color: var(--studio-card-border-color) !important;
-}
-
-.studio-card-render-shell.studio-card-background-off > [data-effect] {
-  background: transparent !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
 .reference-card-color-picker input[type="color"] {
   width: 58px;
   height: 27px;

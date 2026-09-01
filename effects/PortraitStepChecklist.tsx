@@ -14,16 +14,36 @@ type Props = {
   eyebrow?: string;
   title?: string;
   subtitle?: string;
+  stepCount?: number;
   step1?: string;
   step2?: string;
   step3?: string;
+  step4?: string;
+  step5?: string;
+  step6?: string;
+  step7?: string;
+  step8?: string;
   icon1?: string;
   icon2?: string;
   icon3?: string;
+  icon4?: string;
+  icon5?: string;
+  icon6?: string;
+  icon7?: string;
+  icon8?: string;
   accentColor?: string;
   successColor?: string;
   panelColor?: string;
   textColor?: string;
+  iconSize?: number;
+  cardWidth?: number;
+  cardsOffsetX?: number;
+  textOffsetX?: number;
+  stepFontSize?: number;
+  eyebrowFontSize?: number;
+  titleFontSize?: number;
+  subtitleFontSize?: number;
+  stepEnterIntervalSeconds?: number;
   animationSeconds?: number;
 };
 
@@ -33,27 +53,61 @@ export const PortraitStepChecklist: React.FC<Props> = ({
   eyebrow = "成片之后",
   title = "再做高清增强",
   subtitle = "完成片，再高清放大",
+  stepCount = 3,
   step1 = "完成成片",
   step2 = "增强软件",
   step3 = "高清放大",
+  step4 = "检查细节",
+  step5 = "统一色彩",
+  step6 = "导出成片",
+  step7 = "发布复盘",
+  step8 = "持续迭代",
   icon1 = "▣",
   icon2 = "✦",
   icon3 = "↗",
+  icon4 = "✓",
+  icon5 = "✦",
+  icon6 = "↗",
+  icon7 = "◎",
+  icon8 = "＋",
   accentColor = "#168CFF",
   successColor = "#14E6A1",
   panelColor = "#111318",
   textColor = "#FFFFFF",
+  iconSize = 34,
+  cardWidth = 448,
+  cardsOffsetX = 0,
+  textOffsetX = 0,
+  stepFontSize = 27,
+  eyebrowFontSize = 20,
+  titleFontSize = 42,
+  subtitleFontSize = 18,
+  stepEnterIntervalSeconds = 0.2,
   animationSeconds = 1,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enterFrames = Math.max(14, Math.round(animationSeconds * fps));
-  const staggerFrames = Math.max(4, Math.round(enterFrames * 0.2));
+  const normalizedCount = Math.min(8, Math.max(1, Math.round(Number(stepCount) || 3)));
+  const staggerFrames = Math.max(0, Math.round((Number(stepEnterIntervalSeconds) || 0) * fps));
+  const safeIconSize = Math.min(64, Math.max(18, Number(iconSize) || 34));
+  const safeCardWidth = Math.min(520, Math.max(300, Number(cardWidth) || 448));
+  const safeCardsOffsetX = Math.min(240, Math.max(-240, Number(cardsOffsetX) || 0));
+  const safeTextOffsetX = Math.min(120, Math.max(-120, Number(textOffsetX) || 0));
+  const safeStepFontSize = Math.min(72, Math.max(10, Number(stepFontSize) || 27));
+  const safeEyebrowFontSize = Math.min(64, Math.max(10, Number(eyebrowFontSize) || 20));
+  const safeTitleFontSize = Math.min(96, Math.max(16, Number(titleFontSize) || 42));
+  const safeSubtitleFontSize = Math.min(64, Math.max(10, Number(subtitleFontSize) || 18));
   const steps = [
     { label: step1, icon: icon1, color: accentColor },
     { label: step2, icon: icon2, color: accentColor },
     { label: step3, icon: icon3, color: successColor },
-  ];
+    { label: step4, icon: icon4, color: accentColor },
+    { label: step5, icon: icon5, color: accentColor },
+    { label: step6, icon: icon6, color: successColor },
+    { label: step7, icon: icon7, color: accentColor },
+    { label: step8, icon: icon8, color: successColor },
+  ].slice(0, normalizedCount);
 
   const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
 
@@ -64,7 +118,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
       style={{
         position: "relative",
         width: 520,
-        height: 420,
+        height: Math.max(420, 170 + steps.length * 76 + Math.max(0, steps.length - 1) * 13),
         color: textColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
         pointerEvents: "none",
@@ -108,7 +162,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
             alignItems: "center",
             gap: 10,
             color: accentColor,
-            fontSize: 20,
+            fontSize: safeEyebrowFontSize,
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: 0.8,
@@ -131,7 +185,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
             marginTop: 10,
             overflow: "hidden",
             color: textColor,
-            fontSize: 42,
+            fontSize: safeTitleFontSize,
             fontWeight: 950,
             lineHeight: 1.08,
             letterSpacing: -1.6,
@@ -146,7 +200,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
             marginTop: 9,
             overflow: "hidden",
             color: "rgba(255, 255, 255, 0.72)",
-            fontSize: 18,
+            fontSize: safeSubtitleFontSize,
             fontWeight: 700,
             lineHeight: 1.2,
             textOverflow: "ellipsis",
@@ -161,13 +215,13 @@ export const PortraitStepChecklist: React.FC<Props> = ({
         name="步骤连接线"
         style={{
           position: "absolute",
-          top: 177,
+          top: 194,
           left: 70,
           width: 3,
           height: interpolate(
             frame,
             [enterFrames * 0.38, enterFrames * 1.22],
-            [0, 174],
+            [0, Math.max(174, steps.length * 76 + Math.max(0, steps.length - 1) * 13 - 52)],
             {
               easing: Easing.bezier(0.16, 1, 0.3, 1),
               extrapolateLeft: "clamp",
@@ -184,12 +238,13 @@ export const PortraitStepChecklist: React.FC<Props> = ({
         name="三步清单"
         style={{
           position: "absolute",
-          top: 150,
-          right: 0,
+          top: 168,
+          right: 12,
+          transform: `translateX(${safeCardsOffsetX}px)`,
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-end",
-          gap: 13,
+          gap: 14,
           width: 480,
         }}
       >
@@ -205,9 +260,9 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                 position: "relative",
                 display: "flex",
                 alignItems: "center",
-                width: 448,
-                height: 76,
-                padding: "0 20px 0 78px",
+                width: safeCardWidth,
+                height: 72,
+                padding: "0 20px 0 62px",
                 boxSizing: "border-box",
                 overflow: "visible",
                 border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.11)" : "1px solid transparent",
@@ -253,16 +308,14 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                   width: 50,
                   height: 50,
                   placeItems: "center",
-                  border: `2px solid ${step.color}`,
+                  border: `2px solid ${accentColor}`,
                   borderRadius: "50%",
-                  color: index === 2 ? "#08130F" : textColor,
+                  color: textColor,
                   backgroundColor:
-                    index === 2
-                      ? step.color
-                      : `color-mix(in srgb, ${step.color} 22%, ${panelColor})`,
-                  boxShadow: `0 0 19px color-mix(in srgb, ${step.color} 44%, transparent)`,
+                    `color-mix(in srgb, ${accentColor} 22%, ${panelColor})`,
+                  boxShadow: `0 0 19px color-mix(in srgb, ${accentColor} 44%, transparent)`,
                   fontFamily: '"SFMono-Regular", Consolas, monospace',
-                  fontSize: 21,
+                  fontSize: 20,
                   fontWeight: 950,
                   lineHeight: 1,
                 }}
@@ -273,15 +326,16 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                 style={{
                   display: "grid",
                   flex: "0 0 auto",
-                  width: 34,
-                  height: 34,
-                  marginRight: 14,
+                  width: safeIconSize,
+                  height: safeIconSize,
+                  marginRight: 10,
                   placeItems: "center",
                   borderRadius: 9,
-                  color: step.color,
-                  backgroundColor: `color-mix(in srgb, ${step.color} 13%, transparent)`,
+                  color: accentColor,
+                  backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
+                  transform: `translateX(${safeTextOffsetX}px)`,
                   fontFamily: '"SFMono-Regular", Consolas, monospace',
-                  fontSize: 18,
+                  fontSize: Math.max(10, Math.round(safeIconSize * 0.53)),
                   fontWeight: 950,
                   lineHeight: 1,
                 }}
@@ -292,11 +346,12 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                 style={{
                   minWidth: 0,
                   overflow: "hidden",
-                  fontSize: 27,
+                  fontSize: safeStepFontSize,
                   fontWeight: 880,
                   lineHeight: 1.1,
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
+                  transform: `translateX(${safeTextOffsetX}px)`,
                 }}
               >
                 {step.label}
@@ -312,30 +367,50 @@ export const PortraitStepChecklist: React.FC<Props> = ({
 export const PortraitStepChecklistEffectDef: EffectDef = {
   id: "PortraitStepChecklist",
   name: "竖屏口播·步骤清单卡",
-  description: "参考竖屏口播视频的后期增强段：顶部给出阶段结论，右侧三张编号步骤卡依次滑入。",
+  description: "可按需增减的步骤清单卡，顶部给出阶段结论，步骤卡依次滑入。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
   glyph: "123",
   placement: "right",
   component: PortraitStepChecklist as React.ComponentType<Record<string, unknown>>,
   durationInFrames: 150,
-  bounds: { x: 0, y: 0, width: 520, height: 420 },
+  bounds: { x: 0, y: 0, width: 520, height: 860 },
   defaultPosition: { x: 500, y: 252, scale: 1 },
   defaultProps: {
     enabled: true,
     eyebrow: "成片之后",
     title: "再做高清增强",
     subtitle: "完成片，再高清放大",
+    stepCount: 3,
     step1: "完成成片",
     step2: "增强软件",
     step3: "高清放大",
+    step4: "检查细节",
+    step5: "统一色彩",
+    step6: "导出成片",
+    step7: "发布复盘",
+    step8: "持续迭代",
     icon1: "▣",
     icon2: "✦",
     icon3: "↗",
+    icon4: "✓",
+    icon5: "✦",
+    icon6: "↗",
+    icon7: "◎",
+    icon8: "＋",
     accentColor: "#168CFF",
     successColor: "#14E6A1",
     panelColor: "#111318",
     textColor: "#FFFFFF",
+    iconSize: 34,
+    cardWidth: 448,
+    cardsOffsetX: 0,
+    textOffsetX: 0,
+    stepFontSize: 27,
+    eyebrowFontSize: 20,
+    titleFontSize: 42,
+    subtitleFontSize: 18,
+    stepEnterIntervalSeconds: 0.2,
     animationSeconds: 1,
   },
   propsSchema: {
@@ -343,16 +418,36 @@ export const PortraitStepChecklistEffectDef: EffectDef = {
     eyebrow: { type: "text", label: "阶段引导词" },
     title: { type: "text", label: "阶段标题" },
     subtitle: { type: "text", label: "阶段说明" },
+    stepCount: { type: "number", label: "步骤数量", default: 3, min: 1, max: 8, step: 1 },
     step1: { type: "text", label: "步骤一" },
     step2: { type: "text", label: "步骤二" },
     step3: { type: "text", label: "步骤三" },
+    step4: { type: "text", label: "步骤四" },
+    step5: { type: "text", label: "步骤五" },
+    step6: { type: "text", label: "步骤六" },
+    step7: { type: "text", label: "步骤七" },
+    step8: { type: "text", label: "步骤八" },
     icon1: { type: "text", label: "图标一" },
     icon2: { type: "text", label: "图标二" },
     icon3: { type: "text", label: "图标三" },
+    icon4: { type: "text", label: "图标四" },
+    icon5: { type: "text", label: "图标五" },
+    icon6: { type: "text", label: "图标六" },
+    icon7: { type: "text", label: "图标七" },
+    icon8: { type: "text", label: "图标八" },
     accentColor: { type: "color", label: "主强调色", default: "#168CFF" },
     successColor: { type: "color", label: "完成强调色", default: "#14E6A1" },
     panelColor: { type: "color", label: "底板颜色", default: "#111318" },
     textColor: { type: "color", label: "文字颜色", default: "#FFFFFF" },
+    eyebrowFontSize: { type: "number", label: "阶段引导词字号(px)", default: 20, min: 10, max: 64, step: 1 },
+    titleFontSize: { type: "number", label: "阶段标题字号(px)", default: 42, min: 16, max: 96, step: 1 },
+    subtitleFontSize: { type: "number", label: "阶段说明字号(px)", default: 18, min: 10, max: 64, step: 1 },
+    iconSize: { type: "number", label: "图标大小(px)", default: 34, min: 18, max: 64, step: 1 },
+    cardWidth: { type: "number", label: "卡片宽度(px)", default: 448, min: 300, max: 520, step: 1 },
+    cardsOffsetX: { type: "number", label: "卡片水平位置(px)", default: 0, min: -240, max: 240, step: 1 },
+    textOffsetX: { type: "number", label: "文字与图标水平位置(px)", default: 0, min: -120, max: 120, step: 1 },
+    stepFontSize: { type: "number", label: "步骤字号(px)", default: 27, min: 10, max: 72, step: 1 },
+    stepEnterIntervalSeconds: { type: "number", label: "下一步骤入场间隔(秒)", default: 0.2, min: 0, max: 8, step: 0.05 },
     animationSeconds: {
       type: "number",
       label: "入场时长(秒)",

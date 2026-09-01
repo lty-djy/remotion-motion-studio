@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **41** 个组件，其中 **4** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **39** 个组件，其中 **4** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -19,18 +19,14 @@
 
 - `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
 
-## 柔和教学紫
-
-- `SoftTeachingGlassPanel`：柔和教学玻璃面板 — 人物口播上方的半透明信息面板，适合标题、英文标签和三项解释。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
-
 ## 竖屏口播信息层
 
 - `PortraitChapterRail`：竖屏口播·章节条 — 参考竖屏口播视频提炼的左上章节标签：强调竖线、蓝色标题和白色说明分层滑入。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`accentColor`、`textColor`、`animationSeconds`）
 - `PortraitIndexedChapterTitle`：竖屏口播·编号章节标题 — 参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。（仅工作台可用；props：`enabled`、`chapterNumber`、`eyebrow`、`title`、`subtitle`、`accentColor`、`titleColor`、`subtitleColor`、`numberFontSize`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`revealDelaySeconds`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitMetricDecision`：竖屏口播·数据决策卡 — 参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。（仅工作台可用；props：`enabled`、`lead`、`conclusion`、`metricLabel`、`value`、`unit`、`verdict`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
-- `PortraitDecisionTagStack`：竖屏口播·优缺点标签组 — 从数据决策卡拆出的独立三标签组件，三张玻璃卡严格同宽对齐并依次滑入。（仅工作台可用；props：`enabled`、`tag1`、`tag2`、`tag3`、`symbol1`、`symbol2`、`symbol3`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
-- `PortraitStepChecklist`：竖屏口播·步骤清单卡 — 参考竖屏口播视频的后期增强段：顶部给出阶段结论，右侧三张编号步骤卡依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`step1`、`step2`、`step3`、`icon1`、`icon2`、`icon3`、`accentColor`、`successColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `PortraitDecisionTagStack`：竖屏口播·优缺点标签组 — 可按需增减的优缺点标签组，玻璃卡严格同宽对齐并按设定间隔依次滑入。（仅工作台可用；props：`enabled`、`tagCount`、`tag1`、`tag2`、`tag3`、`tag4`、`tag5`、`tag6`、`tag7`、`tag8`、`symbol1`、`symbol2`、`symbol3`、`symbol4`、`symbol5`、`symbol6`、`symbol7`、`symbol8`、`accentColor`、`panelColor`、`textColor`、`iconSize`、`tagFontSize`、`tagEnterIntervalSeconds`、`animationSeconds`）
+- `PortraitStepChecklist`：竖屏口播·步骤清单卡 — 可按需增减的步骤清单卡，顶部给出阶段结论，步骤卡依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`stepCount`、`step1`、`step2`、`step3`、`step4`、`step5`、`step6`、`step7`、`step8`、`icon1`、`icon2`、`icon3`、`icon4`、`icon5`、`icon6`、`icon7`、`icon8`、`accentColor`、`successColor`、`panelColor`、`textColor`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`iconSize`、`cardWidth`、`cardsOffsetX`、`textOffsetX`、`stepFontSize`、`stepEnterIntervalSeconds`、`animationSeconds`）
 - `PortraitStaggeredToolList`：竖屏口播·多工具错峰列表 — 复刻参考视频 7.5–12.25 秒：标题先建立语境，四项工具以彩色竖线、说明与徽标依次滑入。（仅工作台可用；props：`enabled`、`eyebrow`、`titlePrefix`、`titleMain`、`titleEmphasis`、`titleSuffix`、`eyebrowFontSize`、`titlePrefixFontSize`、`titleMainFontSize`、`titleEmphasisFontSize`、`titleSuffixFontSize`、`item1`、`item2`、`item3`、`item4`、`detail1`、`detail2`、`detail3`、`detail4`、`badge1`、`badge2`、`badge3`、`badge4`、`itemFontSize`、`detailFontSize`、`badgeFontSize`、`color1`、`color2`、`color3`、`color4`、`highlightColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitPromptMistakeDiagnosis`：竖屏口播·错误提问诊断 — 复刻参考视频 12.566–20.933 秒：逐字输入错误提问，错峰展示三项问题，最后落到缺少准备步骤的诊断结论。（仅工作台可用；props：`enabled`、`eyebrow`、`titlePrefix`、`titleEmphasis`、`prompt`、`issue1`、`issue2`、`issue3`、`conclusionPrefix`、`conclusionEmphasis`、`eyebrowFontSize`、`titleFontSize`、`promptFontSize`、`issueFontSize`、`conclusionFontSize`、`accentColor`、`warningColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitWorkflowPrerequisite`：竖屏口播·先装工作流 — 复刻参考视频 20.966–26.483 秒：先建立工作流前置结论，再按顺序点亮可增减、自动编号的流程步骤。（仅工作台可用；props：`enabled`、`kicker`、`titleEmphasis`、`titleSuffix`、`subtitleLine1`、`subtitleLine2`、`workflowLabel`、`stepCount`、`step1`、`step2`、`step3`、`step4`、`step5`、`step6`、`step7`、`step8`、`footerEmphasis`、`footerText`、`kickerFontSize`、`titleFontSize`、`subtitleFontSize`、`workflowLabelFontSize`、`stepNumberFontSize`、`stepFontSize`、`footerFontSize`、`accentColor`、`stepColor1`、`stepColor2`、`stepColor3`、`stepColor4`、`stepColor5`、`stepColor6`、`stepColor7`、`stepColor8`、`panelColor`、`textColor`、`animationSeconds`）
@@ -55,7 +51,6 @@
 
 ## 风险提醒
 
-- `LegacyModelEliminationWarning`：旧方案淘汰警告 — 深色科技警告面板：标题先入场，红色删除线划过旧方案，最后盖下淘汰印章。（仅工作台可用；props：`enabled`、`kicker`、`title`、`subtitle`、`stampText`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `LegacyEliminationPanel`：淘汰警告·旧方案面板 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `MarketEliminationStamp`：淘汰警告·市场印章 — 独立的红色倾斜淘汰印章，支持字号调整，并根据文字长度自动适配卡片尺寸。（仅工作台可用；props：`enabled`、`stampText`、`warningColor`、`panelColor`、`textColor`、`fontSize`、`delaySeconds`、`animationSeconds`）
 

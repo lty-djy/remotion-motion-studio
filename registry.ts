@@ -15,8 +15,6 @@ import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
 
-import { SoftTeachingGlassPanelEffectDef } from "./effects/SoftTeachingGlassPanel";
-
 
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitIndexedChapterTitleEffectDef } from "./effects/PortraitIndexedChapterTitle";
@@ -45,7 +43,7 @@ import { PortraitAiOutputGapComparisonEffectDef } from "./effects/PortraitAiOutp
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
-import { LegacyModelEliminationWarningEffectDef } from "./effects/LegacyModelEliminationWarning";
+
 import { LegacyEliminationPanelEffectDef } from "./effects/LegacyEliminationPanel";
 import { MarketEliminationStampEffectDef } from "./effects/MarketEliminationStamp";
 import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
@@ -72,7 +70,7 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   SrtSemanticCaptionsEffectDef,
   SrtCueTextEffectDef,
   TerminalPanelEffectDef,
-  SoftTeachingGlassPanelEffectDef,
+
   PortraitChapterRailEffectDef,
   PortraitIndexedChapterTitleEffectDef,
 
@@ -119,7 +117,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   QuickSetupProofEffectDef,
 
-  LegacyModelEliminationWarningEffectDef,
   LegacyEliminationPanelEffectDef,
   MarketEliminationStampEffectDef,
 

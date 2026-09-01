@@ -91,13 +91,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["代码", "终端", "命令", "步骤", "开发", "工具"],
     { density: "heavy", durationSeconds: { min: 3, max: 12 } },
   ),
-  SoftTeachingGlassPanel: capability(
-    "explanation",
-    ["list", "emphasis"],
-    ["list", "long-text"],
-    ["教学", "解释", "知识点", "方法", "说明"],
-    { density: "medium", durationSeconds: { min: 3, max: 10 } },
-  ),
   PortraitChapterRail: capability(
     "transition",
     ["emphasis", "process"],
@@ -286,13 +279,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["list", "short-text"],
     ["证明", "快速", "门槛", "无需", "几分钟"],
     { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
-  ),
-  LegacyModelEliminationWarning: capability(
-    "warning",
-    ["comparison", "emphasis"],
-    ["comparison", "short-text"],
-    ["淘汰", "过时", "落后", "失效", "被取代"],
-    { orientation: "portrait", density: "heavy", durationSeconds: { min: 1.5, max: 7 } },
   ),
   LegacyEliminationPanel: capability(
     "warning",
