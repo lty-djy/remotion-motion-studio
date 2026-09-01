@@ -892,11 +892,14 @@ type ProjectSnapshot = {
   cardShadowStrength?: number;
   cardShadowOpacity?: number;
   cardShadowRadius?: number;
+  cardShadowFeather?: number;
   cardShadowRange?: number;
   cardShadowRangeTop?: number;
   cardShadowRangeRight?: number;
   cardShadowRangeBottom?: number;
   cardShadowRangeLeft?: number;
+  cardShadowOffsetX?: number;
+  cardShadowOffsetY?: number;
   safetyGuideVisible?: boolean;
   solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
@@ -1466,11 +1469,13 @@ type StudioPreviewProps = {
   cardShadowEnabled: boolean;
   cardShadowStrength: number;
   cardShadowOpacity: number;
-  cardShadowRadius: number;
+  cardShadowFeather: number;
   cardShadowRangeTop: number;
   cardShadowRangeRight: number;
   cardShadowRangeBottom: number;
   cardShadowRangeLeft: number;
+  cardShadowOffsetX: number;
+  cardShadowOffsetY: number;
 };
 
 const StudioPreviewComposition = ({
@@ -1489,11 +1494,13 @@ const StudioPreviewComposition = ({
   cardShadowEnabled,
   cardShadowStrength,
   cardShadowOpacity,
-  cardShadowRadius,
+  cardShadowFeather,
   cardShadowRangeTop,
   cardShadowRangeRight,
   cardShadowRangeBottom,
   cardShadowRangeLeft,
+  cardShadowOffsetX,
+  cardShadowOffsetY,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -1632,9 +1639,13 @@ const StudioPreviewComposition = ({
         const shadowAlpha = cardShadowStrength * cardShadowOpacity;
         const shadowWidth = cardWidth + shadowLeft + shadowRight;
         const shadowHeight = cardHeight + shadowTop + shadowBottom;
-        const shadowRadius = Math.min(cardWidth, cardHeight) * 0.5 * cardShadowRadius;
-        const horizontalMask = `linear-gradient(90deg, transparent 0, black ${shadowLeft}px, black ${shadowLeft + cardWidth}px, transparent 100%)`;
-        const verticalMask = `linear-gradient(180deg, transparent 0, black ${shadowTop}px, black ${shadowTop + cardHeight}px, transparent 100%)`;
+        const shadowOffsetX = cardWidth * cardShadowOffsetX;
+        const shadowOffsetY = cardHeight * cardShadowOffsetY;
+        const featherX = shadowWidth * cardShadowFeather * 0.35;
+        const featherY = shadowHeight * cardShadowFeather * 0.35;
+        const featherMask = cardShadowFeather > 0
+          ? `linear-gradient(90deg, transparent 0, black ${featherX}px, black calc(100% - ${featherX}px), transparent 100%), linear-gradient(180deg, transparent 0, black ${featherY}px, black calc(100% - ${featherY}px), transparent 100%)`
+          : undefined;
         return (
           <Sequence
             key={instance.id}
@@ -1642,23 +1653,21 @@ const StudioPreviewComposition = ({
             trimBefore={Math.max(0, instance.sourceStartFrame)}
             durationInFrames={Math.max(3, instance.durationInFrames)}
           >
-            {cardShadowEnabled && instance.cardBackgroundEnabled ? (
+            {cardShadowEnabled ? (
               <div
                 aria-hidden="true"
                 style={{
                   position: "absolute",
-                  left: instance.position.x - shadowLeft,
-                  top: instance.position.y - shadowTop,
+                  left: instance.position.x - shadowLeft + shadowOffsetX,
+                  top: instance.position.y - shadowTop + shadowOffsetY,
                   width: shadowWidth,
                   height: shadowHeight,
                   pointerEvents: "none",
                   backgroundColor: `rgba(0, 0, 0, ${shadowAlpha})`,
-                  borderRadius: shadowRadius,
-                  WebkitMaskImage: `${horizontalMask}, ${verticalMask}`,
-                  WebkitMaskComposite: "source-in",
-                  maskImage: `${horizontalMask}, ${verticalMask}`,
-                  maskComposite: "intersect",
-                  filter: "blur(6px)",
+                  WebkitMaskImage: featherMask,
+                  WebkitMaskComposite: featherMask ? "source-in" : undefined,
+                  maskImage: featherMask,
+                  maskComposite: featherMask ? "intersect" : undefined,
                   transform: "translateZ(0)",
                 }}
               />
@@ -2700,10 +2709,11 @@ const App = () => {
     const saved = raw === null ? NaN : Number(raw);
     return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 1;
   });
-  const [cardShadowRadius, setCardShadowRadius] = useState(() => {
+  const [cardShadowFeather, setCardShadowFeather] = useState(() => {
     const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
     const raw = version === "1"
-      ? localStorage.getItem("motion-studio-card-shadow-radius")
+      ? localStorage.getItem("motion-studio-card-shadow-feather") ??
+        localStorage.getItem("motion-studio-card-shadow-radius")
       : null;
     const saved = raw === null ? NaN : Number(raw);
     return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 0.16;
@@ -2728,6 +2738,18 @@ const App = () => {
   const [cardShadowRangeLeft, setCardShadowRangeLeft] = useState(() =>
     readCardShadowRange("motion-studio-card-shadow-range-left"),
   );
+  const readCardShadowOffset = (key: string) => {
+    const version = localStorage.getItem("motion-studio-card-shadow-settings-version");
+    const raw = version === "1" ? localStorage.getItem(key) : null;
+    const saved = raw === null ? NaN : Number(raw);
+    return Number.isFinite(saved) && saved >= -1 && saved <= 1 ? saved : 0;
+  };
+  const [cardShadowOffsetX, setCardShadowOffsetX] = useState(() =>
+    readCardShadowOffset("motion-studio-card-shadow-offset-x"),
+  );
+  const [cardShadowOffsetY, setCardShadowOffsetY] = useState(() =>
+    readCardShadowOffset("motion-studio-card-shadow-offset-y"),
+  );
   const restoreCardShadowRanges = (snapshot?: ProjectSnapshot) => {
     const valid = (value: unknown) =>
       Number(value) >= 0 && Number(value) <= 1 ? Number(value) : undefined;
@@ -2736,6 +2758,10 @@ const App = () => {
     setCardShadowRangeRight(valid(snapshot?.cardShadowRangeRight) ?? fallback);
     setCardShadowRangeBottom(valid(snapshot?.cardShadowRangeBottom) ?? fallback);
     setCardShadowRangeLeft(valid(snapshot?.cardShadowRangeLeft) ?? fallback);
+    const validOffset = (value: unknown) =>
+      Number(value) >= -1 && Number(value) <= 1 ? Number(value) : 0;
+    setCardShadowOffsetX(validOffset(snapshot?.cardShadowOffsetX));
+    setCardShadowOffsetY(validOffset(snapshot?.cardShadowOffsetY));
   };
   const [workspaceZoom, setWorkspaceZoom] = useState(() => {
     const saved = localStorage.getItem("motion-studio-workspace-zoom");
@@ -3850,8 +3876,10 @@ const App = () => {
         if (Number(draft?.cardShadowOpacity) >= 0 && Number(draft?.cardShadowOpacity) <= 1) {
           setCardShadowOpacity(Number(draft.cardShadowOpacity));
         }
-        if (Number(draft?.cardShadowRadius) >= 0 && Number(draft?.cardShadowRadius) <= 1) {
-          setCardShadowRadius(Number(draft.cardShadowRadius));
+        const draftCardShadowFeather =
+          draft?.cardShadowFeather ?? draft?.cardShadowRadius;
+        if (Number(draftCardShadowFeather) >= 0 && Number(draftCardShadowFeather) <= 1) {
+          setCardShadowFeather(Number(draftCardShadowFeather));
         }
         if (Number(draft?.cardShadowRange) >= 0 && Number(draft?.cardShadowRange) <= 1) {
           restoreCardShadowRanges(draft);
@@ -3863,6 +3891,12 @@ const App = () => {
           draft?.cardShadowRangeLeft !== undefined
         ) {
           restoreCardShadowRanges(draft);
+        }
+        if (Number(draft?.cardShadowOffsetX) >= -1 && Number(draft?.cardShadowOffsetX) <= 1) {
+          setCardShadowOffsetX(Number(draft.cardShadowOffsetX));
+        }
+        if (Number(draft?.cardShadowOffsetY) >= -1 && Number(draft?.cardShadowOffsetY) <= 1) {
+          setCardShadowOffsetY(Number(draft.cardShadowOffsetY));
         }
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
         setSolidBackgroundEnabled(
@@ -3944,21 +3978,25 @@ const App = () => {
       String(cardShadowOpacity),
     );
     window.localStorage.setItem(
-      "motion-studio-card-shadow-radius",
-      String(cardShadowRadius),
+      "motion-studio-card-shadow-feather",
+      String(cardShadowFeather),
     );
     window.localStorage.setItem("motion-studio-card-shadow-range-top", String(cardShadowRangeTop));
     window.localStorage.setItem("motion-studio-card-shadow-range-right", String(cardShadowRangeRight));
     window.localStorage.setItem("motion-studio-card-shadow-range-bottom", String(cardShadowRangeBottom));
     window.localStorage.setItem("motion-studio-card-shadow-range-left", String(cardShadowRangeLeft));
+    window.localStorage.setItem("motion-studio-card-shadow-offset-x", String(cardShadowOffsetX));
+    window.localStorage.setItem("motion-studio-card-shadow-offset-y", String(cardShadowOffsetY));
   }, [
     cardShadowEnabled,
     cardShadowOpacity,
-    cardShadowRadius,
+    cardShadowFeather,
     cardShadowRangeBottom,
     cardShadowRangeLeft,
     cardShadowRangeRight,
     cardShadowRangeTop,
+    cardShadowOffsetX,
+    cardShadowOffsetY,
     cardShadowStrength,
   ]);
 
@@ -4241,11 +4279,13 @@ const App = () => {
       cardShadowEnabled,
       cardShadowStrength,
       cardShadowOpacity,
-      cardShadowRadius,
+      cardShadowFeather,
       cardShadowRangeTop,
       cardShadowRangeRight,
       cardShadowRangeBottom,
       cardShadowRangeLeft,
+      cardShadowOffsetX,
+      cardShadowOffsetY,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
@@ -4265,11 +4305,13 @@ const App = () => {
       globalCardScale,
       cardShadowEnabled,
       cardShadowOpacity,
-      cardShadowRadius,
+      cardShadowFeather,
       cardShadowRangeTop,
       cardShadowRangeRight,
       cardShadowRangeBottom,
       cardShadowRangeLeft,
+      cardShadowOffsetX,
+      cardShadowOffsetY,
       cardShadowStrength,
     ],
   );
@@ -4373,11 +4415,13 @@ const App = () => {
       cardShadowEnabled,
       cardShadowStrength,
       cardShadowOpacity,
-      cardShadowRadius,
+      cardShadowFeather,
       cardShadowRangeTop,
       cardShadowRangeRight,
       cardShadowRangeBottom,
       cardShadowRangeLeft,
+      cardShadowOffsetX,
+      cardShadowOffsetY,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
@@ -4393,8 +4437,10 @@ const App = () => {
       cardShadowRangeRight,
       cardShadowRangeBottom,
       cardShadowRangeLeft,
+      cardShadowOffsetX,
+      cardShadowOffsetY,
       cardShadowOpacity,
-      cardShadowRadius,
+      cardShadowFeather,
       cardShadowStrength,
       componentName,
       currentFrame,
@@ -4649,8 +4695,10 @@ const App = () => {
       if (Number(snapshot.cardShadowOpacity) >= 0 && Number(snapshot.cardShadowOpacity) <= 1) {
         setCardShadowOpacity(Number(snapshot.cardShadowOpacity));
       }
-      if (Number(snapshot.cardShadowRadius) >= 0 && Number(snapshot.cardShadowRadius) <= 1) {
-        setCardShadowRadius(Number(snapshot.cardShadowRadius));
+      const snapshotCardShadowFeather =
+        snapshot.cardShadowFeather ?? snapshot.cardShadowRadius;
+      if (Number(snapshotCardShadowFeather) >= 0 && Number(snapshotCardShadowFeather) <= 1) {
+        setCardShadowFeather(Number(snapshotCardShadowFeather));
       }
       restoreCardShadowRanges(snapshot);
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
@@ -11372,14 +11420,14 @@ const App = () => {
                 }
               }}
             >
-              卡片黑色渐变遮罩
+              卡片黑色方形遮罩
             </span>
             <button
               type="button"
               className={`reference-switch ${cardShadowEnabled ? "active" : ""}`}
-              aria-label="卡片黑色渐变遮罩"
+              aria-label="卡片黑色方形遮罩"
               aria-pressed={cardShadowEnabled}
-              title={cardShadowEnabled ? "关闭卡片自动渐变遮罩" : "开启卡片自动渐变遮罩"}
+              title={cardShadowEnabled ? "关闭卡片黑色方形遮罩" : "开启卡片黑色方形遮罩"}
               onClick={(event) => {
                 event.stopPropagation();
                 setCardShadowEnabled((enabled) => !enabled);
@@ -11421,29 +11469,44 @@ const App = () => {
                   onChange={(event) =>
                     setCardShadowOpacity(Number(event.target.value) / 100)
                   }
-                  title="调节卡片黑色渐变遮罩的整体透明度"
+                  title="调节卡片黑色方形遮罩的整体透明度"
                 />
               </div>
               <div className="reference-range-group">
                 <div className="reference-range-head">
-                  <label>遮罩圆角</label>
-                  <b>{Math.round(cardShadowRadius * 100)}%</b>
+                  <label>边缘羽化</label>
+                  <b>{Math.round(cardShadowFeather * 100)}%</b>
                 </div>
                 <input
                   type="range"
                   min="0"
                   max="100"
                   step="1"
-                  value={Math.round(cardShadowRadius * 100)}
+                  value={Math.round(cardShadowFeather * 100)}
                   onChange={(event) =>
-                    setCardShadowRadius(Number(event.target.value) / 100)
+                    setCardShadowFeather(Number(event.target.value) / 100)
                   }
-                  title="调节黑色渐变遮罩的圆角程度"
+                  title="同时柔化方形黑色遮罩的上、右、下、左四条边缘"
+                  aria-label="方形黑色遮罩边缘羽化"
                 />
               </div>
               <div className="reference-range-group">
                 <div className="reference-range-head">
-                  <label>渐变范围 · 上</label>
+                  <label>水平移动</label>
+                  <b>{Math.round(cardShadowOffsetX * 100)}%</b>
+                </div>
+                <input type="range" min="-100" max="100" step="1" value={Math.round(cardShadowOffsetX * 100)} onChange={(event) => setCardShadowOffsetX(Number(event.target.value) / 100)} title="水平移动方形黑色遮罩" />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>垂直移动</label>
+                  <b>{Math.round(cardShadowOffsetY * 100)}%</b>
+                </div>
+                <input type="range" min="-100" max="100" step="1" value={Math.round(cardShadowOffsetY * 100)} onChange={(event) => setCardShadowOffsetY(Number(event.target.value) / 100)} title="垂直移动方形黑色遮罩" />
+              </div>
+              <div className="reference-range-group">
+                <div className="reference-range-head">
+                  <label>裁剪范围 · 上</label>
                   <b>{Math.round(cardShadowRangeTop * 100)}%</b>
                 </div>
                 <input
@@ -11455,29 +11518,29 @@ const App = () => {
                   onChange={(event) =>
                     setCardShadowRangeTop(Number(event.target.value) / 100)
                   }
-                  title="调节卡片上方向外渐隐的范围"
+                  title="调节方形遮罩上方的裁剪宽度"
                 />
               </div>
               <div className="reference-range-group">
                 <div className="reference-range-head">
-                  <label>渐变范围 · 右</label>
+                  <label>裁剪范围 · 右</label>
                   <b>{Math.round(cardShadowRangeRight * 100)}%</b>
                 </div>
-                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeRight * 100)} onChange={(event) => setCardShadowRangeRight(Number(event.target.value) / 100)} title="调节卡片右方向外渐隐的范围" />
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeRight * 100)} onChange={(event) => setCardShadowRangeRight(Number(event.target.value) / 100)} title="调节方形遮罩右侧的裁剪宽度" />
               </div>
               <div className="reference-range-group">
                 <div className="reference-range-head">
-                  <label>渐变范围 · 下</label>
+                  <label>裁剪范围 · 下</label>
                   <b>{Math.round(cardShadowRangeBottom * 100)}%</b>
                 </div>
-                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeBottom * 100)} onChange={(event) => setCardShadowRangeBottom(Number(event.target.value) / 100)} title="调节卡片下方向外渐隐的范围" />
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeBottom * 100)} onChange={(event) => setCardShadowRangeBottom(Number(event.target.value) / 100)} title="调节方形遮罩下方的裁剪宽度" />
               </div>
               <div className="reference-range-group">
                 <div className="reference-range-head">
-                  <label>渐变范围 · 左</label>
+                  <label>裁剪范围 · 左</label>
                   <b>{Math.round(cardShadowRangeLeft * 100)}%</b>
                 </div>
-                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeLeft * 100)} onChange={(event) => setCardShadowRangeLeft(Number(event.target.value) / 100)} title="调节卡片左方向外渐隐的范围" />
+                <input type="range" min="0" max="100" step="1" value={Math.round(cardShadowRangeLeft * 100)} onChange={(event) => setCardShadowRangeLeft(Number(event.target.value) / 100)} title="调节方形遮罩左侧的裁剪宽度" />
               </div>
             </section>
           ) : null}
