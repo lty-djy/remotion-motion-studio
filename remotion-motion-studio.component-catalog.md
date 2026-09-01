@@ -21,7 +21,7 @@
 
 ## 竖屏口播信息层
 
-- `PortraitChapterRail`：竖屏口播·章节条 — 参考竖屏口播视频提炼的左上章节标签：强调竖线、蓝色标题和白色说明分层滑入。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`accentColor`、`textColor`、`animationSeconds`）
+- `PortraitChapterRail`：竖屏口播·章节条 — 左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。（仅工作台可用；props：`enabled`、`cardWidth`、`index`、`title`、`subtitle`、`accentColor`、`textColor`、`indexFontSize`、`titleFontSize`、`subtitleFontSize`、`animationSeconds`）
 - `PortraitIndexedChapterTitle`：竖屏口播·编号章节标题 — 参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。（仅工作台可用；props：`enabled`、`chapterNumber`、`eyebrow`、`title`、`subtitle`、`accentColor`、`titleColor`、`subtitleColor`、`numberFontSize`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`revealDelaySeconds`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitMetricDecision`：竖屏口播·数据决策卡 — 参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。（仅工作台可用；props：`enabled`、`lead`、`conclusion`、`metricLabel`、`value`、`unit`、`verdict`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）

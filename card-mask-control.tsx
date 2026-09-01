@@ -19,6 +19,14 @@ export const DEFAULT_CARD_MASK: CardMaskSettings = {
   offsetY: 0,
 };
 
+// 新建组件时使用的默认遮罩：默认不显示方形遮罩。
+// 数值与 DEFAULT_CARD_MASK 保持一致，仅 enabled 关闭，
+// 这样用户后续手动开启时仍然能从一致的滑杆起点开始调。
+export const DEFAULT_CARD_MASK_NEW: CardMaskSettings = {
+  ...DEFAULT_CARD_MASK,
+  enabled: false,
+};
+
 export const normalizeCardMask = (
   value?: Partial<CardMaskSettings> | null,
 ): CardMaskSettings => ({
@@ -32,6 +40,25 @@ export const normalizeCardMask = (
   rangeLeft: clamp(value?.rangeLeft, 0, 1, DEFAULT_CARD_MASK.rangeLeft),
   offsetX: clamp(value?.offsetX, -1, 1, DEFAULT_CARD_MASK.offsetX),
   offsetY: clamp(value?.offsetY, -1, 1, DEFAULT_CARD_MASK.offsetY),
+});
+
+// 允许显式指定"创建时"的默认值，避免在 normalizeCardMask 里把行为耦合进去；
+// 调用方传入 overrides（如 createInstance）时缺省值即为 fallback，
+// 用于区分"新建组件"和"已存项目还原"两种语义。
+export const normalizeCardMaskWithDefault = (
+  value: Partial<CardMaskSettings> | null | undefined,
+  fallback: CardMaskSettings,
+): CardMaskSettings => ({
+  enabled: value?.enabled ?? fallback.enabled,
+  strength: clamp(value?.strength, 0, 1, fallback.strength),
+  opacity: clamp(value?.opacity, 0, 1, fallback.opacity),
+  feather: clamp(value?.feather, 0, 1, fallback.feather),
+  rangeTop: clamp(value?.rangeTop, 0, 1, fallback.rangeTop),
+  rangeRight: clamp(value?.rangeRight, 0, 1, fallback.rangeRight),
+  rangeBottom: clamp(value?.rangeBottom, 0, 1, fallback.rangeBottom),
+  rangeLeft: clamp(value?.rangeLeft, 0, 1, fallback.rangeLeft),
+  offsetX: clamp(value?.offsetX, -1, 1, fallback.offsetX),
+  offsetY: clamp(value?.offsetY, -1, 1, fallback.offsetY),
 });
 
 export const CardMaskLayer = ({

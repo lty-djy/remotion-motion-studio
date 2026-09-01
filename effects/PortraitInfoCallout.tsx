@@ -64,7 +64,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 0,
-          right: 0,
+          left: 0,
           maxWidth: 390,
           overflow: "hidden",
           color: accentColor,
@@ -99,7 +99,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 30,
-          right: 0,
+          left: 0,
           maxWidth: 420,
           overflow: "hidden",
           color: textColor,
@@ -134,13 +134,14 @@ export const PortraitInfoCallout: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 86,
-          right: 0,
+          left: 0,
           display: "flex",
           alignItems: "center",
           gap: 18,
           width: 376,
           height: 116,
-          padding: "0 22px",
+          // 左内边距为 0：让图标左缘与上方引导词/主标题左缘对齐。
+          padding: "0 22px 0 0",
           boxSizing: "border-box",
           overflow: "hidden",
           border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
@@ -173,7 +174,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
               extrapolateRight: "clamp",
             },
           ),
-          transformOrigin: "100% 50%",
+          transformOrigin: "0% 50%",
         }}
       >
         <Interactive.Div

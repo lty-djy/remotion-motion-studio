@@ -51,11 +51,12 @@ import {
   type MotionComponentDefinition,
   type MotionInstance,
   type MotionModule,
+  type MotionPosition,
   type MotionPropSchema,
   type ResourceTrack,
   type VideoTrack,
 } from "./local-protocol";
-import { CardMaskLayer, normalizeCardMask } from "./card-mask-control";
+import { CardMaskLayer, normalizeCardMask, DEFAULT_CARD_MASK_NEW } from "./card-mask-control";
 import {
   BUILT_IN_CATALOG,
   BUILT_IN_COMPONENT_IDS,
@@ -1367,7 +1368,11 @@ const createInstance = (
     },
     cardBackgroundEnabled: overrides.cardBackgroundEnabled !== false,
     backgroundOpacity: clamp(overrides.backgroundOpacity ?? 1, 0, 1),
-    cardMask: normalizeCardMask(overrides.cardMask),
+    // 还原已有项目 / 编排产物时尊重 overrides.cardMask；
+    // 没有外部遮罩设置时（效果库新增、AI 编排新生成的 instance）使用新建默认：默认不显示。
+    cardMask: overrides.cardMask && Object.keys(overrides.cardMask).length > 0
+      ? normalizeCardMask(overrides.cardMask)
+      : { ...DEFAULT_CARD_MASK_NEW },
     props: {
       ...defaultsFromDefinition(definition),
       ...(overrides.props ?? {}),
@@ -1390,6 +1395,28 @@ const createInstance = (
   };
 };
 
+// 竖屏下不套用 placement 自适应（top 填满宽度 / bottom 贴底等），
+// 而是直接使用组件自身 defaultPosition 的组件集合。
+// 这类组件有固定设计宽度，需要保留水平/垂直可拖动能力。
+const PORTRAIT_DEFAULT_POSITION_IDS = new Set([
+  "PortraitChapterRail",
+  "PortraitInfoCallout",
+  "PortraitMetricDecision",
+  "PortraitDecisionTagStack",
+  "PortraitStepChecklist",
+  "PortraitRiskWarning",
+  "PortraitNextEpisodeCta",
+  "PortraitMediaPosterReveal",
+  "PortraitIndexedChapterTitle",
+  "TitleReveal",
+  "LineTrend",
+  "StepFlow",
+  "CompareSplit",
+  "BulletStack",
+  "BarChart",
+  "EndLockup",
+]);
+
 const getRegisteredEffectPosition = (
   definition: MotionComponentDefinition,
   orientation: "landscape" | "portrait",
@@ -1402,23 +1429,7 @@ const getRegisteredEffectPosition = (
   const canvasHeight = orientation === "portrait" ? 1920 : 1080;
   if (
     orientation === "portrait" &&
-    [
-      "PortraitChapterRail",
-      "PortraitInfoCallout",
-      "PortraitMetricDecision",
-      "PortraitDecisionTagStack",
-      "PortraitStepChecklist",
-      "PortraitRiskWarning",
-      "PortraitNextEpisodeCta",
-      "PortraitMediaPosterReveal",
-      "TitleReveal",
-      "LineTrend",
-      "StepFlow",
-      "CompareSplit",
-      "BulletStack",
-      "BarChart",
-      "EndLockup",
-    ].includes(definition.id)
+    PORTRAIT_DEFAULT_POSITION_IDS.has(definition.id)
   ) {
     return { ...definition.defaultPosition };
   }
@@ -1457,6 +1468,43 @@ const getRegisteredEffectPosition = (
     scale,
   };
 };
+
+// 历史 bug：部分组件曾用 placement="top" 被错误缩放到填满竖屏宽度（scale≈1080/width），
+// 导致其水平位置范围被压缩为 0、无法拖动。恢复时若检测到这种「填满宽度」的旧 scale，
+// 回退到组件 defaultPosition，恢复其水平/垂直可拖动能力。
+const normalizeRestoredPosition = (
+  definition: MotionComponentDefinition,
+  position: MotionPosition | undefined,
+): MotionPosition | undefined => {
+  if (!position || !PORTRAIT_DEFAULT_POSITION_IDS.has(definition.id)) {
+    return position;
+  }
+  const scale = Number(position.scale);
+  const width = Number(definition.bounds?.width);
+  if (!Number.isFinite(scale) || !Number.isFinite(width) || width <= 0) {
+    return position;
+  }
+  const defaultScale = Number(definition.defaultPosition?.scale) || 1;
+  const fillsPortraitWidth = Math.abs(width * scale - 1080) < 8;
+  if (fillsPortraitWidth && Math.abs(scale - defaultScale) > 0.05) {
+    return { ...definition.defaultPosition };
+  }
+  return position;
+};
+
+// 部分组件要求水平位置不超过固定上限（px）。
+// 返回 null 表示该组件不限制，沿用「画布宽 - 组件宽」的常规边界。
+const COMPONENT_HORIZONTAL_X_MAX: Record<string, number> = {
+  MarketEliminationStamp: 800,
+  PortraitDecisionTagStack: 800,
+  PortraitIndexedChapterTitle: 800,
+  PortraitInfoCallout: 800,
+};
+
+const getComponentHorizontalXMax = (componentId?: string | null) =>
+  componentId && COMPONENT_HORIZONTAL_X_MAX[componentId] != null
+    ? COMPONENT_HORIZONTAL_X_MAX[componentId]
+    : null;
 
 type SrtEntry = {
   index: number;
@@ -3565,7 +3613,10 @@ const App = () => {
               sourceStartFrame: Number(savedInstance.sourceStartFrame) || 0,
               laneId: savedInstance.laneId,
               trackOrder: savedInstance.trackOrder,
-              position: savedInstance.position,
+              position: normalizeRestoredPosition(
+                definition,
+                savedInstance.position,
+              ),
               cardBackgroundEnabled: savedInstance.cardBackgroundEnabled,
               backgroundOpacity: savedInstance.backgroundOpacity,
               cardMask: savedInstance.cardMask,
@@ -4645,13 +4696,14 @@ const App = () => {
   const inspectorDefinition = inspectorInstance
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
-  const inspectorPositionXMax = (scale: number) =>
-    inspectorDefinition?.id === "MarketEliminationStamp"
-      ? 800
-      : Math.max(
-          0,
-          Math.round(canvasWidth - (inspectorDefinition?.bounds.width ?? 0) * scale),
-        );
+  const inspectorPositionXMax = (scale: number) => {
+    const fixedMax = getComponentHorizontalXMax(inspectorDefinition?.id);
+    if (fixedMax != null) return fixedMax;
+    return Math.max(
+      0,
+      Math.round(canvasWidth - (inspectorDefinition?.bounds.width ?? 0) * scale),
+    );
+  };
   const [inspectorSectionsExpanded, setInspectorSectionsExpanded] = useState<Record<string, boolean>>({
     global: false,
     resourcePosition: false,
@@ -8288,11 +8340,13 @@ const App = () => {
           current.map((instance) => {
             const start = state.positions[instance.id];
             if (!start) return instance;
+            const fixedMax = getComponentHorizontalXMax(instance.componentId);
+            const nextX = Math.round(start.x + designDeltaX);
             return {
               ...instance,
               position: {
                 ...instance.position,
-                x: Math.round(start.x + designDeltaX),
+                x: fixedMax != null ? Math.min(fixedMax, nextX) : nextX,
                 y: Math.round(start.y + designDeltaY),
               },
             };
