@@ -17,7 +17,7 @@
 
 ## 终端教学 HUD
 
-- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`item1`、`item2`、`item3`、`accentColor`、`animationSeconds`）
+- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
 
 ## 柔和教学紫
 

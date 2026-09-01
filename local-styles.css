@@ -2382,6 +2382,25 @@ main.is-resizing-sidebar * {
   accent-color: #ff4b25;
 }
 
+.dynamic-prop-fields textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid #303238;
+  border-radius: 4px;
+  outline: 0;
+  resize: vertical;
+  color: #e1e1e3;
+  background: #1a1b1f;
+  font: 13px/1.55 Consolas, "SFMono-Regular", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dynamic-prop-fields textarea:focus {
+  border-color: #ff4b25;
+}
+
 .dynamic-prop-fields .font-size-stepper {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 34px;

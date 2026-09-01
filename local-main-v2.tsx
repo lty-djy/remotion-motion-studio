@@ -9471,11 +9471,12 @@ const App = () => {
         (inspectorDefinition?.id === "PortraitGsapSkillShowcase" &&
           key === "capabilityCount") ||
         (inspectorDefinition?.id === "PortraitCodeDecisionChecklist" &&
-          key === "questionCount"))
+          key === "questionCount") ||
+        (inspectorDefinition?.id === "TerminalPanel" && key === "stepCount"))
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
       const max = typeof schema.max === "number" ? schema.max : 8;
-      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : 4;
+      const fallbackValue = ["sourceCount", "materialCount", "iterationCount", "capabilityCount"].includes(key) ? 3 : key === "riskCount" ? 3 : key === "questionCount" || inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? 6 : inspectorDefinition?.id === "TerminalPanel" ? 3 : 4;
       const numericValue = clamp(
         Math.round(Number(value ?? schema.default ?? fallbackValue)),
         min,
@@ -9490,6 +9491,14 @@ const App = () => {
           max={max}
           itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
+            if (key === "stepCount" && selectedDefinition?.id === "TerminalPanel" && selectedInstance) {
+              const interval = Math.max(0, Number(selectedInstance.props.itemIntervalSeconds ?? 0.55));
+              const nextAnimationSeconds = Math.max(Number(selectedInstance.props.animationSeconds ?? 1.2), 0.7 + Math.max(0, nextValue - 1) * interval + 0.5);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, stepCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
             if (!["materialCount", "iterationCount", "capabilityCount", "questionCount", "riskCount"].includes(key) || !inspectorInstance) {
               updateSelectedProp(key, nextValue);
               return;
@@ -9657,6 +9666,20 @@ const App = () => {
         </label>
       );
     }
+    if (schema.type === "text" && selectedDefinition?.id === "TerminalPanel" && key === "command") {
+      return (
+        <label className="prop-field prop-field-textarea" key={key}>
+          <span>{label}</span>
+          <textarea
+            value={String(value ?? "")}
+            rows={4}
+            aria-label={label}
+            placeholder="输入命令，可用换行分隔多行参数"
+            onChange={(event) => updateSelectedProp(key, event.target.value)}
+          />
+        </label>
+      );
+    }
     if (schema.type === "select") {
       const options = Array.isArray(schema.options) ? schema.options : [];
       return (
@@ -9718,6 +9741,8 @@ const App = () => {
       schema.type === "number" &&
       ((selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
         key === "ruleIntervalSeconds") ||
+        (selectedDefinition?.id === "TerminalPanel" &&
+          key === "itemIntervalSeconds") ||
         (selectedDefinition?.id === "PortraitRiskWarning" &&
           ["riskIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillResultComparison" &&
@@ -9773,6 +9798,14 @@ const App = () => {
           min={min}
           step={step}
           onChange={(nextValue) => {
+            if (selectedDefinition?.id === "TerminalPanel" && key === "itemIntervalSeconds" && selectedInstance) {
+              const count = clamp(Math.round(Number(selectedInstance.props.stepCount ?? 3)), 1, 8);
+              const nextAnimationSeconds = Math.max(Number(selectedInstance.props.animationSeconds ?? 1.2), 0.7 + Math.max(0, count - 1) * nextValue + 0.5);
+              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
+              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, itemIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
+              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
             if (
               selectedDefinition?.id === "PortraitRiskWarning" &&
               key === "riskIntervalSeconds" &&
@@ -12247,6 +12280,11 @@ const App = () => {
                   <div className="dynamic-prop-fields">
                     {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
+                        if (inspectorDefinition.id === "TerminalPanel") {
+                          const match = key.match(/^item(\d+)$/);
+                          const activeStepCount = clamp(Math.round(Number(inspectorInstance.props.stepCount ?? 3)), 1, 8);
+                          if (match && Number(match[1]) > activeStepCount) return null;
+                        }
                         if (
                           inspectorDefinition.id === "PortraitWorkflowPrerequisite"
                         ) {
