@@ -448,6 +448,28 @@ main.is-resizing-sidebar * {
   height: 13px;
 }
 
+.workspace-draft-status {
+  display: inline-flex;
+  align-items: center;
+  min-width: 70px;
+  padding: 0 6px;
+  color: #8f98aa;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.workspace-draft-status.saved { color: #71d6ae; }
+.workspace-draft-status.dirty { color: #ffc76b; }
+.workspace-draft-status.error { color: #ff8b78; }
+.studio-actions button.workspace-draft-save {
+  color: #cbd2df;
+  border-color: #343a48;
+}
+.studio-actions button.workspace-draft-save:hover:not(:disabled) {
+  color: #fff;
+  border-color: #ff593e;
+  background: rgba(255, 89, 62, .1);
+}
+
 .studio-actions button.export-action {
   min-width: 118px;
   color: #090909;

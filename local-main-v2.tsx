@@ -910,6 +910,32 @@ type ProjectSnapshot = {
   updatedAt?: string;
 };
 
+type ComponentInstanceDefault = Pick<
+  MotionInstance,
+  | "durationInFrames"
+  | "position"
+  | "cardBackgroundEnabled"
+  | "backgroundOpacity"
+  | "cardMask"
+  | "props"
+>;
+
+type ComponentInstanceDefaults = Record<string, ComponentInstanceDefault>;
+
+const COMPONENT_INSTANCE_DEFAULTS_STORAGE_KEY =
+  "motion-studio-component-instance-defaults-v1";
+
+const createComponentInstanceDefault = (
+  instance: MotionInstance,
+): ComponentInstanceDefault => ({
+  durationInFrames: instance.durationInFrames,
+  position: { ...instance.position },
+  cardBackgroundEnabled: instance.cardBackgroundEnabled,
+  backgroundOpacity: instance.backgroundOpacity,
+  cardMask: normalizeCardMask(instance.cardMask),
+  props: { ...instance.props },
+});
+
 const restoreInstanceCardMasks = (
   instances: MotionInstance[] | undefined,
   snapshot: ProjectSnapshot | undefined,
@@ -2332,8 +2358,19 @@ const App = () => {
   const [projects, setProjects] = useState<ProjectHistoryItem[]>([]);
   const [activeProjectId, setActiveProjectId] = useState("");
   const [projectName, setProjectName] = useState("未命名项目");
+  const [componentInstanceDefaults, setComponentInstanceDefaults] =
+    useState<ComponentInstanceDefaults>(() => {
+      try {
+        const saved = window.localStorage.getItem(
+          COMPONENT_INSTANCE_DEFAULTS_STORAGE_KEY,
+        );
+        return saved ? (JSON.parse(saved) as ComponentInstanceDefaults) : {};
+      } catch {
+        return {};
+      }
+    });
   const [draftStatus, setDraftStatus] = useState<
-    "loading" | "saving" | "saved" | "error"
+    "loading" | "saving" | "saved" | "dirty" | "error"
   >("loading");
   const [savingProject, setSavingProject] = useState(false);
   const [videoName, setVideoName] = useState("尚未导入视频");
@@ -3829,6 +3866,13 @@ const App = () => {
 
   useEffect(() => {
     window.localStorage.setItem(
+      COMPONENT_INSTANCE_DEFAULTS_STORAGE_KEY,
+      JSON.stringify(componentInstanceDefaults),
+    );
+  }, [componentInstanceDefaults]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
       "motion-studio-global-card-scale",
       String(globalCardScale),
     );
@@ -4255,25 +4299,60 @@ const App = () => {
     ],
   );
 
-  useEffect(() => {
-    if (!workspaceReadyRef.current || !motionModule) return;
+  const saveWorkspaceDraft = useCallback(async () => {
+    if (!workspaceReadyRef.current || !motionModule) return false;
     setDraftStatus("saving");
-    const timer = window.setTimeout(async () => {
-      if (!workspaceReadyRef.current) return;
-      try {
-        const response = await fetch("/api/workspace-draft", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(workspaceSnapshot),
-        });
-        if (!response.ok) throw new Error("自动草稿保存失败");
-        setDraftStatus("saved");
-      } catch {
-        setDraftStatus("error");
-      }
-    }, 900);
-    return () => window.clearTimeout(timer);
+    try {
+      const response = await fetch("/api/workspace-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(workspaceSnapshot),
+      });
+      if (!response.ok) throw new Error("工作区保存失败");
+      setDraftStatus("saved");
+      return true;
+    } catch (error) {
+      setDraftStatus("error");
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "工作区保存失败",
+      });
+      return false;
+    }
   }, [motionModule, workspaceSnapshot]);
+
+  const saveWorkspaceAndSelectedDefault = useCallback(async () => {
+    let savedDefinitionName = "";
+    if (selectedInstance) {
+      const nextDefaults = {
+        ...componentInstanceDefaults,
+        [selectedInstance.componentId]: createComponentInstanceDefault(
+          selectedInstance,
+        ),
+      };
+      window.localStorage.setItem(
+        COMPONENT_INSTANCE_DEFAULTS_STORAGE_KEY,
+        JSON.stringify(nextDefaults),
+      );
+      setComponentInstanceDefaults(nextDefaults);
+      savedDefinitionName =
+        definitionMap.get(selectedInstance.componentId)?.name ?? "当前组件";
+    }
+    const saved = await saveWorkspaceDraft();
+    if (saved) {
+      setNotice({
+        tone: "ok",
+        text: savedDefinitionName
+          ? `已保存工作区；以后新添加“${savedDefinitionName}”将使用当前效果。`
+          : "工作区已保存。",
+      });
+    }
+  }, [
+    componentInstanceDefaults,
+    definitionMap,
+    saveWorkspaceDraft,
+    selectedInstance,
+  ]);
 
   const commitPendingHistory = useCallback(() => {
     window.clearTimeout(historyTimerRef.current);
@@ -4310,7 +4389,15 @@ const App = () => {
       historyRef.current.present = snapshot;
       return;
     }
+    if (
+      JSON.stringify(historyRef.current.present) === JSON.stringify(snapshot)
+    ) {
+      return;
+    }
     pendingHistoryRef.current = snapshot;
+    if (draftStatus === "saved" || draftStatus === "error") {
+      setDraftStatus("dirty");
+    }
     window.clearTimeout(historyTimerRef.current);
     historyTimerRef.current = window.setTimeout(commitPendingHistory, 220);
     return () => window.clearTimeout(historyTimerRef.current);
@@ -4623,12 +4710,20 @@ const App = () => {
   const addInstance = (componentId: string) => {
     const definition = definitionMap.get(componentId);
     if (!definition) return;
+    const savedDefault = componentInstanceDefaults[componentId];
     const instance = createInstance(
       definition,
       currentFrame,
-      Math.max(durationInFrames, currentFrame + definition.durationInFrames),
+      Math.max(
+        durationInFrames,
+        currentFrame +
+          (savedDefault?.durationInFrames ?? definition.durationInFrames),
+      ),
       {
-        position: getRegisteredEffectPosition(definition, canvasOrientation),
+        ...(savedDefault ?? {}),
+        position: savedDefault?.position
+          ? { ...savedDefault.position }
+          : getRegisteredEffectPosition(definition, canvasOrientation),
         // 新效果插入到轨道列表最上方（最小序号），同时位于预览图层最前面
         trackOrder:
           Math.min(
@@ -10393,6 +10488,31 @@ const App = () => {
             <Trash />清空
           </button>
           <button onClick={openVideoPicker}><UploadSimple />导入视频</button>
+          <span
+            className={`workspace-draft-status ${draftStatus}`}
+            role="status"
+            aria-live="polite"
+            title="工作区不会自动保存；点击右侧「立即保存」手动保存"
+          >
+            {draftStatus === "loading"
+              ? "读取中"
+              : draftStatus === "saving"
+                ? "保存中…"
+                : draftStatus === "saved"
+                  ? "已保存"
+                  : draftStatus === "dirty"
+                    ? "待保存"
+                    : "保存失败"}
+          </span>
+          <button
+            type="button"
+            className="workspace-draft-save"
+            disabled={draftStatus === "saving"}
+            onClick={() => void saveWorkspaceAndSelectedDefault()}
+            title="保存当前项目，并将当前选中组件的效果作为以后新添加时的默认值"
+          >
+            <FloppyDisk />立即保存
+          </button>
           <button
             className="export-action"
             disabled={rendering}
