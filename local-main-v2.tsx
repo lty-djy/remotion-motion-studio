@@ -881,6 +881,8 @@ type ProjectSnapshot = {
   timelineHeight?: number;
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
+  globalCardScale?: number;
+  globalCardBase?: "dark" | "light";
   safetyGuideVisible?: boolean;
   solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
@@ -1996,6 +1998,7 @@ type TimingStepperProps = {
   label: string;
   value: number;
   min: number;
+  max?: number;
   step: number;
   onChange: (value: number) => void;
 };
@@ -2045,10 +2048,14 @@ const TimingStepper = ({
   label,
   value,
   min,
+  max,
   step,
   onChange,
 }: TimingStepperProps) => {
-  const format = (nextValue: number) => nextValue.toFixed(1);
+  const precision = step < 1
+    ? Math.min(3, Math.max(1, String(step).split(".")[1]?.length ?? 1))
+    : 0;
+  const format = (nextValue: number) => nextValue.toFixed(precision);
   const [draft, setDraft] = useState(format(value));
 
   useEffect(() => {
@@ -2061,7 +2068,7 @@ const TimingStepper = ({
       setDraft(format(value));
       return;
     }
-    const nextValue = Math.max(min, parsed);
+    const nextValue = clamp(parsed, min, max ?? Number.POSITIVE_INFINITY);
     setDraft(format(nextValue));
     onChange(nextValue);
   };
@@ -2087,6 +2094,7 @@ const TimingStepper = ({
         <input
           type="number"
           min={min}
+          max={max}
           step={step}
           value={draft}
           aria-label={label}
@@ -3675,6 +3683,10 @@ const App = () => {
         setCanvasOrientation(
           draft?.canvasOrientation === "portrait" ? "portrait" : "landscape",
         );
+        if (Number(draft?.globalCardScale) >= 0.5 && Number(draft?.globalCardScale) <= 2) {
+          setGlobalCardScale(Number(draft?.globalCardScale));
+        }
+        setGlobalCardBase(draft?.globalCardBase === "light" ? "light" : "dark");
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
         setSolidBackgroundEnabled(
           draft?.solidBackgroundEnabled !== false,
@@ -4011,6 +4023,8 @@ const App = () => {
       definitions,
       instances: effectiveInstances,
       canvasOrientation,
+      globalCardScale,
+      globalCardBase,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
@@ -4126,6 +4140,8 @@ const App = () => {
       timelineHeight,
       trackHeights,
       canvasOrientation,
+      globalCardScale,
+      globalCardBase,
       safetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
@@ -4134,6 +4150,8 @@ const App = () => {
       activeComponentId,
       activeArrangementBatchId,
       canvasOrientation,
+      globalCardBase,
+      globalCardScale,
       componentName,
       currentFrame,
       instances,
@@ -4374,6 +4392,10 @@ const App = () => {
       setCanvasOrientation(
         snapshot.canvasOrientation === "portrait" ? "portrait" : "landscape",
       );
+      if (Number(snapshot.globalCardScale) >= 0.5 && Number(snapshot.globalCardScale) <= 2) {
+        setGlobalCardScale(Number(snapshot.globalCardScale));
+      }
+      setGlobalCardBase(snapshot.globalCardBase === "light" ? "light" : "dark");
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
       setSolidBackgroundEnabled(
         snapshot.solidBackgroundEnabled !== false,
@@ -9785,10 +9807,14 @@ const App = () => {
           ["titleEnterSeconds", "mediaEnterSeconds", "animationSeconds"].includes(key)))
     ) {
       const min = typeof schema.min === "number" ? schema.min : 0;
-      const step = typeof schema.step === "number" ? schema.step : 0.1;
-      const numericValue = Math.max(
-        min,
+      const step = selectedDefinition?.id === "TerminalPanel" && key === "itemIntervalSeconds"
+        ? 0.1
+        : typeof schema.step === "number" ? schema.step : 0.1;
+      const max = typeof schema.max === "number" ? schema.max : undefined;
+      const numericValue = clamp(
         Number(value ?? schema.default ?? min),
+        min,
+        max ?? Number.POSITIVE_INFINITY,
       );
       return (
         <TimingStepper
@@ -9796,6 +9822,7 @@ const App = () => {
           label={label}
           value={numericValue}
           min={min}
+          max={max}
           step={step}
           onChange={(nextValue) => {
             if (selectedDefinition?.id === "TerminalPanel" && key === "itemIntervalSeconds" && selectedInstance) {
