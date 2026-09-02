@@ -13,9 +13,9 @@
         "PortraitMetricDecision": 12,
         "PortraitDecisionTagStack": 2,
         "PortraitInfoCallout": 12,
-        "PortraitChapterRail": 6,
-        "PortraitStepChecklist": 8,
-        "PortraitNextEpisodeCta": 6
+        "PortraitChapterRail": 10,
+        "PortraitStepChecklist": 12,
+        "PortraitNextEpisodeCta": 10
       },
       "semanticTags": {
         "emphasis": {

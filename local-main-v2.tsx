@@ -3276,6 +3276,7 @@ const App = () => {
     "状态与数据",
   ]);
   const [customIconGroups, setCustomIconGroups] = useState<IconCategoryGroup[]>([]);
+  const [iconGroupCreateOpen, setIconGroupCreateOpen] = useState(false);
   const [iconGroupRenameTarget, setIconGroupRenameTarget] =
     useState<IconCategoryGroup | null>(null);
   const [iconGroupNameDraft, setIconGroupNameDraft] = useState("");
@@ -9580,10 +9581,15 @@ const App = () => {
     });
   };
 
-  const createIconGroup = async () => {
-    const name = window.prompt("新图标分组名称（最多 20 个字）")?.trim().slice(0, 20);
-    if (!name) return;
+  const openCreateIconGroupDialog = () => {
     setContextMenu(null);
+    setIconGroupNameDraft("");
+    setIconGroupCreateOpen(true);
+  };
+
+  const createIconGroup = async () => {
+    const name = iconGroupNameDraft.trim().slice(0, 20);
+    if (!name) return;
     try {
       const response = await fetch("/api/icon-groups", {
         method: "POST",
@@ -9595,6 +9601,8 @@ const App = () => {
       const group = payload.group as IconCategoryGroup;
       setCustomIconGroups((current) => [...current, group]);
       setOpenIconCategories((current) => [...current, group.name]);
+      setIconGroupCreateOpen(false);
+      setIconGroupNameDraft("");
       setNotice({ tone: "ok", text: `已新建图标分组“${group.name}”。` });
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "新建分组失败" });
@@ -14390,6 +14398,71 @@ const App = () => {
         </div>
       ) : null}
 
+      {iconGroupCreateOpen ? (
+        <div
+          className="shortcut-dialog-backdrop icon-group-create-backdrop"
+          onPointerDown={() => setIconGroupCreateOpen(false)}
+        >
+          <section
+            className="shortcut-dialog group-dialog icon-group-create-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-icon-group-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <FolderOpen weight="fill" />
+                <span>
+                  <strong id="create-icon-group-title">新建素材文件夹</strong>
+                  <small>把同类素材整理到一个文件夹，方便查找和编排</small>
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭新建素材文件夹"
+                onClick={() => setIconGroupCreateOpen(false)}
+              >
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <div className="group-dialog-label-row">
+                <label htmlFor="new-icon-group-name">文件夹名称</label>
+                <span>{iconGroupNameDraft.length}/20</span>
+              </div>
+              <input
+                id="new-icon-group-name"
+                autoFocus
+                maxLength={20}
+                value={iconGroupNameDraft}
+                onChange={(event) => setIconGroupNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && iconGroupNameDraft.trim()) createIconGroup();
+                  if (event.key === "Escape") setIconGroupCreateOpen(false);
+                }}
+                placeholder="例如：产品界面、品牌元素"
+              />
+              <small className="group-dialog-hint">最多 20 个字，创建后可随时重命名。</small>
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button type="button" onClick={() => setIconGroupCreateOpen(false)}>取消</button>
+                <button
+                  type="button"
+                  className="shortcut-save"
+                  disabled={!iconGroupNameDraft.trim()}
+                  onClick={createIconGroup}
+                >
+                  创建文件夹
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {iconGroupRenameTarget ? (
         <div
           className="shortcut-dialog-backdrop icon-group-rename-backdrop"
@@ -16559,8 +16632,8 @@ const App = () => {
                 >
                   <UploadSimple /> 导入 SVG 图标
                 </button>
-                <button className="icon-new-group-action" onClick={createIconGroup}>
-                  新建分组
+                <button className="icon-new-group-action" onClick={openCreateIconGroupDialog}>
+                  新建文件夹
                 </button>
                 {contextMenu.iconGroupId ? (() => {
                   const group = customIconGroups.find(

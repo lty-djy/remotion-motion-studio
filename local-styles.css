@@ -4467,6 +4467,68 @@ aside {
 
 .group-dialog-body input:focus {
   border-color: #ff5532;
+  box-shadow: 0 0 0 3px rgba(255, 85, 50, 0.14);
+}
+
+.icon-group-create-dialog {
+  width: min(430px, calc(100vw - 32px));
+  border-color: #41454d;
+  border-radius: 12px;
+}
+
+.icon-group-create-dialog > header {
+  padding: 20px 22px;
+  background: #171a1e;
+}
+
+.icon-group-create-dialog > header > div > svg {
+  width: 25px;
+  height: 25px;
+  padding: 7px;
+  border-radius: 8px;
+  color: #ff8c70;
+  background: rgba(255, 85, 50, 0.12);
+}
+
+.icon-group-create-dialog .group-dialog-body {
+  gap: 10px;
+  padding: 24px 22px 22px;
+}
+
+.group-dialog-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.group-dialog-label-row > span,
+.group-dialog-hint {
+  color: #70747c;
+  font-size: 10px;
+}
+
+.icon-group-create-dialog .group-dialog-body input {
+  height: 46px;
+  border-color: #444850;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.icon-group-create-dialog .group-dialog-body input::placeholder {
+  color: #656971;
+}
+
+.icon-group-create-dialog > footer {
+  padding: 14px 22px;
+}
+
+.icon-group-create-dialog > footer button {
+  min-height: 36px;
+  border-radius: 7px;
+}
+
+.icon-group-create-dialog > footer button.shortcut-save {
+  padding-inline: 16px;
 }
 
 .group-dialog button:disabled {
