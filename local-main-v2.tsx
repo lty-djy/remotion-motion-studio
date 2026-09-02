@@ -2106,6 +2106,17 @@ const SEMANTIC_INTENT_IDS = SEMANTIC_INTENT_DEFINITIONS.map(
 );
 const SEMANTIC_INTENT_ID_SET = new Set<string>(SEMANTIC_INTENT_IDS);
 
+const DISPLAYED_SEMANTIC_INTENT_IDS = [
+  "evidence",
+  "warning",
+  "transition",
+  "explanation",
+  "metric",
+  "comparison",
+  "process",
+  "list",
+] as const;
+
 const isValidCustomPillId = (id: string): boolean =>
   /^[a-z0-9-]{1,32}$/.test(id) && !SEMANTIC_INTENT_ID_SET.has(id);
 
@@ -3207,7 +3218,15 @@ const App = () => {
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
   const [activeWorkspace, setActiveWorkspace] =
-    useState<"editor" | "effects" | "rules" | "icons" | "sfx" | "code">(
+    useState<
+      | "editor"
+      | "effects"
+      | "rules"
+      | "semantic-types"
+      | "icons"
+      | "sfx"
+      | "code"
+    >(
       "editor",
     );
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
@@ -3823,6 +3842,22 @@ const App = () => {
     }
     return resolved;
   }, [definitionMap, effectCatalog]);
+  const semanticComponentCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const intentId of DISPLAYED_SEMANTIC_INTENT_IDS) counts.set(intentId, 0);
+    for (const definition of catalogDefinitionMap.values()) {
+      const capabilities = EFFECT_SEMANTIC_CAPABILITIES[definition.id];
+      if (!capabilities) continue;
+      const intentIds = new Set([
+        effectSemanticTypeOverrides[definition.id] ?? capabilities.primaryIntent,
+        ...capabilities.secondaryIntents,
+      ]);
+      for (const intentId of intentIds) {
+        if (counts.has(intentId)) counts.set(intentId, (counts.get(intentId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [catalogDefinitionMap, effectSemanticTypeOverrides]);
   const filteredEffectCatalog = useMemo(() => {
     const query = effectSearch.trim().toLocaleLowerCase("zh-CN");
     return effectCatalog.map((category) => ({
@@ -11043,6 +11078,12 @@ const App = () => {
           >
             编排规则
           </button>
+          <button
+            className={activeWorkspace === "semantic-types" ? "active" : ""}
+            onClick={() => setActiveWorkspace("semantic-types")}
+          >
+            语义类型
+          </button>
         </nav>
 
         <div className="studio-actions" aria-label="编辑操作">
@@ -11264,6 +11305,38 @@ const App = () => {
                 >
                   导入到时间轴
                 </button>
+              </div>
+            </div>
+          ) : activeWorkspace === "semantic-types" ? (
+            <div className="semantic-types-panel">
+              <header className="semantic-types-header">
+                <div>
+                  <small>SEMANTIC TYPES</small>
+                  <strong>已存在的语义类型</strong>
+                  <span>这些类型用于字幕语义识别和 AI 自动编排。</span>
+                </div>
+                <i>{DISPLAYED_SEMANTIC_INTENT_IDS.length} 类</i>
+              </header>
+              <div className="semantic-types-grid" aria-label="已存在的语义类型列表">
+                {DISPLAYED_SEMANTIC_INTENT_IDS.map((intentId, index) => {
+                  const definition = SEMANTIC_INTENT_DEFINITIONS.find(
+                    (candidate) => candidate.id === intentId,
+                  );
+                  if (!definition) return null;
+                  return (
+                    <article className="semantic-type-card" key={intentId}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <strong>{definition.label}</strong>
+                        <small>{definition.description}</small>
+                      </div>
+                      <em>
+                        <b>{semanticComponentCounts.get(intentId) ?? 0}</b>
+                        个组件可用
+                      </em>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           ) : activeWorkspace === "rules" ? (

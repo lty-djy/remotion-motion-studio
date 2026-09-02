@@ -871,6 +871,114 @@ main.is-resizing-sidebar * {
   padding-bottom: 24px;
 }
 
+.semantic-types-panel {
+  min-height: 100%;
+  padding-bottom: 24px;
+}
+
+.semantic-types-header {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #2a2c31;
+}
+
+.semantic-types-header > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.semantic-types-header small {
+  color: #68e8ff;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.semantic-types-header strong {
+  color: #f1f1f3;
+  font-size: 21px;
+}
+
+.semantic-types-header span,
+.semantic-types-header > i {
+  color: #777a82;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.semantic-types-header > i {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(104, 232, 255, 0.25);
+  border-radius: 999px;
+  color: #bdf7ff;
+  background: rgba(104, 232, 255, 0.07);
+  font-style: normal;
+}
+
+.semantic-types-grid {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.semantic-type-card {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid #303238;
+  border-radius: 8px;
+  background: #1a1b1f;
+}
+
+.semantic-type-card > span {
+  color: #68e8ff;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+}
+
+.semantic-type-card > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.semantic-type-card strong {
+  color: #e9e9ed;
+  font-size: 12px;
+}
+
+.semantic-type-card small {
+  color: #777a82;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.semantic-type-card > em {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #777a82;
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.semantic-type-card > em b {
+  color: #68e8ff;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+}
+
 .semantic-rules-header {
   display: flex;
   min-height: 84px;
