@@ -44,8 +44,10 @@ const expectedComponentIds = [
   "PortraitAiOutputGapQuote",
   "PortraitAiOutputGapComparison",
   "PortraitRiskWarning",
-  "LegacyModelEliminationWarning",
+  "LegacyEliminationPanel",
   "PortraitNextEpisodeCta",
+  "ComparisonProgressBars",
+  "MilestoneFollowerProgress",
 ];
 const allowedAnchors = new Set([
   "left-top",
@@ -55,10 +57,10 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 24) {
-  throw new Error("竖屏语义路由必须覆盖 24 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 26) {
+  throw new Error("竖屏语义路由必须覆盖 26 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 24) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 26) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
@@ -112,7 +114,7 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
     if (!definition) {
       throw new Error(`${route.id} 引用了不存在的组件 ${selection.componentId}。`);
     }
-    const allowedGroups = new Set(["竖屏口播信息层", "风险提醒"]);
+    const allowedGroups = new Set(["竖屏口播信息层", "风险提醒", "图表与比较", "数字与指标"]);
     if (!allowedGroups.has(definition.catalogGroup)) {
       throw new Error(`${selection.componentId} 不属于允许的语义效果分组。`);
     }
@@ -163,6 +165,8 @@ const representativeCues = new Map([
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],
   ["action-advice", "购买时认准国家标准并去正规店铺。"],
   ["risk-boundary", "但是要注意，它不能修复错误口型。"],
+  ["comparison-progress-bars", "过去是短平快内容，现在转向深度中长视频，持续扶持。"],
+  ["milestone-follower-progress", "今年的涨粉目标是年底达到50万粉丝。"],
   ["next-episode-cta", "下期介绍自动剪辑，记得关注。"],
 ]);
 const routeMatches = (route, text) =>
@@ -197,7 +201,7 @@ if (
   riskRoute.components[0]?.activation !== "unless-elimination-warning" ||
   !riskRoute.components.some(
     (component) =>
-      component.componentId === "LegacyModelEliminationWarning" &&
+      component.componentId === "LegacyEliminationPanel" &&
       component.role === "alternative" &&
       component.activation === "when-elimination-warning",
   )

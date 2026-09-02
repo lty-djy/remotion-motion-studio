@@ -1,0 +1,172 @@
+{
+  "generatedBy": "online-llm",
+  "sourceSrt": "陈总 耳环.srt",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "fps": 30,
+  "durationInFrames": 1329,
+  "motionTimeline": [
+    {
+      "componentId": "PortraitChapterRail",
+      "startFrame": 4,
+      "durationInFrames": 180,
+      "laneId": "chapter",
+      "trackOrder": -30,
+      "position": { "x": 64, "y": 100, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "cardWidth": 650,
+        "index": "01",
+        "title": "低价耳饰风险",
+        "subtitle": "别只看价格，先看标准与材质",
+        "indexFontSize": 21,
+        "titleFontSize": 46,
+        "subtitleFontSize": 22,
+        "animationSeconds": 0.7
+      },
+      "sourceExpressionId": "expr-chapter-risk",
+      "sourceIntentId": "intent-hook-risk"
+    },
+    {
+      "componentId": "PortraitRiskWarning",
+      "startFrame": 4,
+      "durationInFrames": 221,
+      "laneId": "risk",
+      "trackOrder": -20,
+      "position": { "x": 55, "y": 345, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "riskCount": 3,
+        "eyebrow": "先看风险",
+        "title": "9块9耳钉别乱戴",
+        "emphasis": "可能伤害身体",
+        "risk1": "低价批发耳钉",
+        "risk2": "贴 S925 标却没银",
+        "risk3": "材质来源无法确认",
+        "icon1": "!",
+        "icon2": "×",
+        "icon3": "?",
+        "riskIntervalSeconds": 0.42,
+        "animationSeconds": 0.95
+      },
+      "sourceExpressionId": "expr-risk-list",
+      "sourceIntentId": "intent-risk-material"
+    },
+    {
+      "componentId": "PortraitMetricDecision",
+      "startFrame": 252,
+      "durationInFrames": 186,
+      "laneId": "evidence",
+      "trackOrder": -18,
+      "position": { "x": 70, "y": 430, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "lead": "检测数据",
+        "conclusion": "铬超标 9000 倍",
+        "metricLabel": "铬含量风险",
+        "value": "9000",
+        "unit": "倍",
+        "verdict": "高风险警示",
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-chrome-metric",
+      "sourceIntentId": "intent-metric-chrome"
+    },
+    {
+      "componentId": "PortraitInfoCallout",
+      "startFrame": 432,
+      "durationInFrames": 221,
+      "laneId": "consequence",
+      "trackOrder": -16,
+      "position": { "x": 570, "y": 330, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "身体反应",
+        "title": "戴完耳朵又红又肿",
+        "detail": "不适反应别硬扛",
+        "note": "及时停止佩戴并就医",
+        "iconText": "!",
+        "animationSeconds": 0.8
+      },
+      "sourceExpressionId": "expr-health-callout",
+      "sourceIntentId": "intent-health-consequence"
+    },
+    {
+      "componentId": "PortraitStepChecklist",
+      "startFrame": 659,
+      "durationInFrames": 406,
+      "laneId": "action",
+      "trackOrder": -14,
+      "position": { "x": 525, "y": 335, "scale": 0.96 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "购买前检查",
+        "title": "别光图便宜",
+        "subtitle": "四步保护自己",
+        "stepCount": 4,
+        "step1": "认准国家标准",
+        "step2": "去正规店购买",
+        "step3": "宁可多花一点钱",
+        "step4": "发现问题拨打 12315",
+        "icon1": "1",
+        "icon2": "2",
+        "icon3": "3",
+        "icon4": "4",
+        "stepEnterIntervalSeconds": 0.24,
+        "animationSeconds": 1
+      },
+      "sourceExpressionId": "expr-buying-checklist",
+      "sourceIntentId": "intent-action-checklist"
+    },
+    {
+      "componentId": "PortraitNextEpisodeCta",
+      "startFrame": 1110,
+      "durationInFrames": 219,
+      "laneId": "outro",
+      "trackOrder": -12,
+      "position": { "x": 610, "y": 440, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "记住这句话",
+        "title": "守护健康",
+        "subtitle": "就是守护咱们的未来",
+        "cta": "转发提醒身边人",
+        "icon": "✦",
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-outro-future",
+      "sourceIntentId": "intent-conclusion-health"
+    },
+    {
+      "componentId": "SrtSemanticCaptions",
+      "startFrame": 0,
+      "durationInFrames": 1329,
+      "laneId": "caption",
+      "trackOrder": -5,
+      "position": { "x": 0, "y": 1430, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "showIcon": false,
+        "fontSize": 58,
+        "accentMode": "auto",
+        "timeOffset": 0,
+        "cuesJson": "[{\"index\":1,\"start\":0.133,\"end\":1.333,\"text\":\"9块9包邮的致癌\",\"semanticKey\":\"warning\"},{\"index\":2,\"start\":1.333,\"end\":2.4,\"text\":\"耳钉你还敢戴吗\",\"semanticKey\":\"warning\"},{\"index\":3,\"start\":2.4,\"end\":4.05,\"text\":\"看到这新闻我真是气坏了\",\"semanticKey\":\"emphasis\"},{\"index\":4,\"start\":4.05,\"end\":5.883,\"text\":\"那些一块钱批发来的破耳钉\",\"semanticKey\":\"warning\"},{\"index\":5,\"start\":5.883,\"end\":7.483,\"text\":\"贴个S925标就敢卖\",\"semanticKey\":\"warning\"},{\"index\":6,\"start\":7.483,\"end\":8.4,\"text\":\"里面根本没银\",\"semanticKey\":\"warning\"},{\"index\":7,\"start\":8.4,\"end\":9.533,\"text\":\"全是些破铜烂铁\",\"semanticKey\":\"warning\"},{\"index\":8,\"start\":9.533,\"end\":11.4,\"text\":\"更吓人的是铬道超标9,000倍\",\"semanticKey\":\"metric\"},{\"index\":9,\"start\":11.4,\"end\":12.683,\"text\":\"这玩意是致癌的啊\",\"semanticKey\":\"warning\"},{\"index\":10,\"start\":12.683,\"end\":14.6,\"text\":\"好多姑娘戴完耳朵又红又肿\",\"semanticKey\":\"warning\"},{\"index\":11,\"start\":14.6,\"end\":16,\"text\":\"去医院才知道中毒了\",\"semanticKey\":\"warning\"},{\"index\":12,\"start\":16,\"end\":17.45,\"text\":\"铬道这东西在身体里排\",\"semanticKey\":\"warning\"},{\"index\":13,\"start\":17.45,\"end\":18.733,\"text\":\"卖不出去会一直害你\",\"semanticKey\":\"warning\"},{\"index\":14,\"start\":18.733,\"end\":20.483,\"text\":\"咱们中国好不容易发展起来\",\"semanticKey\":\"transition\"},{\"index\":15,\"start\":20.483,\"end\":21.966,\"text\":\"华为比亚迪给咱长脸\",\"semanticKey\":\"emphasis\"},{\"index\":16,\"start\":21.966,\"end\":23.4,\"text\":\"可总有人要砸招牌\",\"semanticKey\":\"comparison\"},{\"index\":17,\"start\":23.45,\"end\":24.933,\"text\":\"那些真心做产品的企业\",\"semanticKey\":\"comparison\"},{\"index\":18,\"start\":24.933,\"end\":26.533,\"text\":\"全被这些黑心货拖累\",\"semanticKey\":\"comparison\"},{\"index\":19,\"start\":26.533,\"end\":27.966,\"text\":\"姐妹们真得醒醒了买\",\"semanticKey\":\"emphasis\"},{\"index\":20,\"start\":27.966,\"end\":29.133,\"text\":\"买东西别光图便宜\",\"semanticKey\":\"instruction\"},{\"index\":21,\"start\":29.133,\"end\":30.083,\"text\":\"认准国家标准\",\"semanticKey\":\"instruction\"},{\"index\":22,\"start\":30.083,\"end\":31,\"text\":\"去正规店买\",\"semanticKey\":\"instruction\"},{\"index\":23,\"start\":31,\"end\":31.883,\"text\":\"宁可多花点钱\",\"semanticKey\":\"instruction\"},{\"index\":24,\"start\":31.883,\"end\":33.05,\"text\":\"也别把命搭进去\",\"semanticKey\":\"warning\"},{\"index\":25,\"start\":33.05,\"end\":35.566,\"text\":\"看见黑心商家就打12315举报\",\"semanticKey\":\"instruction\"},{\"index\":26,\"start\":35.566,\"end\":37.083,\"text\":\"别手软你今天站出来\",\"semanticKey\":\"call-to-action\"},{\"index\":27,\"start\":37.083,\"end\":37.933,\"text\":\"就是在救明天\",\"semanticKey\":\"conclusion\"},{\"index\":28,\"start\":37.933,\"end\":39.2,\"text\":\"那个差点上当的人\",\"semanticKey\":\"conclusion\"},{\"index\":29,\"start\":39.2,\"end\":40.533,\"text\":\"咱们中国人团结起来\",\"semanticKey\":\"call-to-action\"},{\"index\":30,\"start\":40.533,\"end\":42,\"text\":\"这些害人的就没活路\",\"semanticKey\":\"conclusion\"},{\"index\":31,\"start\":42,\"end\":43.05,\"text\":\"守护自己的健康\",\"semanticKey\":\"conclusion\"},{\"index\":32,\"start\":43.05,\"end\":44.3,\"text\":\"就是守护咱们的未来\",\"semanticKey\":\"conclusion\"}]"
+      },
+      "sourceExpressionId": "srt-caption-track",
+      "sourceIntentId": "srt-caption-track"
+    }
+  ],
+  "qualityControl": {
+    "status": "pending",
+    "checks": [
+      { "type": "face-occlusion", "status": "pending", "affectedExpressionIds": [], "message": "需结合实际人物画面确认脸部避让。" },
+      { "type": "caption-occlusion", "status": "pending", "affectedExpressionIds": [], "message": "字幕固定在底部安全区，需结合实际视频确认。" },
+      { "type": "asset-availability", "status": "passed", "affectedExpressionIds": [], "message": "本编排只使用当前效果库组件和真实 SRT 字幕。" },
+      { "type": "voice-masking", "status": "passed", "affectedExpressionIds": [], "message": "未添加音效轨道，不会盖住人声。" },
+      { "type": "timeline-bounds", "status": "passed", "affectedExpressionIds": [], "message": "所有时间段均在 44.3 秒范围内。" }
+    ]
+  }
+}

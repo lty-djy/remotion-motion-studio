@@ -496,6 +496,58 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     ],
   },
   {
+    id: "comparison-progress-bars",
+    intentType: "comparison",
+    label: "方案差异进度对比",
+    priority: 97,
+    match: {
+      anyKeywords: ["过去", "现在", "短平快", "中长视频", "持续扶持"],
+      patternSources: ["(?:过去|以前).{0,12}(?:现在|如今)", "(?:短平快).{0,20}(?:深度|中长视频)"],
+      minimumScore: 1,
+    },
+    resources: { iconId: "arrow", sfxId: "impact", iconAnchor: "left-top" },
+    components: [
+      {
+        componentId: "ComparisonProgressBars",
+        role: "primary",
+        activation: "always",
+        propBindings: {},
+        layout: {
+          anchor: "left-center",
+          fallbackAnchors: ["center-top", "right-center"],
+          size: "large",
+          preferredScale: 0.9,
+        },
+      },
+    ],
+  },
+  {
+    id: "milestone-follower-progress",
+    intentType: "metric",
+    label: "增长里程碑",
+    priority: 98,
+    match: {
+      anyKeywords: ["粉丝", "涨粉", "里程碑", "年底", "目标", "完成度"],
+      patternSources: ["(?:粉丝|涨粉).{0,12}(?:目标|年底|达到)", "(?:目标|年底).{0,12}(?:粉丝|增长)"],
+      minimumScore: 1,
+    },
+    resources: { iconId: "trend-up", sfxId: "impact", iconAnchor: "left-top" },
+    components: [
+      {
+        componentId: "MilestoneFollowerProgress",
+        role: "primary",
+        activation: "always",
+        propBindings: {},
+        layout: {
+          anchor: "left-top",
+          fallbackAnchors: ["left-center", "right-top"],
+          size: "large",
+          preferredScale: 0.86,
+        },
+      },
+    ],
+  },
+  {
     id: "prompt-iteration-showcase",
     intentType: "process",
     label: "一句话连续改版",
@@ -630,7 +682,7 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
     match: {
       anyKeywords: ["更推荐", "优点", "缺点", "更快", "更低", "更高", "相比", "选择", "方案"],
       patternSources: [
-        "\\d+(?:[.,]\\d+)?\\s*(?:%|％|万|亿|倍|k|K|元|块|件|年|秒)?",
+        "\\d+(?:[.,]\\d+)?\\s*(?:多|余)?\\s*(?:%|％|万|亿|倍|k|K|元|块|件|年|秒)",
         "(?:一|两|几|十|百|千|万)+\\s*(?:块钱|元|万)",
         "(?:相比|对比|选择|推荐).{0,18}",
       ],
@@ -871,14 +923,13 @@ export const PORTRAIT_SEMANTIC_ROUTES = Object.freeze([
         },
       },
       {
-        componentId: "LegacyModelEliminationWarning",
+        componentId: "LegacyEliminationPanel",
         role: "alternative",
         activation: "when-elimination-warning",
         propBindings: {
           kicker: "intent.elimination.kicker",
           title: "intent.elimination.subject",
           subtitle: "intent.elimination.subtitle",
-          stampText: "intent.elimination.verdict",
           warningColor: "style.warningColor",
           accentColor: "style.eliminationAccentColor",
           panelColor: "style.eliminationPanelColor",

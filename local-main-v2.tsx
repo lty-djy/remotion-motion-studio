@@ -529,6 +529,7 @@ type PendingArrangement = {
       text: string;
       sourceCueIndices: number[];
       semanticLabel: string;
+      semanticType?: string;
     }
   >;
   layoutSummary?: {
@@ -683,20 +684,6 @@ type ArrangementBatchSummary = {
   motionIds: string[];
   resourceIds: string[];
   intents: ArrangementIntentSummary[];
-};
-
-const QUALITY_CONTROL_LABELS: Record<string, string> = {
-  "face-occlusion": "人物遮挡",
-  "caption-occlusion": "字幕遮挡",
-  "asset-availability": "资源有效性",
-  "voice-masking": "声音盖人声",
-  "timeline-bounds": "时间线边界",
-};
-
-const QUALITY_CONTROL_STATUS_LABELS: Record<string, string> = {
-  passed: "通过",
-  failed: "未通过",
-  pending: "待检查",
 };
 
 type ShortcutAction =
@@ -1707,20 +1694,6 @@ const normalizeRestoredPosition = (
   return position;
 };
 
-// 部分组件要求水平位置不超过固定上限（px）。
-// 返回 null 表示该组件不限制，沿用「画布宽 - 组件宽」的常规边界。
-const COMPONENT_HORIZONTAL_X_MAX: Record<string, number> = {
-  MarketEliminationStamp: 800,
-  PortraitDecisionTagStack: 800,
-  PortraitIndexedChapterTitle: 800,
-  PortraitInfoCallout: 800,
-};
-
-const getComponentHorizontalXMax = (componentId?: string | null) =>
-  componentId && COMPONENT_HORIZONTAL_X_MAX[componentId] != null
-    ? COMPONENT_HORIZONTAL_X_MAX[componentId]
-    : null;
-
 type SrtEntry = {
   index: number;
   startMs: number;
@@ -2221,7 +2194,6 @@ export const SEMANTIC_TAG_COMPONENT_IDS = AI_ARRANGEABLE_COMPONENT_IDS;
 type ArrangementPreferences = {
   keepStyleConsistent: boolean;
   accentColor: string;
-  autoAddIcons: boolean;
   learnFromConfirmedChoices: boolean;
   componentScores: Record<string, number>;
   semanticTags: Record<string, SemanticTagConfig>;
@@ -2242,7 +2214,6 @@ const ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY =
 const DEFAULT_ARRANGEMENT_PREFERENCES: ArrangementPreferences = {
   keepStyleConsistent: true,
   accentColor: "#68e8ff",
-  autoAddIcons: false,
   learnFromConfirmedChoices: true,
   componentScores: {},
   semanticTags: buildDefaultSemanticTags(),
@@ -2285,7 +2256,6 @@ const loadArrangementPreferences = (): ArrangementPreferences => {
         /^#[0-9a-f]{6}$/iu.test(saved.accentColor)
           ? saved.accentColor
           : DEFAULT_ARRANGEMENT_PREFERENCES.accentColor,
-      autoAddIcons: saved.autoAddIcons === true,
       learnFromConfirmedChoices: saved.learnFromConfirmedChoices !== false,
       componentScores:
         saved.componentScores && typeof saved.componentScores === "object"
@@ -2332,7 +2302,6 @@ const normalizeArrangementStyleRules = (
                 : `语义风格 ${index + 1}`,
             keepStyleConsistent: rule.keepStyleConsistent !== false,
             accentColor,
-            autoAddIcons: rule.autoAddIcons === true,
             learnFromConfirmedChoices:
               rule.learnFromConfirmedChoices !== false,
             componentScores:
@@ -5218,12 +5187,19 @@ const App = () => {
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
   const inspectorPositionXMax = (scale: number) => {
-    const fixedMax = getComponentHorizontalXMax(inspectorDefinition?.id);
-    if (fixedMax != null) return fixedMax;
     return Math.max(
       0,
       Math.round(canvasWidth - (inspectorDefinition?.bounds.width ?? 0) * scale),
     );
+  };
+  const inspectorPositionYMax = (scale: number) => {
+    const naturalMax = Math.max(
+      0,
+      Math.round(
+        canvasHeight - (inspectorDefinition?.bounds.height ?? 0) * scale,
+      ),
+    );
+    return naturalMax;
   };
   const [inspectorSectionsExpanded, setInspectorSectionsExpanded] = useState<Record<string, boolean>>({
     global: false,
@@ -5426,12 +5402,12 @@ const App = () => {
   const openAiArrangement = () => {
     if (srtGenerating) return;
     setAiArrangementError("");
-    setSrtDialogOpen(true);
-    if (srtEntries.length === 0) {
-      setAiArrangementStage("idle");
-      return;
-    }
-    void generateSrtTimeline(srtEntries, srtFileName);
+    setAiArrangementStage("idle");
+    setNotice({
+      tone: "info",
+      text: "请导入在线大模型生成的编排 JSON；工作台不会再用本地规则重新分析 SRT。",
+    });
+    timelineJsonInput.current?.click();
   };
 
   const openSrtPicker = () => srtInput.current?.click();
@@ -5454,10 +5430,9 @@ const App = () => {
       setSrtFileName(file.name);
       setSrtEntries(entries);
       setNotice({
-        tone: "ok",
-        text: `已读取 ${file.name}：${entries.length} 条字幕，正在自动编排。`,
+        tone: "info",
+        text: `已读取 ${file.name}：${entries.length} 条字幕，正在进行本地编排。`,
       });
-      setSrtGenerating(false);
       await generateSrtTimeline(entries, file.name);
     } catch (error) {
       const message = error instanceof Error ? error.message : "SRT 文件读取失败";
@@ -5584,6 +5559,8 @@ const App = () => {
                   sourceCueIndices,
                   semanticLabel:
                     typeof rawIntent.label === "string" ? rawIntent.label : "",
+                  semanticType:
+                    typeof rawIntent.type === "string" ? rawIntent.type : "",
                 },
               ],
             ];
@@ -5656,7 +5633,10 @@ const App = () => {
           ? checkedTimeline.resourceTracks
           : []
       ).filter(
-        (track) => arrangementPreferences.autoAddIcons || track.kind !== "icon",
+        (track) =>
+          track.kind !== "icon" ||
+          typeof track.sourceExpressionId !== "string" ||
+          !track.sourceExpressionId.startsWith("icon-"),
       );
       const timelineWithCaption = {
         ...checkedTimeline,
@@ -6487,6 +6467,24 @@ const App = () => {
     window.addEventListener("pointercancel", finish);
   };
 
+  // 编排预览与主界面共用组件的空间参数：当前主界面实例优先，
+  // 其次使用用户保存的该组件默认值，最后才回退到编排 JSON 提供的位置。
+  const getArrangementComponentPosition = (
+    componentId: string,
+    fallback: Partial<MotionPosition> = {},
+  ): Partial<MotionPosition> => {
+    const mainInstance =
+      instances.find(
+        (instance) =>
+          instance.id === selectedInstanceId &&
+          instance.componentId === componentId,
+      ) ?? instances.find((instance) => instance.componentId === componentId);
+    if (mainInstance) return { ...mainInstance.position };
+    const savedDefault = componentInstanceDefaults[componentId]?.position;
+    if (savedDefault) return { ...savedDefault };
+    return { ...fallback };
+  };
+
   const importTimelineJson = async (file: File) => {
     let parsed: unknown;
     try {
@@ -6752,7 +6750,12 @@ const App = () => {
           trackOrder: item.trackOrder ?? firstTrackOrder + index,
           visible: item.visible,
           sourceStartFrame: item.sourceStartFrame,
-          position: item.position,
+            // 外部在线模型 JSON 是编排来源；有明确位置时优先保留它，
+            // 只有 JSON 未提供位置时才使用工作台默认位置。
+            position:
+              Object.keys(item.position ?? {}).length > 0
+                ? item.position
+                : getArrangementComponentPosition(item.componentId),
           cardBackgroundEnabled: item.cardBackgroundEnabled,
           backgroundOpacity: item.backgroundOpacity,
           props: item.props,
@@ -6971,32 +6974,6 @@ const App = () => {
             }
           : current,
       );
-    }
-    if (patch.autoAddIcons === false) {
-      setPendingArrangement((current) => {
-        if (!current) return current;
-        const removedIds = new Set(
-          current.resourceTracks
-            .filter(
-              (track) =>
-                track.kind === "icon" &&
-                typeof track.sourceExpressionId === "string" &&
-                track.sourceExpressionId.startsWith("icon-"),
-            )
-            .map((track) => track.id),
-        );
-        return {
-          ...current,
-          resourceTracks: current.resourceTracks.filter(
-            (track) => !removedIds.has(track.id),
-          ),
-          selectedKeys: current.selectedKeys.filter(
-            (key) =>
-              !key.startsWith("resource:") ||
-              !removedIds.has(key.slice("resource:".length)),
-          ),
-        };
-      });
     }
   };
 
@@ -7229,9 +7206,9 @@ const App = () => {
             ? {
                 ...instance,
                 componentId: definition.id,
-                position: getRegisteredEffectPosition(
-                  definition,
-                  canvasOrientation,
+                position: getArrangementComponentPosition(
+                  definition.id,
+                  getRegisteredEffectPosition(definition, canvasOrientation),
                 ),
                 props: {
                   ...defaultsFromDefinition(definition),
@@ -7283,7 +7260,10 @@ const App = () => {
               ...current.resourceTracks.map((item) => item.trackOrder),
             ) + 1,
           backgroundOpacity: 0,
-          position: getRegisteredEffectPosition(definition, canvasOrientation),
+          position: getArrangementComponentPosition(
+            definition.id,
+            getRegisteredEffectPosition(definition, canvasOrientation),
+          ),
           props: { ...srtTextFill, ...candidate.props },
           sourceExpressionId: `manual-${segmentId}-${Date.now()}`,
           sourceIntentId: segmentId,
@@ -9034,14 +9014,32 @@ const App = () => {
           current.map((instance) => {
             const start = state.positions[instance.id];
             if (!start) return instance;
-            const fixedMax = getComponentHorizontalXMax(instance.componentId);
+            const definition = definitionMap.get(instance.componentId);
             const nextX = Math.round(start.x + designDeltaX);
+            const nextY = Math.round(start.y + designDeltaY);
+            const naturalMaxX = Math.round(
+              canvasWidth - (definition?.bounds.width ?? 0) * instance.position.scale,
+            );
+            const naturalMaxY = Math.round(
+              canvasHeight -
+                (definition?.bounds.height ?? 0) * instance.position.scale,
+            );
             return {
               ...instance,
               position: {
                 ...instance.position,
-                x: fixedMax != null ? Math.min(fixedMax, nextX) : nextX,
-                y: Math.round(start.y + designDeltaY),
+                x: clamp(
+                  nextX,
+                  instance.componentId === "QuickSetupProof"
+                    ? 0
+                    : Math.min(0, naturalMaxX),
+                  Math.max(0, naturalMaxX),
+                ),
+                y: clamp(
+                  nextY,
+                  Math.min(0, naturalMaxY),
+                  Math.max(0, naturalMaxY),
+                ),
               },
             };
           }),
@@ -11297,11 +11295,11 @@ const App = () => {
           <button
             className={srtGenerating ? "ai-arrange-entry running" : "ai-arrange-entry"}
             disabled={srtGenerating}
-            onClick={openAiArrangement}
-            title={srtEntries.length > 0 ? "使用已加载字幕一键重新编排" : "选择字幕并自动编排"}
+            onClick={openSrtPicker}
+            title="选择 SRT 字幕并使用本地规则自动编排"
           >
             <MagicWand weight="fill" />
-            {srtGenerating ? "自动编排中…" : "AI 自动编排"}
+            {srtGenerating ? "读取字幕中…" : "SRT导入"}
           </button>
           <button
             onClick={clearAllTimelineTracks}
@@ -12511,7 +12509,7 @@ const App = () => {
 
           <button className="reference-wide-button" onClick={openVideoPicker}><VideoCamera />导入视频</button>
 
-          <div className="reference-split-actions">
+          <div className="reference-split-actions arrangement-import-actions">
             <button
               onClick={() => componentInput.current?.click()}
               title="导入 .tsx 组件包，按 MOTION_TIMELINE 预设生成轨道"
@@ -12521,10 +12519,10 @@ const App = () => {
             </button>
             <button
               onClick={() => timelineJsonInput.current?.click()}
-              title="载入内部编排结果，预览并确认后才会插入时间线"
+              title="载入 AI 大模型编排 JSON，预览并确认后才会插入时间线"
             >
               <UploadSimple />
-              载入编排预览
+              载入AI大模型编排JSON
             </button>
           </div>
 
@@ -13726,14 +13724,7 @@ const App = () => {
                               inspectorInstance.position.scale,
                         ),
                       )}
-                      max={Math.max(
-                        0,
-                        Math.round(
-                          canvasHeight -
-                            inspectorDefinition.bounds.height *
-                              inspectorInstance.position.scale,
-                        ),
-                      )}
+                      max={inspectorPositionYMax(inspectorInstance.position.scale)}
                       step={1}
                       value={clamp(
                         Math.round(inspectorInstance.position.y),
@@ -13745,14 +13736,7 @@ const App = () => {
                               inspectorInstance.position.scale,
                           ),
                         ),
-                        Math.max(
-                          0,
-                          Math.round(
-                            canvasHeight -
-                            inspectorDefinition.bounds.height *
-                              inspectorInstance.position.scale,
-                          ),
-                        ),
+                        inspectorPositionYMax(inspectorInstance.position.scale),
                       )}
                       onChange={(event) =>
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
@@ -14826,12 +14810,6 @@ const App = () => {
                 {pendingArrangement.resourceTracks.length} · 字幕{" "}
                 {pendingArrangement.captionInstance ? 1 : 0}
               </span>
-              <span>
-                质检 {QUALITY_CONTROL_STATUS_LABELS[
-                  pendingArrangement.qualityControlStatus
-                ] ?? pendingArrangement.qualityControlStatus} ·{" "}
-                {pendingArrangement.qualityControlCheckCount} 项
-              </span>
               {pendingArrangement.semanticSummary ? (
                 <span>
                   字幕 {pendingArrangement.semanticSummary.cueCount} 句
@@ -14943,21 +14921,6 @@ const App = () => {
               <label>
                 <input
                   type="checkbox"
-                  checked={arrangementPreferences.autoAddIcons}
-                  onChange={(event) =>
-                    updateArrangementPreferences({
-                      autoAddIcons: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <strong>自动添加独立图标</strong>
-                  <small>默认关闭；需要时仍可在每个语义段手动添加</small>
-                </span>
-              </label>
-              <label>
-                <input
-                  type="checkbox"
                   checked={arrangementPreferences.learnFromConfirmedChoices}
                   onChange={(event) =>
                     updateArrangementPreferences({
@@ -15038,31 +15001,6 @@ const App = () => {
               </div>
             ) : null}
 
-            {pendingArrangement.qualityControlChecks.length > 0 ? (
-              <div className="arrangement-qc-list" aria-label="自动质检结果">
-                {pendingArrangement.qualityControlChecks.map((check) => (
-                  <div
-                    className={`arrangement-qc-item ${check.status}`}
-                    key={check.type}
-                  >
-                    <i>{QUALITY_CONTROL_LABELS[check.type] ?? check.type}</i>
-                    <span>
-                      <strong>
-                        {QUALITY_CONTROL_STATUS_LABELS[check.status] ??
-                          check.status}
-                      </strong>
-                      <small>{check.message}</small>
-                    </span>
-                    <b>
-                      {check.affectedExpressionIds.length > 0
-                        ? `${check.affectedExpressionIds.length} 项受影响`
-                        : "无异常项"}
-                    </b>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
             <div className="arrangement-preview-actions">
               <button
                 type="button"
@@ -15098,8 +15036,75 @@ const App = () => {
                           left.componentId
                         ] ?? 0) || left.rank - right.rank,
                   );
-                const semanticCandidates =
-                  topUpSemanticCandidates(semanticMatchedCandidates);
+                // 替换模式只展示与当前语义类型（如“数字展示”）登记匹配的动效：
+                // 编排候选里同语义的卡片保持前列，再从语义能力表补齐同类型的其余组件；
+                // 没有语义匹配时才回退到全量组件库。
+                const pickerModeReplace =
+                  arrangementComponentPicker?.mode === "replace" &&
+                  arrangementComponentPicker?.segmentId === segment.id;
+                const segmentSemanticType = pickerModeReplace
+                  ? pendingArrangement.semanticSourcesBySegment?.[segment.id]
+                      ?.semanticType ?? ""
+                  : "";
+                const semanticTypeLabel =
+                  SEMANTIC_INTENT_LABELS[segmentSemanticType] ?? segmentSemanticType;
+                const replaceSemanticCandidates = segmentSemanticType
+                  ? [
+                      ...semanticMatchedCandidates.filter((candidate) => {
+                        const capabilities =
+                          EFFECT_SEMANTIC_CAPABILITIES[candidate.componentId];
+                        return (
+                          capabilities?.primaryIntent === segmentSemanticType ||
+                          capabilities?.secondaryIntents.includes(
+                            segmentSemanticType,
+                          ) ||
+                          false
+                        );
+                      }),
+                      ...definitions
+                        .filter((definition) => {
+                          if (
+                            semanticMatchedCandidates.some(
+                              (candidate) =>
+                                candidate.componentId === definition.id,
+                            )
+                          ) {
+                            return false;
+                          }
+                          if (
+                            !AI_ARRANGEABLE_COMPONENT_ID_SET.has(definition.id)
+                          ) {
+                            return false;
+                          }
+                          const capabilities =
+                            EFFECT_SEMANTIC_CAPABILITIES[definition.id];
+                          if (!capabilities) return false;
+                          if (
+                            capabilities.primaryIntent !== segmentSemanticType &&
+                            !capabilities.secondaryIntents.includes(
+                              segmentSemanticType,
+                            )
+                          ) {
+                            return false;
+                          }
+                          return (
+                            capabilities.orientation === "any" ||
+                            capabilities.orientation === canvasOrientation
+                          );
+                        })
+                        .map((definition, index) => ({
+                          componentId: definition.id,
+                          rank: semanticMatchedCandidates.length + index + 1,
+                          reason: `同属“${semanticTypeLabel}”语义的组件库备选`,
+                          props: {},
+                        })),
+                    ]
+                  : semanticMatchedCandidates;
+                const replaceSemanticOnly =
+                  pickerModeReplace && replaceSemanticCandidates.length > 0;
+                const semanticCandidates = replaceSemanticOnly
+                  ? replaceSemanticCandidates
+                  : topUpSemanticCandidates(semanticMatchedCandidates);
                 const candidateGroups = [...semanticCandidates.reduce(
                   (groups, candidate) => {
                     const definition = definitionMap.get(candidate.componentId)!;
@@ -15509,8 +15514,9 @@ const App = () => {
                                 : "向当前段添加效果"}
                             </strong>
                             <small>
-                              前列 {semanticMatchedCandidates.length} 个为当前语义推荐，
-                              其余为组件库备选，可自由替换
+                              {replaceSemanticOnly
+                                ? `只显示与当前语义${semanticTypeLabel ? `（${semanticTypeLabel}）` : ""}匹配的 ${replaceSemanticCandidates.length} 个动效`
+                                : `前列 ${semanticMatchedCandidates.length} 个为当前语义推荐，其余为组件库备选，可自由替换`}
                             </small>
                           </div>
                           <button
@@ -15935,22 +15941,6 @@ const App = () => {
               <label>
                 <input
                   type="checkbox"
-                  checked={arrangementPreferences.autoAddIcons}
-                  disabled={srtGenerating}
-                  onChange={(event) =>
-                    updateArrangementPreferences({
-                      autoAddIcons: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <strong>自动图标</strong>
-                  <small>默认关闭，避免无关图标</small>
-                </span>
-              </label>
-              <label>
-                <input
-                  type="checkbox"
                   checked={arrangementPreferences.learnFromConfirmedChoices}
                   disabled={srtGenerating}
                   onChange={(event) =>
@@ -16029,10 +16019,10 @@ const App = () => {
                   onClick={() => void generateSrtTimeline()}
                 >
                   {srtGenerating
-                    ? `${AI_ARRANGEMENT_STEPS.find((step) => step.id === aiArrangementStage)?.label ?? "自动编排"}中…`
+                    ? "读取字幕中…"
                     : aiArrangementError
-                      ? "重试自动编排"
-                      : "重新运行自动编排"}
+                      ? "重试本地编排 SRT"
+                      : "本地编排 SRT"}
                 </button>
               ) : null}
             </footer>

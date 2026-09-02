@@ -858,7 +858,6 @@ type ArrangementRuleManifest = {
     name: string;
     keepStyleConsistent: boolean;
     accentColor: string;
-    autoAddIcons: boolean;
     learnFromConfirmedChoices: boolean;
     componentScores: Record<string, number>;
     semanticTags: Record<SemanticIntentId, SemanticTagConfig>;
@@ -917,7 +916,6 @@ const normalizeArrangementRuleManifest = (
       name,
       keepStyleConsistent: rule.keepStyleConsistent !== false,
       accentColor,
-      autoAddIcons: rule.autoAddIcons === true,
       learnFromConfirmedChoices: rule.learnFromConfirmedChoices !== false,
       componentScores,
       semanticTags,

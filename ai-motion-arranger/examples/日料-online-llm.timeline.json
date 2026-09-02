@@ -1,0 +1,190 @@
+{
+  "generatedBy": "online-llm",
+  "sourceSrt": "日料(1).srt",
+  "canvas": { "width": 1080, "height": 1920, "orientation": "portrait" },
+  "fps": 30,
+  "durationInFrames": 1028,
+  "motionTimeline": [
+    {
+      "componentId": "PortraitChapterRail",
+      "startFrame": 0,
+      "durationInFrames": 210,
+      "laneId": "chapter",
+      "trackOrder": -30,
+      "position": { "x": 64, "y": 100, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "cardWidth": 650,
+        "index": "01",
+        "title": "日料双人餐",
+        "subtitle": "丰富餐品、日式氛围与萌宠主题",
+        "indexFontSize": 21,
+        "titleFontSize": 46,
+        "subtitleFontSize": 22,
+        "animationSeconds": 0.7
+      },
+      "sourceExpressionId": "expr-japanese-food-chapter",
+      "sourceIntentId": "intent-hook-recommendation"
+    },
+    {
+      "componentId": "PortraitInfoCallout",
+      "startFrame": 69,
+      "durationInFrames": 135,
+      "laneId": "recommendation",
+      "trackOrder": -20,
+      "position": { "x": 570, "y": 330, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "双人餐推荐",
+        "title": "内容真的很丰富",
+        "detail": "前菜、刺身、井饭都有",
+        "note": "选择非常多",
+        "iconText": "✦",
+        "animationSeconds": 0.8
+      },
+      "sourceExpressionId": "expr-meal-overview",
+      "sourceIntentId": "intent-meal-overview"
+    },
+    {
+      "componentId": "PortraitStepChecklist",
+      "startFrame": 114,
+      "durationInFrames": 301,
+      "laneId": "menu",
+      "trackOrder": -18,
+      "position": { "x": 525, "y": 350, "scale": 0.94 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "双人餐菜单",
+        "title": "多种餐品任选",
+        "subtitle": "一餐吃到多种招牌",
+        "stepCount": 5,
+        "step1": "蟹子沙拉 2 份",
+        "step2": "招牌刺身 5 选 3",
+        "step3": "特色井饭 4 选 1",
+        "step4": "必吃小吃 4 选 1",
+        "step5": "特调饮品 10 选 2",
+        "icon1": "1",
+        "icon2": "2",
+        "icon3": "3",
+        "icon4": "4",
+        "icon5": "5",
+        "stepEnterIntervalSeconds": 0.2,
+        "animationSeconds": 1
+      },
+      "sourceExpressionId": "expr-menu-checklist",
+      "sourceIntentId": "intent-menu-choice"
+    },
+    {
+      "componentId": "PortraitInfoCallout",
+      "startFrame": 401,
+      "durationInFrames": 220,
+      "laneId": "atmosphere",
+      "trackOrder": -16,
+      "position": { "x": 570, "y": 325, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "店内氛围",
+        "title": "日式氛围 + 萌宠主题",
+        "detail": "店长是一只可爱的小狗",
+        "note": "拍照打卡特别出片",
+        "iconText": "♡",
+        "animationSeconds": 0.8
+      },
+      "sourceExpressionId": "expr-pet-atmosphere",
+      "sourceIntentId": "intent-atmosphere-pet"
+    },
+    {
+      "componentId": "PortraitInfoCallout",
+      "startFrame": 620,
+      "durationInFrames": 120,
+      "laneId": "campaign",
+      "trackOrder": -14,
+      "position": { "x": 60, "y": 345, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "4 周年活动",
+        "title": "打卡积分充值",
+        "detail": "都有机会参与扭蛋",
+        "note": "会员还有专属福利",
+        "iconText": "✦",
+        "animationSeconds": 0.8
+      },
+      "sourceExpressionId": "expr-anniversary-campaign",
+      "sourceIntentId": "intent-anniversary-benefit"
+    },
+    {
+      "componentId": "PortraitStepChecklist",
+      "startFrame": 740,
+      "durationInFrames": 144,
+      "laneId": "campaign-steps",
+      "trackOrder": -12,
+      "position": { "x": 525, "y": 350, "scale": 0.94 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "参与方式",
+        "title": "周年活动福利",
+        "subtitle": "多种方式都有机会",
+        "stepCount": 4,
+        "step1": "打卡",
+        "step2": "积分",
+        "step3": "充值",
+        "step4": "扭蛋",
+        "icon1": "1",
+        "icon2": "2",
+        "icon3": "3",
+        "icon4": "4",
+        "stepEnterIntervalSeconds": 0.18,
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-campaign-steps",
+      "sourceIntentId": "intent-campaign-steps"
+    },
+    {
+      "componentId": "PortraitNextEpisodeCta",
+      "startFrame": 886,
+      "durationInFrames": 142,
+      "laneId": "outro",
+      "trackOrder": -10,
+      "position": { "x": 610, "y": 440, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "eyebrow": "周末约饭",
+        "title": "日料 + 萌宠",
+        "subtitle": "地址链接放左下角",
+        "cta": "约朋友一起去",
+        "icon": "✦",
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-address-cta",
+      "sourceIntentId": "intent-address-cta"
+    },
+    {
+      "componentId": "SrtSemanticCaptions",
+      "startFrame": 0,
+      "durationInFrames": 1028,
+      "laneId": "caption",
+      "trackOrder": -5,
+      "position": { "x": 0, "y": 1430, "scale": 1 },
+      "props": {
+        "enabled": true,
+        "showIcon": false,
+        "fontSize": 58,
+        "accentMode": "auto",
+        "timeOffset": 0,
+        "cuesJson": "[{\"index\":1,\"start\":0,\"end\":1.033,\"text\":\"喜欢吃日料的朋友\",\"semanticKey\":\"recommendation\"},{\"index\":2,\"start\":1.05,\"end\":2.233,\"text\":\"这家真的可以冲！\",\"semanticKey\":\"emphasis\"},{\"index\":3,\"start\":2.316,\"end\":3.8,\"text\":\"双人餐内容很丰富\",\"semanticKey\":\"metric\"},{\"index\":4,\"start\":3.8,\"end\":5.283,\"text\":\"前菜有2份蟹子沙拉\",\"semanticKey\":\"list\"},{\"index\":5,\"start\":5.283,\"end\":6.783,\"text\":\"招牌刺身5选3\",\"semanticKey\":\"list\"},{\"index\":6,\"start\":6.8,\"end\":8.316,\"text\":\"特色井饭4选1\",\"semanticKey\":\"list\"},{\"index\":7,\"start\":8.416,\"end\":9.916,\"text\":\"必吃小吃4选1\",\"semanticKey\":\"list\"},{\"index\":8,\"start\":10.016,\"end\":11.516,\"text\":\"特调饮品10选2\",\"semanticKey\":\"list\"},{\"index\":9,\"start\":11.516,\"end\":13.316,\"text\":\"还有2件厚烧鳗鱼手卷\",\"semanticKey\":\"list\"},{\"index\":10,\"start\":13.35,\"end\":14.366,\"text\":\"选择真的不少\",\"semanticKey\":\"emphasis\"},{\"index\":11,\"start\":14.366,\"end\":15.2,\"text\":\"店里满满的\",\"semanticKey\":\"atmosphere\"},{\"index\":12,\"start\":15.2,\"end\":15.883,\"text\":\"日式氛围\",\"semanticKey\":\"atmosphere\"},{\"index\":13,\"start\":15.883,\"end\":17.233,\"text\":\"再加上萌宠主题\",\"semanticKey\":\"pet\"},{\"index\":14,\"start\":17.233,\"end\":18.35,\"text\":\"店长还是一只超\",\"semanticKey\":\"pet\"},{\"index\":15,\"start\":18.35,\"end\":19.15,\"text\":\"可爱的小狗\",\"semanticKey\":\"pet\"},{\"index\":16,\"start\":19.15,\"end\":20.666,\"text\":\"拍照打卡特别出片\",\"semanticKey\":\"recommendation\"},{\"index\":17,\"start\":20.666,\"end\":22.35,\"text\":\"每晚来吃的顾客都不少\",\"semanticKey\":\"evidence\"},{\"index\":18,\"start\":22.35,\"end\":24.616,\"text\":\"而且最近刚好是4周年活动\",\"semanticKey\":\"campaign\"},{\"index\":19,\"start\":24.616,\"end\":25.033,\"text\":\"打卡\",\"semanticKey\":\"list\"},{\"index\":20,\"start\":25.033,\"end\":25.466,\"text\":\"积分\",\"semanticKey\":\"list\"},{\"index\":21,\"start\":25.466,\"end\":25.816,\"text\":\"充值\",\"semanticKey\":\"list\"},{\"index\":22,\"start\":25.816,\"end\":27.266,\"text\":\"都有机会参与扭蛋\",\"semanticKey\":\"campaign\"},{\"index\":23,\"start\":27.266,\"end\":28.883,\"text\":\"会员还有专属福利和\",\"semanticKey\":\"benefit\"},{\"index\":24,\"start\":28.883,\"end\":29.483,\"text\":\"储值优惠\",\"semanticKey\":\"benefit\"},{\"index\":25,\"start\":29.533,\"end\":30.783,\"text\":\"想约朋友吃日料\",\"semanticKey\":\"call-to-action\"},{\"index\":26,\"start\":30.816,\"end\":32.1,\"text\":\"顺便撸萌宠的\",\"semanticKey\":\"call-to-action\"},{\"index\":27,\"start\":32.3,\"end\":34.25,\"text\":\"地址链接给你们放左下角啦！\",\"semanticKey\":\"call-to-action\"}]"
+      },
+      "sourceExpressionId": "srt-caption-track",
+      "sourceIntentId": "srt-caption-track"
+    }
+  ],
+  "qualityControl": {
+    "status": "pending",
+    "checks": [
+      { "type": "face-occlusion", "status": "pending", "affectedExpressionIds": [], "message": "需结合实际人物画面确认人物脸部避让。" },
+      { "type": "caption-occlusion", "status": "pending", "affectedExpressionIds": [], "message": "字幕固定在底部安全区，需结合实际视频确认。" },
+      { "type": "asset-availability", "status": "passed", "affectedExpressionIds": [], "message": "本编排只使用当前效果库组件和真实 SRT 字幕。" },
+      { "type": "voice-masking", "status": "passed", "affectedExpressionIds": [], "message": "未添加音效轨道，不会遮挡人声。" },
+      { "type": "timeline-bounds", "status": "passed", "affectedExpressionIds": [], "message": "所有时间段均在 34.25 秒范围内。" }
+    ]
+  }
+}

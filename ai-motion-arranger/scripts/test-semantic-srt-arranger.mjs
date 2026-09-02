@@ -211,12 +211,23 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
     "PortraitGapHeadline",
     "PortraitAiOutputGapQuote",
     "PortraitAiOutputGapComparison",
-    "LegacyModelEliminationWarning",
+    "LegacyEliminationPanel",
+    "ComparisonProgressBars",
+    "MilestoneFollowerProgress",
   ].includes(id),
 )) {
   if (!portraitComponentIds.has(componentId)) {
     throw new Error(`竖屏语义编排没有生成 ${componentId}`);
   }
+}
+
+const comparisonProgressResult = buildSemanticSrtArrangement({
+  ...portraitInput,
+  entries: [{ index: 1, startMs: 0, endMs: 4200, text: "过去是短平快内容，现在转向深度中长视频，持续扶持。" }],
+  durationInFrames: 180,
+});
+if (comparisonProgressResult.motionTimeline[0]?.componentId !== "ComparisonProgressBars") {
+  throw new Error("方案差异进度对比没有命中对比进度条组件");
 }
 
 const skillListResult = buildSemanticSrtArrangement({
@@ -1002,6 +1013,12 @@ const sentencePatternInput = {
       endMs: 20200,
       text: "紧跟趋势，轻松实现年入百万",
     },
+    {
+      index: 7,
+      startMs: 20600,
+      endMs: 23400,
+      text: "双人套餐内容很丰富，前者有2份蟹子沙拉",
+    },
   ],
 };
 const sentencePatternResult = buildSemanticSrtArrangement(sentencePatternInput);
@@ -1030,6 +1047,7 @@ expectRoutes(3, []);
 expectRoutes(4, ["process-steps"]);
 expectRoutes(5, ["metric-decision"], ["risk-boundary"]);
 expectRoutes(6, ["metric-decision"]);
+expectRoutes(7, [], ["metric-decision"]);
 const eliminationResult = buildSemanticSrtArrangement({
   ...portraitInput,
   durationInFrames: 120,
@@ -1041,9 +1059,8 @@ const eliminationItem = eliminationResult.motionTimeline.find(
   (item) => item.sourceIntentId === "intent-001-risk-boundary",
 );
 if (
-  eliminationItem?.componentId !== "LegacyModelEliminationWarning" ||
+  eliminationItem?.componentId !== "LegacyEliminationPanel" ||
   eliminationItem.props.title !== "单纯卖货" ||
-  eliminationItem.props.stampText !== "市场淘汰" ||
   eliminationResult.motionTimeline.some(
     (item) =>
       item.sourceIntentId === "intent-001-risk-boundary" &&
@@ -1073,12 +1090,12 @@ const variantComponents = new Map(
     ),
   ]),
 );
-if (!variantComponents.get(1)?.includes("LegacyModelEliminationWarning")) {
+if (!variantComponents.get(1)?.includes("LegacyEliminationPanel")) {
   throw new Error("旧方案过时的同义表达没有选择淘汰警告动画");
 }
 if (
   !variantComponents.get(2)?.includes("PortraitRiskWarning") ||
-  variantComponents.get(2)?.includes("LegacyModelEliminationWarning")
+  variantComponents.get(2)?.includes("LegacyEliminationPanel")
 ) {
   throw new Error("一般风险提醒没有继续使用原风险卡");
 }
@@ -1088,12 +1105,12 @@ const generalRiskCue = riskVariantResult.semanticAnalysis.cueAnalyses.find(
 const generalRiskCandidates = allDetectedIntents(generalRiskCue)
   .find((intent) => intent.id.endsWith("risk-boundary"))
   ?.componentCandidates.map((candidate) => candidate.componentId);
-if (generalRiskCandidates?.includes("LegacyModelEliminationWarning")) {
+if (generalRiskCandidates?.includes("LegacyEliminationPanel")) {
   throw new Error("一般风险语义不应把淘汰警告列为候选组件");
 }
 if (
-  variantComponents.get(3)?.includes("LegacyModelEliminationWarning") ||
-  variantComponents.get(4)?.includes("LegacyModelEliminationWarning")
+  variantComponents.get(3)?.includes("LegacyEliminationPanel") ||
+  variantComponents.get(4)?.includes("LegacyEliminationPanel")
 ) {
   throw new Error("规避淘汰或主动淘汰旧设备时误用了淘汰警告动画");
 }

@@ -362,23 +362,25 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["图片", "视频", "素材", "截图", "录屏"],
     { density: "medium", durationSeconds: { min: 2, max: 12 } },
   ),
+  ComparisonProgressBars: capability(
+    "comparison",
+    ["metric", "process", "emphasis"],
+    ["comparison", "metric", "process", "short-text"],
+    ["对比", "过去", "现在", "旧方案", "新方案", "短平快", "深度内容", "中长视频", "持续", "扶持", "进度", "差异"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  MilestoneFollowerProgress: capability(
+    "metric",
+    ["comparison", "emphasis", "transition"],
+    ["metric", "comparison", "short-text"],
+    ["粉丝", "涨粉", "目标", "年底", "里程碑", "增长", "达到", "完成度", "进度", "突破", "累计"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
   SegmentedMeter: capability(
     "metric",
     ["process", "list", "emphasis"],
     ["metric", "process"],
     ["容量", "阶段", "进度", "性能", "分段"],
-  ),
-  WaveformMetric: capability(
-    "metric",
-    ["evidence", "emphasis"],
-    ["metric"],
-    ["实时", "吞吐", "速度", "波形", "连续变化"],
-  ),
-  RadialTicks: capability(
-    "emphasis",
-    ["metric", "evidence"],
-    ["metric", "short-text"],
-    ["综合指标", "核心结论", "评分", "科技", "刻度"],
   ),
 });
 

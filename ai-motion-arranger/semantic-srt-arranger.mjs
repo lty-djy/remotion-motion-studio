@@ -16,7 +16,7 @@ const INTENT_RULES = [
     label: "性能与速度",
     subtitle: "SEMANTIC / PERFORMANCE",
     match: /吞吐|速度|性能|延迟|效率|加速|耗时|帧率|实时/iu,
-    componentId: "WaveformMetric",
+    componentId: "SegmentedMeter",
     iconId: "speed",
     sfxId: "whoosh-soft",
     accentColor: "#55e6ff",
@@ -44,7 +44,7 @@ const INTENT_RULES = [
     label: "代码与自动化",
     subtitle: "SEMANTIC / AUTOMATION",
     match: /代码|JSON|API|模型|AI|自动化|自动生成|语义分析|智能识别/iu,
-    componentId: "RadialTicks",
+    componentId: "SegmentedMeter",
     iconId: "code",
     sfxId: "whoosh-soft",
     accentColor: "#a879ff",
@@ -114,7 +114,7 @@ const INTENT_RULES = [
     label: "重点与结论",
     subtitle: "SEMANTIC / EMPHASIS",
     match: /重点|注意|必须|核心|关键|结论|总结|记住/iu,
-    componentId: "RadialTicks",
+    componentId: "SegmentedMeter",
     iconId: "arrow",
     sfxId: "impact",
     accentColor: "#ffbd66",
@@ -143,20 +143,19 @@ const LEGACY_COMPONENT_REASONS = Object.freeze({
   Countdown: "适合截止时间、阶段切换和紧迫感",
   SegmentedMeter: "适合流程、容量、占比和分阶段信息",
   DualMetricBar: "适合两组数值或方案差异",
-  WaveformMetric: "适合性能、速度和连续变化数据",
-  RadialTicks: "适合重点结论、科技感和综合指标",
+  SegmentedMeter: "适合性能、速度、流程和重点指标",
 });
 
 const LEGACY_CANDIDATE_IDS_BY_RULE = Object.freeze({
-  performance: ["WaveformMetric", "RadialTicks", "SegmentedMeter"],
-  process: ["SegmentedMeter", "Countdown", "RadialTicks"],
-  automation: ["RadialTicks", "SegmentedMeter", "WaveformMetric"],
-  comparison: ["DualMetricBar", "SegmentedMeter", "RadialTicks"],
-  completion: ["SegmentedMeter", "RadialTicks"],
-  coverage: ["SegmentedMeter", "RadialTicks"],
-  deadline: ["Countdown", "RadialTicks", "SegmentedMeter"],
-  emphasis: ["RadialTicks", "Countdown", "DualMetricBar"],
-  number: ["WaveformMetric", "RadialTicks", "SegmentedMeter"],
+  performance: ["SegmentedMeter"],
+  process: ["SegmentedMeter", "Countdown"],
+  automation: ["SegmentedMeter"],
+  comparison: ["SegmentedMeter"],
+  completion: ["SegmentedMeter"],
+  coverage: ["SegmentedMeter"],
+  deadline: ["Countdown", "SegmentedMeter"],
+  emphasis: ["SegmentedMeter", "Countdown"],
+  number: ["SegmentedMeter"],
 });
 
 const SEMANTIC_INTENT_IDS_BY_ROUTE_TYPE = Object.freeze({
@@ -284,23 +283,6 @@ const spanForPortraitIntent = (startFrame, endFrame, index, count) => {
   };
 };
 
-const iconPosition = (canvas, index) => {
-  const portrait = canvas.orientation === "portrait";
-  const size = portrait ? 132 : 118;
-  const positions = portrait
-    ? [
-        { x: 72, y: 170 },
-        { x: canvas.width - size - 72, y: 170 },
-        { x: 72, y: 1080 },
-      ]
-    : [
-        { x: 96, y: 96 },
-        { x: canvas.width - size - 96, y: 96 },
-        { x: canvas.width - size - 96, y: canvas.height - size - 96 },
-      ];
-  return { ...positions[index % positions.length], width: size, height: size, scale: 1, zIndex: 35 };
-};
-
 const qualityControl = () => ({
   status: "pending",
   checks: [
@@ -392,35 +374,7 @@ const buildLegacySemanticSrtArrangement = ({
         },
       });
 
-      const icon = availableResource(resourceIndex, "icons", rule.iconId);
-      if (icon) {
-        const iconId = `icon-${sequence}-${rule.id}`;
-        resourceTracks.push({
-          id: `resource-${iconId}`,
-          laneId: iconId,
-          trackOrder: trackOrder++,
-          kind: "icon",
-          resourceId: icon.id,
-          name: `${icon.label} · ${rule.label}`,
-          url: icon.url,
-          mimeType: icon.mimeType,
-          sourceStartFrame: 0,
-          sourceDurationInFrames: timing.endFrame - timing.startFrame,
-          startFrame: Math.min(timing.endFrame - 3, timing.startFrame + 3),
-          durationInFrames: Math.max(3, timing.endFrame - Math.min(timing.endFrame - 3, timing.startFrame + 3)),
-          visible: true,
-          position: iconPosition(canvas, ruleIndex),
-          volume: 1,
-          voiceDucking: 0,
-          sourceExpressionId: iconId,
-          sourceIntentId: intentId,
-          layoutIntent: {
-            anchor: rule.iconAnchor,
-            avoid: ["face", "captions", "ui-safe-area"],
-            collisionPolicy: "relocate-then-scale",
-          },
-        });
-      }
+      // 图标不做自动匹配，只允许用户在语义段里手动添加。
 
       const sfx = availableResource(resourceIndex, "sfx", rule.sfxId);
       if (sfx) {
@@ -1222,6 +1176,8 @@ const portraitStyleForRoute = (routeId) => {
     "skill-source-fusion": "#17D9E8",
     "design-rule-checklist": "#17D9E8",
     "skill-result-comparison": "#17D9E8",
+    "comparison-progress-bars": "#22F3EE",
+    "milestone-follower-progress": "#20F2E9",
     "prompt-iteration-showcase": "#17D9E8",
     "gsap-skill-showcase": "#17D9E8",
     "code-decision-checklist": "#9A73FF",
@@ -1713,8 +1669,15 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "skill-result-comparison": [
     { componentId: "PortraitSkillResultComparison", reason: "用发光擦除线依次对比默认效果、Skill 优化效果和另一行业案例" },
+    { componentId: "ComparisonProgressBars", reason: "用上下两张状态卡和进度线对比旧方案与持续方案" },
     { componentId: "MediaSpotlightCard", reason: "当只需展示单个案例画面时可改用媒体聚焦卡" },
     { componentId: "PortraitDecisionTagStack", reason: "当没有案例素材时可压缩为文字对比标签" },
+  ],
+  "comparison-progress-bars": [
+    { componentId: "ComparisonProgressBars", reason: "用上下两张状态卡和进度线呈现旧方案与持续方案的差异" },
+  ],
+  "milestone-follower-progress": [
+    { componentId: "MilestoneFollowerProgress", reason: "用超大数值、当前值与年度目标表达增长里程碑" },
   ],
   "prompt-iteration-showcase": [
     { componentId: "PortraitPromptIterationShowcase", reason: "用提示词输入条和发光擦除转场连续展示多次改版结果" },
@@ -1743,7 +1706,7 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "risk-boundary": [
     { componentId: "PortraitRiskWarning", reason: "适合一般风险和使用边界" },
-    { componentId: "LegacyModelEliminationWarning", reason: "适合过时、淘汰和被取代语义" },
+    { componentId: "LegacyEliminationPanel", reason: "适合过时、淘汰和被取代语义" },
     { componentId: "PortraitInfoCallout", reason: "用较克制的说明方式提示限制" },
   ],
   "next-episode-cta": [
@@ -1760,7 +1723,7 @@ const portraitCandidateAllowed = (componentId, context) => {
   if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
   if (componentId === "PortraitDecisionTagStack") return context.evidence.labelCount >= 2;
   if (componentId === "PortraitStepChecklist") return context.evidence.stepCount >= 2;
-  if (componentId === "LegacyModelEliminationWarning") {
+  if (componentId === "LegacyEliminationPanel") {
     return context.evidence.eliminationWarning;
   }
   return true;
@@ -1921,12 +1884,22 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["center-top", "right-top"],
     preferredScale: 1,
   },
+  ComparisonProgressBars: {
+    anchor: "left-center",
+    fallbackAnchors: ["center-top", "right-center"],
+    preferredScale: 0.9,
+  },
+  MilestoneFollowerProgress: {
+    anchor: "left-top",
+    fallbackAnchors: ["left-center", "right-top"],
+    preferredScale: 0.86,
+  },
   PortraitRiskWarning: {
     anchor: "left-top",
     fallbackAnchors: ["right-top", "left-center", "right-center"],
     preferredScale: 0.64,
   },
-  LegacyModelEliminationWarning: {
+  LegacyEliminationPanel: {
     anchor: "left-top",
     fallbackAnchors: ["right-top", "left-center", "right-center"],
     preferredScale: 0.64,
@@ -1970,7 +1943,7 @@ const selectDiversePortraitCandidates = ({
 
   if (context.evidence.eliminationWarning) {
     const eliminationCandidate = candidates.find(
-      (candidate) => candidate.componentId === "LegacyModelEliminationWarning",
+      (candidate) => candidate.componentId === "LegacyEliminationPanel",
     );
     return eliminationCandidate ? [eliminationCandidate] : [];
   }
@@ -2256,37 +2229,7 @@ const buildPortraitSemanticSrtArrangement = ({
       if (createdMotionIds.length === 0) return;
       recordPortraitCandidateUsage(route.id, selectedCandidates, diversityState);
 
-      const icon = context.evidence.eliminationWarning
-        ? null
-        : availableResource(resourceIndex, "icons", route.resources?.iconId);
-      if (icon && selectedRoutes.length === 1 && createdMotionIds.length === 1) {
-        const iconId = `icon-${sequence}-${route.id}`;
-        resourceTracks.push({
-          id: `resource-${iconId}`,
-          laneId: iconId,
-          trackOrder: trackOrder++,
-          kind: "icon",
-          resourceId: icon.id,
-          name: `${icon.label} · ${route.label}`,
-          url: icon.url,
-          mimeType: icon.mimeType,
-          sourceStartFrame: 0,
-          sourceDurationInFrames: timing.endFrame - timing.startFrame,
-          startFrame: Math.min(timing.endFrame - 3, timing.startFrame + 3),
-          durationInFrames: Math.max(3, timing.endFrame - Math.min(timing.endFrame - 3, timing.startFrame + 3)),
-          visible: true,
-          position: iconPosition(canvas, routeIndex),
-          volume: 1,
-          voiceDucking: 0,
-          sourceExpressionId: iconId,
-          sourceIntentId: intentId,
-          layoutIntent: {
-            anchor: route.resources.iconAnchor,
-            avoid: PORTRAIT_ROUTING_POLICY.layout.avoid,
-            collisionPolicy: PORTRAIT_ROUTING_POLICY.layout.collisionPolicy,
-          },
-        });
-      }
+      // 图标不做自动匹配，只允许用户在语义段里手动添加。
 
       const sfx = availableResource(resourceIndex, "sfx", route.resources?.sfxId);
       if (sfx) {

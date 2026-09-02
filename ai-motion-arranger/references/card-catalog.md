@@ -8,10 +8,10 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：3 张
+**当前卡片总数**：1 张
 **覆盖分组**：1 个（数字与指标）
-**registry 集合**：3 个 id
-**overlay 集合**：3 个 id
+**registry 集合**：1 个 id
+**overlay 集合**：1 个 id
 ## 数字与指标
 
 ### `SegmentedMeter`
@@ -33,50 +33,10 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `animationSeconds` — 动画时长
 - `accentColor` — accent token
 - `secondaryColor` — support token
-
-### `WaveformMetric`
-
-**角色**：live-metric  
-**画布落点**：left  
-**推荐调色板**：cyan / violet / teal  
-**何时使用**：口播里 '实时吞吐 X / 秒' / 连续信号流。  
-**视觉/语义**：实时波形 + 当前读数。适合表达吞吐/信号/帧率。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 当前读数（数字串 ≥ 0）
-- `item1` — 补充说明一
-- `item2` — 补充说明二
-- `item3` — 补充说明三
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
-
-### `RadialTicks`
-
-**角色**：hero-metric  
-**画布落点**：left  
-**推荐调色板**：cyan / violet / teal  
-**何时使用**：口播里偏 HUD / 飞行仪表 / 角度读数感的内容。  
-**视觉/语义**：HUD 刻度环 + 中心数字。适合科技感读数 / 角度感。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 百分比 0–100（数字串）
-- `item1` — 补充说明一
-- `item2` — 补充说明二
-- `item3` — 补充说明三
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：3
-- overlay 条目数：3
+- registry 条目数：1
+- overlay 条目数：1
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

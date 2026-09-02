@@ -48,6 +48,8 @@ import { LegacyEliminationPanelEffectDef } from "./effects/LegacyEliminationPane
 import { MarketEliminationStampEffectDef } from "./effects/MarketEliminationStamp";
 import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { MaterialCardEffectDef } from "./effects/MaterialCard";
+import { ComparisonProgressBarsEffectDef } from "./effects/ComparisonProgressBars";
+import { MilestoneFollowerProgressEffectDef } from "./effects/MilestoneFollowerProgress";
 
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
@@ -123,6 +125,8 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   MediaSpotlightCardEffectDef,
 
   MaterialCardEffectDef,
+  ComparisonProgressBarsEffectDef,
+  MilestoneFollowerProgressEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

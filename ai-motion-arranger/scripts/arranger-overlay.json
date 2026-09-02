@@ -23,55 +23,5 @@
       "accentColor": "accent token",
       "secondaryColor": "support token"
     }
-  },
-  {
-    "id": "WaveformMetric",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "left",
-    "purpose": "实时波形 + 当前读数。适合表达吞吐/信号/帧率。",
-    "whenToUse": "口播里 '实时吞吐 X / 秒' / 连续信号流。",
-    "role": "live-metric",
-    "preferredPalettes": [
-      "cyan",
-      "violet",
-      "teal"
-    ],
-    "propsFieldSemantics": {
-      "title": "标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "当前读数（数字串 ≥ 0）",
-      "item1": "补充说明一",
-      "item2": "补充说明二",
-      "item3": "补充说明三",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
-    "id": "RadialTicks",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "left",
-    "purpose": "HUD 刻度环 + 中心数字。适合科技感读数 / 角度感。",
-    "whenToUse": "口播里偏 HUD / 飞行仪表 / 角度读数感的内容。",
-    "role": "hero-metric",
-    "preferredPalettes": [
-      "cyan",
-      "violet",
-      "teal"
-    ],
-    "propsFieldSemantics": {
-      "title": "标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "百分比 0–100（数字串）",
-      "item1": "补充说明一",
-      "item2": "补充说明二",
-      "item3": "补充说明三",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
   }
 ]

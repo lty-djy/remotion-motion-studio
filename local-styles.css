@@ -2531,6 +2531,10 @@ main.is-resizing-sidebar * {
   margin-bottom: 11px;
 }
 
+.arrangement-import-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .reference-split-actions button {
   justify-content: center;
 }
@@ -5710,36 +5714,6 @@ aside {
   }
 }
 
-.arrangement-qc-list {
-  display: grid;
-  flex: 0 0 auto;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 10px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.022);
-}
-
-.arrangement-qc-item {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 7px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.arrangement-qc-item > i {
-  color: var(--muted);
-  font-size: 11px;
-  font-style: normal;
-}
-
 .arrangement-caption-controls {
   display: grid;
   flex: 0 0 auto;
@@ -5830,57 +5804,8 @@ aside {
   box-shadow: 0 0 0 2px rgba(104, 232, 255, 0.08);
 }
 
-.arrangement-qc-item > span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.arrangement-qc-item strong,
-.arrangement-qc-item > b {
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.arrangement-qc-item small {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.arrangement-qc-item > b {
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.arrangement-qc-item.passed {
-  border-color: rgba(83, 219, 163, 0.2);
-}
-
-.arrangement-qc-item.passed strong {
-  color: #7ce2ba;
-}
-
-.arrangement-qc-item.failed {
-  border-color: rgba(255, 92, 115, 0.35);
-  background: rgba(255, 78, 104, 0.055);
-}
-
-.arrangement-qc-item.failed strong,
 .arrangement-preview-dialog > footer > .qc-blocked {
   color: #ff8294;
-}
-
-.arrangement-qc-item.pending {
-  border-color: rgba(255, 196, 107, 0.24);
-}
-
-.arrangement-qc-item.pending strong {
-  color: #ffc46b;
 }
 
 .arrangement-preview-actions {
@@ -7399,16 +7324,9 @@ body.arrangement-preview-popout-body {
     grid-template-columns: 1fr;
   }
 
-  .arrangement-qc-list {
-    grid-template-columns: 1fr;
-  }
-
 }
 
 @media (min-width: 1050px) {
-  .arrangement-qc-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1350px) {

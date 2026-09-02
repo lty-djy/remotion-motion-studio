@@ -18,7 +18,7 @@ type LegacyProps = {
 type LegacySpec = readonly [string, string, string, string, string];
 
 const legacyGroups: ReadonlyArray<readonly [string, string, readonly LegacySpec[]]> = [
-  ["数字与指标", "metric", [     ["SegmentedMeter", "分段能量条", "分段式容量、性能和能量指示", "▮▮▮", "75%"],   ["WaveformMetric", "波形指标", "连续波形和实时吞吐读数", "∿", "128/s"],  ["RadialTicks", "HUD 刻度环", "科技 HUD 刻度与中心读数", "◎", "92%"],  ]],
+  ["数字与指标", "metric", [     ["SegmentedMeter", "分段能量条", "分段式容量、性能和能量指示", "▮▮▮", "75%"],       ]],
   ["图表与比较", "chart", [       ]],
   ["文字与叙事", "text", [       ]],
   ["图片、视频与证据", "media", [      ]],

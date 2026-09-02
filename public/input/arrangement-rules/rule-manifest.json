@@ -7,13 +7,15 @@
       "name": "我的语义风格",
       "keepStyleConsistent": true,
       "accentColor": "#d30d5c",
-      "autoAddIcons": true,
       "learnFromConfirmedChoices": true,
       "componentScores": {
-        "PortraitRiskWarning": 6,
-        "PortraitMetricDecision": 4,
+        "PortraitRiskWarning": 12,
+        "PortraitMetricDecision": 12,
         "PortraitDecisionTagStack": 2,
-        "PortraitInfoCallout": 8
+        "PortraitInfoCallout": 12,
+        "PortraitChapterRail": 4,
+        "PortraitStepChecklist": 6,
+        "PortraitNextEpisodeCta": 4
       },
       "semanticTags": {
         "emphasis": {

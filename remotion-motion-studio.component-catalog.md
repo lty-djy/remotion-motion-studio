@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **38** 个组件，其中 **3** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **38** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -59,8 +59,11 @@
 - `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 
+## 图表与比较
+
+- `ComparisonProgressBars`：对比进度条·持续扶持 — 上下两张状态卡对比旧方案与持续方案，用灰色低进度和青色满进度表达差异。（仅工作台可用；props：`enabled`、`baselineLabel`、`baselineStatus`、`improvedLabel`、`improvedStatus`、`baselineProgress`、`improvedProgress`、`accentColor`、`mutedColor`、`panelColor`、`textColor`、`animationSeconds`）
+
 ## 数字与指标
 
+- `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
-- `WaveformMetric`：波形指标 — 连续波形和实时吞吐读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
-- `RadialTicks`：HUD 刻度环 — 科技 HUD 刻度与中心读数 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
