@@ -8,10 +8,10 @@
 AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
-**当前卡片总数**：4 张
+**当前卡片总数**：3 张
 **覆盖分组**：1 个（数字与指标）
-**registry 集合**：4 个 id
-**overlay 集合**：4 个 id
+**registry 集合**：3 个 id
+**overlay 集合**：3 个 id
 ## 数字与指标
 
 ### `SegmentedMeter`
@@ -54,26 +54,6 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `accentColor` — accent token
 - `secondaryColor` — support token
 
-### `LiquidGauge`
-
-**角色**：hero-metric  
-**画布落点**：left  
-**推荐调色板**：cyan / teal / lime / amber  
-**何时使用**：口播里 '存量已达 X%' / '覆盖率 Y'。  
-**视觉/语义**：液态填充式百分比。适合完成率、留存、口径充满度。
-
-**可编排 props（共 9 个）：**
-
-- `title` — 标题
-- `subtitle` — 副标题 / 英文标签
-- `value` — 百分比 0–100（数字串）
-- `item1` — 补充说明一
-- `item2` — 补充说明二
-- `item3` — 补充说明三
-- `animationSeconds` — 动画时长
-- `accentColor` — accent token
-- `secondaryColor` — support token
-
 ### `RadialTicks`
 
 **角色**：hero-metric  
@@ -95,8 +75,8 @@ AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
 - `secondaryColor` — support token
 ## 自检（生成时）
 
-- registry 条目数：4
-- overlay 条目数：4
+- registry 条目数：3
+- overlay 条目数：3
 - 缺失于 registry（overlay 有但 registry 没登记）：无
 - 缺失于 overlay（registry 有但 overlay 没登记）：无
 

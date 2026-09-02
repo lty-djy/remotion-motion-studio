@@ -86,7 +86,7 @@ const INTENT_RULES = [
     label: "覆盖与占比",
     subtitle: "SEMANTIC / COVERAGE",
     match: /覆盖率|覆盖了|占比|存量|渗透率|容量/iu,
-    componentId: "LiquidGauge",
+    componentId: "SegmentedMeter",
     iconId: "speed",
     sfxId: "tick",
     accentColor: "#55d6c2",
@@ -141,10 +141,9 @@ const INTENT_RULES = [
 
 const LEGACY_COMPONENT_REASONS = Object.freeze({
   Countdown: "适合截止时间、阶段切换和紧迫感",
-  SegmentedMeter: "适合流程、容量和分阶段信息",
+  SegmentedMeter: "适合流程、容量、占比和分阶段信息",
   DualMetricBar: "适合两组数值或方案差异",
   WaveformMetric: "适合性能、速度和连续变化数据",
-  LiquidGauge: "适合占比、完成率和进度数据",
   RadialTicks: "适合重点结论、科技感和综合指标",
 });
 
@@ -153,11 +152,11 @@ const LEGACY_CANDIDATE_IDS_BY_RULE = Object.freeze({
   process: ["SegmentedMeter", "Countdown", "RadialTicks"],
   automation: ["RadialTicks", "SegmentedMeter", "WaveformMetric"],
   comparison: ["DualMetricBar", "SegmentedMeter", "RadialTicks"],
-  completion: ["LiquidGauge", "RadialTicks", "SegmentedMeter"],
-  coverage: ["LiquidGauge", "SegmentedMeter", "RadialTicks"],
+  completion: ["SegmentedMeter", "RadialTicks"],
+  coverage: ["SegmentedMeter", "RadialTicks"],
   deadline: ["Countdown", "RadialTicks", "SegmentedMeter"],
   emphasis: ["RadialTicks", "Countdown", "DualMetricBar"],
-  number: ["WaveformMetric", "LiquidGauge", "RadialTicks"],
+  number: ["WaveformMetric", "RadialTicks", "SegmentedMeter"],
 });
 
 const SEMANTIC_INTENT_IDS_BY_ROUTE_TYPE = Object.freeze({

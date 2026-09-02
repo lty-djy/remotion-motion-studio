@@ -50,32 +50,6 @@
     }
   },
   {
-    "id": "LiquidGauge",
-    "catalogGroup": "数字与指标",
-    "category": "metric",
-    "placement": "left",
-    "purpose": "液态填充式百分比。适合完成率、留存、口径充满度。",
-    "whenToUse": "口播里 '存量已达 X%' / '覆盖率 Y'。",
-    "role": "hero-metric",
-    "preferredPalettes": [
-      "cyan",
-      "teal",
-      "lime",
-      "amber"
-    ],
-    "propsFieldSemantics": {
-      "title": "标题",
-      "subtitle": "副标题 / 英文标签",
-      "value": "百分比 0–100（数字串）",
-      "item1": "补充说明一",
-      "item2": "补充说明二",
-      "item3": "补充说明三",
-      "animationSeconds": "动画时长",
-      "accentColor": "accent token",
-      "secondaryColor": "support token"
-    }
-  },
-  {
     "id": "RadialTicks",
     "catalogGroup": "数字与指标",
     "category": "metric",

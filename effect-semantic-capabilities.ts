@@ -374,12 +374,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["metric"],
     ["实时", "吞吐", "速度", "波形", "连续变化"],
   ),
-  LiquidGauge: capability(
-    "metric",
-    ["emphasis", "process"],
-    ["metric"],
-    ["完成率", "占比", "进度", "比例", "液位"],
-  ),
   RadialTicks: capability(
     "emphasis",
     ["metric", "evidence"],

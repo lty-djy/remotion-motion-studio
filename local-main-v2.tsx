@@ -724,6 +724,8 @@ const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
 const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
 const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
 const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
+const SEMANTIC_TYPE_COLOR_STORAGE_KEY = "motion-studio-semantic-type-colors-v1";
+const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const EFFECT_SEMANTIC_TYPE_STORAGE_KEY = "motion-studio-effect-semantic-types-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
@@ -1080,6 +1082,7 @@ type ContextMenuState = {
   groupName?: string;
   iconGroupId?: string;
   groupComponentIds?: string[];
+  semanticIntentId?: string;
   sfxGroupId?: string;
   soundId?: string;
   arrangementRuleId?: string;
@@ -2442,6 +2445,48 @@ const loadEffectGroupColorOverrides = (): Record<string, string> => {
   }
 };
 
+const loadSemanticTypeColorOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(SEMANTIC_TYPE_COLOR_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([id, color]) =>
+              typeof id === "string" &&
+              typeof color === "string" &&
+              /^#[0-9a-f]{6}$/i.test(color),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const loadSemanticTypeOrder = (): string[] => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(SEMANTIC_TYPE_ORDER_STORAGE_KEY) ?? "[]",
+    );
+    if (!Array.isArray(stored)) return [...DISPLAYED_SEMANTIC_INTENT_IDS];
+    const known = new Set<string>(DISPLAYED_SEMANTIC_INTENT_IDS);
+    const seen = new Set<string>();
+    const order = stored.filter((id): id is string => {
+      if (typeof id !== "string" || !known.has(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    return [
+      ...order,
+      ...DISPLAYED_SEMANTIC_INTENT_IDS.filter((id) => !order.includes(id)),
+    ];
+  } catch {
+    return [...DISPLAYED_SEMANTIC_INTENT_IDS];
+  }
+};
+
 type FontSizeStepperProps = {
   label: string;
   value: number;
@@ -3299,6 +3344,18 @@ const App = () => {
   const [effectGroupColorOverrides, setEffectGroupColorOverrides] = useState(
     loadEffectGroupColorOverrides,
   );
+  const [semanticTypeColorOverrides, setSemanticTypeColorOverrides] = useState(
+    loadSemanticTypeColorOverrides,
+  );
+  const [semanticTypeOrder, setSemanticTypeOrder] = useState(loadSemanticTypeOrder);
+  const semanticTypeDragIntentRef = useRef<string | null>(null);
+  const [semanticTypeDraggingIntentId, setSemanticTypeDraggingIntentId] = useState<
+    string | null
+  >(null);
+  const [semanticTypeDropTarget, setSemanticTypeDropTarget] = useState<{
+    intentId: string;
+    position: "before" | "after";
+  } | null>(null);
   const [effectRenameTarget, setEffectRenameTarget] =
     useState<EffectRenameTarget | null>(null);
   const [effectNameDraft, setEffectNameDraft] = useState("");
@@ -3859,10 +3916,10 @@ const App = () => {
     for (const definition of catalogDefinitionMap.values()) {
       const capabilities = EFFECT_SEMANTIC_CAPABILITIES[definition.id];
       if (!capabilities) continue;
-      const intentIds = new Set([
-        effectSemanticTypeOverrides[definition.id] ?? capabilities.primaryIntent,
-        ...capabilities.secondaryIntents,
-      ]);
+      const assignedIntentId = effectSemanticTypeOverrides[definition.id];
+      const intentIds = assignedIntentId
+        ? [assignedIntentId]
+        : new Set([capabilities.primaryIntent, ...capabilities.secondaryIntents]);
       for (const intentId of intentIds) {
         if (counts.has(intentId)) counts.set(intentId, (counts.get(intentId) ?? 0) + 1);
       }
@@ -3875,10 +3932,10 @@ const App = () => {
     for (const definition of catalogDefinitionMap.values()) {
       const capabilities = EFFECT_SEMANTIC_CAPABILITIES[definition.id];
       if (!capabilities) continue;
-      const intentIds = new Set([
-        effectSemanticTypeOverrides[definition.id] ?? capabilities.primaryIntent,
-        ...capabilities.secondaryIntents,
-      ]);
+      const assignedIntentId = effectSemanticTypeOverrides[definition.id];
+      const intentIds = assignedIntentId
+        ? [assignedIntentId]
+        : new Set([capabilities.primaryIntent, ...capabilities.secondaryIntents]);
       for (const intentId of intentIds) {
         const target = components.get(intentId);
         if (target) target.push(definition);
@@ -4400,6 +4457,13 @@ const App = () => {
       JSON.stringify(arrangementPreferences),
     );
   }, [arrangementPreferences]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      SEMANTIC_TYPE_ORDER_STORAGE_KEY,
+      JSON.stringify(semanticTypeOrder),
+    );
+  }, [semanticTypeOrder]);
 
   useEffect(() => {
     let cancelled = false;
@@ -9263,6 +9327,23 @@ const App = () => {
     });
   };
 
+  const showSemanticLibraryMenu = (
+    event: React.MouseEvent,
+    componentId: string,
+    semanticIntentId: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 200),
+      y: Math.min(event.clientY, window.innerHeight - 180),
+      source: "library",
+      instanceIds: [],
+      componentId,
+      semanticIntentId,
+    });
+  };
+
   const showLibraryGroupMenu = (
     event: React.MouseEvent,
     group: { id: string; name: string; items: Array<{ ids: string[] }> },
@@ -10129,7 +10210,11 @@ const App = () => {
       return next;
     });
     setEffectSemanticTypeTarget(null);
-    setNotice({ tone: "ok", text: `已将“${effectSemanticTypeTarget.effectName}”归类为“${SEMANTIC_INTENT_LABELS[intentId] ?? intentId}”。` });
+    setExpandedSemanticIntentId(intentId);
+    setNotice({
+      tone: "ok",
+      text: `已将“${effectSemanticTypeTarget.effectName}”移动到“${SEMANTIC_INTENT_LABELS[intentId] ?? intentId}”。`,
+    });
   };
 
   const renameEffect = () => {
@@ -11346,15 +11431,87 @@ const App = () => {
                 <i>{DISPLAYED_SEMANTIC_INTENT_IDS.length} 类</i>
               </header>
               <div className="semantic-type-library" aria-label="已存在的语义类型列表">
-                {DISPLAYED_SEMANTIC_INTENT_IDS.map((intentId, index) => {
+                {semanticTypeOrder.map((intentId) => {
+                  const defaultColorIndex = DISPLAYED_SEMANTIC_INTENT_IDS.indexOf(
+                    intentId as (typeof DISPLAYED_SEMANTIC_INTENT_IDS)[number],
+                  );
                   const definition = SEMANTIC_INTENT_DEFINITIONS.find(
                     (candidate) => candidate.id === intentId,
                   );
                   if (!definition) return null;
                   const isExpanded = expandedSemanticIntentId === intentId;
                   const components = semanticComponentsByIntent.get(intentId) ?? [];
+                  const isDragging = semanticTypeDraggingIntentId === intentId;
+                  const dropPosition =
+                    semanticTypeDropTarget?.intentId === intentId
+                      ? semanticTypeDropTarget.position
+                      : null;
                   return (
-                    <section className="semantic-type-library-group" key={intentId}>
+                    <section
+                      className={`semantic-type-library-group${
+                        isDragging ? " is-dragging" : ""
+                      }${dropPosition ? ` is-drop-${dropPosition}` : ""}`}
+                      key={intentId}
+                      title="拖拽分组上下调整顺序"
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", intentId);
+                        semanticTypeDragIntentRef.current = intentId;
+                        setSemanticTypeDraggingIntentId(intentId);
+                        setSemanticTypeDropTarget(null);
+                      }}
+                      onDragEnd={() => {
+                        semanticTypeDragIntentRef.current = null;
+                        setSemanticTypeDraggingIntentId(null);
+                        setSemanticTypeDropTarget(null);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        const draggedId = semanticTypeDragIntentRef.current;
+                        if (!draggedId || draggedId === intentId) return;
+                        event.dataTransfer.dropEffect = "move";
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        setSemanticTypeDropTarget({
+                          intentId,
+                          position:
+                            event.clientY < rect.top + rect.height / 2
+                              ? "before"
+                              : "after",
+                        });
+                      }}
+                      onDragLeave={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                          setSemanticTypeDropTarget((current) =>
+                            current?.intentId === intentId ? null : current,
+                          );
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const draggedId = semanticTypeDragIntentRef.current;
+                        if (!draggedId || draggedId === intentId) return;
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        const position =
+                          event.clientY < rect.top + rect.height / 2
+                            ? "before"
+                            : "after";
+                        setSemanticTypeOrder((current) => {
+                          const next = current.filter((id) => id !== draggedId);
+                          const targetIndex = next.indexOf(intentId);
+                          if (targetIndex < 0) return current;
+                          next.splice(
+                            position === "after" ? targetIndex + 1 : targetIndex,
+                            0,
+                            draggedId,
+                          );
+                          return next;
+                        });
+                        semanticTypeDragIntentRef.current = null;
+                        setSemanticTypeDraggingIntentId(null);
+                        setSemanticTypeDropTarget(null);
+                      }}
+                    >
                       <button
                         type="button"
                         className={isExpanded ? "open" : ""}
@@ -11365,13 +11522,49 @@ const App = () => {
                           )
                         }
                       >
-                        <i style={{ background: SEMANTIC_TYPE_ACCENTS[index] }} />
+                        <i
+                          style={{
+                            background:
+                              semanticTypeColorOverrides[intentId] ??
+                              SEMANTIC_TYPE_ACCENTS[defaultColorIndex],
+                          }}
+                        />
                         <span>
                           <strong>{definition.label}</strong>
                           <small>{definition.description}</small>
                         </span>
-                        <b>{components.length}</b>
-                        <em>个组件</em>
+                        <input
+                          className="semantic-type-color-picker"
+                          type="color"
+                          value={
+                            semanticTypeColorOverrides[intentId] ??
+                            SEMANTIC_TYPE_ACCENTS[defaultColorIndex]
+                          }
+                          title={`设置“${definition.label}”颜色`}
+                          aria-label={`设置“${definition.label}”颜色`}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => {
+                            const next = {
+                              ...semanticTypeColorOverrides,
+                              [intentId]: event.currentTarget.value,
+                            };
+                            setSemanticTypeColorOverrides(next);
+                            window.localStorage.setItem(
+                              SEMANTIC_TYPE_COLOR_STORAGE_KEY,
+                              JSON.stringify(next),
+                            );
+                          }}
+                        />
+                        <b
+                          style={{
+                            color:
+                              semanticTypeColorOverrides[intentId] ??
+                              SEMANTIC_TYPE_ACCENTS[defaultColorIndex],
+                          }}
+                        >
+                          {components.length}
+                        </b>
                         <CaretDown />
                       </button>
                       {isExpanded ? (
@@ -11382,9 +11575,23 @@ const App = () => {
                                 type="button"
                                 className="semantic-type-library-item-main"
                                 onClick={() => addInstance(component.id)}
+                                onContextMenu={(event) =>
+                                  showSemanticLibraryMenu(event, component.id, intentId)
+                                }
                                 title="单击添加到时间轴"
                               >
-                                <i>{component.name.slice(0, 2)}</i>
+                                <i
+                                  style={{
+                                    color:
+                                      semanticTypeColorOverrides[intentId] ??
+                                      SEMANTIC_TYPE_ACCENTS[defaultColorIndex],
+                                    borderColor:
+                                      semanticTypeColorOverrides[intentId] ??
+                                      SEMANTIC_TYPE_ACCENTS[defaultColorIndex],
+                                  }}
+                                >
+                                  {component.name.slice(0, 2)}
+                                </i>
                                 <span>
                                   <strong>{component.name}</strong>
                                   <small>单击添加到时间轴</small>
@@ -14387,8 +14594,8 @@ const App = () => {
             <header>
               <div>
                 <span>
-                  <strong id="effect-semantic-type-title">修改语义类型</strong>
-                  <small>“{effectSemanticTypeTarget.effectName}”将作为 AI 自动编排的主语义</small>
+                  <strong id="effect-semantic-type-title">移动到语义类型</strong>
+                  <small>“{effectSemanticTypeTarget.effectName}”会移到所选语义分组</small>
                 </span>
               </div>
               <button onClick={() => setEffectSemanticTypeTarget(null)}>
@@ -14396,7 +14603,7 @@ const App = () => {
               </button>
             </header>
             <div className="group-dialog-body">
-              <label htmlFor="effect-semantic-type-select">主语义类型</label>
+              <label htmlFor="effect-semantic-type-select">目标语义类型</label>
               <select
                 id="effect-semantic-type-select"
                 autoFocus
@@ -14416,7 +14623,7 @@ const App = () => {
                 )}
               </select>
               <small className="semantic-type-help">
-                修改只影响该效果的语义归类和候选排序，不会改变组件源码、名称或分组。
+                保存后，该组件仅在目标语义分组显示；不会改变组件源码、名称或效果库分组。
               </small>
             </div>
             <footer>
@@ -14424,7 +14631,7 @@ const App = () => {
               <div>
                 <button onClick={() => setEffectSemanticTypeTarget(null)}>取消</button>
                 <button className="shortcut-save" onClick={saveEffectSemanticType}>
-                  保存类型
+                  确认移动
                 </button>
               </div>
             </footer>
@@ -16220,7 +16427,9 @@ const App = () => {
                       openEffectSemanticTypeDialog(contextMenu.componentId)
                     }
                   >
-                    修改语义类型
+                    {contextMenu.semanticIntentId
+                      ? "移动到其他语义类型"
+                      : "修改语义类型"}
                   </button>
                 ) : null}
                 {contextMenu.componentId ? (
@@ -16245,14 +16454,16 @@ const App = () => {
                     移动到其他分组
                   </button>
                 ) : null}
-                <button
-                  className="delete-action"
-                  onClick={() =>
-                    contextMenu.componentId && permanentlyDeleteEffect(contextMenu.componentId)
-                  }
-                >
-                  彻底删除效果
-                </button>
+                {!contextMenu.semanticIntentId ? (
+                  <button
+                    className="delete-action"
+                    onClick={() =>
+                      contextMenu.componentId && permanentlyDeleteEffect(contextMenu.componentId)
+                    }
+                  >
+                    彻底删除效果
+                  </button>
+                ) : null}
               </>
             ) : contextMenu.source === "libraryGroup" ? (
               <>

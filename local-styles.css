@@ -913,7 +913,7 @@ main.is-resizing-sidebar * {
 
 .semantic-types-header > i {
   flex: 0 0 auto;
-  padding: 5px 8px;
+  padding: 10px 13px;
   border: 1px solid rgba(104, 232, 255, 0.25);
   border-radius: 999px;
   color: #bdf7ff;
@@ -934,10 +934,51 @@ main.is-resizing-sidebar * {
 }
 
 .semantic-type-library-group {
+  position: relative;
   overflow: hidden;
   border: 1px solid #303238;
   border-radius: 8px;
   background: #1a1b1f;
+  cursor: grab;
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.semantic-type-library-group:active {
+  cursor: grabbing;
+}
+
+.semantic-type-library-group.is-dragging {
+  z-index: 1;
+  opacity: 0.42;
+  border-color: rgba(104, 232, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(104, 232, 255, 0.18);
+  transform: scale(0.985);
+}
+
+.semantic-type-library-group.is-drop-before::before,
+.semantic-type-library-group.is-drop-after::after {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+  left: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: #68e8ff;
+  box-shadow: 0 0 10px rgba(104, 232, 255, 0.9);
+  content: "";
+  pointer-events: none;
+}
+
+.semantic-type-library-group.is-drop-before::before {
+  top: -1px;
+}
+
+.semantic-type-library-group.is-drop-after::after {
+  bottom: -1px;
 }
 
 .semantic-type-library-group > header,
@@ -948,7 +989,7 @@ main.is-resizing-sidebar * {
 
 .semantic-type-library-group > button {
   display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto auto 14px;
+  grid-template-columns: 18px minmax(0, 1fr) 32px 32px 16px;
   align-items: center;
   gap: 8px;
   min-height: 52px;
@@ -968,6 +1009,7 @@ main.is-resizing-sidebar * {
 .semantic-type-library-group > button > i {
   width: 12px;
   height: 32px;
+  justify-self: center;
   border-radius: 4px;
   box-shadow: 0 0 12px color-mix(in srgb, currentColor 45%, transparent);
 }
@@ -979,10 +1021,21 @@ main.is-resizing-sidebar * {
   gap: 3px;
 }
 
+.semantic-type-color-picker {
+  width: 24px;
+  height: 24px;
+  padding: 2px;
+  justify-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
 .semantic-type-library-group > button strong {
   overflow: hidden;
   color: #e9e9ed;
-  font-size: 12px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -990,21 +1043,15 @@ main.is-resizing-sidebar * {
 .semantic-type-library-group > button small {
   overflow: hidden;
   color: #777a82;
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .semantic-type-library-group > button > b {
+  justify-self: end;
   color: #68e8ff;
   font-size: 14px;
-}
-
-.semantic-type-library-group > button > em {
-  color: #777a82;
-  font-size: 9px;
-  font-style: normal;
-  white-space: nowrap;
 }
 
 .semantic-type-library-group > button > svg {
@@ -1039,7 +1086,8 @@ main.is-resizing-sidebar * {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 8px;
+  min-height: 42px;
+  padding: 9px 8px;
   border-radius: 5px;
   text-align: left;
 }
@@ -1057,7 +1105,7 @@ main.is-resizing-sidebar * {
   border: 1px solid rgba(104, 232, 255, 0.2);
   border-radius: 4px;
   color: #68e8ff;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -1071,14 +1119,14 @@ main.is-resizing-sidebar * {
 .semantic-type-library-item-main strong {
   overflow: hidden;
   color: #e4e5e8;
-  font-size: 11px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .semantic-type-library-item-main small {
   color: #777a82;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .semantic-type-library-item-main > svg,
