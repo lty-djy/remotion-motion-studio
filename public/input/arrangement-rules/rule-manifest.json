@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "activeRuleId": "default-semantic-style",
   "rules": [
     {
@@ -14,6 +14,68 @@
         "PortraitMetricDecision": 4,
         "PortraitDecisionTagStack": 2,
         "PortraitInfoCallout": 8
+      },
+      "semanticTags": {
+        "emphasis": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "metric": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "comparison": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "list": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "process": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "explanation": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "warning": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "evidence": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "transition": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        },
+        "call-to-action": {
+          "enabled": true,
+          "iconIds": [],
+          "sfxIds": [],
+          "componentIds": []
+        }
       }
     }
   ]

@@ -780,8 +780,78 @@ const getBody = async (req: IncomingMessage, maxBytes: number) => {
   return Buffer.concat(chunks);
 };
 
+const SEMANTIC_INTENT_IDS = [
+  "emphasis",
+  "metric",
+  "comparison",
+  "list",
+  "process",
+  "explanation",
+  "warning",
+  "evidence",
+  "transition",
+  "call-to-action",
+] as const;
+type SemanticIntentId = (typeof SEMANTIC_INTENT_IDS)[number];
+const SEMANTIC_INTENT_ID_SET = new Set<string>(SEMANTIC_INTENT_IDS);
+
+type SemanticTagConfig = {
+  enabled: boolean;
+  iconIds: string[];
+  sfxIds: string[];
+  componentIds: string[];
+};
+
+const buildDefaultSemanticTags = (): Record<SemanticIntentId, SemanticTagConfig> => {
+  const out = {} as Record<SemanticIntentId, SemanticTagConfig>;
+  for (const id of SEMANTIC_INTENT_IDS) {
+    out[id] = { enabled: true, iconIds: [], sfxIds: [], componentIds: [] };
+  }
+  return out;
+};
+
+const normalizeIdList = (input: unknown, max: number): string[] => {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of input) {
+    if (typeof id !== "string") continue;
+    const clean = id.trim();
+    if (!/^[A-Za-z0-9._-]{1,80}$/.test(clean)) continue;
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    out.push(clean);
+    if (out.length >= max) break;
+  }
+  return out;
+};
+
+const normalizeSemanticTagConfig = (input: unknown): SemanticTagConfig => {
+  const record = (input ?? {}) as Record<string, unknown>;
+  return {
+    enabled: record.enabled !== false,
+    iconIds: normalizeIdList(record.iconIds, 16),
+    sfxIds: normalizeIdList(record.sfxIds, 8),
+    componentIds: normalizeIdList(record.componentIds, 32),
+  };
+};
+
+const normalizeSemanticTagsRecord = (
+  input: unknown,
+): Record<SemanticIntentId, SemanticTagConfig> => {
+  const fallback = buildDefaultSemanticTags();
+  if (!input || typeof input !== "object") return fallback;
+  const record = input as Record<string, unknown>;
+  for (const id of SEMANTIC_INTENT_IDS) {
+    if (SEMANTIC_INTENT_ID_SET.has(id) && record[id] && typeof record[id] === "object") {
+      fallback[id] = normalizeSemanticTagConfig(record[id]);
+    }
+  }
+  return fallback;
+};
+
 type ArrangementRuleManifest = {
-  version: 1;
+  version: 2;
   activeRuleId: string;
   rules: Array<{
     id: string;
@@ -791,6 +861,7 @@ type ArrangementRuleManifest = {
     autoAddIcons: boolean;
     learnFromConfirmedChoices: boolean;
     componentScores: Record<string, number>;
+    semanticTags: Record<SemanticIntentId, SemanticTagConfig>;
   }>;
 };
 
@@ -840,6 +911,7 @@ const normalizeArrangementRuleManifest = (
               ]),
           )
         : {};
+    const semanticTags = normalizeSemanticTagsRecord(rule.semanticTags);
     return {
       id,
       name,
@@ -848,12 +920,13 @@ const normalizeArrangementRuleManifest = (
       autoAddIcons: rule.autoAddIcons === true,
       learnFromConfirmedChoices: rule.learnFromConfirmedChoices !== false,
       componentScores,
+      semanticTags,
     };
   });
   const requestedActiveId =
     typeof raw.activeRuleId === "string" ? raw.activeRuleId : "";
   return {
-    version: 1,
+    version: 2,
     activeRuleId: ids.has(requestedActiveId) ? requestedActiveId : rules[0].id,
     rules,
   };

@@ -60,6 +60,8 @@ import { CardMaskLayer, normalizeCardMask, DEFAULT_CARD_MASK_NEW } from "./card-
 import {
   EFFECT_SEMANTIC_CAPABILITIES,
   SEMANTIC_INTENT_DEFINITIONS,
+  mergeSemanticIntentDefinitions,
+  type SemanticIntentId,
 } from "./effect-semantic-capabilities";
 import {
   BUILT_IN_CATALOG,
@@ -69,8 +71,13 @@ import {
 } from "./local-builtins";
 import {
   AI_ARRANGEABLE_COMPONENT_IDS,
+  EFFECT_REGISTRY,
   EFFECT_REGISTRY_BY_ID,
 } from "./registry";
+import {
+  BUILT_IN_ICON_CATEGORIES,
+  BUILT_IN_ICONS,
+} from "./ai-motion-arranger/built-in-icon-catalog.mjs";
 import { buildSemanticSrtArrangement } from "./ai-motion-arranger/semantic-srt-arranger.mjs";
 import { PORTRAIT_ROUTE_COMPONENT_IDS } from "./ai-motion-arranger/portrait-semantic-routes.mjs";
 import {
@@ -102,17 +109,28 @@ type EffectSemanticBadge = {
 };
 
 // AI 编排语义标记：仅当该效果在语义能力表中登记了主语义时才返回，否则返回 null（不显示标记）
-const effectSemanticBadge = (componentId: string): EffectSemanticBadge | null => {
+const effectSemanticBadge = (
+  componentId: string,
+  customPills: CustomSemanticPill[] = [],
+  semanticOverrides: Record<string, string> = {},
+): EffectSemanticBadge | null => {
+  const definitions = mergeSemanticIntentDefinitions(undefined, customPills);
+  const labelMap = Object.fromEntries(
+    definitions.map((definition) => [definition.id, definition.label]),
+  );
+  const descriptionMap = Object.fromEntries(
+    definitions.map((definition) => [definition.id, definition.description]),
+  );
   const capabilities = EFFECT_SEMANTIC_CAPABILITIES[componentId];
-  const primaryIntent = capabilities?.primaryIntent;
+  const primaryIntent = semanticOverrides[componentId] ?? capabilities?.primaryIntent;
   if (!primaryIntent) return null;
-  const label = SEMANTIC_INTENT_LABELS[primaryIntent];
+  const label = labelMap[primaryIntent];
   if (!label) return null;
   return {
     label,
-    description: SEMANTIC_INTENT_DEFINITIONS.find((item) => item.id === primaryIntent)?.description ?? label,
-    secondaryLabels: capabilities.secondaryIntents
-      .map((id) => SEMANTIC_INTENT_LABELS[id])
+    description: descriptionMap[primaryIntent] ?? label,
+    secondaryLabels: (capabilities?.secondaryIntents ?? [])
+      .map((id) => labelMap[id])
       .filter(Boolean),
   };
 };
@@ -707,6 +725,7 @@ const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
 const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
 const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
+const EFFECT_SEMANTIC_TYPE_STORAGE_KEY = "motion-studio-effect-semantic-types-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 278;
 const MIN_LEFT_PANEL_WIDTH = 210;
@@ -1048,6 +1067,7 @@ type ContextMenuState = {
     | "library"
     | "libraryGroup"
     | "libraryRoot"
+    | "arrangementRule"
     | "iconLibrary"
     | "sfxLibrary"
     | "sfxItem";
@@ -1062,6 +1082,14 @@ type ContextMenuState = {
   groupComponentIds?: string[];
   sfxGroupId?: string;
   soundId?: string;
+  arrangementRuleId?: string;
+  arrangementRuleName?: string;
+};
+
+type EffectSemanticTypeTarget = {
+  componentId: string;
+  effectName: string;
+  intentId: string;
 };
 
 type LaneDropState = {
@@ -1098,6 +1126,26 @@ const loadEffectNameOverrides = (): Record<string, string> => {
               Boolean(componentId) &&
               typeof name === "string" &&
               Boolean(name.trim()),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const loadEffectSemanticTypeOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(EFFECT_SEMANTIC_TYPE_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([componentId, intentId]) =>
+              Boolean(componentId) &&
+              typeof intentId === "string" &&
+              SEMANTIC_INTENT_DEFINITIONS.some((definition) => definition.id === intentId),
           ),
         )
       : {};
@@ -2040,12 +2088,120 @@ const StudioPreviewComposition = ({
   );
 };
 
+type SemanticTagConfig = {
+  enabled: boolean;
+  iconIds: string[];
+  sfxIds: string[];
+  componentIds: string[];
+};
+
+type CustomSemanticPill = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+const SEMANTIC_INTENT_IDS = SEMANTIC_INTENT_DEFINITIONS.map(
+  (definition) => definition.id,
+);
+const SEMANTIC_INTENT_ID_SET = new Set<string>(SEMANTIC_INTENT_IDS);
+
+const isValidCustomPillId = (id: string): boolean =>
+  /^[a-z0-9-]{1,32}$/.test(id) && !SEMANTIC_INTENT_ID_SET.has(id);
+
+const BUILT_IN_ICON_IDS = Array.from(new Set(BUILT_IN_ICONS.map((icon) => icon.id)));
+const BUILT_IN_ICON_ID_SET = new Set<string>(BUILT_IN_ICON_IDS);
+// 工作台 `public/input/sfx/` 下当前稳定存放的 4 个内置音效。
+const BUILT_IN_SFX_IDS = [
+  "impact",
+  "tick",
+  "tick-2",
+  "whoosh-soft",
+];
+const BUILT_IN_SFX_ID_SET = new Set<string>(BUILT_IN_SFX_IDS);
+const AI_ARRANGEABLE_COMPONENT_ID_SET = new Set<string>(AI_ARRANGEABLE_COMPONENT_IDS);
+
+const buildDefaultSemanticTags = (
+  customPills: CustomSemanticPill[] = [],
+): Record<string, SemanticTagConfig> => {
+  const out: Record<string, SemanticTagConfig> = {};
+  for (const id of SEMANTIC_INTENT_IDS) {
+    out[id] = { enabled: true, iconIds: [], sfxIds: [], componentIds: [] };
+  }
+  for (const pill of customPills) {
+    if (isValidCustomPillId(pill.id)) {
+      out[pill.id] = { enabled: true, iconIds: [], sfxIds: [], componentIds: [] };
+    }
+  }
+  return out;
+};
+
+const filterIdListByWhitelist = (
+  input: unknown,
+  whitelist: Set<string>,
+  max: number,
+): string[] => {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of input) {
+    if (typeof id !== "string") continue;
+    const clean = id.trim();
+    if (!whitelist.has(clean)) continue;
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    out.push(clean);
+    if (out.length >= max) break;
+  }
+  return out;
+};
+
+const normalizeSemanticTagConfig = (input: unknown): SemanticTagConfig => {
+  const record = (input ?? {}) as Record<string, unknown>;
+  return {
+    enabled: record.enabled !== false,
+    iconIds: filterIdListByWhitelist(record.iconIds, BUILT_IN_ICON_ID_SET, 16),
+    sfxIds: filterIdListByWhitelist(record.sfxIds, BUILT_IN_SFX_ID_SET, 8),
+    componentIds: filterIdListByWhitelist(
+      record.componentIds,
+      AI_ARRANGEABLE_COMPONENT_ID_SET,
+      32,
+    ),
+  };
+};
+
+const normalizeSemanticTagsRecord = (
+  input: unknown,
+  customPills: CustomSemanticPill[] = [],
+): Record<string, SemanticTagConfig> => {
+  const fallback = buildDefaultSemanticTags(customPills);
+  if (!input || typeof input !== "object") return fallback;
+  const record = input as Record<string, unknown>;
+  for (const id of SEMANTIC_INTENT_IDS) {
+    if (SEMANTIC_INTENT_ID_SET.has(id) && record[id] && typeof record[id] === "object") {
+      fallback[id] = normalizeSemanticTagConfig(record[id]);
+    }
+  }
+  for (const pill of customPills) {
+    if (record[pill.id] && typeof record[pill.id] === "object") {
+      fallback[pill.id] = normalizeSemanticTagConfig(record[pill.id]);
+    }
+  }
+  return fallback;
+};
+
+export const SEMANTIC_TAG_ICON_IDS = BUILT_IN_ICON_IDS;
+export const SEMANTIC_TAG_SFX_IDS = BUILT_IN_SFX_IDS;
+export const SEMANTIC_TAG_COMPONENT_IDS = AI_ARRANGEABLE_COMPONENT_IDS;
+
 type ArrangementPreferences = {
   keepStyleConsistent: boolean;
   accentColor: string;
   autoAddIcons: boolean;
   learnFromConfirmedChoices: boolean;
   componentScores: Record<string, number>;
+  semanticTags: Record<string, SemanticTagConfig>;
+  customPills: CustomSemanticPill[];
 };
 
 type ArrangementStyleRule = ArrangementPreferences & {
@@ -2065,6 +2221,32 @@ const DEFAULT_ARRANGEMENT_PREFERENCES: ArrangementPreferences = {
   autoAddIcons: false,
   learnFromConfirmedChoices: true,
   componentScores: {},
+  semanticTags: buildDefaultSemanticTags(),
+  customPills: [],
+};
+
+const normalizeCustomPills = (input: unknown): CustomSemanticPill[] => {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: CustomSemanticPill[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    const id =
+      typeof record.id === "string" ? record.id.trim().toLowerCase() : "";
+    if (!isValidCustomPillId(id) || seen.has(id)) continue;
+    const label =
+      typeof record.label === "string" && record.label.trim()
+        ? record.label.trim().slice(0, 16)
+        : id;
+    const description =
+      typeof record.description === "string"
+        ? record.description.trim().slice(0, 120)
+        : "";
+    seen.add(id);
+    out.push({ id, label, description });
+  }
+  return out;
 };
 
 const loadArrangementPreferences = (): ArrangementPreferences => {
@@ -2091,6 +2273,11 @@ const loadArrangementPreferences = (): ArrangementPreferences => {
               ),
             )
           : {},
+      semanticTags: normalizeSemanticTagsRecord(
+        saved.semanticTags,
+        normalizeCustomPills(saved.customPills),
+      ),
+      customPills: normalizeCustomPills(saved.customPills),
     };
   } catch {
     return DEFAULT_ARRANGEMENT_PREFERENCES;
@@ -2103,46 +2290,51 @@ const normalizeArrangementStyleRules = (
 ): ArrangementStyleRule[] => {
   const rules = Array.isArray(input)
     ? (input as Array<Partial<ArrangementStyleRule>>).flatMap((rule, index) => {
-          if (!rule || typeof rule !== "object") return [];
-          const accentColor =
-            typeof rule.accentColor === "string" &&
-            /^#[0-9a-f]{6}$/iu.test(rule.accentColor)
-              ? rule.accentColor
-              : fallback.accentColor;
-          return [
-            {
-              id:
-                typeof rule.id === "string" && rule.id
-                  ? rule.id
-                  : `semantic-style-${index + 1}`,
-              name:
-                typeof rule.name === "string" && rule.name.trim()
-                  ? rule.name.trim()
-                  : `语义风格 ${index + 1}`,
-              keepStyleConsistent: rule.keepStyleConsistent !== false,
-              accentColor,
-              autoAddIcons: rule.autoAddIcons === true,
-              learnFromConfirmedChoices:
-                rule.learnFromConfirmedChoices !== false,
-              componentScores:
-                rule.componentScores && typeof rule.componentScores === "object"
-                  ? Object.fromEntries(
-                      Object.entries(rule.componentScores).flatMap(
-                        ([componentId, score]) =>
-                          Number.isFinite(Number(score))
-                            ? [
-                                [
-                                  componentId,
-                                  Math.max(-8, Math.min(12, Number(score))),
-                                ],
-                              ]
-                            : [],
-                      ),
-                    )
-                  : {},
-            },
-          ];
-        })
+        if (!rule || typeof rule !== "object") return [];
+        const accentColor =
+          typeof rule.accentColor === "string" &&
+          /^#[0-9a-f]{6}$/iu.test(rule.accentColor)
+            ? rule.accentColor
+            : fallback.accentColor;
+        return [
+          {
+            id:
+              typeof rule.id === "string" && rule.id
+                ? rule.id
+                : `semantic-style-${index + 1}`,
+            name:
+              typeof rule.name === "string" && rule.name.trim()
+                ? rule.name.trim()
+                : `语义风格 ${index + 1}`,
+            keepStyleConsistent: rule.keepStyleConsistent !== false,
+            accentColor,
+            autoAddIcons: rule.autoAddIcons === true,
+            learnFromConfirmedChoices:
+              rule.learnFromConfirmedChoices !== false,
+            componentScores:
+              rule.componentScores && typeof rule.componentScores === "object"
+                ? Object.fromEntries(
+                    Object.entries(rule.componentScores).flatMap(
+                      ([componentId, score]) =>
+                        Number.isFinite(Number(score))
+                          ? [
+                              [
+                                componentId,
+                                Math.max(-8, Math.min(12, Number(score))),
+                              ],
+                            ]
+                          : [],
+                    ),
+                  )
+                : {},
+            customPills: normalizeCustomPills(rule.customPills),
+            semanticTags: normalizeSemanticTagsRecord(
+              rule.semanticTags,
+              normalizeCustomPills(rule.customPills),
+            ),
+          },
+        ];
+      })
     : [];
   return rules;
 };
@@ -2161,7 +2353,13 @@ const loadArrangementStyleRules = (
   } catch {
     // 旧版单条偏好会在下面迁移为第一条语义风格规则。
   }
-  return [{ id: "default-semantic-style", name: "我的语义风格", ...fallback }];
+  return [
+    {
+      id: "default-semantic-style",
+      name: "我的语义风格",
+      ...fallback,
+    },
+  ];
 };
 
 const loadActiveArrangementPreferences = (): ArrangementPreferences => {
@@ -2542,6 +2740,16 @@ const App = () => {
   const [openingArrangementRulesLocation, setOpeningArrangementRulesLocation] =
     useState(false);
   const [newArrangementRuleName, setNewArrangementRuleName] = useState("");
+  const [semanticTagPopover, setSemanticTagPopover] = useState<
+    | {
+        intentId: SemanticIntentId;
+        field: "iconIds" | "sfxIds" | "componentIds";
+      }
+    | null
+  >(null);
+  const [newCustomPillId, setNewCustomPillId] = useState("");
+  const [newCustomPillLabel, setNewCustomPillLabel] = useState("");
+  const [newCustomPillDescription, setNewCustomPillDescription] = useState("");
   const [activePendingPreviewSegmentId, setActivePendingPreviewSegmentId] =
     useState("");
   const [selectedPendingPreviewInstanceId, setSelectedPendingPreviewInstanceId] =
@@ -3050,6 +3258,11 @@ const App = () => {
   const [effectNameOverrides, setEffectNameOverrides] = useState(
     loadEffectNameOverrides,
   );
+  const [effectSemanticTypeOverrides, setEffectSemanticTypeOverrides] = useState(
+    loadEffectSemanticTypeOverrides,
+  );
+  const [effectSemanticTypeTarget, setEffectSemanticTypeTarget] =
+    useState<EffectSemanticTypeTarget | null>(null);
   const [effectGroupNameOverrides, setEffectGroupNameOverrides] = useState(
     loadEffectGroupNameOverrides,
   );
@@ -6586,20 +6799,32 @@ const App = () => {
     );
   };
 
-  const deleteActiveArrangementRule = () => {
+  const deleteArrangementRule = (ruleId: string) => {
     if (arrangementRules.length <= 1) {
       setNotice({ tone: "info", text: "至少需要保留一条编排规则。" });
       return;
     }
+    const targetRule = arrangementRules.find((rule) => rule.id === ruleId);
+    if (!targetRule || targetRule.id === "default-semantic-style") {
+      setNotice({ tone: "info", text: "内置语义风格不能删除，只能删除自定义新建的语义风格。" });
+      return;
+    }
     const remaining = arrangementRules.filter(
-      (rule) => rule.id !== activeArrangementRuleId,
+      (rule) => rule.id !== ruleId,
     );
-    const nextRule = remaining[0];
+    const nextRule = remaining.find((rule) => rule.id === activeArrangementRuleId) ?? remaining[0];
     const { id: _id, name: _name, ...preferences } = nextRule;
     setArrangementRules(remaining);
-    setActiveArrangementRuleId(nextRule.id);
-    setArrangementPreferences(preferences);
-    setNotice({ tone: "ok", text: "已删除当前规则并切换到下一条规则。" });
+    if (activeArrangementRuleId === ruleId) {
+      setActiveArrangementRuleId(nextRule.id);
+      setArrangementPreferences(preferences);
+    }
+    setContextMenu(null);
+    setNotice({ tone: "ok", text: `已删除自定义语义风格“${targetRule.name}”。` });
+  };
+
+  const deleteActiveArrangementRule = () => {
+    deleteArrangementRule(activeArrangementRuleId);
   };
 
   const updateArrangementPreferences = (
@@ -6654,6 +6879,143 @@ const App = () => {
       componentScores: {},
     }));
     setNotice({ tone: "ok", text: "已清空 AI 编排的组件选择习惯。" });
+  };
+
+  const updateSemanticTagIntent = (
+    intentId: SemanticIntentId,
+    updater: (current: SemanticTagConfig) => SemanticTagConfig,
+  ) => {
+    setArrangementPreferences((current) => {
+      const existing = current.semanticTags[intentId] ??
+        buildDefaultSemanticTags(current.customPills)[intentId];
+      const nextConfig = updater(existing);
+      return {
+        ...current,
+        semanticTags: {
+          ...current.semanticTags,
+          [intentId]: nextConfig,
+        },
+      };
+    });
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId
+          ? {
+              ...rule,
+              semanticTags: {
+                ...rule.semanticTags,
+                [intentId]: updater(
+                  rule.semanticTags[intentId] ??
+                    buildDefaultSemanticTags(rule.customPills)[intentId],
+                ),
+              },
+            }
+          : rule,
+      ),
+    );
+  };
+
+  const setSemanticTagEnabled = (
+    intentId: SemanticIntentId,
+    enabled: boolean,
+  ) => {
+    updateSemanticTagIntent(intentId, (current) => ({ ...current, enabled }));
+  };
+
+  const setSemanticTagSelection = (
+    intentId: SemanticIntentId,
+    field: "iconIds" | "sfxIds" | "componentIds",
+    ids: string[],
+  ) => {
+    updateSemanticTagIntent(intentId, (current) => ({
+      ...current,
+      [field]: ids,
+    }));
+  };
+
+  const resetSemanticTagsForActiveRule = () => {
+    const defaults = buildDefaultSemanticTags();
+    setArrangementPreferences((current) => ({
+      ...current,
+      semanticTags: defaults,
+    }));
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId
+          ? { ...rule, semanticTags: defaults }
+          : rule,
+      ),
+    );
+    setNotice({ tone: "ok", text: "已重置当前标签集为默认值。" });
+  };
+
+  const createCustomPill = () => {
+    const id = newCustomPillId.trim().toLowerCase();
+    const label = newCustomPillLabel.trim().slice(0, 16) || id;
+    const description = newCustomPillDescription.trim().slice(0, 120);
+    if (!isValidCustomPillId(id)) {
+      setNotice({
+        tone: "error",
+        text: "自定义语义 ID 只能包含小写字母、数字和连字符，且不能与内置语义重复。",
+      });
+      return;
+    }
+    if (
+      arrangementPreferences.customPills.some((pill) => pill.id === id)
+    ) {
+      setNotice({ tone: "error", text: `自定义语义 "${id}" 已存在。` });
+      return;
+    }
+    const pill: CustomSemanticPill = { id, label, description };
+    const nextPills = [...arrangementPreferences.customPills, pill];
+    const nextTags = {
+      ...arrangementPreferences.semanticTags,
+      [id]: { enabled: true, iconIds: [], sfxIds: [], componentIds: [] },
+    };
+    setArrangementPreferences((current) => ({
+      ...current,
+      customPills: nextPills,
+      semanticTags: nextTags,
+    }));
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId
+          ? { ...rule, customPills: nextPills, semanticTags: nextTags }
+          : rule,
+      ),
+    );
+    setNewCustomPillId("");
+    setNewCustomPillLabel("");
+    setNewCustomPillDescription("");
+    setNotice({ tone: "ok", text: `已新建自定义语义 "${label}"。` });
+  };
+
+  const deleteCustomPill = (pillId: string) => {
+    const pill = arrangementPreferences.customPills.find(
+      (candidate) => candidate.id === pillId,
+    );
+    if (!pill) return;
+    const nextPills = arrangementPreferences.customPills.filter(
+      (candidate) => candidate.id !== pillId,
+    );
+    const nextTags = { ...arrangementPreferences.semanticTags };
+    delete nextTags[pillId];
+    setArrangementPreferences((current) => ({
+      ...current,
+      customPills: nextPills,
+      semanticTags: nextTags,
+    }));
+    setArrangementRules((current) =>
+      current.map((rule) =>
+        rule.id === activeArrangementRuleId
+          ? { ...rule, customPills: nextPills, semanticTags: nextTags }
+          : rule,
+      ),
+    );
+    setSemanticTagPopover((current) =>
+      current?.intentId === pillId ? null : current,
+    );
+    setNotice({ tone: "ok", text: `已删除自定义语义 "${pill.label}"。` });
   };
 
   const setAllPendingArrangementItems = (selected: boolean) => {
@@ -8865,6 +9227,22 @@ const App = () => {
     });
   };
 
+  const showArrangementRuleMenu = (
+    event: React.MouseEvent,
+    rule: ArrangementStyleRule,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 210),
+      y: Math.min(event.clientY, window.innerHeight - 92),
+      source: "arrangementRule",
+      instanceIds: [],
+      arrangementRuleId: rule.id,
+      arrangementRuleName: rule.name,
+    });
+  };
+
   const stopSfxLibraryPreview = () => {
     sfxLibraryAudioPreviewRef.current?.pause();
     sfxLibraryAudioPreviewRef.current = null;
@@ -9658,6 +10036,37 @@ const App = () => {
       effectName: definition.name,
     });
     setEffectNameDraft(definition.name);
+  };
+
+  const openEffectSemanticTypeDialog = (componentId: string) => {
+    const definition =
+      catalogDefinitionMap.get(componentId) ?? definitionMap.get(componentId);
+    if (!definition) return;
+    const currentIntentId =
+      effectSemanticTypeOverrides[componentId] ??
+      EFFECT_SEMANTIC_CAPABILITIES[componentId]?.primaryIntent ??
+      "emphasis";
+    setContextMenu(null);
+    setEffectSemanticTypeTarget({
+      componentId,
+      effectName: definition.name,
+      intentId: currentIntentId,
+    });
+  };
+
+  const saveEffectSemanticType = () => {
+    if (!effectSemanticTypeTarget) return;
+    const { componentId, intentId } = effectSemanticTypeTarget;
+    setEffectSemanticTypeOverrides((current) => {
+      const next = { ...current, [componentId]: intentId };
+      window.localStorage.setItem(
+        EFFECT_SEMANTIC_TYPE_STORAGE_KEY,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+    setEffectSemanticTypeTarget(null);
+    setNotice({ tone: "ok", text: `已将“${effectSemanticTypeTarget.effectName}”归类为“${SEMANTIC_INTENT_LABELS[intentId] ?? intentId}”。` });
   };
 
   const renameEffect = () => {
@@ -10608,12 +11017,6 @@ const App = () => {
             效果库
           </button>
           <button
-            className={activeWorkspace === "rules" ? "active" : ""}
-            onClick={() => setActiveWorkspace("rules")}
-          >
-            编排规则
-          </button>
-          <button
             className={activeWorkspace === "icons" ? "active" : ""}
             onClick={() => setActiveWorkspace("icons")}
           >
@@ -10631,8 +11034,14 @@ const App = () => {
               setActiveWorkspace("code");
               setLeftPanelWidth((width) => Math.max(width, 460));
             }}
-          >
+            >
             代码
+          </button>
+          <button
+            className={activeWorkspace === "rules" ? "active" : ""}
+            onClick={() => setActiveWorkspace("rules")}
+          >
+            编排规则
           </button>
         </nav>
 
@@ -10861,9 +11270,9 @@ const App = () => {
             <div className="semantic-rules-panel">
               <header className="semantic-rules-header">
                 <div>
-                  <small>AI ARRANGEMENT RULES</small>
-                  <strong>编排规则</strong>
-                  <span>自动编排只读取当前启用的语义风格</span>
+                  <small>AI SEMANTIC TAGS</small>
+                  <strong>编码识别标签</strong>
+                  <span>AI 自动编排只读取当前启用的语义标签</span>
                 </div>
                 <div className="semantic-rules-header-actions">
                   <span className={arrangementRulesSaveStatus}>
@@ -10885,41 +11294,50 @@ const App = () => {
                 </div>
               </header>
 
-              <div className="semantic-rule-list" aria-label="语义风格规则列表">
-                {arrangementRules.map((rule) => (
-                  <button
-                    type="button"
-                    key={rule.id}
-                    className={
-                      rule.id === activeArrangementRuleId ? "active" : undefined
-                    }
-                    onClick={() => activateArrangementRule(rule.id)}
-                  >
-                    <i style={{ backgroundColor: rule.accentColor }} />
-                    <span>
-                      <strong>{rule.name}</strong>
-                      <small>
-                        {rule.keepStyleConsistent ? "统一风格" : "语义自动配色"}
-                        {rule.autoAddIcons ? " · 自动图标" : " · 图标手动"}
-                      </small>
-                    </span>
-                    <b>{rule.id === activeArrangementRuleId ? "使用中" : "启用"}</b>
-                  </button>
-                ))}
+              <div className="semantic-rule-list" aria-label="编码识别标签集列表">
+                {arrangementRules.map((rule) => {
+                  const enabledCount = Object.values(rule.semanticTags).filter(
+                    (entry) => entry.enabled,
+                  ).length;
+                  return (
+                    <button
+                      type="button"
+                      key={rule.id}
+                      className={
+                        rule.id === activeArrangementRuleId ? "active" : undefined
+                      }
+                      onClick={() => activateArrangementRule(rule.id)}
+                      onContextMenu={(event) => showArrangementRuleMenu(event, rule)}
+                    >
+                      <i className="semantic-rule-tag-indicator">
+                        {enabledCount}
+                        <small>/{SEMANTIC_INTENT_IDS.length}</small>
+                      </i>
+                      <span>
+                        <strong>{rule.name}</strong>
+                        <small>
+                          {enabledCount}/{SEMANTIC_INTENT_IDS.length} 个语义已启用
+                        </small>
+                      </span>
+                      <b>
+                        {rule.id === activeArrangementRuleId ? "使用中" : "启用"}
+                      </b>
+                    </button>
+                  );
+                })}
               </div>
 
               {activeArrangementRule ? (
                 <section className="semantic-rule-editor">
                   <div className="semantic-rule-editor-title">
                     <span>
-                      <small>ACTIVE SEMANTIC STYLE</small>
-                      <strong>编辑当前规则</strong>
+                      <small>ACTIVE SEMANTIC TAGS</small>
+                      <strong>编辑当前标签集</strong>
                     </span>
-                    <i style={{ backgroundColor: arrangementPreferences.accentColor }} />
                   </div>
 
                   <label className="semantic-rule-name">
-                    <span>规则名称</span>
+                    <span>标签集名称</span>
                     <input
                       type="text"
                       value={activeArrangementRule.name}
@@ -10928,90 +11346,283 @@ const App = () => {
                       }
                       onBlur={(event) => {
                         if (!event.currentTarget.value.trim()) {
-                          renameActiveArrangementRule("未命名语义风格");
+                          renameActiveArrangementRule("未命名标签集");
                         }
                       }}
                     />
                   </label>
 
-                  <div className="semantic-rule-fields">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={arrangementPreferences.keepStyleConsistent}
-                        onChange={(event) =>
-                          updateArrangementPreferences({
-                            keepStyleConsistent: event.target.checked,
-                          })
-                        }
-                      />
-                      <span>
-                        <strong>保持统一视觉风格</strong>
-                        <small>统一组件主强调色</small>
-                      </span>
-                    </label>
-                    <label className="semantic-rule-color">
-                      <input
-                        type="color"
-                        value={arrangementPreferences.accentColor}
-                        disabled={!arrangementPreferences.keepStyleConsistent}
-                        onChange={(event) =>
-                          updateArrangementPreferences({
-                            accentColor: event.target.value,
-                          })
-                        }
-                      />
-                      <span>
-                        <strong>规则主色</strong>
-                        <small>{arrangementPreferences.accentColor.toUpperCase()}</small>
-                      </span>
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={arrangementPreferences.autoAddIcons}
-                        onChange={(event) =>
-                          updateArrangementPreferences({
-                            autoAddIcons: event.target.checked,
-                          })
-                        }
-                      />
-                      <span>
-                        <strong>自动添加独立图标</strong>
-                        <small>关闭后仅允许手动添加</small>
-                      </span>
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={
-                          arrangementPreferences.learnFromConfirmedChoices
-                        }
-                        onChange={(event) =>
-                          updateArrangementPreferences({
-                            learnFromConfirmedChoices: event.target.checked,
-                          })
-                        }
-                      />
-                      <span>
-                        <strong>学习确认插入项</strong>
-                        <small>
-                          已记录 {Object.keys(arrangementPreferences.componentScores).length} 个组件
-                        </small>
-                      </span>
-                    </label>
+                  <div className="semantic-tag-table-wrapper">
+                    <header className="semantic-tag-table-header">
+                      <strong>语义标签清单</strong>
+                      <small>
+                        每个语义下面可单独勾选允许 AI 自动编排调用的「图标 id / 音效 id / 组件 id」；
+                        主色、自动图标、学习习惯、组件偏好等风格开关仍在自动编排弹窗里统一管理。
+                      </small>
+                    </header>
+
+                    <div className="semantic-tag-table" aria-label="语义标签表">
+                      {mergeSemanticIntentDefinitions(
+                        undefined,
+                        arrangementPreferences.customPills,
+                      ).map((intent, index) => {
+                        const config =
+                          arrangementPreferences.semanticTags[intent.id] ??
+                          buildDefaultSemanticTags(
+                            arrangementPreferences.customPills,
+                          )[intent.id];
+                        const isCustomPill = intent.builtIn !== true;
+                        const popoverOpen =
+                          semanticTagPopover?.intentId === intent.id;
+                        const toggleChip = (
+                          field: "iconIds" | "sfxIds" | "componentIds",
+                          label: string,
+                          count: number,
+                        ) => (
+                          <button
+                            key={field}
+                            type="button"
+                            className={`tag-chip ${
+                              popoverOpen && semanticTagPopover?.field === field
+                                ? "open"
+                                : ""
+                            } ${count > 0 ? "filled" : ""}`}
+                            disabled={!config.enabled}
+                            aria-expanded={
+                              popoverOpen && semanticTagPopover?.field === field
+                            }
+                            onClick={() => {
+                              if (!config.enabled) return;
+                              setSemanticTagPopover(
+                                popoverOpen && semanticTagPopover?.field === field
+                                  ? null
+                                  : { intentId: intent.id, field },
+                              );
+                            }}
+                          >
+                            <span>{label}</span>
+                            <b>{count}</b>
+                          </button>
+                        );
+                        const updateSelection = (
+                          field: "iconIds" | "sfxIds" | "componentIds",
+                          id: string,
+                          checked: boolean,
+                        ) => {
+                          const whitelist =
+                            field === "iconIds"
+                              ? BUILT_IN_ICON_ID_SET
+                              : field === "sfxIds"
+                                ? BUILT_IN_SFX_ID_SET
+                                : AI_ARRANGEABLE_COMPONENT_ID_SET;
+                          if (!whitelist.has(id)) return;
+                          const next = checked
+                            ? Array.from(new Set([...config[field], id]))
+                            : config[field].filter((existing) => existing !== id);
+                          setSemanticTagSelection(intent.id, field, next);
+                        };
+                        return (
+                          <div
+                            key={intent.id}
+                            className={`semantic-tag-row ${
+                              config.enabled ? "" : "disabled"
+                            } ${popoverOpen ? "open" : ""}`}
+                          >
+                            <label className="semantic-tag-enable">
+                              <input
+                                type="checkbox"
+                                checked={config.enabled}
+                                onChange={(event) =>
+                                  setSemanticTagEnabled(
+                                    intent.id,
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                              <span>
+                                <strong>
+                                  {String(index + 1).padStart(2, "0")} ·{" "}
+                                  {intent.label}
+                                </strong>
+                                <small>{intent.description}</small>
+                              </span>
+                            </label>
+                            <div className="semantic-tag-chips">
+                              {toggleChip(
+                                "iconIds",
+                                "图标",
+                                config.iconIds.length,
+                              )}
+                              {toggleChip(
+                                "sfxIds",
+                                "音效",
+                                config.sfxIds.length,
+                              )}
+                              {toggleChip(
+                                "componentIds",
+                                "组件",
+                                config.componentIds.length,
+                              )}
+                              {isCustomPill ? (
+                                <button
+                                  type="button"
+                                  className="semantic-tag-delete"
+                                  title="删除自定义语义"
+                                  onClick={() => deleteCustomPill(intent.id)}
+                                >
+                                  <X weight="bold" />
+                                </button>
+                              ) : null}
+                            </div>
+                            {popoverOpen && semanticTagPopover ? (
+                              <div
+                                className="semantic-tag-popover"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                <header>
+                                  <strong>
+                                    {intent.label} ·{" "}
+                                    {semanticTagPopover.field === "iconIds"
+                                      ? "图标标签"
+                                      : semanticTagPopover.field === "sfxIds"
+                                        ? "音效标签"
+                                        : "组件标签"}
+                                  </strong>
+                                  <small>
+                                    勾选 = 允许 AI 自动编排调用；取消勾选则视为禁用。
+                                  </small>
+                                </header>
+                                {semanticTagPopover.field === "iconIds" ? (
+                                  <div className="semantic-tag-popover-groups">
+                                    {BUILT_IN_ICON_CATEGORIES.map((category) => (
+                                      <section key={category.id}>
+                                        <strong>{category.name}</strong>
+                                        <ul>
+                                          {category.icons.map(
+                                            ([iconId, _component, iconLabel]) => {
+                                              const checked =
+                                                config.iconIds.includes(
+                                                  iconId,
+                                                );
+                                              return (
+                                                <li key={iconId}>
+                                                  <label>
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={checked}
+                                                      onChange={(event) =>
+                                                        updateSelection(
+                                                          "iconIds",
+                                                          iconId,
+                                                          event.target.checked,
+                                                        )
+                                                      }
+                                                    />
+                                                    <span>
+                                                      <strong>
+                                                        {iconLabel}
+                                                      </strong>
+                                                      <code>{iconId}</code>
+                                                    </span>
+                                                  </label>
+                                                </li>
+                                              );
+                                            },
+                                          )}
+                                        </ul>
+                                      </section>
+                                    ))}
+                                  </div>
+                                ) : semanticTagPopover.field === "sfxIds" ? (
+                                  <ul className="semantic-tag-popover-list">
+                                    {BUILT_IN_SFX_IDS.map((sfxId) => {
+                                      const checked =
+                                        config.sfxIds.includes(sfxId);
+                                      return (
+                                        <li key={sfxId}>
+                                          <label>
+                                            <input
+                                              type="checkbox"
+                                              checked={checked}
+                                              onChange={(event) =>
+                                                updateSelection(
+                                                  "sfxIds",
+                                                  sfxId,
+                                                  event.target.checked,
+                                                )
+                                              }
+                                            />
+                                            <span>
+                                              <strong>{sfxId}</strong>
+                                              <code>sfx/{sfxId}.wav</code>
+                                            </span>
+                                          </label>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                ) : (
+                                  <ul className="semantic-tag-popover-list">
+                                    {AI_ARRANGEABLE_COMPONENT_IDS.map(
+                                      (componentId) => {
+                                        const checked =
+                                          config.componentIds.includes(
+                                            componentId,
+                                          );
+                                        const definition =
+                                          EFFECT_REGISTRY_BY_ID.get(
+                                            componentId,
+                                          );
+                                        return (
+                                          <li key={componentId}>
+                                            <label>
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={(event) =>
+                                                  updateSelection(
+                                                    "componentIds",
+                                                    componentId,
+                                                    event.target.checked,
+                                                  )
+                                                }
+                                              />
+                                              <span>
+                                                <strong>
+                                                  {definition?.name ??
+                                                    componentId}
+                                                </strong>
+                                                <code>{componentId}</code>
+                                              </span>
+                                            </label>
+                                          </li>
+                                        );
+                                      },
+                                    )}
+                                  </ul>
+                                )}
+                                <footer>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSemanticTagPopover(null)}
+                                  >
+                                    完成
+                                  </button>
+                                </footer>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="semantic-rule-actions">
                     <button
                       type="button"
-                      disabled={
-                        Object.keys(arrangementPreferences.componentScores)
-                          .length === 0
-                      }
-                      onClick={clearLearnedArrangementPreferences}
+                      onClick={resetSemanticTagsForActiveRule}
                     >
-                      清空组件习惯
+                      重置标签
                     </button>
                     <button
                       type="button"
@@ -11019,16 +11630,16 @@ const App = () => {
                       disabled={arrangementRules.length <= 1}
                       onClick={deleteActiveArrangementRule}
                     >
-                      删除规则
+                      删除标签集
                     </button>
                   </div>
                 </section>
               ) : null}
 
               <div className="semantic-rule-system-note">
-                <strong>规则文件已纳入项目</strong>
+                <strong>标签文件已纳入项目</strong>
                 <span>
-                  保存位置：public/input/arrangement-rules/rule-manifest.json。该文件可以随 Git、备份或复制到其他工作台长期复用。
+                  保存位置：public/input/arrangement-rules/rule-manifest.json（schema v2）。该文件可以随 Git、备份或复制到其他工作台长期复用。
                 </span>
               </div>
             </div>
@@ -11114,7 +11725,11 @@ const App = () => {
                           {category.items.map((item) => {
                             const definition = catalogDefinitionMap.get(item.ids[0]);
                             const semanticBadge = definition
-                              ? effectSemanticBadge(definition.id)
+                              ? effectSemanticBadge(
+                                  definition.id,
+                                  arrangementPreferences.customPills,
+                                  effectSemanticTypeOverrides,
+                                )
                               : null;
                             return (
                               <div className="effect-library-item" key={item.ids[0]}>
@@ -11178,7 +11793,11 @@ const App = () => {
                   </div>
                   <div className="effect-library-items">
                     {ungroupedCustomDefinitions.map((definition) => {
-                      const semanticBadge = effectSemanticBadge(definition.id);
+                      const semanticBadge = effectSemanticBadge(
+                        definition.id,
+                        arrangementPreferences.customPills,
+                        effectSemanticTypeOverrides,
+                      );
                       return (
                         <div className="effect-library-item" key={definition.id}>
                           <button
@@ -13611,6 +14230,66 @@ const App = () => {
         </div>
       ) : null}
 
+      {effectSemanticTypeTarget ? (
+        <div
+          className="shortcut-dialog-backdrop"
+          onPointerDown={() => setEffectSemanticTypeTarget(null)}
+        >
+          <section
+            className="shortcut-dialog group-dialog semantic-type-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="effect-semantic-type-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span>
+                  <strong id="effect-semantic-type-title">修改语义类型</strong>
+                  <small>“{effectSemanticTypeTarget.effectName}”将作为 AI 自动编排的主语义</small>
+                </span>
+              </div>
+              <button onClick={() => setEffectSemanticTypeTarget(null)}>
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <label htmlFor="effect-semantic-type-select">主语义类型</label>
+              <select
+                id="effect-semantic-type-select"
+                autoFocus
+                value={effectSemanticTypeTarget.intentId}
+                onChange={(event) =>
+                  setEffectSemanticTypeTarget((current) =>
+                    current ? { ...current, intentId: event.target.value } : current,
+                  )
+                }
+              >
+                {mergeSemanticIntentDefinitions(undefined, arrangementPreferences.customPills).map(
+                  (definition) => (
+                    <option key={definition.id} value={definition.id}>
+                      {definition.label}
+                    </option>
+                  ),
+                )}
+              </select>
+              <small className="semantic-type-help">
+                修改只影响该效果的语义归类和候选排序，不会改变组件源码、名称或分组。
+              </small>
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button onClick={() => setEffectSemanticTypeTarget(null)}>取消</button>
+                <button className="shortcut-save" onClick={saveEffectSemanticType}>
+                  保存类型
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {effectMoveTarget ? (
         <div
           className="shortcut-dialog-backdrop effect-move-backdrop"
@@ -14830,8 +15509,8 @@ const App = () => {
             <div className="arrangement-preferences compact" aria-label="自动编排设置">
               <div className="arrangement-active-rule-field">
                 <span>
-                  <strong>当前编排规则</strong>
-                  <small>自动编排按所选风格匹配组件</small>
+                  <strong>当前编码识别标签集</strong>
+                  <small>自动编排按所选标签集匹配 10 种语义的图标 / 音效 / 组件 id</small>
                 </span>
                 <select
                   value={activeArrangementRuleId}
@@ -14863,11 +15542,11 @@ const App = () => {
                     onClick={deleteActiveArrangementRule}
                     title={
                       arrangementRules.length <= 1
-                        ? "至少保留一条规则"
-                        : "删除当前语义规则"
+                        ? "至少保留一条标签集"
+                        : "删除当前编码识别标签集"
                     }
                   >
-                    删除规则
+                    删除标签集
                   </button>
                 </div>
               </div>
@@ -15366,6 +16045,24 @@ const App = () => {
                   删除资源片段（S）
                 </button>
               </>
+            ) : contextMenu.source === "arrangementRule" ? (
+              <>
+                <small>{contextMenu.arrangementRuleName ?? "语义风格"}</small>
+                {contextMenu.arrangementRuleId !== "default-semantic-style" ? (
+                  <button
+                    className="delete-action"
+                    disabled={arrangementRules.length <= 1}
+                    onClick={() =>
+                      contextMenu.arrangementRuleId &&
+                      deleteArrangementRule(contextMenu.arrangementRuleId)
+                    }
+                  >
+                    删除自定义语义风格
+                  </button>
+                ) : (
+                  <small>内置语义风格不可删除</small>
+                )}
+              </>
             ) : contextMenu.source === "library" ? (
               <>
                 <small>
@@ -15373,6 +16070,17 @@ const App = () => {
                     ? catalogDefinitionMap.get(contextMenu.componentId)?.name ?? "效果组件"
                     : "效果组件"}
                 </small>
+                {contextMenu.componentId ? (
+                  <button
+                    className="semantic-action"
+                    onClick={() =>
+                      contextMenu.componentId &&
+                      openEffectSemanticTypeDialog(contextMenu.componentId)
+                    }
+                  >
+                    修改语义类型
+                  </button>
+                ) : null}
                 {contextMenu.componentId ? (
                   <button
                     className="code-action"

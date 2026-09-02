@@ -11,8 +11,62 @@ export const SEMANTIC_INTENT_DEFINITIONS = [
   { id: "call-to-action", label: "行动引导", description: "引导关注、收藏、继续观看或采取下一步行动。" },
 ] as const;
 
-export type SemanticIntentId =
+export type SemanticIntentId = string;
+
+export type BuiltInSemanticIntentId =
   (typeof SEMANTIC_INTENT_DEFINITIONS)[number]["id"];
+
+export const BUILT_IN_SEMANTIC_INTENT_IDS: BuiltInSemanticIntentId[] =
+  SEMANTIC_INTENT_DEFINITIONS.map((definition) => definition.id);
+
+export const BUILT_IN_SEMANTIC_INTENT_ID_SET = new Set<string>(
+  BUILT_IN_SEMANTIC_INTENT_IDS,
+);
+
+export type SemanticIntentDisplayDefinition = {
+  id: string;
+  label: string;
+  description: string;
+  builtIn?: boolean;
+};
+
+export type SemanticIntentOverride = Partial<
+  Pick<SemanticIntentDisplayDefinition, "label" | "description">
+>;
+
+export const isBuiltInSemanticIntentId = (id: string): boolean =>
+  BUILT_IN_SEMANTIC_INTENT_ID_SET.has(id);
+
+export const mergeSemanticIntentDefinitions = (
+  overrides?: Record<string, SemanticIntentOverride>,
+  custom?: SemanticIntentDisplayDefinition[],
+): SemanticIntentDisplayDefinition[] => {
+  const base = SEMANTIC_INTENT_DEFINITIONS.map(
+    (definition): SemanticIntentDisplayDefinition => ({
+      ...definition,
+      builtIn: true,
+    }),
+  );
+  if (overrides) {
+    for (let index = 0; index < base.length; index += 1) {
+      const override = overrides[base[index].id];
+      if (override) {
+        base[index] = {
+          ...base[index],
+          label: override.label ?? base[index].label,
+          description: override.description ?? base[index].description,
+        };
+      }
+    }
+  }
+  const customDefinitions = (custom ?? []).filter(
+    (definition) =>
+      typeof definition.id === "string" &&
+      definition.id.trim().length > 0 &&
+      !isBuiltInSemanticIntentId(definition.id),
+  );
+  return [...base, ...customDefinitions];
+};
 
 export type SemanticContentKind =
   | "short-text"
