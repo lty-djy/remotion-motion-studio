@@ -927,8 +927,175 @@ main.is-resizing-sidebar * {
   margin-top: 13px;
 }
 
+.semantic-type-library {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.semantic-type-library-group {
+  overflow: hidden;
+  border: 1px solid #303238;
+  border-radius: 8px;
+  background: #1a1b1f;
+}
+
+.semantic-type-library-group > header,
+.semantic-type-library-group > button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.semantic-type-library-group > button {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto 14px;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 7px 9px;
+  border: 0;
+  color: #c9cacf;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.semantic-type-library-group > button.open {
+  border-bottom: 1px solid #303238;
+  background: rgba(104, 232, 255, 0.055);
+}
+
+.semantic-type-library-group > button > i {
+  width: 12px;
+  height: 32px;
+  border-radius: 4px;
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.semantic-type-library-group > button > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.semantic-type-library-group > button strong {
+  overflow: hidden;
+  color: #e9e9ed;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semantic-type-library-group > button small {
+  overflow: hidden;
+  color: #777a82;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semantic-type-library-group > button > b {
+  color: #68e8ff;
+  font-size: 14px;
+}
+
+.semantic-type-library-group > button > em {
+  color: #777a82;
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.semantic-type-library-group > button > svg {
+  width: 14px;
+  color: #777a82;
+}
+
+.semantic-type-library-items {
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.semantic-type-library-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 6px;
+}
+
+.semantic-type-library-item-main,
+.semantic-type-library-item-code {
+  border: 0;
+  color: inherit;
+  background: #202126;
+  cursor: pointer;
+}
+
+.semantic-type-library-item-main {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 5px;
+  text-align: left;
+}
+
+.semantic-type-library-item-main:hover,
+.semantic-type-library-item-code:hover {
+  background: #292b31;
+}
+
+.semantic-type-library-item-main > i {
+  display: grid;
+  width: 38px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid rgba(104, 232, 255, 0.2);
+  border-radius: 4px;
+  color: #68e8ff;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.semantic-type-library-item-main > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.semantic-type-library-item-main strong {
+  overflow: hidden;
+  color: #e4e5e8;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semantic-type-library-item-main small {
+  color: #777a82;
+  font-size: 9px;
+}
+
+.semantic-type-library-item-main > svg,
+.semantic-type-library-item-code svg {
+  width: 12px;
+  color: #777a82;
+}
+
+.semantic-type-library-item-code {
+  display: grid;
+  border-radius: 5px;
+  place-items: center;
+}
+
 .semantic-type-card {
   display: grid;
+  width: 100%;
   grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
@@ -936,7 +1103,16 @@ main.is-resizing-sidebar * {
   padding: 8px 10px;
   border: 1px solid #303238;
   border-radius: 8px;
+  color: inherit;
   background: #1a1b1f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.semantic-type-card:hover,
+.semantic-type-card.expanded {
+  border-color: rgba(104, 232, 255, 0.4);
+  background: rgba(104, 232, 255, 0.07);
 }
 
 .semantic-type-card > span {
@@ -977,6 +1153,110 @@ main.is-resizing-sidebar * {
   color: #68e8ff;
   font-family: Consolas, monospace;
   font-size: 14px;
+}
+
+.semantic-type-components {
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid rgba(104, 232, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(104, 232, 255, 0.035);
+}
+
+.semantic-type-components > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.semantic-type-components > header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.semantic-type-components > header strong {
+  color: #e9fbff;
+  font-size: 12px;
+}
+
+.semantic-type-components > header small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.semantic-type-components > header > b {
+  color: #68e8ff;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.semantic-type-component-list {
+  display: grid;
+  gap: 5px;
+  max-height: 330px;
+  overflow: auto;
+}
+
+.semantic-type-component-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 28px;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 5px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.semantic-type-component-row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.semantic-type-component-row strong {
+  overflow: hidden;
+  color: #e6e7ea;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semantic-type-component-row code {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: Consolas, monospace;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semantic-type-component-row button {
+  min-height: 25px;
+  padding: 4px 6px;
+  border: 1px solid rgba(104, 232, 255, 0.25);
+  border-radius: 5px;
+  color: #bdf7ff;
+  background: rgba(104, 232, 255, 0.08);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.semantic-type-component-row button:last-child {
+  display: grid;
+  width: 28px;
+  padding: 0;
+  place-items: center;
+}
+
+.semantic-type-component-row button:last-child svg {
+  width: 12px;
+  height: 12px;
 }
 
 .semantic-rules-header {

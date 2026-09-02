@@ -2116,6 +2116,16 @@ const DISPLAYED_SEMANTIC_INTENT_IDS = [
   "process",
   "list",
 ] as const;
+const SEMANTIC_TYPE_ACCENTS = [
+  "#79d7ff",
+  "#f2b93d",
+  "#a776f7",
+  "#20d7a0",
+  "#4f9dff",
+  "#ff8b5c",
+  "#27c4e8",
+  "#d98cff",
+];
 
 const isValidCustomPillId = (id: string): boolean =>
   /^[a-z0-9-]{1,32}$/.test(id) && !SEMANTIC_INTENT_ID_SET.has(id);
@@ -3235,6 +3245,7 @@ const App = () => {
     Math.max(160, Math.min(440, window.innerHeight - 245)),
   );
   const [effectSearch, setEffectSearch] = useState("");
+  const [expandedSemanticIntentId, setExpandedSemanticIntentId] = useState<string | null>(null);
   const [iconSearch, setIconSearch] = useState("");
   const [sfxSearch, setSfxSearch] = useState("");
   const [previewingSfxId, setPreviewingSfxId] = useState("");
@@ -3857,6 +3868,23 @@ const App = () => {
       }
     }
     return counts;
+  }, [catalogDefinitionMap, effectSemanticTypeOverrides]);
+  const semanticComponentsByIntent = useMemo(() => {
+    const components = new Map<string, MotionComponentDefinition[]>();
+    for (const intentId of DISPLAYED_SEMANTIC_INTENT_IDS) components.set(intentId, []);
+    for (const definition of catalogDefinitionMap.values()) {
+      const capabilities = EFFECT_SEMANTIC_CAPABILITIES[definition.id];
+      if (!capabilities) continue;
+      const intentIds = new Set([
+        effectSemanticTypeOverrides[definition.id] ?? capabilities.primaryIntent,
+        ...capabilities.secondaryIntents,
+      ]);
+      for (const intentId of intentIds) {
+        const target = components.get(intentId);
+        if (target) target.push(definition);
+      }
+    }
+    return components;
   }, [catalogDefinitionMap, effectSemanticTypeOverrides]);
   const filteredEffectCatalog = useMemo(() => {
     const query = effectSearch.trim().toLocaleLowerCase("zh-CN");
@@ -11317,24 +11345,65 @@ const App = () => {
                 </div>
                 <i>{DISPLAYED_SEMANTIC_INTENT_IDS.length} 类</i>
               </header>
-              <div className="semantic-types-grid" aria-label="已存在的语义类型列表">
+              <div className="semantic-type-library" aria-label="已存在的语义类型列表">
                 {DISPLAYED_SEMANTIC_INTENT_IDS.map((intentId, index) => {
                   const definition = SEMANTIC_INTENT_DEFINITIONS.find(
                     (candidate) => candidate.id === intentId,
                   );
                   if (!definition) return null;
+                  const isExpanded = expandedSemanticIntentId === intentId;
+                  const components = semanticComponentsByIntent.get(intentId) ?? [];
                   return (
-                    <article className="semantic-type-card" key={intentId}>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <div>
-                        <strong>{definition.label}</strong>
-                        <small>{definition.description}</small>
-                      </div>
-                      <em>
-                        <b>{semanticComponentCounts.get(intentId) ?? 0}</b>
-                        个组件可用
-                      </em>
-                    </article>
+                    <section className="semantic-type-library-group" key={intentId}>
+                      <button
+                        type="button"
+                        className={isExpanded ? "open" : ""}
+                        aria-expanded={isExpanded}
+                        onClick={() =>
+                          setExpandedSemanticIntentId((current) =>
+                            current === intentId ? null : intentId,
+                          )
+                        }
+                      >
+                        <i style={{ background: SEMANTIC_TYPE_ACCENTS[index] }} />
+                        <span>
+                          <strong>{definition.label}</strong>
+                          <small>{definition.description}</small>
+                        </span>
+                        <b>{components.length}</b>
+                        <em>个组件</em>
+                        <CaretDown />
+                      </button>
+                      {isExpanded ? (
+                        <div className="semantic-type-library-items">
+                          {components.map((component) => (
+                            <div className="semantic-type-library-item" key={component.id}>
+                              <button
+                                type="button"
+                                className="semantic-type-library-item-main"
+                                onClick={() => addInstance(component.id)}
+                                title="单击添加到时间轴"
+                              >
+                                <i>{component.name.slice(0, 2)}</i>
+                                <span>
+                                  <strong>{component.name}</strong>
+                                  <small>单击添加到时间轴</small>
+                                </span>
+                                <Plus />
+                              </button>
+                              <button
+                                type="button"
+                                className="semantic-type-library-item-code"
+                                aria-label={`跳转到 ${component.name} 的代码`}
+                                onClick={() => void openEffectInCodeEditor(component.id)}
+                              >
+                                <Code />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
                   );
                 })}
               </div>
