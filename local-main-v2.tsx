@@ -6821,6 +6821,36 @@ const App = () => {
     });
   };
 
+  const removePendingArrangementItem = (key: string) => {
+    setPendingArrangement((current) => {
+      if (!current) return current;
+      const [kind, itemId] = key.split(":");
+      const nextMotionInstances =
+        kind === "motion"
+          ? current.motionInstances.filter((instance) => instance.id !== itemId)
+          : current.motionInstances;
+      const nextResourceTracks =
+        kind === "resource"
+          ? current.resourceTracks.filter((track) => track.id !== itemId)
+          : current.resourceTracks;
+      const nextCaptionInstance =
+        kind === "caption" && current.captionInstance?.id === itemId
+          ? undefined
+          : current.captionInstance;
+      return {
+        ...current,
+        motionInstances: nextMotionInstances,
+        resourceTracks: nextResourceTracks,
+        captionInstance: nextCaptionInstance,
+        selectedKeys: current.selectedKeys.filter((selectedKey) => selectedKey !== key),
+      };
+    });
+    stopArrangementAudioPreview();
+    setArrangementComponentPicker(null);
+    setArrangementResourcePicker(null);
+    setArrangementResourceSearch("");
+  };
+
   const previewPendingArrangementMotion = (
     segmentId: string,
     instanceId?: string,
@@ -15663,6 +15693,16 @@ const App = () => {
                               >
                                 替换
                               </button>
+                              <button
+                                type="button"
+                                className="arrangement-item-remove"
+                                disabled={locked}
+                                aria-label={`清除${definition?.name ?? instance.componentId}`}
+                                title="从本次编排预览中清除"
+                                onClick={() => removePendingArrangementItem(key)}
+                              >
+                                <Trash />清除
+                              </button>
                             </div>
                           </div>
                         );
@@ -15702,25 +15742,37 @@ const App = () => {
                               {formatTime(track.startFrame / fps)} ·{" "}
                               {formatTime(track.durationInFrames / fps)}
                             </time>
-                            <button
-                              type="button"
-                              disabled={
-                                locked ||
-                                arrangementResourceLibrary[track.kind].length === 0
-                              }
-                              onClick={() => {
-                                setArrangementComponentPicker(null);
-                                setArrangementResourceSearch("");
-                                setArrangementResourcePicker({
-                                  mode: "replace",
-                                  segmentId: segment.id,
-                                  kind: track.kind,
-                                  trackId: track.id,
-                                });
-                              }}
-                            >
-                              替换
-                            </button>
+                            <div className="arrangement-item-actions">
+                              <button
+                                type="button"
+                                disabled={
+                                  locked ||
+                                  arrangementResourceLibrary[track.kind].length === 0
+                                }
+                                onClick={() => {
+                                  setArrangementComponentPicker(null);
+                                  setArrangementResourceSearch("");
+                                  setArrangementResourcePicker({
+                                    mode: "replace",
+                                    segmentId: segment.id,
+                                    kind: track.kind,
+                                    trackId: track.id,
+                                  });
+                                }}
+                              >
+                                替换
+                              </button>
+                              <button
+                                type="button"
+                                className="arrangement-item-remove"
+                                disabled={locked}
+                                aria-label={`清除${track.name}`}
+                                title="从本次编排预览中清除"
+                                onClick={() => removePendingArrangementItem(key)}
+                              >
+                                <Trash />清除
+                              </button>
+                            </div>
                           </div>
                         );
                       })}

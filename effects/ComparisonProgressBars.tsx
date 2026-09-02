@@ -53,7 +53,9 @@ const ProgressCard: React.FC<{
   textColor: string;
   kind: "baseline" | "improved";
   frameProgress: number;
-}> = ({ label, status, progress, color, panelColor, textColor, kind, frameProgress }) => {
+  labelFontSize: number;
+  statusFontSize: number;
+}> = ({ label, status, progress, color, panelColor, textColor, kind, frameProgress, labelFontSize, statusFontSize }) => {
   const active = kind === "improved";
   const fill = clamp(progress) * frameProgress;
   return (
@@ -76,10 +78,10 @@ const ProgressCard: React.FC<{
         transform: `translateY(${interpolate(frameProgress, [0, 1], [active ? 14 : -14, 0], { easing: Easing.bezier(0.16, 1, 0.3, 1), extrapolateLeft: "clamp", extrapolateRight: "clamp" })}px)`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, color: active ? textColor : "#A2A3AA", fontSize: 25, fontWeight: 900, letterSpacing: 0.5 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, color: active ? textColor : "#A2A3AA", fontSize: labelFontSize, fontWeight: 900, letterSpacing: 0.5 }}>
         <StatusIcon kind={kind} color={active ? color : "#A6A7AF"} />
         <span>{label}</span>
-        <span style={{ marginLeft: "auto", color: active ? color : "#F35B62", fontSize: 22, fontWeight: 800 }}>{status}</span>
+        <span style={{ marginLeft: "auto", color: active ? color : "#F35B62", fontSize: statusFontSize, fontWeight: 800 }}>{status}</span>
       </div>
       <div style={{ height: 17, borderRadius: 99, overflow: "hidden", background: active ? `${color}24` : "rgba(197,198,207,.27)" }}>
         <div style={{ width: `${fill * 100}%`, height: "100%", borderRadius: 99, background: active ? `linear-gradient(90deg, ${color}AA, ${color})` : "#A4A4AD", boxShadow: active ? `0 0 12px ${color}` : "none" }} />
@@ -100,6 +102,8 @@ export const ComparisonProgressBars: React.FC<Props> = ({
   mutedColor = "#A4A4AD",
   panelColor = "#06151B",
   textColor = "#F8FEFF",
+  labelFontSize = 25,
+  statusFontSize = 22,
   animationSeconds = 0.7,
 }) => {
   const frame = useCurrentFrame();
@@ -109,8 +113,8 @@ export const ComparisonProgressBars: React.FC<Props> = ({
 
   return (
     <Interactive.Div name="对比进度条" data-effect="ComparisonProgressBars" style={{ display: "grid", gap: 14, width: 540, height: 266, color: textColor, fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif', pointerEvents: "none" }}>
-      <ProgressCard label={baselineLabel} status={baselineStatus} progress={baselineProgress} color={mutedColor} panelColor={panelColor} textColor={textColor} kind="baseline" frameProgress={frameProgress} />
-      <ProgressCard label={improvedLabel} status={improvedStatus} progress={improvedProgress} color={accentColor} panelColor={panelColor} textColor={textColor} kind="improved" frameProgress={frameProgress} />
+      <ProgressCard label={baselineLabel} status={baselineStatus} progress={baselineProgress} color={mutedColor} panelColor={panelColor} textColor={textColor} kind="baseline" frameProgress={frameProgress} labelFontSize={labelFontSize} statusFontSize={statusFontSize} />
+      <ProgressCard label={improvedLabel} status={improvedStatus} progress={improvedProgress} color={accentColor} panelColor={panelColor} textColor={textColor} kind="improved" frameProgress={frameProgress} labelFontSize={labelFontSize} statusFontSize={statusFontSize} />
     </Interactive.Div>
   );
 };
@@ -139,6 +143,8 @@ export const ComparisonProgressBarsEffectDef: EffectDef = {
     mutedColor: "#A4A4AD",
     panelColor: "#06151B",
     textColor: "#F8FEFF",
+    labelFontSize: 25,
+    statusFontSize: 22,
     animationSeconds: 0.7,
   },
   propsSchema: {
@@ -153,6 +159,8 @@ export const ComparisonProgressBarsEffectDef: EffectDef = {
     mutedColor: { type: "color", label: "弱化色", default: "#A4A4AD" },
     panelColor: { type: "color", label: "新方案底色", default: "#06151B" },
     textColor: { type: "color", label: "文字颜色", default: "#F8FEFF" },
+    labelFontSize: { type: "number", label: "标题字号(px)", default: 25, min: 10, max: 64, step: 1 },
+    statusFontSize: { type: "number", label: "状态字号(px)", default: 22, min: 10, max: 64, step: 1 },
     animationSeconds: { type: "number", label: "入场时长(秒)", default: 0.7, min: 0.2, max: 2, step: 0.05 },
   },
 };

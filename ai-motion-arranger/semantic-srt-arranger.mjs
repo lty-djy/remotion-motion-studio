@@ -1768,9 +1768,6 @@ const portraitCandidateProps = (componentId, route, context) => {
       step1: context.intent.steps[1],
       step2: context.intent.steps[2],
       step3: context.intent.steps[3],
-      icon1: context.intent.symbols[1],
-      icon2: context.intent.symbols[2],
-      icon3: context.intent.symbols[3],
       successColor: context.style.successColor,
     };
   }

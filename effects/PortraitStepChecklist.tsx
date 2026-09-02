@@ -23,19 +23,10 @@ type Props = {
   step6?: string;
   step7?: string;
   step8?: string;
-  icon1?: string;
-  icon2?: string;
-  icon3?: string;
-  icon4?: string;
-  icon5?: string;
-  icon6?: string;
-  icon7?: string;
-  icon8?: string;
   accentColor?: string;
   successColor?: string;
   panelColor?: string;
   textColor?: string;
-  iconSize?: number;
   cardWidth?: number;
   cardsOffsetX?: number;
   textOffsetX?: number;
@@ -62,19 +53,10 @@ export const PortraitStepChecklist: React.FC<Props> = ({
   step6 = "导出成片",
   step7 = "发布复盘",
   step8 = "持续迭代",
-  icon1 = "▣",
-  icon2 = "✦",
-  icon3 = "↗",
-  icon4 = "✓",
-  icon5 = "✦",
-  icon6 = "↗",
-  icon7 = "◎",
-  icon8 = "＋",
   accentColor = "#168CFF",
   successColor = "#14E6A1",
   panelColor = "#111318",
   textColor = "#FFFFFF",
-  iconSize = 34,
   cardWidth = 448,
   cardsOffsetX = 0,
   textOffsetX = 0,
@@ -90,7 +72,6 @@ export const PortraitStepChecklist: React.FC<Props> = ({
   const enterFrames = Math.max(14, Math.round(animationSeconds * fps));
   const normalizedCount = Math.min(8, Math.max(1, Math.round(Number(stepCount) || 3)));
   const staggerFrames = Math.max(0, Math.round((Number(stepEnterIntervalSeconds) || 0) * fps));
-  const safeIconSize = Math.min(64, Math.max(18, Number(iconSize) || 34));
   const safeCardWidth = Math.min(520, Math.max(300, Number(cardWidth) || 448));
   const safeCardsOffsetX = Math.min(240, Math.max(-240, Number(cardsOffsetX) || 0));
   const safeTextOffsetX = Math.min(120, Math.max(-120, Number(textOffsetX) || 0));
@@ -99,14 +80,14 @@ export const PortraitStepChecklist: React.FC<Props> = ({
   const safeTitleFontSize = Math.min(96, Math.max(16, Number(titleFontSize) || 42));
   const safeSubtitleFontSize = Math.min(64, Math.max(10, Number(subtitleFontSize) || 18));
   const steps = [
-    { label: step1, icon: icon1, color: accentColor },
-    { label: step2, icon: icon2, color: accentColor },
-    { label: step3, icon: icon3, color: successColor },
-    { label: step4, icon: icon4, color: accentColor },
-    { label: step5, icon: icon5, color: accentColor },
-    { label: step6, icon: icon6, color: successColor },
-    { label: step7, icon: icon7, color: accentColor },
-    { label: step8, icon: icon8, color: successColor },
+    { label: step1, color: accentColor },
+    { label: step2, color: accentColor },
+    { label: step3, color: successColor },
+    { label: step4, color: accentColor },
+    { label: step5, color: accentColor },
+    { label: step6, color: successColor },
+    { label: step7, color: accentColor },
+    { label: step8, color: successColor },
   ].slice(0, normalizedCount);
 
   const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
@@ -262,7 +243,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
                 alignItems: "center",
                 width: safeCardWidth,
                 height: 72,
-                padding: "0 20px 0 62px",
+                padding: "0 20px",
                 boxSizing: "border-box",
                 overflow: "visible",
                 border: bgFactor > 0 ? "1px solid rgba(255, 255, 255, 0.11)" : "1px solid transparent",
@@ -324,26 +305,6 @@ export const PortraitStepChecklist: React.FC<Props> = ({
               </span>
               <span
                 style={{
-                  display: "grid",
-                  flex: "0 0 auto",
-                  width: safeIconSize,
-                  height: safeIconSize,
-                  marginRight: 10,
-                  placeItems: "center",
-                  borderRadius: 9,
-                  color: accentColor,
-                  backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
-                  transform: `translateX(${safeTextOffsetX}px)`,
-                  fontFamily: '"SFMono-Regular", Consolas, monospace',
-                  fontSize: Math.max(10, Math.round(safeIconSize * 0.53)),
-                  fontWeight: 950,
-                  lineHeight: 1,
-                }}
-              >
-                {step.icon}
-              </span>
-              <span
-                style={{
                   minWidth: 0,
                   overflow: "hidden",
                   fontSize: safeStepFontSize,
@@ -390,19 +351,10 @@ export const PortraitStepChecklistEffectDef: EffectDef = {
     step6: "导出成片",
     step7: "发布复盘",
     step8: "持续迭代",
-    icon1: "▣",
-    icon2: "✦",
-    icon3: "↗",
-    icon4: "✓",
-    icon5: "✦",
-    icon6: "↗",
-    icon7: "◎",
-    icon8: "＋",
     accentColor: "#168CFF",
     successColor: "#14E6A1",
     panelColor: "#111318",
     textColor: "#FFFFFF",
-    iconSize: 34,
     cardWidth: 448,
     cardsOffsetX: 0,
     textOffsetX: 0,
@@ -427,14 +379,6 @@ export const PortraitStepChecklistEffectDef: EffectDef = {
     step6: { type: "text", label: "步骤六" },
     step7: { type: "text", label: "步骤七" },
     step8: { type: "text", label: "步骤八" },
-    icon1: { type: "text", label: "图标一" },
-    icon2: { type: "text", label: "图标二" },
-    icon3: { type: "text", label: "图标三" },
-    icon4: { type: "text", label: "图标四" },
-    icon5: { type: "text", label: "图标五" },
-    icon6: { type: "text", label: "图标六" },
-    icon7: { type: "text", label: "图标七" },
-    icon8: { type: "text", label: "图标八" },
     accentColor: { type: "color", label: "主强调色", default: "#168CFF" },
     successColor: { type: "color", label: "完成强调色", default: "#14E6A1" },
     panelColor: { type: "color", label: "底板颜色", default: "#111318" },
@@ -442,10 +386,9 @@ export const PortraitStepChecklistEffectDef: EffectDef = {
     eyebrowFontSize: { type: "number", label: "阶段引导词字号(px)", default: 20, min: 10, max: 64, step: 1 },
     titleFontSize: { type: "number", label: "阶段标题字号(px)", default: 42, min: 16, max: 96, step: 1 },
     subtitleFontSize: { type: "number", label: "阶段说明字号(px)", default: 18, min: 10, max: 64, step: 1 },
-    iconSize: { type: "number", label: "图标大小(px)", default: 34, min: 18, max: 64, step: 1 },
     cardWidth: { type: "number", label: "卡片宽度(px)", default: 448, min: 300, max: 520, step: 1 },
     cardsOffsetX: { type: "number", label: "卡片水平位置(px)", default: 0, min: -240, max: 240, step: 1 },
-    textOffsetX: { type: "number", label: "文字与图标水平位置(px)", default: 0, min: -120, max: 120, step: 1 },
+    textOffsetX: { type: "number", label: "步骤文字水平位置(px)", default: 0, min: -120, max: 120, step: 1 },
     stepFontSize: { type: "number", label: "步骤字号(px)", default: 27, min: 10, max: 72, step: 1 },
     stepEnterIntervalSeconds: { type: "number", label: "下一步骤入场间隔(秒)", default: 0.2, min: 0, max: 8, step: 0.05 },
     animationSeconds: {

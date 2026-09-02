@@ -6153,6 +6153,22 @@ aside {
   background: rgba(83, 219, 163, 0.1);
 }
 
+.arrangement-item-actions button.arrangement-item-remove {
+  color: #ffb0a8;
+  border-color: rgba(255, 126, 113, 0.2);
+  background: rgba(255, 126, 113, 0.06);
+}
+
+.arrangement-item-actions button.arrangement-item-remove:hover:not(:disabled) {
+  border-color: rgba(255, 126, 113, 0.42);
+  background: rgba(255, 126, 113, 0.14);
+}
+
+.arrangement-item-actions button svg {
+  width: 12px;
+  height: 12px;
+}
+
 .arrangement-segment-actions button:disabled,
 .arrangement-preview-item > button:disabled,
 .arrangement-item-actions button:disabled {
