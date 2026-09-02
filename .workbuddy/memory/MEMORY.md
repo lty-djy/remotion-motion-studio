@@ -44,3 +44,9 @@
 - 工作台 `import-to-studio.ps1` 是 TSX → 安全导入入口；任何修复都要走同一通道
 - 工作台 `local-render-entry-v2.tsx` 的 propsSchema 字段期望 JSON-serializable
 - LegacyMetricEffect 通过 `componentType` prop 决定 14 个 metric 卡的不同视觉
+
+## 编排预览替换/新增的 SRT 文案回填（local-main-v2.tsx）
+
+- `fillArrangementTextPropsFromSrt`：主文案键 ← 整句 SRT；eyebrow/label/tag/caption ← semanticLabel；subtitle/detail/note ← 第 2 子句；序号条目（risk1/step1/item1…白名单 base）← 标点子句依次分发
+- 合并顺序：defaults < srtFill < compatibleProps（仅用户改过的键，≠旧默认值）< candidate.props
+- 替换/新增候选池 = 语义推荐（arranger 预填 props）+ 全库备选（topUpSemanticCandidates，props 空，靠 srtFill 回填）

@@ -41,6 +41,31 @@ const statePath = join(rootDir, "local-state.json");
 const effectRegistryPath = join(rootDir, "registry.ts");
 const legacyEffectsPath = join(rootDir, "legacy-effects.tsx");
 const systemChrome = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const candidateThumbsDir = join(rootDir, "local-thumbs", "candidate-thumbs");
+
+// 候选卡静态缩略图：由 outputs/generate-candidate-thumbs.cjs 生成到 local-thumbs/，
+// 仅在开发服务时按需提供，不放入 public/ —— 避免 build 时拷贝进 local-dist，
+// 使 emptyOutDir 的删除数量反复触发批量删除保护（SAFE_DELETE_BULK_CONFIRM_REQUIRED）。
+const candidateThumbsPlugin = (): Plugin => ({
+  name: "serve-candidate-thumbs",
+  configureServer(server) {
+    server.middlewares.use("/candidate-thumbs", (req, res, next) => {
+      const relative = decodeURIComponent(String(req.url ?? "").split("?")[0]);
+      const filePath = join(candidateThumbsDir, relative);
+      if (
+        !filePath.startsWith(candidateThumbsDir) ||
+        !existsSync(filePath) ||
+        !statSync(filePath).isFile()
+      ) {
+        next();
+        return;
+      }
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Cache-Control", "no-cache");
+      createReadStream(filePath).pipe(res);
+    });
+  },
+});
 
 // Remotion 随包自带 ffmpeg/ffprobe，位于平台对应的 compositor 包中；
 // 找不到时退回系统 PATH（execFile 按名字查找）。
@@ -2781,7 +2806,7 @@ const localApi = (): Plugin => {
 };
 
 export default defineConfig({
-  plugins: [react(), localApi()],
+  plugins: [react(), candidateThumbsPlugin(), localApi()],
   server: {
     host: "127.0.0.1",
     port: 41735,

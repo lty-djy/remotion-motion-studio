@@ -58,6 +58,10 @@ import {
 } from "./local-protocol";
 import { CardMaskLayer, normalizeCardMask, DEFAULT_CARD_MASK_NEW } from "./card-mask-control";
 import {
+  EFFECT_SEMANTIC_CAPABILITIES,
+  SEMANTIC_INTENT_DEFINITIONS,
+} from "./effect-semantic-capabilities";
+import {
   BUILT_IN_CATALOG,
   BUILT_IN_COMPONENT_IDS,
   isBuiltInDefinition,
@@ -86,6 +90,32 @@ import {
 import "./local-styles.css";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
+
+const SEMANTIC_INTENT_LABELS: Record<string, string> = Object.fromEntries(
+  SEMANTIC_INTENT_DEFINITIONS.map((definition) => [definition.id, definition.label]),
+);
+
+type EffectSemanticBadge = {
+  label: string;
+  description: string;
+  secondaryLabels: string[];
+};
+
+// AI 编排语义标记：仅当该效果在语义能力表中登记了主语义时才返回，否则返回 null（不显示标记）
+const effectSemanticBadge = (componentId: string): EffectSemanticBadge | null => {
+  const capabilities = EFFECT_SEMANTIC_CAPABILITIES[componentId];
+  const primaryIntent = capabilities?.primaryIntent;
+  if (!primaryIntent) return null;
+  const label = SEMANTIC_INTENT_LABELS[primaryIntent];
+  if (!label) return null;
+  return {
+    label,
+    description: SEMANTIC_INTENT_DEFINITIONS.find((item) => item.id === primaryIntent)?.description ?? label,
+    secondaryLabels: capabilities.secondaryIntents
+      .map((id) => SEMANTIC_INTENT_LABELS[id])
+      .filter(Boolean),
+  };
+};
 
 type ArrangementPreviewDialogGeometry = {
   x: number;
@@ -1327,6 +1357,140 @@ const defaultsFromDefinition = (definition: MotionComponentDefinition) => {
   );
   return { ...schemaDefaults, ...definition.defaultProps };
 };
+
+// 替换/添加效果组件时，把该语义段的 SRT 口播文本自动回填进新组件的文案 props。
+// 规则（确定性，不猜）：主文案 ← 整句字幕；引导语/标签类 ← 语义标签；
+// 副文案 ← 第二个子句；序号条目类（risk1/step1/item1…）← 按标点拆分依次分发。
+const ARRANGEMENT_PRIMARY_TEXT_PROP_KEYS = [
+  "title",
+  "headline",
+  "mainTitle",
+  "mainText",
+  "content",
+  "text",
+  "message",
+  "topic",
+  "question",
+  "emphasis",
+];
+const ARRANGEMENT_META_TEXT_PROP_KEYS = ["eyebrow", "label", "tag", "caption"];
+const ARRANGEMENT_SECONDARY_TEXT_PROP_KEYS = [
+  "subtitle",
+  "detail",
+  "note",
+  "description",
+];
+const ARRANGEMENT_SEQUENCE_TEXT_BASE_KEYS = new Set([
+  "item",
+  "step",
+  "risk",
+  "point",
+  "list",
+  "line",
+  "feature",
+  "advantage",
+  "reason",
+  "bullet",
+  "card",
+  "row",
+  "entry",
+]);
+
+const splitArrangementSrtClauses = (text: string) =>
+  text
+    .split(/[，,。.！!？?；;、：:\n]+/u)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+
+const fillArrangementTextPropsFromSrt = (
+  definition: MotionComponentDefinition,
+  overriddenProps: Record<string, unknown>,
+  srtText: string,
+  semanticLabel: string,
+): Record<string, unknown> => {
+  if (!srtText) return {};
+  const availableKeys = Object.entries(definition.propsSchema)
+    .filter(([key, schema]) => schema.type === "text" && !(key in overriddenProps))
+    .map(([key]) => key);
+  if (availableKeys.length === 0) return {};
+  const fill: Record<string, unknown> = {};
+  const clauses = splitArrangementSrtClauses(srtText);
+  if (clauses.length === 0) return {};
+  const primaryKey = ARRANGEMENT_PRIMARY_TEXT_PROP_KEYS.find((key) =>
+    availableKeys.includes(key),
+  );
+  if (primaryKey) {
+    fill[primaryKey] = srtText;
+  }
+  if (semanticLabel) {
+    for (const key of availableKeys) {
+      if (key in fill) continue;
+      if (ARRANGEMENT_META_TEXT_PROP_KEYS.includes(key)) {
+        fill[key] = semanticLabel;
+      }
+    }
+  }
+  if (clauses.length > 1) {
+    const secondaryKey = ARRANGEMENT_SECONDARY_TEXT_PROP_KEYS.find((key) =>
+      availableKeys.includes(key),
+    );
+    if (secondaryKey && !(secondaryKey in fill)) {
+      fill[secondaryKey] = clauses[1];
+    }
+  }
+  const sequenceGroups = new Map<string, Array<{ key: string; index: number }>>();
+  for (const key of availableKeys) {
+    if (key in fill) continue;
+    const match = /^([a-z]+)(\d+)$/u.exec(key);
+    if (!match || !ARRANGEMENT_SEQUENCE_TEXT_BASE_KEYS.has(match[1])) continue;
+    const group = sequenceGroups.get(match[1]) ?? [];
+    group.push({ key, index: Number(match[2]) });
+    sequenceGroups.set(match[1], group);
+  }
+  for (const group of sequenceGroups.values()) {
+    group.sort((left, right) => left.index - right.index);
+    group.forEach((entry, position) => {
+      if (position < clauses.length) {
+        fill[entry.key] = clauses[position];
+      }
+    });
+  }
+  return fill;
+};
+
+// 候选卡的效果库组件预览：只显示预渲染静态缩略图，零运行时成本。
+// 缩略图缺失（新增组件还没重新出图）时显示组件名占位；
+// 用 npm.cmd run generate:candidate-thumbs 重新生成。
+const ArrangementCandidatePreviewPlayer = React.memo(
+  function ArrangementCandidatePreviewPlayer({
+    definition,
+  }: {
+    definition: MotionComponentDefinition;
+    candidate: ArrangementComponentCandidate;
+    fps: number;
+  }) {
+    const [thumbBroken, setThumbBroken] = useState(false);
+    const thumbUrl = `/candidate-thumbs/${definition.id}.jpg`;
+
+    if (thumbBroken) {
+      return (
+        <span className="arrangement-candidate-placeholder" aria-hidden="true">
+          {definition.name}
+        </span>
+      );
+    }
+    return (
+      <span className="arrangement-candidate-preview-media">
+        <img
+          src={thumbUrl}
+          alt={definition.name}
+          draggable={false}
+          onError={() => setThumbBroken(true)}
+        />
+      </span>
+    );
+  },
+);
 
 const createInstance = (
   definition: MotionComponentDefinition,
@@ -3211,6 +3375,23 @@ const App = () => {
     );
     return definitions.filter((definition) => allowedIds.has(definition.id));
   }, [canvasOrientation, definitions]);
+  // 语义候选之外补齐当前画幅可编排组件库：语义推荐保持前列，其余组件作为手动备选。
+  const topUpSemanticCandidates = (
+    candidates: ArrangementComponentCandidate[],
+  ): ArrangementComponentCandidate[] => {
+    const known = new Set(
+      candidates.map((candidate) => candidate.componentId),
+    );
+    const topUp = arrangementComponentDefinitions
+      .filter((definition) => !known.has(definition.id))
+      .map((definition, index) => ({
+        componentId: definition.id,
+        rank: candidates.length + index + 1,
+        reason: "备选：不直接匹配当前语义，可手动选用",
+        props: {},
+      }));
+    return [...candidates, ...topUp];
+  };
   const pendingArrangementSegments = useMemo<PendingArrangementSegment[]>(() => {
     if (!pendingArrangement) return [];
     const segments = new Map<string, PendingArrangementSegment>();
@@ -6527,10 +6708,30 @@ const App = () => {
       ) {
         return current;
       }
+      const oldDefinition = definitionMap.get(currentInstance.componentId);
+      const oldDefaults = oldDefinition
+        ? defaultsFromDefinition(oldDefinition)
+        : {};
+      // 仅保留用户实际改过的内容（≠ 旧组件默认值）；仍是默认占位的键交给 SRT 文本回填。
       const compatibleProps = Object.fromEntries(
         Object.keys(definition.propsSchema)
-          .filter((key) => key in currentInstance.props)
+          .filter(
+            (key) =>
+              key in currentInstance.props &&
+              currentInstance.props[key] !== oldDefaults[key],
+          )
           .map((key) => [key, currentInstance.props[key]]),
+      );
+      const candidateOverlay = { ...compatibleProps, ...candidate.props };
+      const semanticSource =
+        current.semanticSourcesBySegment?.[
+          getArrangementSegmentId(currentInstance)
+        ];
+      const srtTextFill = fillArrangementTextPropsFromSrt(
+        definition,
+        candidateOverlay,
+        semanticSource?.text ?? "",
+        semanticSource?.semanticLabel ?? "",
       );
       return markPendingArrangementQualityChecksStale({
         ...current,
@@ -6545,6 +6746,7 @@ const App = () => {
                 ),
                 props: {
                   ...defaultsFromDefinition(definition),
+                  ...srtTextFill,
                   ...compatibleProps,
                   ...candidate.props,
                 },
@@ -6572,6 +6774,13 @@ const App = () => {
         (left, right) => left.startFrame - right.startFrame,
       )[0];
       if (!base) return current;
+      const semanticSource = current.semanticSourcesBySegment?.[segmentId];
+      const srtTextFill = fillArrangementTextPropsFromSrt(
+        definition,
+        candidate.props,
+        semanticSource?.text ?? "",
+        semanticSource?.semanticLabel ?? "",
+      );
       const instance = createInstance(
         definition,
         base.startFrame,
@@ -6586,7 +6795,7 @@ const App = () => {
             ) + 1,
           backgroundOpacity: 0,
           position: getRegisteredEffectPosition(definition, canvasOrientation),
-          props: candidate.props,
+          props: { ...srtTextFill, ...candidate.props },
           sourceExpressionId: `manual-${segmentId}-${Date.now()}`,
           sourceIntentId: segmentId,
           arrangementBatchId: current.batchId,
@@ -6612,14 +6821,9 @@ const App = () => {
     }
     setPendingArrangement((current) => {
       if (!current || current.lockedSegmentIds.includes(segmentId)) return current;
-      const semanticCandidates =
-        current.componentCandidatesBySegment[segmentId] ??
-        arrangementComponentDefinitions.map((definition, index) => ({
-          componentId: definition.id,
-          rank: index + 1,
-          reason: "来自当前画幅的可编排组件库",
-          props: {},
-        }));
+      const semanticCandidates = topUpSemanticCandidates(
+        current.componentCandidatesBySegment[segmentId] ?? [],
+      );
       const availableCandidates = semanticCandidates.filter((candidate) =>
         definitionMap.has(candidate.componentId),
       );
@@ -10909,6 +11113,9 @@ const App = () => {
                         <div className="effect-library-items">
                           {category.items.map((item) => {
                             const definition = catalogDefinitionMap.get(item.ids[0]);
+                            const semanticBadge = definition
+                              ? effectSemanticBadge(definition.id)
+                              : null;
                             return (
                               <div className="effect-library-item" key={item.ids[0]}>
                                 <button
@@ -10922,7 +11129,21 @@ const App = () => {
                                 >
                                   <i>{item.name.slice(0, 2)}</i>
                                   <span>
-                                    <strong>{item.name}</strong>
+                                    <strong>
+                                      <span className="effect-library-item-name">{item.name}</span>
+                                      {semanticBadge ? (
+                                        <em
+                                          className="effect-semantic-tag"
+                                          title={`AI 编排主语义：${semanticBadge.description}${
+                                            semanticBadge.secondaryLabels.length
+                                              ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
+                                              : ""
+                                          }`}
+                                        >
+                                          {semanticBadge.label}
+                                        </em>
+                                      ) : null}
+                                    </strong>
                                     <small>{definition ? "单击添加到时间轴" : "暂不可用"}</small>
                                   </span>
                                   <Plus />
@@ -10956,21 +11177,37 @@ const App = () => {
                     <span>{ungroupedCustomDefinitions.length}</span>
                   </div>
                   <div className="effect-library-items">
-                    {ungroupedCustomDefinitions.map((definition) => (
-                      <div className="effect-library-item" key={definition.id}>
-                        <button
-                          className="effect-library-item-main"
-                          onClick={() => addInstance(definition.id)}
-                          onContextMenu={(event) => showLibraryMenu(event, definition.id)}
-                          title="单击添加到时间轴；右键可移动分组或彻底删除"
-                        >
-                          <i>FX</i>
-                          <span>
-                            <strong>{definition.name}</strong>
-                            <small>单击添加到时间轴</small>
-                          </span>
-                          <Plus />
-                        </button>
+                    {ungroupedCustomDefinitions.map((definition) => {
+                      const semanticBadge = effectSemanticBadge(definition.id);
+                      return (
+                        <div className="effect-library-item" key={definition.id}>
+                          <button
+                            className="effect-library-item-main"
+                            onClick={() => addInstance(definition.id)}
+                            onContextMenu={(event) => showLibraryMenu(event, definition.id)}
+                            title="单击添加到时间轴；右键可移动分组或彻底删除"
+                          >
+                            <i>FX</i>
+                            <span>
+                              <strong>
+                                <span className="effect-library-item-name">{definition.name}</span>
+                                {semanticBadge ? (
+                                  <em
+                                    className="effect-semantic-tag"
+                                    title={`AI 编排主语义：${semanticBadge.description}${
+                                      semanticBadge.secondaryLabels.length
+                                        ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
+                                        : ""
+                                    }`}
+                                  >
+                                    {semanticBadge.label}
+                                  </em>
+                                ) : null}
+                              </strong>
+                              <small>单击添加到时间轴</small>
+                            </span>
+                            <Plus />
+                          </button>
                         <button
                           className="effect-library-item-code"
                           title="跳转到代码"
@@ -10979,8 +11216,9 @@ const App = () => {
                         >
                           <Code />
                         </button>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}
@@ -13818,14 +14056,9 @@ const App = () => {
                 const locked = pendingArrangement.lockedSegmentIds.includes(
                   segment.id,
                 );
-                const semanticCandidates = (
+                const semanticMatchedCandidates = (
                   pendingArrangement.componentCandidatesBySegment[segment.id] ??
-                  arrangementComponentDefinitions.map((definition, index) => ({
-                    componentId: definition.id,
-                    rank: index + 1,
-                    reason: "来自当前画幅的可编排组件库",
-                    props: {},
-                  }))
+                  []
                 )
                   .filter((candidate) => definitionMap.has(candidate.componentId))
                   .sort(
@@ -13837,6 +14070,8 @@ const App = () => {
                           left.componentId
                         ] ?? 0) || left.rank - right.rank,
                   );
+                const semanticCandidates =
+                  topUpSemanticCandidates(semanticMatchedCandidates);
                 const candidateGroups = [...semanticCandidates.reduce(
                   (groups, candidate) => {
                     const definition = definitionMap.get(candidate.componentId)!;
@@ -13935,7 +14170,7 @@ const App = () => {
                           <small>
                             {segment.motionInstances.length} 个动效 ·{" "}
                             {segment.resourceTracks.length} 个资源 ·{" "}
-                            {semanticCandidates.length} 个语义候选
+                            {semanticMatchedCandidates.length} 个语义候选
                           </small>
                         </div>
                         {semanticSource?.text ? (
@@ -14103,7 +14338,11 @@ const App = () => {
                                     <strong>{groupName}</strong>
                                     <small>{groupResources.length} 项</small>
                                   </header>
-                                  <div className="arrangement-resource-grid">
+                                  <div
+                                    className={`arrangement-resource-grid${
+                                      resourcePickerKind === "icon" ? " is-icon" : ""
+                                    }`}
+                                  >
                                     {groupResources.map((resource) => {
                                       const isCurrent =
                                         pickerTargetResource?.resourceId ===
@@ -14242,7 +14481,8 @@ const App = () => {
                                 : "向当前段添加效果"}
                             </strong>
                             <small>
-                              只显示当前语义匹配的 {semanticCandidates.length} 个候选
+                              前列 {semanticMatchedCandidates.length} 个为当前语义推荐，
+                              其余为组件库备选，可自由替换
                             </small>
                           </div>
                           <button
@@ -14298,41 +14538,10 @@ const App = () => {
                                       onClick={applyCandidate}
                                     >
                                       <span className="arrangement-candidate-preview">
-                                        <Player
-                                          component={definition.component}
-                                          inputProps={{
-                                            ...defaultsFromDefinition(definition),
-                                            ...candidate.props,
-                                            backgroundOpacity: 0.72,
-                                          }}
-                                          durationInFrames={Math.max(
-                                            45,
-                                            Math.min(
-                                              definition.durationInFrames,
-                                              120,
-                                            ),
-                                          )}
+                                        <ArrangementCandidatePreviewPlayer
+                                          definition={definition}
+                                          candidate={candidate}
                                           fps={fps}
-                                          compositionWidth={Math.max(
-                                            1,
-                                            definition.bounds.width,
-                                          )}
-                                          compositionHeight={Math.max(
-                                            1,
-                                            definition.bounds.height,
-                                          )}
-                                          autoPlay
-                                          loop
-                                          muted
-                                          controls={false}
-                                          clickToPlay={false}
-                                          spaceKeyToPlayOrPause={false}
-                                          acknowledgeRemotionLicense
-                                          style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            backgroundColor: "#080b11",
-                                          }}
                                         />
                                         <b>推荐 {candidate.rank}</b>
                                       </span>
@@ -14368,6 +14577,10 @@ const App = () => {
                       {segment.motionInstances.map((instance) => {
                         const key = `motion:${instance.id}`;
                         const definition = definitionMap.get(instance.componentId);
+                        const itemSemanticSource =
+                          pendingArrangement.semanticSourcesBySegment?.[
+                            getArrangementSegmentId(instance)
+                          ];
                         return (
                           <div className="arrangement-preview-item" key={key}>
                             <input
@@ -14380,6 +14593,11 @@ const App = () => {
                             <i className="motion">动效</i>
                             <span>
                               <strong>{definition?.name ?? instance.componentId}</strong>
+                              {itemSemanticSource?.semanticLabel ? (
+                                <i className="arrangement-item-intent">
+                                  {itemSemanticSource.semanticLabel}
+                                </i>
+                              ) : null}
                               <small>
                                 {instance.componentId}
                                 {typeof instance.props.title === "string" &&
@@ -14417,6 +14635,10 @@ const App = () => {
                       })}
                       {segment.resourceTracks.map((track) => {
                         const key = `resource:${track.id}`;
+                        const itemSemanticSource =
+                          pendingArrangement.semanticSourcesBySegment?.[
+                            getArrangementSegmentId(track)
+                          ];
                         return (
                           <div className="arrangement-preview-item resource" key={key}>
                             <input
@@ -14435,6 +14657,11 @@ const App = () => {
                             </i>
                             <span>
                               <strong>{track.name}</strong>
+                              {itemSemanticSource?.semanticLabel ? (
+                                <i className="arrangement-item-intent">
+                                  {itemSemanticSource.semanticLabel}
+                                </i>
+                              ) : null}
                               <small>{track.resourceId}</small>
                             </span>
                             <time>

@@ -9,7 +9,12 @@
       "accentColor": "#d30d5c",
       "autoAddIcons": true,
       "learnFromConfirmedChoices": true,
-      "componentScores": {}
+      "componentScores": {
+        "PortraitRiskWarning": 6,
+        "PortraitMetricDecision": 4,
+        "PortraitDecisionTagStack": 2,
+        "PortraitInfoCallout": 8
+      }
     }
   ]
 }
