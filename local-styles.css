@@ -837,15 +837,12 @@ main.is-resizing-sidebar * {
 }
 
 .effect-library-items strong {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
   font-size: 14px;
   font-weight: 650;
 }
 
 .effect-library-item-name {
+  display: block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -854,6 +851,7 @@ main.is-resizing-sidebar * {
 
 .effect-semantic-tag {
   flex: 0 0 auto;
+  align-self: center;
 }
 
 .effect-library-items small {

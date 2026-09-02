@@ -11131,21 +11131,21 @@ const App = () => {
                                   <span>
                                     <strong>
                                       <span className="effect-library-item-name">{item.name}</span>
-                                      {semanticBadge ? (
-                                        <em
-                                          className="effect-semantic-tag"
-                                          title={`AI 编排主语义：${semanticBadge.description}${
-                                            semanticBadge.secondaryLabels.length
-                                              ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
-                                              : ""
-                                          }`}
-                                        >
-                                          {semanticBadge.label}
-                                        </em>
-                                      ) : null}
                                     </strong>
                                     <small>{definition ? "单击添加到时间轴" : "暂不可用"}</small>
                                   </span>
+                                  {semanticBadge ? (
+                                    <em
+                                      className="effect-semantic-tag"
+                                      title={`AI 编排主语义：${semanticBadge.description}${
+                                        semanticBadge.secondaryLabels.length
+                                          ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
+                                          : ""
+                                      }`}
+                                    >
+                                      {semanticBadge.label}
+                                    </em>
+                                  ) : null}
                                   <Plus />
                                 </button>
                                 <button
@@ -11191,21 +11191,21 @@ const App = () => {
                             <span>
                               <strong>
                                 <span className="effect-library-item-name">{definition.name}</span>
-                                {semanticBadge ? (
-                                  <em
-                                    className="effect-semantic-tag"
-                                    title={`AI 编排主语义：${semanticBadge.description}${
-                                      semanticBadge.secondaryLabels.length
-                                        ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
-                                        : ""
-                                    }`}
-                                  >
-                                    {semanticBadge.label}
-                                  </em>
-                                ) : null}
                               </strong>
                               <small>单击添加到时间轴</small>
                             </span>
+                            {semanticBadge ? (
+                              <em
+                                className="effect-semantic-tag"
+                                title={`AI 编排主语义：${semanticBadge.description}${
+                                  semanticBadge.secondaryLabels.length
+                                    ? `；次要语义：${semanticBadge.secondaryLabels.join("、")}`
+                                    : ""
+                                }`}
+                              >
+                                {semanticBadge.label}
+                              </em>
+                            ) : null}
                             <Plus />
                           </button>
                         <button
