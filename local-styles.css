@@ -866,6 +866,142 @@ main.is-resizing-sidebar * {
   text-align: center;
 }
 
+.subtitle-template-panel {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  margin: 0 -16px;
+  color: #e4e6eb;
+  background: #171a1e;
+}
+
+.subtitle-template-header {
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid #30343a;
+}
+
+.subtitle-template-header div { display: grid; gap: 5px; }
+.subtitle-template-header-actions { display: flex !important; align-items: center; gap: 2px; }
+.subtitle-template-header small {
+  color: #8b939e;
+  font: 10px Consolas, monospace;
+  letter-spacing: .13em;
+}
+.subtitle-template-header strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+}
+.subtitle-template-header strong svg { color: #559cff; width: 16px; }
+.subtitle-template-settings {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #aeb6c2;
+  background: transparent;
+  cursor: pointer;
+}
+.subtitle-template-settings:hover { color: #fff; background: #242930; border-radius: 4px; }
+.subtitle-template-clear {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #aeb6c2;
+  background: transparent;
+  cursor: pointer;
+}
+.subtitle-template-clear:hover:not(:disabled) { color: #ff8b78; background: #2b2022; border-radius: 4px; }
+.subtitle-template-clear:disabled { color: #545b65; cursor: not-allowed; }
+.subtitle-template-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 14px;
+  color: #929aa7;
+  font-size: 11px;
+}
+.subtitle-template-meta b {
+  color: #8aaeff;
+  font: 11px Consolas, monospace;
+}
+.subtitle-template-list {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 0 10px 12px;
+  scrollbar-color: #4b535e transparent;
+}
+.subtitle-template-row {
+  width: 100%;
+  display: block;
+  margin: 0 0 7px;
+  padding: 9px 10px 10px;
+  box-sizing: border-box;
+  text-align: left;
+  border: 1px solid #343a42;
+  border-radius: 6px;
+  color: #e3e6ea;
+  background: #191d22;
+  cursor: pointer;
+}
+.subtitle-template-row:hover { border-color: #4b83c9; background: #1d2229; }
+.subtitle-template-row.active { border-color: #638fc8; background: #1c222a; box-shadow: inset 2px 0 #559cff; }
+.subtitle-template-row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.subtitle-template-row-top i { color: #7e8793; font: 10px Consolas, monospace; font-style: normal; }
+.subtitle-template-row-top small { color: #559cff; font: 15px Consolas, monospace; }
+.subtitle-template-row strong { display: block; color: #e5e7eb; font-size: 14px; font-weight: 500; line-height: 1.55; }
+.subtitle-template-empty {
+  width: 100%;
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 1px dashed #3b424c;
+  border-radius: 6px;
+  color: #8d96a3;
+  background: #191d22;
+  cursor: pointer;
+}
+.subtitle-template-empty:hover { color: #dce5f2; border-color: #559cff; background: #1d2229; }
+.subtitle-template-empty svg { color: #559cff; width: 21px; height: 21px; }
+.subtitle-template-empty strong { color: inherit; font-size: 13px; font-weight: 600; }
+.subtitle-template-empty span { font-size: 11px; }
+.subtitle-template-actions {
+  height: 54px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0 10px;
+  border-top: 1px solid #30343a;
+  background: #15181c;
+}
+.subtitle-template-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  color: #b8bec8;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+.subtitle-template-actions button:hover:not(:disabled) { color: #fff; background: #20252b; }
+.subtitle-template-actions button:disabled { opacity: .42; cursor: not-allowed; }
+.subtitle-template-actions svg { width: 16px; height: 16px; }
+
 /* 素材库沿用效果库的窄栏结构，仅保留素材缩略图作为内容差异。 */
 .material-library-panel {
   min-height: 100%;

@@ -1756,6 +1756,14 @@ type StudioPreviewProps = {
   globalCardScale: number;
 };
 
+const formatSubtitleTimestamp = (milliseconds: number) => {
+  const total = Math.max(0, Math.round(milliseconds));
+  const minutes = Math.floor(total / 60000);
+  const seconds = Math.floor(total / 1000) % 60;
+  const millis = total % 1000;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+};
+
 const StudioPreviewComposition = ({
   videoUrl,
   includeVideo,
@@ -3244,6 +3252,7 @@ const App = () => {
   const [activeWorkspace, setActiveWorkspace] =
     useState<
       | "editor"
+      | "captions"
       | "effects"
       | "rules"
       | "semantic-types"
@@ -3256,6 +3265,7 @@ const App = () => {
     );
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
   const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
+  const [selectedCaptionIndex, setSelectedCaptionIndex] = useState(1);
   const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
     Math.max(160, Math.min(440, window.innerHeight - 245)),
   );
@@ -5431,6 +5441,18 @@ const App = () => {
   };
 
   const openSrtPicker = () => srtInput.current?.click();
+
+  const clearSubtitleTemplate = () => {
+    if (srtEntries.length === 0) return;
+    if (!window.confirm("确定清空当前字幕吗？已插入时间线的字幕轨道不会被删除。")) return;
+    setSrtEntries([]);
+    setSrtFileName("");
+    setSrtResult(null);
+    setAiArrangementError("");
+    setAiArrangementStage("idle");
+    setSelectedCaptionIndex(1);
+    setNotice({ tone: "ok", text: "当前字幕已清空，已插入时间线的字幕轨道保持不变。" });
+  };
 
   const handleSrtFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -11107,6 +11129,8 @@ const App = () => {
     [currentFrame, definitionMap, instances],
   );
 
+  const subtitleTemplateEntries = srtEntries;
+
   return (
     <div
       className="app"
@@ -11212,6 +11236,12 @@ const App = () => {
             onClick={() => setActiveWorkspace("editor")}
           >
             编辑台
+          </button>
+          <button
+            className={activeWorkspace === "captions" ? "active" : ""}
+            onClick={() => setActiveWorkspace("captions")}
+          >
+            字幕
           </button>
           <button
             className={activeWorkspace === "effects" ? "active" : ""}
@@ -11417,7 +11447,65 @@ const App = () => {
         }
       >
         <aside className="left-panel reference-left-panel">
-          {activeWorkspace === "code" ? (
+          {activeWorkspace === "captions" ? (
+            <div className="subtitle-template-panel" title="字幕模板">
+              <header className="subtitle-template-header">
+                <div>
+                  <small>SUBTITLE TEMPLATE</small>
+                  <strong><TextAa weight="bold" />时间字幕</strong>
+                </div>
+                <div className="subtitle-template-header-actions">
+                  <button
+                    type="button"
+                    className="subtitle-template-clear"
+                    disabled={srtEntries.length === 0}
+                    onClick={clearSubtitleTemplate}
+                    title={srtEntries.length === 0 ? "暂无可清空的字幕" : "清空当前字幕"}
+                    aria-label="清空当前字幕"
+                  >
+                    <Trash />
+                  </button>
+                  <button type="button" className="subtitle-template-settings" title="字幕模板配置" aria-label="字幕模板配置">
+                    <SlidersHorizontal />
+                  </button>
+                </div>
+              </header>
+              <div className="subtitle-template-meta">
+                <span>{srtEntries.length > 0 ? srtFileName : "暂无字幕"}</span>
+                <b>{subtitleTemplateEntries.length}</b>
+              </div>
+              <div className="subtitle-template-list" aria-label="字幕条目列表">
+                {subtitleTemplateEntries.length === 0 ? (
+                  <button type="button" className="subtitle-template-empty" onClick={openSrtPicker}>
+                    <UploadSimple />
+                    <strong>选择 SRT 文件</strong>
+                    <span>导入后显示真实字幕条目</span>
+                  </button>
+                ) : subtitleTemplateEntries.map((entry) => (
+                  <button
+                    type="button"
+                    key={entry.index}
+                    className={`subtitle-template-row${selectedCaptionIndex === entry.index ? " active" : ""}`}
+                    onClick={() => {
+                      setSelectedCaptionIndex(entry.index);
+                      setCurrentFrame(Math.max(0, Math.round((entry.startMs / 1000) * fps)));
+                    }}
+                  >
+                    <span className="subtitle-template-row-top">
+                      <i>{String(entry.index).padStart(2, "0")}</i>
+                      <small>{formatSubtitleTimestamp(entry.startMs)} → {formatSubtitleTimestamp(entry.endMs)}</small>
+                    </span>
+                    <strong>{entry.text}</strong>
+                  </button>
+                ))}
+              </div>
+              <footer className="subtitle-template-actions">
+                <button type="button" onClick={openSrtPicker}><MagicWand />生成</button>
+                <button type="button" onClick={() => void generateSrtTimeline()} disabled={srtEntries.length === 0}><SelectionForeground />匹配</button>
+                <button type="button" onClick={() => setNotice({ tone: "info", text: "字幕模板配置将在右侧检查器中调整。" })}><SlidersHorizontal />配置</button>
+              </footer>
+            </div>
+          ) : activeWorkspace === "code" ? (
             <div className="code-template-panel">
               <header>
                 <small>CODE</small>
