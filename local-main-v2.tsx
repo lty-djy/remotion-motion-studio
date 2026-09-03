@@ -3174,7 +3174,6 @@ const App = () => {
   const [workspaceZoomInput, setWorkspaceZoomInput] = useState(() =>
     String(workspaceZoom),
   );
-  const [srtDialogOpen, setSrtDialogOpen] = useState(false);
   const [srtFileName, setSrtFileName] = useState("");
   const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
   const [srtGenerating, setSrtGenerating] = useState(false);
@@ -3310,6 +3309,7 @@ const App = () => {
     useState<CustomCatalogGroup | null>(null);
   const [pendingGroupDelete, setPendingGroupDelete] =
     useState<PendingGroupDelete | null>(null);
+  const [subtitleClearConfirmOpen, setSubtitleClearConfirmOpen] = useState(false);
   const [effectGroupAssignments, setEffectGroupAssignments] = useState(
     loadEffectGroupAssignments,
   );
@@ -5440,17 +5440,31 @@ const App = () => {
     timelineJsonInput.current?.click();
   };
 
-  const openSrtPicker = () => srtInput.current?.click();
-
-  const clearSubtitleTemplate = () => {
-    if (srtEntries.length === 0) return;
-    if (!window.confirm("确定清空当前字幕吗？已插入时间线的字幕轨道不会被删除。")) return;
+  const openSrtPicker = () => {
+    if (srtGenerating) return;
+    // 从“ SRT导入 ”入口开始新一轮导入时，先清掉面板中的旧字幕状态。
     setSrtEntries([]);
     setSrtFileName("");
     setSrtResult(null);
     setAiArrangementError("");
     setAiArrangementStage("idle");
     setSelectedCaptionIndex(1);
+    srtInput.current?.click();
+  };
+
+  const clearSubtitleTemplate = () => {
+    if (srtEntries.length === 0) return;
+    setSubtitleClearConfirmOpen(true);
+  };
+
+  const confirmClearSubtitleTemplate = () => {
+    setSrtEntries([]);
+    setSrtFileName("");
+    setSrtResult(null);
+    setAiArrangementError("");
+    setAiArrangementStage("idle");
+    setSelectedCaptionIndex(1);
+    setSubtitleClearConfirmOpen(false);
     setNotice({ tone: "ok", text: "当前字幕已清空，已插入时间线的字幕轨道保持不变。" });
   };
 
@@ -5458,11 +5472,14 @@ const App = () => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    setSrtDialogOpen(true);
+    // 重新导入时先清掉旧文件的展示状态，避免解析新文件期间仍显示旧字幕。
+    setSrtEntries([]);
+    setSrtFileName("");
+    setSrtResult(null);
+    setSelectedCaptionIndex(1);
     setSrtGenerating(true);
     setAiArrangementStage("reading");
     setAiArrangementError("");
-    setSrtResult(null);
     try {
       const content = await file.text();
       const entries = parseSrt(content);
@@ -5501,7 +5518,6 @@ const App = () => {
         window.requestAnimationFrame(() => resolve());
       });
     };
-    setSrtDialogOpen(true);
     setSrtGenerating(true);
     setAiArrangementError("");
     setSrtResult(null);
@@ -5753,7 +5769,6 @@ const App = () => {
       if (srtEndSeconds * fps > durationInFrames) {
         setVideoDuration((current) => Math.max(current, srtEndSeconds + 1));
       }
-      setSrtDialogOpen(false);
       setNotice({
         tone: "info",
         text: `已识别 ${analysis.detectedIntentCount ?? analysis.intentCount} 个语义意图，密度筛选后 ${analysis.intentCount} 个进入预览；时间线尚未修改。`,
@@ -11476,11 +11491,18 @@ const App = () => {
               </div>
               <div className="subtitle-template-list" aria-label="字幕条目列表">
                 {subtitleTemplateEntries.length === 0 ? (
-                  <button type="button" className="subtitle-template-empty" onClick={openSrtPicker}>
-                    <UploadSimple />
-                    <strong>选择 SRT 文件</strong>
-                    <span>导入后显示真实字幕条目</span>
-                  </button>
+                  <>
+                    <button type="button" className="subtitle-template-empty" onClick={openSrtPicker}>
+                      <UploadSimple />
+                      <strong>选择 SRT 文件</strong>
+                      <span>导入后显示真实字幕条目</span>
+                    </button>
+                    <button type="button" className="subtitle-template-empty" onClick={openAiArrangement} disabled={srtGenerating}>
+                      <UploadSimple />
+                      <strong>选择 JSON 文件</strong>
+                      <span>导入 AI 大模型编排结果</span>
+                    </button>
+                  </>
                 ) : subtitleTemplateEntries.map((entry) => (
                   <button
                     type="button"
@@ -14760,6 +14782,48 @@ const App = () => {
         </div>
       ) : null}
 
+      {subtitleClearConfirmOpen ? (
+        <div
+          className="shortcut-dialog-backdrop delete-confirm-backdrop"
+          onPointerDown={() => setSubtitleClearConfirmOpen(false)}
+        >
+          <section
+            className="delete-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="clear-subtitle-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="delete-confirm-icon">
+              <Trash />
+            </div>
+            <div className="delete-confirm-copy">
+              <small>CLEAR SUBTITLES</small>
+              <h2 id="clear-subtitle-title">清空当前字幕？</h2>
+              <p>将移除当前面板中的 SRT 字幕内容和分析结果。</p>
+              <div className="delete-confirm-warning">
+                已插入时间线的字幕轨道不会被删除。
+              </div>
+            </div>
+            <footer>
+              <button
+                className="delete-confirm-cancel"
+                onClick={() => setSubtitleClearConfirmOpen(false)}
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirm-submit"
+                onClick={confirmClearSubtitleTemplate}
+              >
+                <Trash />
+                确认清空
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {pendingGroupDelete ? (
         <div
           className="shortcut-dialog-backdrop delete-confirm-backdrop"
@@ -16074,7 +16138,6 @@ const App = () => {
                     setArrangementComponentPicker(null);
                     setArrangementResourcePicker(null);
                     setArrangementResourceSearch("");
-                    setSrtDialogOpen(true);
                   }}
                 >
                   取消
@@ -16112,12 +16175,9 @@ const App = () => {
           )}
         </div>
       ) : null}
-      {srtDialogOpen ? (
+      {false ? (
         <div
           className="export-dialog-layer"
-          onPointerDown={() => {
-            if (!srtGenerating) setSrtDialogOpen(false);
-          }}
         >
           <section
             className="srt-dialog arrangement-preview-dialog"
@@ -16129,7 +16189,7 @@ const App = () => {
                 <strong>字幕驱动的自动视觉编排</strong>
               </div>
               <div className="arrangement-preview-titlebar-actions">
-                <button aria-label="关闭" disabled={srtGenerating} onClick={() => setSrtDialogOpen(false)}><X /></button>
+                <button aria-label="关闭" disabled={srtGenerating}><X /></button>
               </div>
             </header>
 
