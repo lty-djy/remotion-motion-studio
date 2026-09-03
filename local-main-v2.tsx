@@ -3248,6 +3248,7 @@ const App = () => {
       | "rules"
       | "semantic-types"
       | "icons"
+      | "materials"
       | "sfx"
       | "code"
     >(
@@ -3261,6 +3262,7 @@ const App = () => {
   const [effectSearch, setEffectSearch] = useState("");
   const [expandedSemanticIntentId, setExpandedSemanticIntentId] = useState<string | null>(null);
   const [iconSearch, setIconSearch] = useState("");
+  const [materialSearch, setMaterialSearch] = useState("");
   const [sfxSearch, setSfxSearch] = useState("");
   const [previewingSfxId, setPreviewingSfxId] = useState("");
   const [iconResources, setIconResources] = useState<IconResource[]>([]);
@@ -3275,6 +3277,7 @@ const App = () => {
     "内容与素材",
     "状态与数据",
   ]);
+  const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
   const [customIconGroups, setCustomIconGroups] = useState<IconCategoryGroup[]>([]);
   const [iconGroupCreateOpen, setIconGroupCreateOpen] = useState(false);
   const [iconGroupRenameTarget, setIconGroupRenameTarget] =
@@ -4012,6 +4015,25 @@ const App = () => {
       (section) => section.items.length > 0 || (!query && !section.builtin),
     );
   }, [arrangementResourceLibrary.sfx, sfxSearch, customSfxGroups]);
+  const materialCatalog = useMemo(() => {
+    const query = materialSearch.trim().toLocaleLowerCase("zh-CN");
+    const sections = new Map<string, { name: string; accent: string; items: ArrangementResourceEntry[] }>();
+    for (const material of arrangementResourceLibrary.material) {
+      const category = material.category || "其他";
+      const searchable = [material.id, material.label, material.usage, category, ...material.tags]
+        .join(" ")
+        .toLocaleLowerCase("zh-CN");
+      if (query && !searchable.includes(query)) continue;
+      const section = sections.get(category) ?? {
+        name: category,
+        accent: material.accent || "#2f8cff",
+        items: [],
+      };
+      section.items.push(material);
+      sections.set(category, section);
+    }
+    return [...sections.values()];
+  }, [arrangementResourceLibrary.material, materialSearch]);
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
@@ -4412,7 +4434,6 @@ const App = () => {
       String(globalCardScale),
     );
   }, [globalCardScale]);
-
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -5188,10 +5209,8 @@ const App = () => {
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
   const inspectorPositionXMax = (scale: number) => {
-    return Math.max(
-      0,
-      Math.round(canvasWidth - (inspectorDefinition?.bounds.width ?? 0) * scale),
-    );
+    // 独立水平位置允许把组件推到画布右侧，统一上限为 1600px。
+    return 1600;
   };
   const inspectorPositionYMax = (scale: number) => {
     const naturalMax = Math.max(
@@ -11207,6 +11226,12 @@ const App = () => {
             图标库
           </button>
           <button
+            className={activeWorkspace === "materials" ? "active" : ""}
+            onClick={() => setActiveWorkspace("materials")}
+          >
+            素材库
+          </button>
+          <button
             className={activeWorkspace === "sfx" ? "active" : ""}
             onClick={() => setActiveWorkspace("sfx")}
           >
@@ -12225,6 +12250,88 @@ const App = () => {
                     })}
                   </div>
                 </section>
+              ) : null}
+            </div>
+          ) : activeWorkspace === "materials" ? (
+            <div className="material-library-panel" title="素材库">
+              <header className="material-library-header">
+                <div>
+                  <small>PRODUCT VISUALS</small>
+                  <strong>素材库</strong>
+                </div>
+                <b>{arrangementResourceLibrary.material.length}</b>
+              </header>
+
+              <label className="effect-library-search material-library-search">
+                <MagnifyingGlass />
+                <input
+                  type="search"
+                  value={materialSearch}
+                  onChange={(event) => setMaterialSearch(event.target.value)}
+                  placeholder="搜索素材名称、语义或用途"
+                />
+              </label>
+
+              <div className="effect-library-meta">
+                <span>全部素材</span>
+                <span>{materialCatalog.length} 个分类</span>
+              </div>
+
+              <div className="material-library-catalog">
+                {materialCatalog.map((category) => {
+                  const isOpen =
+                    Boolean(materialSearch.trim()) ||
+                    openMaterialCategories.includes(category.name);
+                  return (
+                    <section
+                      className="material-library-category"
+                      key={category.name}
+                      style={{ "--material-group-accent": category.accent } as React.CSSProperties}
+                    >
+                      <button
+                        type="button"
+                        className={isOpen ? "material-category-toggle open" : "material-category-toggle"}
+                        onClick={() =>
+                          setOpenMaterialCategories((current) =>
+                            current.includes(category.name)
+                              ? current.filter((name) => name !== category.name)
+                              : [...current, category.name],
+                          )
+                        }
+                      >
+                        <span>{category.name}</span>
+                        <i
+                          className="material-category-color-swatch"
+                          style={{ background: category.accent }}
+                          aria-hidden="true"
+                        />
+                        <b>{category.items.length}</b>
+                        <CaretDown />
+                      </button>
+                      {isOpen ? (
+                        <div className="material-library-items">
+                          {category.items.map((material) => (
+                            <article className="material-library-item" key={material.id}>
+                              <div className="material-library-thumb">
+                                <img src={material.url} alt="" />
+                              </div>
+                              <span>
+                                <strong>{material.label}</strong>
+                                <small>{material.usage || material.id}</small>
+                              </span>
+                            </article>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {materialCatalog.length === 0 ? (
+                <div className="effect-library-empty">
+                  {materialSearch.trim() ? "没有匹配的素材" : "素材库为空"}
+                </div>
               ) : null}
             </div>
           ) : activeWorkspace === "icons" ? (
@@ -15984,101 +16091,6 @@ const App = () => {
                   {srtResult.motionCount} 个动效 · {srtResult.resourceCount} 个资源
                 </b>
               ) : null}
-            </div>
-
-            <div className="arrangement-preferences compact" aria-label="自动编排设置">
-              <div className="arrangement-active-rule-field">
-                <span>
-                  <strong>当前编码识别标签集</strong>
-                  <small>自动编排按所选标签集匹配 10 种语义的图标 / 音效 / 组件 id</small>
-                </span>
-                <select
-                  value={activeArrangementRuleId}
-                  disabled={srtGenerating}
-                  onChange={(event) => activateArrangementRule(event.target.value)}
-                >
-                  {arrangementRules.map((rule) => (
-                    <option key={rule.id} value={rule.id}>
-                      {rule.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="arrangement-active-rule-actions">
-                  <button
-                    type="button"
-                    disabled={
-                      srtGenerating || openingArrangementRulesLocation
-                    }
-                    onClick={() => void openArrangementRulesLocation()}
-                    title="打开 rule-manifest.json 所在文件夹"
-                  >
-                    <FolderOpen weight="bold" />
-                    {openingArrangementRulesLocation ? "打开中…" : "打开位置"}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={srtGenerating || arrangementRules.length <= 1}
-                    onClick={deleteActiveArrangementRule}
-                    title={
-                      arrangementRules.length <= 1
-                        ? "至少保留一条标签集"
-                        : "删除当前编码识别标签集"
-                    }
-                  >
-                    删除标签集
-                  </button>
-                </div>
-              </div>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={arrangementPreferences.keepStyleConsistent}
-                  disabled={srtGenerating}
-                  onChange={(event) =>
-                    updateArrangementPreferences({
-                      keepStyleConsistent: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <strong>保持统一风格</strong>
-                  <small>同一主色贯穿本次编排</small>
-                </span>
-              </label>
-              <label className="arrangement-accent-field">
-                <input
-                  type="color"
-                  value={arrangementPreferences.accentColor}
-                  disabled={
-                    srtGenerating || !arrangementPreferences.keepStyleConsistent
-                  }
-                  aria-label="自动编排统一主色"
-                  onChange={(event) =>
-                    updateArrangementPreferences({ accentColor: event.target.value })
-                  }
-                />
-                <span>
-                  <strong>主色</strong>
-                  <small>{arrangementPreferences.accentColor.toUpperCase()}</small>
-                </span>
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={arrangementPreferences.learnFromConfirmedChoices}
-                  disabled={srtGenerating}
-                  onChange={(event) =>
-                    updateArrangementPreferences({
-                      learnFromConfirmedChoices: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <strong>记住选择</strong>
-                  <small>只学习最终确认插入项</small>
-                </span>
-              </label>
             </div>
 
             <div className="srt-dialog-content">

@@ -866,6 +866,192 @@ main.is-resizing-sidebar * {
   text-align: center;
 }
 
+/* 素材库沿用效果库的窄栏结构，仅保留素材缩略图作为内容差异。 */
+.material-library-panel {
+  min-height: 100%;
+  padding-bottom: 20px;
+}
+
+.material-library-header {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2a2c31;
+}
+
+.material-library-header div {
+  display: grid;
+  gap: 4px;
+}
+
+.material-library-header small {
+  color: #2f8cff;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+
+.material-library-header strong {
+  color: #f1f1f3;
+  font-size: 22px;
+}
+
+.material-library-header > b {
+  min-width: 40px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  color: #67adff;
+  background: #111d2b;
+  border: 1px solid #245890;
+  border-radius: 3px;
+  font-family: Consolas, monospace;
+  font-size: 16px;
+}
+
+.material-library-search {
+  margin-top: 14px;
+  border-color: #26394c;
+  background: #111923;
+}
+
+.material-library-search:focus-within {
+  border-color: #2f8cff;
+  box-shadow: 0 0 0 1px #173e68;
+}
+
+.material-library-catalog {
+  display: grid;
+  gap: 7px;
+}
+
+.material-library-category {
+  --material-group-accent: #2f8cff;
+  overflow: hidden;
+  background: #101925;
+  border: 1px solid color-mix(in srgb, var(--material-group-accent) 42%, #26303c);
+  border-radius: 8px;
+}
+
+.material-category-toggle {
+  width: 100%;
+  height: 38px;
+  display: grid;
+  grid-template-columns: 1fr 24px auto 14px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  color: var(--material-group-accent);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.material-category-toggle:hover,
+.material-category-toggle.open {
+  background: color-mix(in srgb, var(--material-group-accent) 8%, #111b28);
+}
+
+.material-category-color-swatch {
+  width: 18px;
+  height: 18px;
+  display: block;
+  border: 2px solid color-mix(in srgb, var(--material-group-accent) 72%, white);
+  border-radius: 5px;
+  box-shadow: 0 0 0 2px rgba(3, 8, 15, 0.75), 0 0 10px color-mix(in srgb, var(--material-group-accent) 45%, transparent);
+}
+
+.material-category-toggle b {
+  min-width: 23px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  color: #8190a5;
+  background: #07111f;
+  border-radius: 10px;
+  font: 11px Consolas, monospace;
+}
+
+.material-category-toggle svg {
+  width: 12px;
+  color: #667386;
+  transition: transform 140ms ease;
+}
+
+.material-category-toggle.open svg {
+  transform: rotate(180deg);
+}
+
+.material-library-items {
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--material-group-accent) 24%, #2b2d32);
+}
+
+.material-library-item {
+  min-width: 0;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px;
+  color: #c9cacf;
+  background: #1b1d21;
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+
+.material-library-item:hover {
+  background: #23252a;
+  border-color: #3a3d44;
+}
+
+.material-library-thumb {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #101925;
+  border: 1px solid color-mix(in srgb, var(--material-group-accent) 34%, #3a3740);
+  border-radius: 3px;
+}
+
+.material-library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.material-library-item > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.material-library-item strong,
+.material-library-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-library-item strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.material-library-item small {
+  color: #6f7178;
+  font-size: 11px;
+}
+
 .semantic-rules-panel {
   min-height: 100%;
   padding-bottom: 24px;
