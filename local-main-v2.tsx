@@ -6711,7 +6711,8 @@ const App = () => {
             ? { scale: positionSource.scale }
             : {}),
         },
-        cardBackgroundEnabled: rawItem.cardBackgroundEnabled !== false,
+        // 导入编排默认不显示卡片底色，用户需要时在检查器手动开启。
+        cardBackgroundEnabled: rawItem.cardBackgroundEnabled === true,
         backgroundOpacity:
           rawItem.backgroundOpacity === undefined
             ? undefined
