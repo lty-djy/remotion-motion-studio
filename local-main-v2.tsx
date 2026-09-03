@@ -716,9 +716,9 @@ const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const EFFECT_SEMANTIC_TYPE_STORAGE_KEY = "motion-studio-effect-semantic-types-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
-const DEFAULT_RIGHT_PANEL_WIDTH = 278;
+const DEFAULT_RIGHT_PANEL_WIDTH = 320;
 const MIN_LEFT_PANEL_WIDTH = 210;
-const MIN_RIGHT_PANEL_WIDTH = 240;
+const MIN_RIGHT_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 480;
 const MIN_WORKSPACE_WIDTH = 620;
 

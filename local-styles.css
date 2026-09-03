@@ -3192,25 +3192,27 @@ main.is-resizing-sidebar * {
 /* Reference UI phase 4: right card inspector. */
 .reference-right-panel {
   padding: 0;
-  color: #9b9ca1;
-  background: #141518;
+  color: #a8abb3;
+  background: #111317;
   border-left: 1px solid #292b30;
   scrollbar-color: #45474e transparent;
+  overflow-x: hidden;
 }
 
 .reference-inspector-head {
-  height: 76px;
+  min-height: 88px;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding: 0 20px;
-  background: #141518;
-  border-bottom: 1px solid #2b2d32;
+  padding: 16px 18px 15px;
+  background: linear-gradient(180deg, #171a20 0%, #111317 100%);
+  border-bottom: 1px solid #30333a;
 }
 
 .reference-inspector-head > small {
-  color: #ff4b25;
+  color: #ff6845;
   font-family: Consolas, monospace;
   font-size: 9px;
   letter-spacing: 0.24em;
@@ -3222,10 +3224,14 @@ main.is-resizing-sidebar * {
 }
 
 .reference-inspector-head > div {
-  display: flex;
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 9px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .reference-inspector-head svg {
@@ -3234,21 +3240,39 @@ main.is-resizing-sidebar * {
 }
 
 .reference-inspector-head strong {
+  grid-column: 2;
   color: #f2f2f3;
-  font-size: 15px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  letter-spacing: -0.01em;
 }
 
 .reference-inspector-head span {
+  grid-column: 2;
   color: #66686e;
-  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
 }
 
 .reference-inspector-body {
-  padding: 20px;
+  padding: 14px 18px 28px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .reference-inspector-group {
-  margin-bottom: 18px;
+  margin: 0 0 18px;
+  padding: 12px;
+  border: 1px solid #2e323a;
+  border-radius: 7px;
+  background: #191c22;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .reference-inspector-group > label,
@@ -3256,9 +3280,10 @@ main.is-resizing-sidebar * {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 9px;
+  margin-bottom: 8px;
   color: #98999e;
-  font-size: 11px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 .reference-inspector-group > label svg {
@@ -3404,17 +3429,20 @@ main.is-resizing-sidebar * {
 }
 
 .reference-inspector-section {
-  padding-top: 2px;
-  margin-top: 18px;
+  padding: 0 0 13px;
+  margin-top: 10px;
+  border-bottom: 1px solid #292c33;
 }
 
 .reference-section-title {
-  height: 35px;
+  height: 39px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #2b2d32;
+  margin-bottom: 12px;
+  border-bottom: 0;
+  border-radius: 5px;
+  transition: background 140ms ease, padding 140ms ease;
   cursor: pointer;
   user-select: none;
 }
@@ -3430,13 +3458,14 @@ main.is-resizing-sidebar * {
 
 .reference-section-title strong {
   color: #ededee;
-  font-size: 13px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .reference-section-title small {
   color: #65676d;
   font-family: Consolas, monospace;
-  font-size: 8px;
+  font-size: 7px;
   letter-spacing: 0.28em;
 }
 
@@ -3494,14 +3523,14 @@ main.is-resizing-sidebar * {
 
 .dynamic-prop-fields {
   display: grid;
-  gap: 13px;
+  gap: 14px;
 }
 
 .dynamic-prop-fields > label {
   display: grid;
   gap: 7px;
   color: #92949a;
-  font-size: 15px;
+  font-size: 11px;
 }
 
 .dynamic-prop-fields > label > span {
@@ -3513,14 +3542,21 @@ main.is-resizing-sidebar * {
 .dynamic-prop-fields input:not([type="checkbox"]),
 .dynamic-prop-fields select {
   width: 100%;
-  height: 38px;
+  height: 34px;
   padding: 0 10px;
   border: 1px solid #303238;
-  border-radius: 4px;
+  border-radius: 5px;
   outline: 0;
   color: #e1e1e3;
   background: #1a1b1f;
-  font-size: 15px;
+  font-size: 12px;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.dynamic-prop-fields input:not([type="checkbox"]):focus,
+.dynamic-prop-fields select:focus {
+  border-color: #ff6845;
+  background: #1d2026;
 }
 
 .dynamic-prop-fields input[type="color"] {
@@ -3528,9 +3564,43 @@ main.is-resizing-sidebar * {
 }
 
 .dynamic-prop-fields input[type="range"] {
-  height: auto;
+  height: 16px;
   padding: 0;
   accent-color: #ff4b25;
+}
+
+.reference-range-group {
+  padding: 9px 10px 8px;
+  border: 1px solid #272a31;
+  border-radius: 6px;
+  background: #171a1f;
+}
+
+.reference-range-head {
+  margin-bottom: 5px;
+}
+
+.reference-range-head label {
+  color: #aeb1b8;
+  font-size: 11px;
+}
+
+.reference-range-head b {
+  color: #ff8062;
+  font-size: 10px;
+}
+
+.pill-toggle {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #30343c;
+  border-radius: 6px;
+  background: #171a1f;
+}
+
+.pill-toggle.active {
+  border-color: rgba(255, 104, 69, 0.55);
+  background: rgba(255, 104, 69, 0.11);
 }
 
 .dynamic-prop-fields textarea {
@@ -4790,6 +4860,11 @@ aside {
 .group-dialog-body input:focus {
   border-color: #ff5532;
   box-shadow: 0 0 0 3px rgba(255, 85, 50, 0.14);
+}
+
+.reference-section-title:hover {
+  padding: 0 8px;
+  background: #1a1d23;
 }
 
 .icon-group-create-dialog {
