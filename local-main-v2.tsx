@@ -2219,6 +2219,8 @@ const ARRANGEMENT_RULES_STORAGE_KEY =
   "motion-studio-ai-arrangement-rules-v1";
 const ACTIVE_ARRANGEMENT_RULE_STORAGE_KEY =
   "motion-studio-ai-arrangement-active-rule-v1";
+const ARRANGEMENT_IMPORT_MODE_STORAGE_KEY =
+  "motion-studio-arrangement-import-mode-v1";
 const DEFAULT_ARRANGEMENT_PREFERENCES: ArrangementPreferences = {
   keepStyleConsistent: true,
   accentColor: "#68e8ff",
@@ -2763,6 +2765,25 @@ const App = () => {
   );
   const [arrangementPreferences, setArrangementPreferences] =
     useState<ArrangementPreferences>(loadActiveArrangementPreferences);
+  // JSON 编排导入方式：默认保留主界面已调整的位置/颜色，可切换为完全采用 JSON 设计。
+  const [arrangementImportMode, setArrangementImportMode] = useState<
+    "keep-adjustments" | "use-json"
+  >(() =>
+    window.localStorage.getItem(ARRANGEMENT_IMPORT_MODE_STORAGE_KEY) ===
+    "use-json"
+      ? "use-json"
+      : "keep-adjustments",
+  );
+  const updateArrangementImportMode = (
+    mode: "keep-adjustments" | "use-json",
+  ) => {
+    setArrangementImportMode(mode);
+    try {
+      window.localStorage.setItem(ARRANGEMENT_IMPORT_MODE_STORAGE_KEY, mode);
+    } catch {
+      // 本地存储不可用时仅影响本次会话的记忆。
+    }
+  };
   const [arrangementRules, setArrangementRules] = useState<
     ArrangementStyleRule[]
   >(() => loadArrangementStyleRules(loadArrangementPreferences()));
@@ -5731,6 +5752,8 @@ const App = () => {
           `${baseName}-自动语义编排.timeline.json`,
           { type: "application/json" },
         ),
+        // 本地 SRT 编排固定保留主界面已调整的位置/颜色，便于微调。
+        { preferJsonDesign: false },
       );
       setPendingArrangement((current) =>
         current
@@ -6542,7 +6565,40 @@ const App = () => {
     return { ...fallback };
   };
 
-  const importTimelineJson = async (file: File) => {
+  // 导入编排时保留主界面已调好的颜色：收集该组件实例中与默认值
+  // 不同的 color 类 props（其次使用“设为默认”保存的 props），
+  // 覆盖到本次导入的实例上，文案等内容仍以编排 JSON 为准。
+  const getArrangementComponentColorProps = (componentId: string) => {
+    const definition = definitionMap.get(componentId);
+    if (!definition) return {};
+    const mainInstance =
+      instances.find(
+        (instance) =>
+          instance.id === selectedInstanceId &&
+          instance.componentId === componentId,
+      ) ?? instances.find((instance) => instance.componentId === componentId);
+    const savedProps = componentInstanceDefaults[componentId]?.props;
+    const adjusted: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(definition.propsSchema ?? {})) {
+      if (!isRecord(field) || field.type !== "color") continue;
+      const instanceValue = mainInstance ? mainInstance.props[key] : undefined;
+      if (typeof instanceValue === "string" && instanceValue !== field.default) {
+        adjusted[key] = instanceValue;
+        continue;
+      }
+      const savedValue = isRecord(savedProps) ? savedProps[key] : undefined;
+      if (typeof savedValue === "string") adjusted[key] = savedValue;
+    }
+    return adjusted;
+  };
+
+  const importTimelineJson = async (
+    file: File,
+    options: { preferJsonDesign?: boolean } = {},
+  ) => {
+    // preferJsonDesign=true（完全按 JSON）：位置、颜色以编排 JSON 为准；
+    // 默认（保留我的调整）：主界面已调整的位置/缩放/颜色优先，JSON 仅缺项兜底。
+    const preferJsonDesign = options.preferJsonDesign === true;
     let parsed: unknown;
     try {
       parsed = JSON.parse(await file.text());
@@ -6808,15 +6864,25 @@ const App = () => {
           trackOrder: item.trackOrder ?? firstTrackOrder + index,
           visible: item.visible,
           sourceStartFrame: item.sourceStartFrame,
-            // 外部在线模型 JSON 是编排来源；有明确位置时优先保留它，
-            // 只有 JSON 未提供位置时才使用工作台默认位置。
+            // 用户在主界面已调整过的组件位置/缩放优先；JSON 位置仅在
+            // 时间线上没有该组件实例、也没有保存默认值时兜底。
+            // “完全按 JSON”模式下恢复为 JSON 位置优先。
             position:
+              preferJsonDesign &&
               Object.keys(item.position ?? {}).length > 0
                 ? item.position
-                : getArrangementComponentPosition(item.componentId),
+                : getArrangementComponentPosition(
+                    item.componentId,
+                    item.position ?? {},
+                  ),
           cardBackgroundEnabled: item.cardBackgroundEnabled,
           backgroundOpacity: item.backgroundOpacity,
-          props: item.props,
+          props: preferJsonDesign
+            ? item.props
+            : {
+                ...(item.props ?? {}),
+                ...getArrangementComponentColorProps(item.componentId),
+              },
           sourceExpressionId: item.sourceExpressionId,
           sourceIntentId: item.sourceIntentId,
         },
@@ -11193,7 +11259,9 @@ const App = () => {
           const file = event.target.files?.[0];
           event.target.value = "";
           if (!file) return;
-          importTimelineJson(file).catch((error) => {
+          importTimelineJson(file, {
+            preferJsonDesign: arrangementImportMode === "use-json",
+          }).catch((error) => {
             setNotice({
               tone: "error",
               text:
@@ -11503,6 +11571,37 @@ const App = () => {
                       <strong>选择 JSON 文件</strong>
                       <span>导入 AI 大模型编排结果</span>
                     </button>
+                    <div
+                      className="arrangement-import-mode in-subtitle-panel"
+                      role="radiogroup"
+                      aria-label="编排 JSON 导入方式"
+                    >
+                      <span>JSON 导入方式</span>
+                      <div className="arrangement-import-mode-options">
+                        <button
+                          type="button"
+                          className={
+                            arrangementImportMode === "keep-adjustments" ? "active" : ""
+                          }
+                          onClick={() =>
+                            updateArrangementImportMode("keep-adjustments")
+                          }
+                          title="主界面已调整的位置、缩放、颜色优先，JSON 仅缺项兜底"
+                        >
+                          保留我的调整
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            arrangementImportMode === "use-json" ? "active" : ""
+                          }
+                          onClick={() => updateArrangementImportMode("use-json")}
+                          title="位置与颜色完全采用编排 JSON 的设计"
+                        >
+                          完全按 JSON
+                        </button>
+                      </div>
+                    </div>
                   </>
                 ) : subtitleTemplateEntries.map((entry) => (
                   <button
@@ -12780,6 +12879,36 @@ const App = () => {
               <UploadSimple />
               载入AI大模型编排JSON
             </button>
+          </div>
+
+          <div
+            className="arrangement-import-mode"
+            role="radiogroup"
+            aria-label="编排 JSON 导入方式"
+          >
+            <span>JSON 导入方式</span>
+            <div className="arrangement-import-mode-options">
+              <button
+                type="button"
+                className={
+                  arrangementImportMode === "keep-adjustments" ? "active" : ""
+                }
+                onClick={() => updateArrangementImportMode("keep-adjustments")}
+                title="主界面已调整的位置、缩放、颜色优先，JSON 仅缺项兜底"
+              >
+                保留我的调整
+              </button>
+              <button
+                type="button"
+                className={
+                  arrangementImportMode === "use-json" ? "active" : ""
+                }
+                onClick={() => updateArrangementImportMode("use-json")}
+                title="位置与颜色完全采用编排 JSON 的设计"
+              >
+                完全按 JSON
+              </button>
+            </div>
           </div>
 
           <label className="reference-checkline">
