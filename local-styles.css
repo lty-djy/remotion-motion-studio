@@ -5821,6 +5821,33 @@ aside {
   background: rgba(139, 119, 255, 0.23);
 }
 
+.component-context-menu .material-upload-action {
+  color: #78d7ff;
+  background: rgba(61, 177, 255, 0.13);
+}
+
+.component-context-menu .material-upload-action:hover {
+  background: rgba(61, 177, 255, 0.23);
+}
+
+.component-context-menu .material-location-action {
+  color: #ffd27a;
+  background: rgba(255, 178, 66, 0.14);
+}
+
+.component-context-menu .material-location-action:hover {
+  background: rgba(255, 178, 66, 0.24);
+}
+
+.component-context-menu .material-folder-action {
+  color: #9fe38f;
+  background: rgba(110, 227, 118, 0.12);
+}
+
+.component-context-menu .material-folder-action:hover {
+  background: rgba(110, 227, 118, 0.22);
+}
+
 .component-context-menu .icon-rename-group-action {
   color: #ffc46b;
   background: rgba(255, 178, 66, 0.13);

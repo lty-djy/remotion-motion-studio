@@ -1090,6 +1090,7 @@ type ContextMenuState = {
     | "iconLibrary"
     | "sfxLibrary"
     | "materialLibrary"
+    | "materialItem"
     | "sfxItem";
   instanceIds: string[];
   videoTrackId?: string;
@@ -1103,6 +1104,7 @@ type ContextMenuState = {
   semanticIntentId?: string;
   sfxGroupId?: string;
   soundId?: string;
+  materialId?: string;
   arrangementRuleId?: string;
   arrangementRuleName?: string;
   componentHistoryId?: string;
@@ -2757,6 +2759,8 @@ const App = () => {
   const iconImportInput = useRef<HTMLInputElement>(null);
   const iconImportCategoryRef = useRef("内容与素材");
   const sfxImportInput = useRef<HTMLInputElement>(null);
+  const materialImportInput = useRef<HTMLInputElement>(null);
+  const materialImportCategoryRef = useRef("其他");
   const sfxLibraryAudioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const timelineJsonInput = useRef<HTMLInputElement>(null);
   const activeComponentIdRef = useRef("");
@@ -3370,10 +3374,21 @@ const App = () => {
   const [groupNameDraft, setGroupNameDraft] = useState("");
   const [groupRenameTarget, setGroupRenameTarget] =
     useState<CustomCatalogGroup | null>(null);
+
+  useEffect(() => {
+    for (const group of customMaterialGroups) {
+      void fetch("/api/create-material-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: group.name }),
+      }).catch(() => undefined);
+    }
+  }, [customMaterialGroups]);
+
   const [pendingGroupDelete, setPendingGroupDelete] =
     useState<PendingGroupDelete | null>(null);
-  const [pendingSandboxFileDelete, setPendingSandboxFileDelete] =
-    useState<ComponentHistoryItem | null>(null);
+  const [materialDeleteTarget, setMaterialDeleteTarget] =
+    useState<ArrangementResourceEntry | null>(null);
   const [subtitleClearConfirmOpen, setSubtitleClearConfirmOpen] = useState(false);
   const [effectGroupAssignments, setEffectGroupAssignments] = useState(
     loadEffectGroupAssignments,
@@ -3652,6 +3667,7 @@ const App = () => {
   // 时间轴横向缩放与滚动（剪映式底部滑轨）
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineScroll, setTimelineScroll] = useState(0);
+  const [isPlayheadDragging, setIsPlayheadDragging] = useState(false);
   const timelineTracksRef = useRef<HTMLDivElement | null>(null);
   const [trackViewportWidth, setTrackViewportWidth] = useState(0);
   const [trackOffsetLeft, setTrackOffsetLeft] = useState(84);
@@ -4180,7 +4196,11 @@ const App = () => {
         ],
         options.totalFrames,
       );
-      const totalFrames = Math.max(1, options.totalFrames || loadedFrames);
+      const totalFrames = Math.max(
+        1,
+        options.totalFrames,
+        loadedFrames,
+      );
       const importedDefinitions = getMotionComponents(loaded, loadedFrames);
       const nextDefinitions =
         mergeWithBuiltInDefinitions(importedDefinitions);
@@ -4362,9 +4382,11 @@ const App = () => {
     ])
       .then(async ([component, state, history]) => {
         const draft = state.workspaceDraft as ProjectSnapshot | undefined;
+        // 空 activeComponentId 的初始草稿不能覆盖刚导入 TSX 自带的时间轴。
+        // 只有草稿明确属于当前组件时，才恢复其中的实例和参数。
         const canRestoreDraft = Boolean(
           draft &&
-            (!draft.activeComponentId ||
+            (!state.activeComponentId ||
               draft.activeComponentId === state.activeComponentId),
         );
         const storedDuration =
@@ -7880,7 +7902,6 @@ const App = () => {
 
   const deleteSandboxFile = async (item: ComponentHistoryItem) => {
     setContextMenu(null);
-    setPendingSandboxFileDelete(null);
     try {
       const response = await fetch("/api/delete-component-history", {
         method: "POST",
@@ -8304,15 +8325,19 @@ const App = () => {
     window.addEventListener("pointercancel", finish);
   };
 
-  // 播放时播放头靠边则自动滚动跟随
+  // 播放头靠近可视区边缘时自动滚动跟随。除了播放中，也覆盖拖动
+  // 播放头，避免拖动时播放头跑出视口后与下方滑轨脱节；暂停状态下
+  // 仍允许用户独立拖动下方滑轨查看其他时间段。
   useEffect(() => {
-    if (!isPlaying || trackViewportWidth <= 0) return;
+    if ((!isPlaying && !isPlayheadDragging) || trackViewportWidth <= 0) return;
     const headX = (timelineContentWidth * playheadPercent) / 100 - timelineScroll;
     if (headX < 0 || headX > trackViewportWidth * 0.92) {
+      const targetViewportPosition =
+        headX < 0 ? trackViewportWidth * 0.12 : trackViewportWidth * 0.88;
       setTimelineScroll(
         clamp(
           (timelineContentWidth * playheadPercent) / 100 -
-            trackViewportWidth * 0.3,
+            targetViewportPosition,
           0,
           timelineMaxScroll,
         ),
@@ -8321,6 +8346,7 @@ const App = () => {
   }, [
     currentFrame,
     isPlaying,
+    isPlayheadDragging,
     playheadPercent,
     timelineContentWidth,
     trackViewportWidth,
@@ -8481,6 +8507,7 @@ const App = () => {
     event.stopPropagation();
     seekTimelineFromClientX(event.clientX);
     playheadDragCleanupRef.current?.();
+    setIsPlayheadDragging(true);
 
     const pointerId = event.pointerId;
     const handleMove = (moveEvent: PointerEvent) => {
@@ -8493,6 +8520,7 @@ const App = () => {
       window.removeEventListener("pointerup", handleEnd);
       window.removeEventListener("pointercancel", handleEnd);
       playheadDragCleanupRef.current = null;
+      setIsPlayheadDragging(false);
     };
     const handleEnd = (endEvent: PointerEvent) => {
       if (endEvent.pointerId !== pointerId) return;
@@ -9819,6 +9847,27 @@ const App = () => {
     }
   };
 
+  const openMaterialFileLocation = async (materialId: string) => {
+    setContextMenu(null);
+    try {
+      const response = await fetch("/api/open-material-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ materialId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "无法打开素材所在位置");
+      }
+      setNotice({ tone: "ok", text: "已在资源管理器中定位素材文件。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开素材所在位置",
+      });
+    }
+  };
+
   const showIconLibraryMenu = (
     event: React.MouseEvent,
     category = "内容与素材",
@@ -9982,15 +10031,20 @@ const App = () => {
     });
   };
 
-  const showMaterialLibraryMenu = (event: React.MouseEvent, groupName?: string) => {
+  const showMaterialLibraryMenu = (
+    event: React.MouseEvent,
+    groupName?: string,
+    materialId?: string,
+  ) => {
     event.preventDefault();
     event.stopPropagation();
     setContextMenu({
       x: Math.min(event.clientX, window.innerWidth - 210),
       y: Math.min(event.clientY, window.innerHeight - 120),
-      source: "materialLibrary",
+      source: materialId ? "materialItem" : "materialLibrary",
       instanceIds: [],
       groupName,
+      materialId,
     });
   };
 
@@ -10000,28 +10054,45 @@ const App = () => {
     setMaterialGroupCreateOpen(true);
   };
 
-  const createMaterialGroup = () => {
+  const openMaterialImportPicker = (category = "其他") => {
+    materialImportCategoryRef.current = category;
+    setContextMenu(null);
+    materialImportInput.current?.click();
+  };
+
+  const createMaterialGroup = async () => {
     const name = materialGroupNameDraft.trim().slice(0, 20);
     if (!name) return;
     if (customMaterialGroups.some((group) => group.name === name)) {
       setNotice({ tone: "error", text: `素材文件夹“${name}”已存在。` });
       return;
     }
-    const group: CustomMaterialGroup = {
-      id: `material-group-${Date.now()}`,
-      name,
-      accent: "#2f8cff",
-      builtin: false,
-    };
-    setCustomMaterialGroups((current) => {
-      const next = [...current, group];
-      window.localStorage.setItem(CUSTOM_MATERIAL_GROUP_STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-    setOpenMaterialCategories((current) => [...current, name]);
-    setMaterialGroupCreateOpen(false);
-    setMaterialGroupNameDraft("");
-    setNotice({ tone: "ok", text: `已新建素材文件夹“${name}”。` });
+    try {
+      const response = await fetch("/api/create-material-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.folder) throw new Error(payload?.error ?? "新建文件夹失败");
+      const group: CustomMaterialGroup = {
+        id: `material-group-${Date.now()}`,
+        name,
+        accent: "#2f8cff",
+        builtin: false,
+      };
+      setCustomMaterialGroups((current) => {
+        const next = [...current, group];
+        window.localStorage.setItem(CUSTOM_MATERIAL_GROUP_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setOpenMaterialCategories((current) => [...current, name]);
+      setMaterialGroupCreateOpen(false);
+      setMaterialGroupNameDraft("");
+      setNotice({ tone: "ok", text: `已在素材目录中新建文件夹“${name}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "新建文件夹失败" });
+    }
   };
 
   const importMaterialFiles = async (files: File[], category: string) => {
@@ -10064,6 +10135,35 @@ const App = () => {
     void importMaterialFiles(files, category).catch((error) =>
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "素材导入失败" }),
     );
+  };
+
+  const deleteManualMaterial = async (material: ArrangementResourceEntry) => {
+    setContextMenu(null);
+    if (material.source !== "manual") {
+      setNotice({ tone: "info", text: "内置素材不能删除。" });
+      return;
+    }
+    setMaterialDeleteTarget(material);
+  };
+
+  const confirmDeleteManualMaterial = async (material: ArrangementResourceEntry) => {
+    setMaterialDeleteTarget(null);
+    try {
+      const response = await fetch("/api/delete-manual-material", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ materialId: material.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) throw new Error(data?.error ?? "素材删除失败");
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        material: current.material.filter((item) => item.id !== material.id),
+      }));
+      setNotice({ tone: "ok", text: `已删除素材“${material.label}”。` });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "素材删除失败" });
+    }
   };
 
   const createSfxGroup = async () => {
@@ -11516,6 +11616,24 @@ const App = () => {
         }}
         hidden
       />
+      <input
+        ref={materialImportInput}
+        type="file"
+        accept=".png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm,image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+        multiple
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          if (files.length === 0) return;
+          importMaterialFiles(files, materialImportCategoryRef.current).catch((error) => {
+            setNotice({
+              tone: "error",
+              text: error instanceof Error ? error.message : "素材导入失败",
+            });
+          });
+        }}
+        hidden
+      />
       <div className="capture-strip" aria-hidden="true">
         <span />
       </div>
@@ -12835,7 +12953,12 @@ const App = () => {
                             <small className="material-library-drop-hint">将视频或图片拖到这里</small>
                           ) : null}
                           {category.items.map((material) => (
-                            <article className="material-library-item" key={material.id}>
+                            <article
+                              className="material-library-item"
+                              key={material.id}
+                              onContextMenu={(event) => showMaterialLibraryMenu(event, category.name, material.id)}
+                              title="右键上传或删除素材"
+                            >
                               <div className="material-library-thumb">
                                 <img src={material.url} alt="" />
                               </div>
@@ -15333,6 +15456,48 @@ const App = () => {
         </div>
       ) : null}
 
+      {materialDeleteTarget ? (
+        <div
+          className="shortcut-dialog-backdrop delete-confirm-backdrop"
+          onPointerDown={() => setMaterialDeleteTarget(null)}
+        >
+          <section
+            className="delete-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-material-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="delete-confirm-icon">
+              <Trash />
+            </div>
+            <div className="delete-confirm-copy">
+              <small>DELETE MATERIAL</small>
+              <h2 id="delete-material-title">删除这个素材？</h2>
+              <p>{materialDeleteTarget.label}</p>
+              <div className="delete-confirm-warning">
+                只会删除手动导入的素材文件，不会影响其他时间线内容。
+              </div>
+            </div>
+            <footer>
+              <button
+                className="delete-confirm-cancel"
+                onClick={() => setMaterialDeleteTarget(null)}
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirm-submit"
+                onClick={() => void confirmDeleteManualMaterial(materialDeleteTarget)}
+              >
+                <Trash />
+                确认删除
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {pendingGroupDelete ? (
         <div
           className="shortcut-dialog-backdrop delete-confirm-backdrop"
@@ -15370,48 +15535,6 @@ const App = () => {
               <button
                 className="delete-confirm-submit"
                 onClick={() => deleteCatalogGroup(pendingGroupDelete)}
-              >
-                <Trash />
-                确认删除
-              </button>
-            </footer>
-          </section>
-        </div>
-      ) : null}
-
-      {pendingSandboxFileDelete ? (
-        <div
-          className="shortcut-dialog-backdrop delete-confirm-backdrop"
-          onPointerDown={() => setPendingSandboxFileDelete(null)}
-        >
-          <section
-            className="delete-confirm-dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="delete-sandbox-file-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <div className="delete-confirm-icon">
-              <Trash />
-            </div>
-            <div className="delete-confirm-copy">
-              <small>DELETE SANDBOX FILE</small>
-              <h2 id="delete-sandbox-file-title">确定删除这个 TSX 文件？</h2>
-              <p>{pendingSandboxFileDelete.name}</p>
-              <div className="delete-confirm-warning">
-                将删除本地历史副本；当前时间轴内容不会被删除。
-              </div>
-            </div>
-            <footer>
-              <button
-                className="delete-confirm-cancel"
-                onClick={() => setPendingSandboxFileDelete(null)}
-              >
-                取消
-              </button>
-              <button
-                className="delete-confirm-submit"
-                onClick={() => void deleteSandboxFile(pendingSandboxFileDelete)}
               >
                 <Trash />
                 确认删除
@@ -17229,10 +17352,7 @@ const App = () => {
                     const item = componentHistory.find(
                       (entry) => entry.id === contextMenu.componentHistoryId,
                     );
-                    if (item) {
-                      setContextMenu(null);
-                      setPendingSandboxFileDelete(item);
-                    }
+                    if (item) void deleteSandboxFile(item);
                   }}
                 >
                   删除此 TSX 文件
@@ -17410,10 +17530,44 @@ const App = () => {
                   </button>
                 ) : null}
               </>
-            ) : contextMenu.source === "materialLibrary" ? (
+            ) : contextMenu.source === "materialItem" ? (() => {
+              const material = arrangementResourceLibrary.material.find(
+                (item) => item.id === contextMenu.materialId,
+              );
+              return (
+                <>
+                  <small>{material?.label ?? "素材"}</small>
+                  <button
+                    className="material-upload-action"
+                    onClick={() => openMaterialImportPicker(contextMenu.groupName ?? "其他")}
+                  >
+                    上传到此文件夹
+                  </button>
+                  <button
+                    className="material-location-action"
+                    onClick={() => material && void openMaterialFileLocation(material.id)}
+                  >
+                    打开文件所在位置
+                  </button>
+                  {material?.source === "manual" ? (
+                    <button className="delete-action" onClick={() => material && void deleteManualMaterial(material)}>
+                      删除素材
+                    </button>
+                  ) : (
+                    <small>内置素材不可删除</small>
+                  )}
+                </>
+              );
+            })() : contextMenu.source === "materialLibrary" ? (
               <>
                 <small>{contextMenu.groupName ?? "素材库"}</small>
-                <button className="icon-new-group-action" onClick={openCreateMaterialGroupDialog}>
+                <button
+                  className="material-upload-action"
+                  onClick={() => openMaterialImportPicker(contextMenu.groupName ?? "其他")}
+                >
+                  上传文件
+                </button>
+                <button className="material-folder-action" onClick={openCreateMaterialGroupDialog}>
                   新建文件夹
                 </button>
               </>

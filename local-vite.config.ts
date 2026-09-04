@@ -1121,7 +1121,7 @@ const importManualMaterial = async (
     throw new Error("仅支持 PNG、JPG、WEBP、GIF、MP4、MOV 或 WEBM 素材");
   }
   const safeCategory = category.trim().slice(0, 20);
-  if (!safeCategory || /[\u0000-\u001f]/.test(safeCategory)) {
+  if (!safeCategory || /[\\/\u0000-\u001f]/.test(safeCategory)) {
     throw new Error("素材文件夹名称无效");
   }
   const originalManifest = await readFile(resourceManifestPath, "utf8");
@@ -1144,13 +1144,14 @@ const importManualMaterial = async (
   );
   let id = slug;
   for (let suffix = 2; existingIds.has(id); suffix += 1) id = `${slug}-${suffix}`;
-  const storedFile = `materials/${id}${extension}`;
+  const storedFile = `materials/${safeCategory}/${id}${extension}`;
   const target = resolve(resourceRoot, storedFile);
   const materialRoot = `${resolve(materialResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
   if (!target.startsWith(materialRoot)) throw new Error("素材文件路径无效");
   const label = baseName.trim().slice(0, 48) || id;
 
   try {
+    mkdirSync(dirname(target), { recursive: true });
     await writeFile(target, body);
     manifest.resources.push({
       id,
@@ -1178,6 +1179,86 @@ const importManualMaterial = async (
     await writeFile(resourceIndexPath, originalIndex);
     throw error;
   }
+};
+
+const deleteManualMaterial = async (materialId: string) => {
+  if (!/^[A-Za-z0-9._-]+$/.test(materialId)) throw new Error("素材标识无效");
+  const originalManifest = await readFile(resourceManifestPath, "utf8");
+  const originalIndex = await readFile(resourceIndexPath, "utf8");
+  const manifest = JSON.parse(originalManifest) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const resource = manifest.resources.find(
+    (item) => item.library === "materials" && item.id === materialId,
+  );
+  if (!resource || resource.source !== "manual") {
+    throw new Error("只能删除手动导入的素材");
+  }
+  const relativeFile = typeof resource.file === "string" ? resource.file : "";
+  if (
+    !relativeFile.startsWith("materials/") ||
+    relativeFile.split("/").some((part) => !part || part === "..") ||
+    !MATERIAL_EXTENSIONS.has(extname(relativeFile).toLowerCase())
+  ) {
+    throw new Error("素材文件无效");
+  }
+  const target = resolve(resourceRoot, relativeFile);
+  const materialRoot = `${resolve(materialResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(materialRoot) || !existsSync(target)) {
+    throw new Error("素材文件不存在");
+  }
+  const originalAsset = await readFile(target);
+  manifest.resources = manifest.resources.filter((item) => item !== resource);
+  try {
+    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await unlink(target);
+    const { createResourceIndex } = await import(
+      "./ai-motion-arranger/scripts/build-resource-index.mjs"
+    );
+    const index = await createResourceIndex();
+    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  } catch (error) {
+    await writeFile(resourceManifestPath, originalManifest);
+    if (!existsSync(target)) await writeFile(target, originalAsset);
+    await writeFile(resourceIndexPath, originalIndex);
+    throw error;
+  }
+};
+
+const findMaterialFile = async (materialId: string) => {
+  if (!/^[A-Za-z0-9._-]+$/.test(materialId)) throw new Error("素材标识无效");
+  const manifest = JSON.parse(await readFile(resourceManifestPath, "utf8")) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const resource = manifest.resources.find(
+    (item) => item.library === "materials" && item.id === materialId,
+  );
+  const relativeFile = typeof resource?.file === "string" ? resource.file : "";
+  if (
+    !relativeFile.startsWith("materials/") ||
+    relativeFile.split("/").some((part) => !part || part === "..") ||
+    !MATERIAL_EXTENSIONS.has(extname(relativeFile).toLowerCase())
+  ) {
+    throw new Error("找不到素材文件");
+  }
+  const target = resolve(resourceRoot, relativeFile);
+  const materialRoot = `${resolve(materialResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(materialRoot) || !existsSync(target)) {
+    throw new Error("素材文件不存在");
+  }
+  return target;
+};
+
+const createMaterialFolder = (name: string) => {
+  const safeName = name.trim().slice(0, 20);
+  if (!safeName || /[\\/\u0000-\u001f]/.test(safeName) || safeName === "." || safeName === "..") {
+    throw new Error("素材文件夹名称无效");
+  }
+  const target = resolve(materialResourceDir, safeName);
+  const materialRoot = `${resolve(materialResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(materialRoot)) throw new Error("素材文件夹路径无效");
+  mkdirSync(target, { recursive: true });
+  return { name: safeName };
 };
 
 const importManualSfx = async (filename: string, body: Buffer) => {
@@ -2390,6 +2471,37 @@ const localApi = (): Plugin => {
             await getBody(req, 100 * 1024 * 1024),
           );
           sendJson(res, 200, { ok: true, material });
+          return;
+        }
+
+        if (url.pathname === "/api/create-material-folder" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { name?: string };
+          const name = typeof body.name === "string" ? body.name : "";
+          const folder = createMaterialFolder(name);
+          sendJson(res, 200, { ok: true, folder });
+          return;
+        }
+
+        if (url.pathname === "/api/delete-manual-material" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { materialId?: string };
+          const materialId = typeof body.materialId === "string" ? body.materialId : "";
+          await deleteManualMaterial(materialId);
+          sendJson(res, 200, { ok: true, materialId });
+          return;
+        }
+
+        if (url.pathname === "/api/open-material-location" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { materialId?: string };
+          const materialId = typeof body.materialId === "string" ? body.materialId : "";
+          const target = await findMaterialFile(materialId);
+          runOpenFolder(target);
+          sendJson(res, 200, { ok: true, materialId });
           return;
         }
 
