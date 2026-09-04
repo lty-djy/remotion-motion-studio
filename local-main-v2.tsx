@@ -971,6 +971,7 @@ type ProjectSnapshot = {
   cardShadowOffsetX?: number;
   cardShadowOffsetY?: number;
   safetyGuideVisible?: boolean;
+  personSafetyGuideVisible?: boolean;
   solidBackgroundEnabled?: boolean;
   soundEnabled?: boolean;
   activeArrangementBatchId?: string;
@@ -1786,6 +1787,7 @@ type StudioPreviewProps = {
   instances: MotionInstance[];
   canvasOrientation: "landscape" | "portrait";
   safetyGuideVisible: boolean;
+  personSafetyGuideVisible: boolean;
   solidBackgroundEnabled: boolean;
   soundEnabled: boolean;
   globalCardScale: number;
@@ -1809,6 +1811,7 @@ const StudioPreviewComposition = ({
   instances,
   canvasOrientation,
   safetyGuideVisible,
+  personSafetyGuideVisible,
   solidBackgroundEnabled,
   soundEnabled,
   globalCardScale,
@@ -2019,7 +2022,7 @@ const StudioPreviewComposition = ({
           请先导入这个组件包使用的原视频
         </AbsoluteFill>
       ) : null}
-      {safetyGuideVisible ? (
+      {safetyGuideVisible || personSafetyGuideVisible ? (
         <div
           data-preview-safety-guide
           aria-hidden="true"
@@ -2030,8 +2033,97 @@ const StudioPreviewComposition = ({
             pointerEvents: "none",
           }}
         >
-          {previewAvoidanceRegions.map((region) => (
-            <div
+          {personSafetyGuideVisible ? (
+            <>
+              <div
+                data-avoidance-region="person-safe"
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: canvasOrientation === "portrait" ? 160 : 48,
+                  width: 480,
+                  height:
+                    canvasOrientation === "portrait"
+                      ? previewCanvas.height - 160 - 220
+                      : 984,
+                  boxSizing: "border-box",
+                  translate: "-50% 0",
+                  border: "1px dashed rgba(245,245,247,.28)",
+                  borderRadius: 8,
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    left: "50%",
+                    translate: "-50% 0",
+                    color: "rgba(245,245,247,.34)",
+                    fontSize: 13,
+                    letterSpacing: ".3em",
+                  }}
+                >
+                  SAFE
+                </div>
+              </div>
+              <div
+                data-person-placeholder
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  bottom: canvasOrientation === "portrait" ? 580 : 0,
+                  width: 480,
+                  height: 900,
+                  transform:
+                    canvasOrientation === "portrait"
+                      ? "translateX(-50%) scale(1.1)"
+                      : "translateX(-50%)",
+                  transformOrigin: "center bottom",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 60,
+                    bottom: 60,
+                    width: 360,
+                    height: 520,
+                    background: "rgba(245,245,247,.105)",
+                    border: "1px solid rgba(245,245,247,.16)",
+                    borderRadius: "180px 180px 0 0",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 145,
+                    top: 108,
+                    width: 190,
+                    height: 190,
+                    borderRadius: "50%",
+                    background: "rgba(245,245,247,.13)",
+                    border: "1px solid rgba(245,245,247,.2)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    bottom: 60,
+                    translate: "-50% 0",
+                    color: "rgba(245,245,247,.34)",
+                    fontSize: 15,
+                    letterSpacing: ".3em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  人物安全区
+                </div>
+              </div>
+            </>
+          ) : null}
+          {previewAvoidanceRegions.filter((region) => region.kind !== "face").map((region) => (
+            (safetyGuideVisible ? <div
               key={region.id}
               data-avoidance-region={region.kind}
               style={{
@@ -2051,37 +2143,6 @@ const StudioPreviewComposition = ({
                     : "transparent",
               }}
             >
-              {region.kind === "face" ? (
-                <>
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "13%",
-                      width: "24%",
-                      aspectRatio: "1",
-                      translate: "-50% 0",
-                      borderRadius: "50%",
-                      background: "rgba(255,255,255,.13)",
-                      border: "1px solid rgba(255,255,255,.2)",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "31%",
-                      bottom: "7%",
-                      width: "62%",
-                      translate: "-50% 0",
-                      background: "rgba(255,255,255,.105)",
-                      border: "1px solid rgba(255,255,255,.16)",
-                      clipPath:
-                        "polygon(23% 0,77% 0,100% 28%,84% 100%,16% 100%,0 28%)",
-                    }}
-                  />
-                </>
-              ) : null}
               <div
                 style={{
                   position: "absolute",
@@ -2089,9 +2150,7 @@ const StudioPreviewComposition = ({
                   bottom: 14,
                   translate: "-50% 0",
                   color:
-                    region.kind === "face"
-                      ? "rgba(255,255,255,.34)"
-                      : "rgba(85,230,255,.48)",
+                    "rgba(85,230,255,.48)",
                   fontSize: 16,
                   letterSpacing: ".18em",
                   whiteSpace: "nowrap",
@@ -2099,7 +2158,7 @@ const StudioPreviewComposition = ({
               >
                 {region.label} · 自动避让
               </div>
-            </div>
+            </div> : null)
           ))}
         </div>
       ) : null}
@@ -3274,6 +3333,7 @@ const App = () => {
     "landscape" | "portrait"
   >("landscape");
   const [safetyGuideVisible, setSafetyGuideVisible] = useState(true);
+  const [personSafetyGuideVisible, setPersonSafetyGuideVisible] = useState(true);
   const [solidBackgroundEnabled, setSolidBackgroundEnabled] =
     useState(true);
   const [initialPanelWidths] = useState(readStoredPanelWidths);
@@ -4469,6 +4529,7 @@ const App = () => {
         }
         setGlobalCardBase(draft?.globalCardBase === "light" ? "light" : "dark");
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
+        setPersonSafetyGuideVisible(draft?.personSafetyGuideVisible !== false);
         setSolidBackgroundEnabled(
           draft?.solidBackgroundEnabled !== false,
         );
@@ -4829,6 +4890,7 @@ const App = () => {
       canvasOrientation,
       globalCardScale,
       safetyGuideVisible,
+      personSafetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
     }),
@@ -4837,6 +4899,7 @@ const App = () => {
       effectiveInstances,
       canvasOrientation,
       safetyGuideVisible,
+      personSafetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
       sourceIncludesVideo,
@@ -4873,8 +4936,15 @@ const App = () => {
         selectedKeys.has(`resource:${track.id}`),
       ),
       safetyGuideVisible,
+      personSafetyGuideVisible,
     };
-  }, [globalCardBase, pendingArrangement, previewInputProps, safetyGuideVisible]);
+  }, [
+    globalCardBase,
+    pendingArrangement,
+    personSafetyGuideVisible,
+    previewInputProps,
+    safetyGuideVisible,
+  ]);
 
   useEffect(() => {
     if (!pendingArrangement || pendingArrangementSegments.length === 0) {
@@ -4945,6 +5015,7 @@ const App = () => {
       globalCardScale,
       globalCardBase,
       safetyGuideVisible,
+      personSafetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
     }),
@@ -4960,6 +5031,7 @@ const App = () => {
       projectName,
       resourceTracks,
       safetyGuideVisible,
+      personSafetyGuideVisible,
       solidBackgroundEnabled,
       soundEnabled,
       sourceIncludesVideo,
@@ -5242,6 +5314,7 @@ const App = () => {
       }
       setGlobalCardBase(snapshot.globalCardBase === "light" ? "light" : "dark");
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
+      setPersonSafetyGuideVisible(snapshot.personSafetyGuideVisible !== false);
       setSolidBackgroundEnabled(
         snapshot.solidBackgroundEnabled !== false,
       );
@@ -13387,6 +13460,19 @@ const App = () => {
             </button>
           </div>
           <div className="reference-switch-row">
+            <span>人物安全区</span>
+            <button
+              type="button"
+              className={`reference-switch ${personSafetyGuideVisible ? "active" : ""}`}
+              aria-label="人物安全区"
+              aria-pressed={personSafetyGuideVisible}
+              title={personSafetyGuideVisible ? "隐藏人物安全区" : "显示人物安全区"}
+              onClick={() => setPersonSafetyGuideVisible((visible) => !visible)}
+            >
+              <i />
+            </button>
+          </div>
+          <div className="reference-switch-row">
             <span>背景纯色</span>
             <button
               type="button"
@@ -13433,13 +13519,21 @@ const App = () => {
             <span>{formatTime(timelineSeconds)}</span>
           </div>
           <div className="stage-shell reference-stage-shell">
-            <div className="reference-preview-frame">
+            <div
+              className={`reference-preview-frame ${
+                canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
+              }`}
+            >
               <div className="reference-preview-pills" aria-hidden="true">
                 <b>实时预览</b>
                 <span>{selectedDefinition?.name ?? "动效合成"}</span>
               </div>
               <div
-                className="player-wrap reference-player-wrap"
+                className={`player-wrap reference-player-wrap ${
+                  canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
+                } ${
+                  solidBackgroundEnabled ? "is-solid" : "is-transparent"
+                }`}
                 onPointerDown={beginMarqueeSelection}
               >
               {motionModule ? (
