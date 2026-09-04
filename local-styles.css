@@ -3294,62 +3294,6 @@ main.is-resizing-sidebar * {
   box-shadow: none;
 }
 
-.reference-preview-pills {
-  position: absolute;
-  z-index: 60;
-  top: 17px;
-  left: 18px;
-  display: flex;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.055);
-  border-radius: 14px;
-  color: #f2f3f7;
-  background: rgba(49, 49, 58, 0.78);
-  font-size: 9px;
-  line-height: 1;
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-}
-
-.reference-preview-pills b,
-.reference-preview-pills span {
-  padding: 6px 10px;
-  white-space: nowrap;
-}
-
-.reference-preview-pills b {
-  font-weight: 700;
-}
-
-.reference-preview-pills span {
-  color: #969aa5;
-}
-
-.reference-preview-status {
-  position: absolute;
-  z-index: 60;
-  right: 18px;
-  bottom: 18px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  color: #b6b9c2;
-  background: rgba(30, 31, 38, 0.82);
-  font-size: 8px;
-  line-height: 1;
-  backdrop-filter: blur(8px);
-  pointer-events: none;
-}
-
-.reference-preview-status svg {
-  width: 13px;
-  height: 13px;
-}
-
-.reference-player-wrap .canvas-selection,
 .reference-player-wrap .canvas-marquee {
   display: none;
 }
@@ -4231,6 +4175,27 @@ aside {
     inset 0 0 0 1px rgba(5, 11, 16, 0.55),
     0 0 20px rgba(101, 223, 247, 0.18);
   pointer-events: none;
+}
+
+.reference-player-wrap .canvas-selection,
+.reference-player-wrap .canvas-selection:hover,
+.reference-player-wrap .canvas-selection.selected,
+.reference-player-wrap .canvas-selection.selected.primary {
+  border-color: transparent;
+  border-style: solid;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none;
+  cursor: grab;
+}
+
+.reference-player-wrap .canvas-selection:active {
+  cursor: grabbing;
+}
+
+.reference-player-wrap .canvas-selection-label,
+.reference-player-wrap .canvas-scale-handle {
+  display: none;
 }
 
 .loading {

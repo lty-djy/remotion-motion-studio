@@ -5455,19 +5455,26 @@ const App = () => {
   const inspectorDefinition = inspectorInstance
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
-  const inspectorPositionXMax = (scale: number) => {
-    // 独立水平位置允许把组件推到画布右侧，统一上限为 1600px。
-    return 1600;
+  const getUnboundedPositionSliderRange = (
+    position: number,
+    canvasAxis: number,
+  ) => {
+    // 滑杆的可视区始终包住当前位置，并在靠近端点时继续向外扩展。
+    // 这样它只是调节器，不会成为位置的画布边界。
+    const span = Math.max(1000, Math.round(canvasAxis));
+    return {
+      min: Math.min(-span, Math.floor(position - span)),
+      max: Math.max(span, Math.ceil(position + span)),
+    };
   };
-  const inspectorPositionYMax = (scale: number) => {
-    const naturalMax = Math.max(
-      0,
-      Math.round(
-        canvasHeight - (inspectorDefinition?.bounds.height ?? 0) * scale,
-      ),
-    );
-    return naturalMax;
-  };
+  const inspectorPositionXRange = getUnboundedPositionSliderRange(
+    inspectorInstance?.position.x ?? 0,
+    canvasWidth,
+  );
+  const inspectorPositionYRange = getUnboundedPositionSliderRange(
+    inspectorInstance?.position.y ?? 0,
+    canvasHeight,
+  );
   const [inspectorSectionsExpanded, setInspectorSectionsExpanded] = useState<Record<string, boolean>>({
     global: false,
     resourcePosition: false,
@@ -9498,32 +9505,14 @@ const App = () => {
           current.map((instance) => {
             const start = state.positions[instance.id];
             if (!start) return instance;
-            const definition = definitionMap.get(instance.componentId);
             const nextX = Math.round(start.x + designDeltaX);
             const nextY = Math.round(start.y + designDeltaY);
-            const naturalMaxX = Math.round(
-              canvasWidth - (definition?.bounds.width ?? 0) * instance.position.scale,
-            );
-            const naturalMaxY = Math.round(
-              canvasHeight -
-                (definition?.bounds.height ?? 0) * instance.position.scale,
-            );
             return {
               ...instance,
               position: {
                 ...instance.position,
-                x: clamp(
-                  nextX,
-                  instance.componentId === "QuickSetupProof"
-                    ? 0
-                    : Math.min(0, naturalMaxX),
-                  Math.max(0, naturalMaxX),
-                ),
-                y: clamp(
-                  nextY,
-                  Math.min(0, naturalMaxY),
-                  Math.max(0, naturalMaxY),
-                ),
+                x: nextX,
+                y: nextY,
               },
             };
           }),
@@ -9564,7 +9553,12 @@ const App = () => {
       window.removeEventListener("pointerup", finishCanvasTransform);
       window.removeEventListener("pointercancel", finishCanvasTransform);
     };
-  }, [canvasHeight, canvasWidth, selectOnlyInstance, updateInstance]);
+  }, [
+    canvasHeight,
+    canvasWidth,
+    selectOnlyInstance,
+    updateInstance,
+  ]);
 
   const marqueeDragState = useRef<{
     startX: number;
@@ -13695,10 +13689,6 @@ const App = () => {
                 canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
               }`}
             >
-              <div className="reference-preview-pills">
-                <b>实时预览</b>
-                <span>{selectedDefinition?.name ?? "动效合成"}</span>
-              </div>
               <div
                 className={`player-wrap reference-player-wrap ${
                   canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
@@ -13831,12 +13821,6 @@ const App = () => {
                   aria-hidden="true"
                 />
               ) : null}
-              </div>
-              <div className="reference-preview-status" aria-hidden="true">
-                <FilmSlate weight="fill" />
-                <span>
-                  {canvasOrientation === "portrait" ? "9:16" : "16:9"} · Remotion 实时渲染
-                </span>
               </div>
             </div>
           </div>
@@ -14718,38 +14702,11 @@ const App = () => {
                       title="只缩放当前选中组件，与全局整体大小相乘"
                       onChange={(event) => {
                         const nextScale = Number(event.target.value);
-                        const nextMaxX = inspectorPositionXMax(nextScale);
-                        const nextMinX =
-                          inspectorDefinition.id === "QuickSetupProof"
-                            ? 0
-                            : Math.min(
-                                0,
-                                Math.round(
-                                  canvasWidth -
-                                  inspectorDefinition.bounds.width * nextScale,
-                                ),
-                              );
-                        const nextMaxY = Math.max(
-                          0,
-                          Math.round(
-                            canvasHeight -
-                              inspectorDefinition.bounds.height * nextScale,
-                          ),
-                        );
-                        const nextMinY = Math.min(
-                          0,
-                          Math.round(
-                            canvasHeight -
-                              inspectorDefinition.bounds.height * nextScale,
-                          ),
-                        );
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
                           position: {
                             ...instance.position,
                             scale: nextScale,
-                            x: clamp(instance.position.x, nextMinX, nextMaxX),
-                            y: clamp(instance.position.y, nextMinY, nextMaxY),
                           },
                         }));
                       }}
@@ -14762,34 +14719,10 @@ const App = () => {
                     </div>
                     <input
                       type="range"
-                      min={
-                        inspectorDefinition.id === "QuickSetupProof"
-                          ? 0
-                          : Math.min(
-                              0,
-                              Math.round(
-                                canvasWidth -
-                                inspectorDefinition.bounds.width *
-                                    inspectorInstance.position.scale,
-                              ),
-                            )
-                      }
-                      max={inspectorPositionXMax(inspectorInstance.position.scale)}
+                      min={inspectorPositionXRange.min}
+                      max={inspectorPositionXRange.max}
                       step={1}
-                      value={clamp(
-                        Math.round(inspectorInstance.position.x),
-                        inspectorDefinition.id === "QuickSetupProof"
-                          ? 0
-                          : Math.min(
-                              0,
-                              Math.round(
-                                canvasWidth -
-                                inspectorDefinition.bounds.width *
-                                  inspectorInstance.position.scale,
-                              ),
-                            ),
-                        inspectorPositionXMax(inspectorInstance.position.scale),
-                      )}
+                      value={Math.round(inspectorInstance.position.x)}
                       onChange={(event) =>
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
@@ -14808,28 +14741,10 @@ const App = () => {
                     </div>
                     <input
                       type="range"
-                      min={Math.min(
-                        0,
-                        Math.round(
-                          canvasHeight -
-                            inspectorDefinition.bounds.height *
-                              inspectorInstance.position.scale,
-                        ),
-                      )}
-                      max={inspectorPositionYMax(inspectorInstance.position.scale)}
+                      min={inspectorPositionYRange.min}
+                      max={inspectorPositionYRange.max}
                       step={1}
-                      value={clamp(
-                        Math.round(inspectorInstance.position.y),
-                        Math.min(
-                          0,
-                          Math.round(
-                            canvasHeight -
-                            inspectorDefinition.bounds.height *
-                              inspectorInstance.position.scale,
-                          ),
-                        ),
-                        inspectorPositionYMax(inspectorInstance.position.scale),
-                      )}
+                      value={Math.round(inspectorInstance.position.y)}
                       onChange={(event) =>
                         updateInspectorInstance(inspectorInstance.id, (instance) => ({
                           ...instance,
