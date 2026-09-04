@@ -44,6 +44,23 @@ import {
   VideoCamera,
   X,
 } from "@phosphor-icons/react";
+
+const rgbToHex = (rgb: { r: number; g: number; b: number }) =>
+  `#${[rgb.r, rgb.g, rgb.b]
+    .map((value) => Math.max(0, Math.min(255, value)).toString(16).padStart(2, "0"))
+    .join("")}`;
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace("#", "");
+  const value = normalized.length === 3
+    ? normalized.split("").map((part) => `${part}${part}`).join("")
+    : normalized;
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16) || 0,
+    g: Number.parseInt(value.slice(2, 4), 16) || 0,
+    b: Number.parseInt(value.slice(4, 6), 16) || 0,
+  };
+};
 import {
   getMotionComponents,
   getMotionTimeline,
@@ -3336,6 +3353,15 @@ const App = () => {
   const [personSafetyGuideVisible, setPersonSafetyGuideVisible] = useState(true);
   const [solidBackgroundEnabled, setSolidBackgroundEnabled] =
     useState(true);
+  const [previewCardBackgroundEnabled, setPreviewCardBackgroundEnabled] =
+    useState(true);
+  const [previewCardBackgroundRgb, setPreviewCardBackgroundRgb] = useState({
+    r: 23,
+    g: 63,
+    b: 115,
+  });
+  const [previewCardBackgroundGradientEnabled, setPreviewCardBackgroundGradientEnabled] =
+    useState(true);
   const [initialPanelWidths] = useState(readStoredPanelWidths);
   const [leftPanelWidth, setLeftPanelWidth] = useState(initialPanelWidths.left);
   const [rightPanelWidth, setRightPanelWidth] = useState(initialPanelWidths.right);
@@ -4909,6 +4935,10 @@ const App = () => {
       resourceTracks,
       globalCardScale,
     ],
+  );
+  const previewPlayerInputProps = useMemo<StudioPreviewProps>(
+    () => ({ ...previewInputProps, solidBackgroundEnabled: false }),
+    [previewInputProps],
   );
   const pendingArrangementPreviewInputProps = useMemo<StudioPreviewProps>(() => {
     if (!pendingArrangement) return previewInputProps;
@@ -13473,11 +13503,70 @@ const App = () => {
             </button>
           </div>
           <div className="reference-switch-row">
-            <span>背景纯色</span>
+            <span>背景底色</span>
+            <button
+              type="button"
+              className={`reference-switch ${
+                previewCardBackgroundEnabled ? "active" : ""
+              }`}
+              aria-label="背景底色"
+              aria-pressed={previewCardBackgroundEnabled}
+              title={
+                previewCardBackgroundEnabled
+                  ? "关闭红框内蓝色底色"
+                  : "开启红框内蓝色底色"
+              }
+              onClick={() =>
+                setPreviewCardBackgroundEnabled((enabled) => !enabled)
+              }
+            >
+              <i />
+            </button>
+          </div>
+          <div className="reference-color-row">
+            <span>RGB颜色</span>
+            <label className="reference-color-picker">
+              <input
+                type="color"
+                value={rgbToHex(previewCardBackgroundRgb)}
+                aria-label="选择背景底色 RGB 颜色"
+                onChange={(event) =>
+                  setPreviewCardBackgroundRgb(hexToRgb(event.target.value))
+                }
+              />
+              <code>
+                RGB({previewCardBackgroundRgb.r}, {previewCardBackgroundRgb.g},{" "}
+                {previewCardBackgroundRgb.b})
+              </code>
+            </label>
+          </div>
+          <div className="reference-switch-row">
+            <span>渐变</span>
+            <button
+              type="button"
+              className={`reference-switch ${
+                previewCardBackgroundGradientEnabled ? "active" : ""
+              }`}
+              aria-label="背景底色渐变"
+              aria-pressed={previewCardBackgroundGradientEnabled}
+              title={
+                previewCardBackgroundGradientEnabled
+                  ? "关闭背景底色渐变"
+                  : "开启背景底色渐变"
+              }
+              onClick={() =>
+                setPreviewCardBackgroundGradientEnabled((enabled) => !enabled)
+              }
+            >
+              <i />
+            </button>
+          </div>
+          <div className="reference-switch-row">
+            <span>全局网格</span>
             <button
               type="button"
               className={`reference-switch ${solidBackgroundEnabled ? "" : "active"}`}
-              aria-label="背景纯色"
+              aria-label="全局网格"
               aria-pressed={!solidBackgroundEnabled}
               title={
                 solidBackgroundEnabled
@@ -13518,13 +13607,17 @@ const App = () => {
             </span>
             <span>{formatTime(timelineSeconds)}</span>
           </div>
-          <div className="stage-shell reference-stage-shell">
+          <div
+            className={`stage-shell reference-stage-shell ${
+              solidBackgroundEnabled ? "is-solid" : "is-transparent"
+            }`}
+          >
             <div
               className={`reference-preview-frame ${
                 canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
               }`}
             >
-              <div className="reference-preview-pills" aria-hidden="true">
+              <div className="reference-preview-pills">
                 <b>实时预览</b>
                 <span>{selectedDefinition?.name ?? "动效合成"}</span>
               </div>
@@ -13533,14 +13626,26 @@ const App = () => {
                   canvasOrientation === "portrait" ? "is-portrait" : "is-landscape"
                 } ${
                   solidBackgroundEnabled ? "is-solid" : "is-transparent"
+                } ${previewCardBackgroundEnabled ? "has-card-background" : ""} ${
+                  previewCardBackgroundGradientEnabled ? "is-gradient" : ""
                 }`}
+                style={
+                  {
+                    "--preview-bg-rgb": `${previewCardBackgroundRgb.r}, ${previewCardBackgroundRgb.g}, ${previewCardBackgroundRgb.b}`,
+                    "--preview-bg-dark-rgb": `${Math.round(
+                      previewCardBackgroundRgb.r * 0.58,
+                    )}, ${Math.round(
+                      previewCardBackgroundRgb.g * 0.58,
+                    )}, ${Math.round(previewCardBackgroundRgb.b * 0.58)}`,
+                  } as React.CSSProperties
+                }
                 onPointerDown={beginMarqueeSelection}
               >
               {motionModule ? (
                 <Player
                   ref={playerRef}
                   component={StudioPreviewComposition}
-                  inputProps={previewInputProps}
+                  inputProps={previewPlayerInputProps}
                   durationInFrames={durationInFrames}
                   fps={fps}
                   compositionWidth={canvasWidth}
@@ -13553,18 +13658,11 @@ const App = () => {
                   style={{
                     width: "100%",
                     height: "100%",
-                    backgroundColor: solidBackgroundEnabled
-                      ? "#05070a"
-                      : "transparent",
-                    backgroundImage: solidBackgroundEnabled
-                      ? "none"
-                      : "linear-gradient(45deg, #181b22 25%, transparent 25%), linear-gradient(-45deg, #181b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181b22 75%), linear-gradient(-45deg, transparent 75%, #181b22 75%)",
-                    backgroundPosition: solidBackgroundEnabled
-                      ? undefined
-                      : "0 0, 0 8px, 8px -8px, -8px 0",
-                    backgroundSize: solidBackgroundEnabled
-                      ? undefined
-                      : "16px 16px",
+                    backgroundColor: "#0b0c11",
+                    backgroundImage:
+                      "linear-gradient(45deg, #181b22 25%, transparent 25%), linear-gradient(-45deg, #181b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181b22 75%), linear-gradient(-45deg, transparent 75%, #181b22 75%)",
+                    backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
+                    backgroundSize: "16px 16px",
                   }}
                 />
               ) : (

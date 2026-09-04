@@ -244,7 +244,7 @@ main.is-resizing-sidebar * {
   padding: 0;
   border: 0;
   color: #bda5ff;
-  background: transparent;
+  background: #0b0c11;
   font-size: 11px;
   cursor: pointer;
 }
@@ -3366,6 +3366,23 @@ main.is-resizing-sidebar * {
   justify-content: center;
 }
 
+/* The red outlined work area is the outer composition canvas. Keep the
+   transparency indicator here, outside the phone-shaped preview. */
+.reference-stage-shell.is-solid {
+  background: #05070a;
+}
+
+.reference-stage-shell.is-transparent {
+  background-color: #0b0c11;
+  background-image:
+    linear-gradient(45deg, #181b22 25%, transparent 25%),
+    linear-gradient(-45deg, #181b22 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181b22 75%),
+    linear-gradient(-45deg, transparent 75%, #181b22 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+}
+
 .reference-preview-frame {
   width: auto;
   height: min(100%, calc(100vh - 330px));
@@ -3374,7 +3391,7 @@ main.is-resizing-sidebar * {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 0;
   padding: 8px;
-  background: #0b0c11;
+  background: transparent;
   box-shadow:
     0 18px 55px rgba(0, 0, 0, 0.26),
     inset 0 1px rgba(255, 255, 255, 0.025);
@@ -3395,12 +3412,86 @@ main.is-resizing-sidebar * {
   aspect-ratio: 9 / 16;
 }
 
-/* Remotion writes its checkerboard on the first internal player host with an
-   inline style. Override only that host while the user's solid-background
-   preference is on; transparent preview keeps the native checkerboard. */
-.player-wrap.reference-player-wrap.is-solid > div {
-  background-color: transparent !important;
+/* The phone-shaped preview keeps its own transparency grid. It is deliberately
+   independent from the outer canvas' solid-background switch. */
+.player-wrap.reference-player-wrap {
+  background-color: #0b0c11;
+  background-image:
+    linear-gradient(45deg, #181b22 25%, transparent 25%),
+    linear-gradient(-45deg, #181b22 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181b22 75%),
+    linear-gradient(-45deg, transparent 75%, #181b22 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+}
+
+/* Remotion writes the player host background inline, so mirror the same grid
+   on that host to keep the red-box preview opaque to the outer canvas. */
+.player-wrap.reference-player-wrap > div {
+  background-color: #0b0c11 !important;
+  background-image:
+    linear-gradient(45deg, #181b22 25%, transparent 25%),
+    linear-gradient(-45deg, #181b22 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181b22 75%),
+    linear-gradient(-45deg, transparent 75%, #181b22 75%) !important;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0 !important;
+  background-size: 16px 16px !important;
+}
+
+.player-wrap.reference-player-wrap.has-card-background,
+.player-wrap.reference-player-wrap.has-card-background > div {
+  background: rgb(var(--preview-bg-rgb)) !important;
+  background-image: linear-gradient(
+    145deg,
+    rgb(var(--preview-bg-rgb)) 0%,
+    rgb(var(--preview-bg-dark-rgb)) 100%
+  ) !important;
+}
+
+.player-wrap.reference-player-wrap.has-card-background:not(.is-gradient),
+.player-wrap.reference-player-wrap.has-card-background:not(.is-gradient) > div {
   background-image: none !important;
+}
+
+.reference-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+  color: #a8abb3;
+  font-size: 12px;
+}
+
+.reference-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.reference-color-picker input[type="color"] {
+  width: 30px;
+  height: 25px;
+  padding: 2px;
+  border: 1px solid #424650;
+  border-radius: 5px;
+  background: #1a1b20;
+  cursor: pointer;
+}
+
+.reference-color-picker code {
+  color: #8d96a8;
+  font: 15px Consolas, monospace;
+  white-space: nowrap;
+}
+
+.reference-color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.reference-color-picker input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 3px;
 }
 
 /* Reference UI phase 4: right card inspector. */
