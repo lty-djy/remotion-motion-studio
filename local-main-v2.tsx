@@ -1794,6 +1794,39 @@ const parseSrt = (content: string): SrtEntry[] => {
   return entries;
 };
 
+const parseImportedSubtitleCues = (
+  rawCandidates: unknown[],
+): SrtEntry[] => {
+  for (const rawCandidate of rawCandidates) {
+    if (!Array.isArray(rawCandidate)) continue;
+    const entries = rawCandidate.flatMap((rawCue, index): SrtEntry[] => {
+      if (!isRecord(rawCue)) return [];
+      const text = String(rawCue.text ?? rawCue.content ?? "").trim();
+      const startMs = Number.isFinite(Number(rawCue.startMs))
+        ? Number(rawCue.startMs)
+        : Number(rawCue.start) * 1000;
+      const endMs = Number.isFinite(Number(rawCue.endMs))
+        ? Number(rawCue.endMs)
+        : Number(rawCue.end) * 1000;
+      if (!text || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+        return [];
+      }
+      return [
+        {
+          index: Math.max(1, Math.round(Number(rawCue.index) || index + 1)),
+          startMs: Math.round(startMs),
+          endMs: Math.round(endMs),
+          text,
+        },
+      ];
+    });
+    if (entries.length > 0) {
+      return entries.map((entry, index) => ({ ...entry, index: index + 1 }));
+    }
+  }
+  return [];
+};
+
 type StudioPreviewProps = {
   videoUrl: string;
   includeVideo: boolean;
@@ -7100,6 +7133,38 @@ const App = () => {
     const captionInstance = arrangementBatch.motionItems.find(
       (instance) => instance.sourceIntentId === SRT_CAPTION_TRACK_ID,
     );
+    const importedSubtitleCandidates: unknown[] = [];
+    if (parsedRecord) {
+      importedSubtitleCandidates.push(
+        parsedRecord.srtEntries,
+        parsedRecord.cues,
+        parsedRecord.captions,
+      );
+    }
+    if (captionInstance && isRecord(captionInstance.props)) {
+      const cuesJson = captionInstance.props.cuesJson;
+      if (typeof cuesJson === "string") {
+        try {
+          importedSubtitleCandidates.push(JSON.parse(cuesJson));
+        } catch {
+          // 字幕动效仍可导入；仅忽略无法解析的字幕字段。
+        }
+      } else {
+        importedSubtitleCandidates.push(cuesJson);
+      }
+    }
+    const importedSubtitleEntries = parseImportedSubtitleCues(
+      importedSubtitleCandidates,
+    );
+    if (importedSubtitleEntries.length > 0) {
+      setSrtEntries(importedSubtitleEntries);
+      setSrtFileName(
+        typeof parsedRecord?.sourceSrt === "string" && parsedRecord.sourceSrt.trim()
+          ? parsedRecord.sourceSrt
+          : `${file.name} · 字幕`,
+      );
+      setSelectedCaptionIndex(importedSubtitleEntries[0].index);
+    }
     const arrangementMotionItems = arrangementBatch.motionItems.filter(
       (instance) => instance.id !== captionInstance?.id,
     );
@@ -10816,8 +10881,11 @@ const App = () => {
 
   const seekEditorFrame = (frame: number) => {
     const nextFrame = clamp(frame, 0, Math.max(0, durationInFrames - 1));
-    playerRef.current?.seekTo(nextFrame);
     setCurrentFrame(nextFrame);
+    playerRef.current?.seekTo(nextFrame);
+    // Remotion Player 的 seek 可能先异步回传旧帧，下一帧再校正一次，
+    // 避免点击字幕后 activeSubtitleIndex 被旧的 frameupdate 覆盖。
+    window.requestAnimationFrame(() => setCurrentFrame(nextFrame));
   };
 
   const focusArrangementIntent = (intentId: string) => {
@@ -11633,6 +11701,10 @@ const App = () => {
   );
 
   const subtitleTemplateEntries = srtEntries;
+  const activeSubtitleIndex = subtitleTemplateEntries.find((entry) => {
+    const timeMs = (currentFrame / fps) * 1000;
+    return timeMs >= entry.startMs && timeMs < entry.endMs;
+  })?.index ?? selectedCaptionIndex;
 
   return (
     <div
@@ -12033,15 +12105,21 @@ const App = () => {
                   <button
                     type="button"
                     key={entry.index}
-                    className={`subtitle-template-row${selectedCaptionIndex === entry.index ? " active" : ""}`}
+                    className={`subtitle-template-row${activeSubtitleIndex === entry.index ? " active" : ""}`}
                     onClick={() => {
+                      playerRef.current?.pause();
+                      setIsPlaying(false);
                       setSelectedCaptionIndex(entry.index);
-                      setCurrentFrame(Math.max(0, Math.round((entry.startMs / 1000) * fps)));
+                      // 字幕起点可能落在两帧之间；向上取整才能保证播放头
+                      // 真正进入当前字幕区间，而不是仍停留在上一句。
+                      seekEditorFrame(
+                        Math.max(0, Math.ceil((entry.startMs / 1000) * fps)),
+                      );
                     }}
                   >
                     <span className="subtitle-template-row-top">
-                      <i>{String(entry.index).padStart(2, "0")}</i>
-                      <small>{formatSubtitleTimestamp(entry.startMs)} → {formatSubtitleTimestamp(entry.endMs)}</small>
+                      <small>{formatSubtitleTimestamp(entry.startMs)}</small>
+                      <i aria-hidden="true" />
                     </span>
                     <strong>{entry.text}</strong>
                   </button>

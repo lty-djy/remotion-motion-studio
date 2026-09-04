@@ -1056,20 +1056,22 @@ main.is-resizing-sidebar * {
 .subtitle-template-row {
   width: 100%;
   display: block;
-  margin: 0 0 7px;
-  padding: 9px 10px 10px;
+  margin: 0;
+  padding: 12px 10px;
   box-sizing: border-box;
   text-align: left;
-  border: 1px solid #343a42;
-  border-radius: 6px;
+  border: 0;
+  border-bottom: 1px solid #343a42;
+  border-radius: 0;
   color: #e3e6ea;
   background: #191d22;
   cursor: pointer;
 }
-.subtitle-template-row:hover { border-color: #4b83c9; background: #1d2229; }
-.subtitle-template-row.active { border-color: #638fc8; background: #1c222a; box-shadow: inset 2px 0 #559cff; }
-.subtitle-template-row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
-.subtitle-template-row-top i { color: #7e8793; font: 10px Consolas, monospace; font-style: normal; }
+.subtitle-template-row:hover { background: #1d2229; }
+.subtitle-template-row.active { background: #1c222a; box-shadow: inset 2px 0 #559cff; }
+.subtitle-template-row-top { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.subtitle-template-row-top i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #707780; }
+.subtitle-template-row.active .subtitle-template-row-top i { background: #ff5a39; }
 .subtitle-template-row-top small { color: #559cff; font: 15px Consolas, monospace; }
 .subtitle-template-row strong { display: block; color: #e5e7eb; font-size: 14px; font-weight: 500; line-height: 1.55; }
 .subtitle-template-empty {
