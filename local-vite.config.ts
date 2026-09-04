@@ -26,6 +26,7 @@ const mediaDir = join(rootDir, "local-media");
 const mediaTempDir = join(mediaDir, "temp");
 const resourceRoot = join(rootDir, "public", "input");
 const iconResourceDir = join(resourceRoot, "icons");
+const materialResourceDir = join(resourceRoot, "materials");
 const sfxResourceDir = join(resourceRoot, "sfx");
 const resourceManifestPath = join(resourceRoot, "resource-manifest.json");
 const resourceIndexPath = join(resourceRoot, "resource-index.json");
@@ -163,9 +164,13 @@ const runFolderPicker = () =>
 // 后台进程 spawn 的 explorer 窗口通常会躲在应用后面，需要用 Win32 找到
 // 该文件夹的 Explorer 窗口，ShowWindow + 置顶 + AttachThreadInput 抢前台。
 const openFolderScript = (target: string) => {
-  const dirName = basename(dirname(target));
+  const targetIsDirectory = existsSync(target) && statSync(target).isDirectory();
+  const dirName = targetIsDirectory ? basename(target) : basename(dirname(target));
   const safeTarget = target.replace(/'/g, "''");
   const safeDirName = dirName.replace(/'/g, "''");
+  const explorerCommand = targetIsDirectory
+    ? `explorer.exe '${safeTarget}'`
+    : `explorer.exe /select,'${safeTarget}'`;
   return [
     "Add-Type -TypeDefinition @'",
     "using System;",
@@ -209,7 +214,7 @@ const openFolderScript = (target: string) => {
     "    }",
     "}",
     "'@",
-    `explorer.exe /select,'${safeTarget}'`,
+    explorerCommand,
     `$dirName = '${safeDirName}'`,
     "for ($i = 0; $i -lt 5; $i++) {",
     "    Start-Sleep -Milliseconds 400",
@@ -1095,6 +1100,86 @@ const readAudioDuration = async (target: string) => {
   return Number(durationSeconds.toFixed(3));
 };
 
+const MATERIAL_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".mp4",
+  ".mov",
+  ".webm",
+]);
+
+const importManualMaterial = async (
+  filename: string,
+  category: string,
+  body: Buffer,
+) => {
+  const extension = extname(filename).toLowerCase();
+  if (!MATERIAL_EXTENSIONS.has(extension)) {
+    throw new Error("仅支持 PNG、JPG、WEBP、GIF、MP4、MOV 或 WEBM 素材");
+  }
+  const safeCategory = category.trim().slice(0, 20);
+  if (!safeCategory || /[\u0000-\u001f]/.test(safeCategory)) {
+    throw new Error("素材文件夹名称无效");
+  }
+  const originalManifest = await readFile(resourceManifestPath, "utf8");
+  const originalIndex = await readFile(resourceIndexPath, "utf8");
+  const manifest = JSON.parse(originalManifest) as {
+    resources: Array<Record<string, unknown>>;
+  };
+  const baseName = basename(filename, extname(filename));
+  const slug = baseName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42) || "custom-material";
+  const existingIds = new Set(
+    manifest.resources
+      .filter((resource) => resource.library === "materials")
+      .map((resource) => String(resource.id ?? "")),
+  );
+  let id = slug;
+  for (let suffix = 2; existingIds.has(id); suffix += 1) id = `${slug}-${suffix}`;
+  const storedFile = `materials/${id}${extension}`;
+  const target = resolve(resourceRoot, storedFile);
+  const materialRoot = `${resolve(materialResourceDir)}${process.platform === "win32" ? "\\" : "/"}`;
+  if (!target.startsWith(materialRoot)) throw new Error("素材文件路径无效");
+  const label = baseName.trim().slice(0, 48) || id;
+
+  try {
+    await writeFile(target, body);
+    manifest.resources.push({
+      id,
+      library: "materials",
+      file: storedFile,
+      label,
+      category: safeCategory,
+      accent: "#2f8cff",
+      tags: ["素材", safeCategory, "手动导入", label],
+      usage: "用户手动导入的视频或图片素材",
+      source: "manual",
+    });
+    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    const { createResourceIndex } = await import(
+      "./ai-motion-arranger/scripts/build-resource-index.mjs"
+    );
+    const index = await createResourceIndex();
+    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+    const indexed = index.libraries.materials.find((material) => material.id === id);
+    if (!indexed) throw new Error("素材索引生成失败");
+    return indexed;
+  } catch (error) {
+    if (existsSync(target)) await unlink(target).catch(() => undefined);
+    await writeFile(resourceManifestPath, originalManifest);
+    await writeFile(resourceIndexPath, originalIndex);
+    throw error;
+  }
+};
+
 const importManualSfx = async (filename: string, body: Buffer) => {
   const extension = extname(filename).toLowerCase();
   if (!SFX_EXTENSIONS.has(extension)) {
@@ -1587,6 +1672,7 @@ const localApi = (): Plugin => {
     mkdirSync(mediaDir, { recursive: true });
     mkdirSync(mediaTempDir, { recursive: true });
     mkdirSync(iconResourceDir, { recursive: true });
+    mkdirSync(materialResourceDir, { recursive: true });
     mkdirSync(sfxResourceDir, { recursive: true });
     mkdirSync(arrangementRulesDir, { recursive: true });
     mkdirSync(projectDir, { recursive: true });
@@ -1945,6 +2031,68 @@ const localApi = (): Plugin => {
           return;
         }
 
+        if (
+          url.pathname === "/api/open-component-location" &&
+          req.method === "POST"
+        ) {
+          if (!existsSync(componentStoreDir)) {
+            mkdirSync(componentStoreDir, { recursive: true });
+          }
+          runOpenFolder(componentStoreDir);
+          sendJson(res, 200, { ok: true, path: "local-components" });
+          return;
+        }
+
+        if (
+          url.pathname === "/api/delete-component-history" &&
+          req.method === "POST"
+        ) {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as { id?: string };
+          const id = typeof body.id === "string" ? body.id : "";
+          if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error("导入文件标识无效");
+          const state = await readState();
+          const item = (state.componentHistory ?? []).find(
+            (historyItem) => historyItem.id === id,
+          );
+          if (!item) throw new Error("没有找到该导入文件");
+          try {
+            await unlink(join(componentStoreDir, basename(item.storedFile)));
+          } catch {
+            // 历史文件已经不存在时，仍清理历史记录。
+          }
+          const isActive = state.activeComponentId === id;
+          if (isActive) {
+            await writeFile(
+              activeComponentPath,
+              "export const MOTION_COMPONENTS = [];\nexport const MOTION_TIMELINE = [];\n",
+              "utf8",
+            );
+          }
+          await saveState({
+            componentHistory: (state.componentHistory ?? []).filter(
+              (historyItem) => historyItem.id !== id,
+            ),
+            ...(isActive
+              ? {
+                  activeComponentId: "",
+                  componentName: "",
+                  sourceIncludesVideo: false,
+                }
+              : {}),
+          });
+          sendJson(res, 200, {
+            ok: true,
+            id,
+            activeComponentId: isActive ? "" : state.activeComponentId,
+            moduleUrl: isActive
+              ? `/local-imported/active.tsx?t=${Date.now()}`
+              : undefined,
+          });
+          return;
+        }
+
         if (url.pathname === "/api/upload-media" && req.method === "POST") {
           const inputName = decodeURIComponent(
             String(req.headers["x-file-name"] ?? "media-file"),
@@ -2226,6 +2374,22 @@ const localApi = (): Plugin => {
             await getBody(req, 25 * 1024 * 1024),
           );
           sendJson(res, 200, { ok: true, sound });
+          return;
+        }
+
+        if (url.pathname === "/api/import-material" && req.method === "POST") {
+          const filename = decodeURIComponent(
+            String(req.headers["x-file-name"] ?? "custom-material.png"),
+          );
+          const category = decodeURIComponent(
+            String(req.headers["x-material-category"] ?? "其他"),
+          );
+          const material = await importManualMaterial(
+            filename,
+            category,
+            await getBody(req, 100 * 1024 * 1024),
+          );
+          sendJson(res, 200, { ok: true, material });
           return;
         }
 

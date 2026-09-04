@@ -708,6 +708,7 @@ type ShortcutMap = Record<ShortcutAction, string>;
 const SHORTCUT_STORAGE_KEY = "overlay-studio-shortcuts-v1";
 const PANEL_WIDTH_STORAGE_KEY = "motion-studio-panel-widths-v1";
 const CUSTOM_GROUP_STORAGE_KEY = "motion-studio-custom-groups-v1";
+const CUSTOM_MATERIAL_GROUP_STORAGE_KEY = "motion-studio-custom-material-groups-v1";
 const EFFECT_GROUP_STORAGE_KEY = "motion-studio-effect-groups-v1";
 const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
 const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
@@ -715,6 +716,7 @@ const SEMANTIC_TYPE_COLOR_STORAGE_KEY = "motion-studio-semantic-type-colors-v1";
 const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const EFFECT_SEMANTIC_TYPE_STORAGE_KEY = "motion-studio-effect-semantic-types-v1";
+const ACTIVE_WORKSPACE_STORAGE_KEY = "motion-studio-active-workspace-v1";
 const DEFAULT_LEFT_PANEL_WIDTH = 270;
 const DEFAULT_RIGHT_PANEL_WIDTH = 320;
 const MIN_LEFT_PANEL_WIDTH = 210;
@@ -804,6 +806,12 @@ const loadShortcuts = (): ShortcutMap => {
 };
 
 type CustomCatalogGroup = { id: string; name: string };
+type CustomMaterialGroup = {
+  id: string;
+  name: string;
+  accent: string;
+  builtin: false;
+};
 type PendingGroupDelete = {
   groupId: string;
   groupName: string;
@@ -830,6 +838,27 @@ const loadCustomCatalogGroups = (): CustomCatalogGroup[] => {
               group &&
                 typeof group.id === "string" &&
                 typeof group.name === "string",
+            ),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const loadCustomMaterialGroups = (): CustomMaterialGroup[] => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(CUSTOM_MATERIAL_GROUP_STORAGE_KEY) ?? "[]",
+    );
+    return Array.isArray(stored)
+      ? stored.filter(
+          (group): group is CustomMaterialGroup =>
+            Boolean(
+              group &&
+                typeof group.id === "string" &&
+                typeof group.name === "string" &&
+                typeof group.accent === "string",
             ),
         )
       : [];
@@ -1057,8 +1086,10 @@ type ContextMenuState = {
     | "libraryGroup"
     | "libraryRoot"
     | "arrangementRule"
+    | "sandboxFile"
     | "iconLibrary"
     | "sfxLibrary"
+    | "materialLibrary"
     | "sfxItem";
   instanceIds: string[];
   videoTrackId?: string;
@@ -1074,6 +1105,8 @@ type ContextMenuState = {
   soundId?: string;
   arrangementRuleId?: string;
   arrangementRuleName?: string;
+  componentHistoryId?: string;
+  componentHistoryName?: string;
 };
 
 type EffectSemanticTypeTarget = {
@@ -3275,16 +3308,19 @@ const App = () => {
       | "captions"
       | "effects"
       | "rules"
+      | "sandbox"
       | "semantic-types"
       | "icons"
       | "materials"
       | "sfx"
       | "code"
-    >(
-      "editor",
-    );
+    >(() => {
+      const stored = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+      return stored === "sandbox" ? "sandbox" : "editor";
+    });
   const [codeTemplateName, setCodeTemplateName] = useState("我的代码动效");
   const [codeTemplate, setCodeTemplate] = useState(DEFAULT_CODE_TEMPLATE);
+  const [sandboxDragActive, setSandboxDragActive] = useState(false);
   const [selectedCaptionIndex, setSelectedCaptionIndex] = useState(1);
   const [codeEditorHeight, setCodeEditorHeight] = useState(() =>
     Math.max(160, Math.min(440, window.innerHeight - 245)),
@@ -3308,6 +3344,12 @@ const App = () => {
     "状态与数据",
   ]);
   const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
+  const [customMaterialGroups, setCustomMaterialGroups] = useState<CustomMaterialGroup[]>(
+    loadCustomMaterialGroups,
+  );
+  const [materialDropTarget, setMaterialDropTarget] = useState<string | null>(null);
+  const [materialGroupCreateOpen, setMaterialGroupCreateOpen] = useState(false);
+  const [materialGroupNameDraft, setMaterialGroupNameDraft] = useState("");
   const [customIconGroups, setCustomIconGroups] = useState<IconCategoryGroup[]>([]);
   const [iconGroupCreateOpen, setIconGroupCreateOpen] = useState(false);
   const [iconGroupRenameTarget, setIconGroupRenameTarget] =
@@ -3330,6 +3372,8 @@ const App = () => {
     useState<CustomCatalogGroup | null>(null);
   const [pendingGroupDelete, setPendingGroupDelete] =
     useState<PendingGroupDelete | null>(null);
+  const [pendingSandboxFileDelete, setPendingSandboxFileDelete] =
+    useState<ComponentHistoryItem | null>(null);
   const [subtitleClearConfirmOpen, setSubtitleClearConfirmOpen] = useState(false);
   const [effectGroupAssignments, setEffectGroupAssignments] = useState(
     loadEffectGroupAssignments,
@@ -4049,6 +4093,9 @@ const App = () => {
   const materialCatalog = useMemo(() => {
     const query = materialSearch.trim().toLocaleLowerCase("zh-CN");
     const sections = new Map<string, { name: string; accent: string; items: ArrangementResourceEntry[] }>();
+    for (const group of customMaterialGroups) {
+      sections.set(group.name, { name: group.name, accent: group.accent, items: [] });
+    }
     for (const material of arrangementResourceLibrary.material) {
       const category = material.category || "其他";
       const searchable = [material.id, material.label, material.usage, category, ...material.tags]
@@ -4063,8 +4110,12 @@ const App = () => {
       section.items.push(material);
       sections.set(category, section);
     }
-    return [...sections.values()];
-  }, [arrangementResourceLibrary.material, materialSearch]);
+    return [...sections.values()].filter(
+      (section) =>
+        section.items.length > 0 ||
+        (!query && customMaterialGroups.some((group) => group.name === section.name)),
+    );
+  }, [arrangementResourceLibrary.material, customMaterialGroups, materialSearch]);
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
@@ -4444,6 +4495,13 @@ const App = () => {
         setNotice({ tone: "error", text: `加载组件失败：${error.message}` }),
       );
   }, [loadModuleUrl, setActiveComponentId]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ACTIVE_WORKSPACE_STORAGE_KEY,
+      activeWorkspace,
+    );
+  }, [activeWorkspace]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -6442,6 +6500,20 @@ const App = () => {
     });
   };
 
+  const importSandboxFile = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".tsx")) {
+      setNotice({ tone: "error", text: "沙箱只支持导入 .tsx 文件。" });
+      return;
+    }
+    importComponent(file).catch((error) => {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "TSX 组件导入失败",
+      });
+    });
+  };
+
   const importIcon = async (file: File) => {
     if (file.size > 512 * 1024) {
       throw new Error("SVG 图标不能超过 512 KB。");
@@ -7754,6 +7826,8 @@ const App = () => {
   };
 
   const activateHistoryItem = async (item: ComponentHistoryItem) => {
+    setActiveWorkspace("sandbox");
+    window.localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, "sandbox");
     const response = await fetch("/api/activate-component", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -7768,6 +7842,66 @@ const App = () => {
       totalFrames: durationInFrames,
     });
     setNotice({ tone: "ok", text: `已从历史记录加载 ${item.name}。` });
+  };
+
+  const showSandboxFileMenu = (
+    event: React.MouseEvent,
+    item: ComponentHistoryItem,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 220),
+      y: Math.min(event.clientY, window.innerHeight - 120),
+      source: "sandboxFile",
+      instanceIds: [],
+      componentHistoryId: item.id,
+      componentHistoryName: item.name,
+    });
+  };
+
+  const openSandboxLocation = async () => {
+    try {
+      const response = await fetch("/api/open-component-location", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error ?? "无法打开 TSX 文件位置");
+      }
+      setNotice({ tone: "ok", text: "已打开导入 TSX 文件所在位置。" });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "无法打开 TSX 文件位置",
+      });
+    }
+  };
+
+  const deleteSandboxFile = async (item: ComponentHistoryItem) => {
+    setContextMenu(null);
+    setPendingSandboxFileDelete(null);
+    try {
+      const response = await fetch("/api/delete-component-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "删除导入文件失败");
+      setComponentHistory((current) => current.filter((entry) => entry.id !== item.id));
+      if (item.id === activeComponentId) {
+        setActiveComponentId("");
+        setDefinitions([]);
+        setInstances([]);
+      }
+      setNotice({ tone: "ok", text: `已删除导入文件“${item.name}”。` });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "删除导入文件失败",
+      });
+    }
   };
 
   const defaultExportFileName = () => {
@@ -9848,6 +9982,90 @@ const App = () => {
     });
   };
 
+  const showMaterialLibraryMenu = (event: React.MouseEvent, groupName?: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 210),
+      y: Math.min(event.clientY, window.innerHeight - 120),
+      source: "materialLibrary",
+      instanceIds: [],
+      groupName,
+    });
+  };
+
+  const openCreateMaterialGroupDialog = () => {
+    setContextMenu(null);
+    setMaterialGroupNameDraft("");
+    setMaterialGroupCreateOpen(true);
+  };
+
+  const createMaterialGroup = () => {
+    const name = materialGroupNameDraft.trim().slice(0, 20);
+    if (!name) return;
+    if (customMaterialGroups.some((group) => group.name === name)) {
+      setNotice({ tone: "error", text: `素材文件夹“${name}”已存在。` });
+      return;
+    }
+    const group: CustomMaterialGroup = {
+      id: `material-group-${Date.now()}`,
+      name,
+      accent: "#2f8cff",
+      builtin: false,
+    };
+    setCustomMaterialGroups((current) => {
+      const next = [...current, group];
+      window.localStorage.setItem(CUSTOM_MATERIAL_GROUP_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setOpenMaterialCategories((current) => [...current, name]);
+    setMaterialGroupCreateOpen(false);
+    setMaterialGroupNameDraft("");
+    setNotice({ tone: "ok", text: `已新建素材文件夹“${name}”。` });
+  };
+
+  const importMaterialFiles = async (files: File[], category: string) => {
+    const accepted = files.filter((file) =>
+      /\.(png|jpe?g|webp|gif|mp4|mov|webm)$/i.test(file.name),
+    );
+    if (accepted.length === 0) throw new Error("请拖入 PNG、JPG、WEBP、GIF、MP4、MOV 或 WEBM 文件");
+    if (accepted.some((file) => file.size > 100 * 1024 * 1024)) {
+      throw new Error("单个素材文件不能超过 100 MB");
+    }
+    for (const file of accepted) {
+      setNotice({ tone: "info", text: `正在导入素材“${file.name}”…` });
+      const response = await fetch("/api/import-material", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Material-Category": encodeURIComponent(category),
+        },
+        body: file,
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.material) throw new Error(data?.error ?? `${file.name} 导入失败`);
+      const material = data.material as ArrangementResourceEntry;
+      setArrangementResourceLibrary((current) => ({
+        ...current,
+        material: [...current.material.filter((item) => item.id !== material.id), material],
+      }));
+    }
+    setMaterialSearch("");
+    setNotice({ tone: "ok", text: `已导入 ${accepted.length} 个素材到“${category}”。` });
+  };
+
+  const handleMaterialDrop = (event: React.DragEvent<HTMLElement>, category: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setMaterialDropTarget(null);
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length === 0) return;
+    void importMaterialFiles(files, category).catch((error) =>
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "素材导入失败" }),
+    );
+  };
+
   const createSfxGroup = async () => {
     const name = window.prompt("新音效分组名称（最多 20 个字）")?.trim().slice(0, 20);
     if (!name) return;
@@ -11240,14 +11458,7 @@ const App = () => {
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
-          if (!file) return;
-          importComponent(file).catch((error) => {
-            setNotice({
-              tone: "error",
-              text:
-                error instanceof Error ? error.message : "TSX 组件导入失败",
-            });
-          });
+          importSandboxFile(file);
         }}
         hidden
       />
@@ -11352,25 +11563,19 @@ const App = () => {
             音效库
           </button>
           <button
-            className={activeWorkspace === "code" ? "active" : ""}
-            onClick={() => {
-              setActiveWorkspace("code");
-              setLeftPanelWidth((width) => Math.max(width, 460));
-            }}
-            >
-            代码
-          </button>
-          <button
-            className={activeWorkspace === "rules" ? "active" : ""}
-            onClick={() => setActiveWorkspace("rules")}
-          >
-            编排规则
-          </button>
-          <button
             className={activeWorkspace === "semantic-types" ? "active" : ""}
             onClick={() => setActiveWorkspace("semantic-types")}
           >
             语义类型
+          </button>
+          <button
+            className={activeWorkspace === "sandbox" ? "active" : ""}
+            onClick={() => {
+              setActiveWorkspace("sandbox");
+              setLeftPanelWidth((width) => Math.max(width, 460));
+            }}
+          >
+            沙箱
           </button>
         </nav>
 
@@ -11627,12 +11832,97 @@ const App = () => {
                 <button type="button" onClick={() => setNotice({ tone: "info", text: "字幕模板配置将在右侧检查器中调整。" })}><SlidersHorizontal />配置</button>
               </footer>
             </div>
+          ) : activeWorkspace === "sandbox" ? (
+            <div
+              className={`code-template-panel sandbox-upload-panel${
+                sandboxDragActive ? " is-drag-active" : ""
+              }`}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setSandboxDragActive(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+                setSandboxDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                  setSandboxDragActive(false);
+                }
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setSandboxDragActive(false);
+                importSandboxFile(event.dataTransfer.files?.[0]);
+              }}
+            >
+              <header>
+                <small>SANDBOX</small>
+                <strong>沙箱导入</strong>
+                <span>拖入或上传自包含 Remotion / React / TSX</span>
+              </header>
+              <button
+                type="button"
+                className="sandbox-open-location"
+                onClick={() => void openSandboxLocation()}
+              >
+                打开 TSX 文件位置
+              </button>
+              <button
+                type="button"
+                className="reference-wide-button"
+                onClick={() => componentInput.current?.click()}
+              >
+                <UploadSimple />
+                上传 TSX
+              </button>
+              <small className="sandbox-drop-hint">将 .tsx 文件拖到此处即可上传</small>
+              <section className="sandbox-file-list" aria-label="已导入 TSX 文件">
+                <header>
+                  <strong>已导入 TSX</strong>
+                  <span>{componentHistory.length}</span>
+                </header>
+                {componentHistory.length > 0 ? (
+                  <div>
+                    {componentHistory.map((item) => (
+                      <button
+                        type="button"
+                        className={`sandbox-file-item${
+                          item.id === activeComponentId ? " active" : ""
+                        }`}
+                        key={item.id}
+                        onClick={() =>
+                          activateHistoryItem(item).catch((error) =>
+                            setNotice({
+                              tone: "error",
+                              text:
+                                error instanceof Error
+                                  ? error.message
+                                  : "历史组件加载失败",
+                            }),
+                          )
+                        }
+                        onContextMenu={(event) => showSandboxFileMenu(event, item)}
+                        title="单击加载；右键删除"
+                      >
+                        <span>TSX</span>
+                        <strong>{item.name}</strong>
+                        <small>{item.id === activeComponentId ? "使用中" : "点击加载"}</small>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p>还没有导入 TSX 文件</p>
+                )}
+              </section>
+            </div>
           ) : activeWorkspace === "code" ? (
             <div className="code-template-panel">
               <header>
                 <small>CODE</small>
-                <strong>新建代码模板</strong>
-                <span>Remotion / React / TSX</span>
+                <strong>{activeWorkspace === "sandbox" ? "沙箱导入" : "新建代码模板"}</strong>
+                <span>{activeWorkspace === "sandbox" ? "自包含 Remotion / React / TSX" : "Remotion / React / TSX"}</span>
               </header>
               <label>
                 <span>模板名称</span>
@@ -11663,7 +11953,7 @@ const App = () => {
                   <i />
                 </button>
               </label>
-              <p>需导出 <code>MOTION_COMPONENTS</code>；可选导出 <code>MOTION_TIMELINE</code>，导入后组件加入效果库，并追加到时间轴当前播放位置。</p>
+              <p>需导出 <code>MOTION_COMPONENTS</code>；可选导出 <code>MOTION_TIMELINE</code>。代码只在安全校验通过后导入，并追加到时间轴当前播放位置。</p>
               <div className="code-template-actions">
                 <button
                   type="button"
@@ -12463,7 +12753,14 @@ const App = () => {
               ) : null}
             </div>
           ) : activeWorkspace === "materials" ? (
-            <div className="material-library-panel" title="素材库">
+            <div
+              className="material-library-panel"
+              onContextMenu={(event) => {
+                if (event.target instanceof Element && event.target.closest("button, input, textarea, select, a")) return;
+                showMaterialLibraryMenu(event);
+              }}
+              title="空白处右键可新建文件夹"
+            >
               <header className="material-library-header">
                 <div>
                   <small>PRODUCT VISUALS</small>
@@ -12494,9 +12791,23 @@ const App = () => {
                     openMaterialCategories.includes(category.name);
                   return (
                     <section
-                      className="material-library-category"
+                      className={`material-library-category${materialDropTarget === category.name ? " is-drop-target" : ""}`}
                       key={category.name}
                       style={{ "--material-group-accent": category.accent } as React.CSSProperties}
+                      onContextMenu={(event) => showMaterialLibraryMenu(event, category.name)}
+                      onDragOver={(event) => {
+                        if (event.dataTransfer.types.includes("Files")) {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "copy";
+                          setMaterialDropTarget(category.name);
+                        }
+                      }}
+                      onDragLeave={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                          setMaterialDropTarget((current) => current === category.name ? null : current);
+                        }
+                      }}
+                      onDrop={(event) => handleMaterialDrop(event, category.name)}
                     >
                       <button
                         type="button"
@@ -12520,6 +12831,9 @@ const App = () => {
                       </button>
                       {isOpen ? (
                         <div className="material-library-items">
+                          {category.items.length === 0 ? (
+                            <small className="material-library-drop-hint">将视频或图片拖到这里</small>
+                          ) : null}
                           {category.items.map((material) => (
                             <article className="material-library-item" key={material.id}>
                               <div className="material-library-thumb">
@@ -14745,6 +15059,71 @@ const App = () => {
         </div>
       ) : null}
 
+      {materialGroupCreateOpen ? (
+        <div
+          className="shortcut-dialog-backdrop icon-group-create-backdrop"
+          onPointerDown={() => setMaterialGroupCreateOpen(false)}
+        >
+          <section
+            className="shortcut-dialog group-dialog icon-group-create-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-material-group-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <FolderOpen weight="fill" />
+                <span>
+                  <strong id="create-material-group-title">新建素材文件夹</strong>
+                  <small>把素材按项目或用途整理，方便查找和编排</small>
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭新建素材文件夹"
+                onClick={() => setMaterialGroupCreateOpen(false)}
+              >
+                <X />
+              </button>
+            </header>
+            <div className="group-dialog-body">
+              <div className="group-dialog-label-row">
+                <label htmlFor="new-material-group-name">文件夹名称</label>
+                <span>{materialGroupNameDraft.length}/20</span>
+              </div>
+              <input
+                id="new-material-group-name"
+                autoFocus
+                maxLength={20}
+                value={materialGroupNameDraft}
+                onChange={(event) => setMaterialGroupNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && materialGroupNameDraft.trim()) createMaterialGroup();
+                  if (event.key === "Escape") setMaterialGroupCreateOpen(false);
+                }}
+                placeholder="例如：产品截图、品牌素材"
+              />
+              <small className="group-dialog-hint">最多 20 个字，创建后会保存在当前浏览器。</small>
+            </div>
+            <footer>
+              <span />
+              <div>
+                <button type="button" onClick={() => setMaterialGroupCreateOpen(false)}>取消</button>
+                <button
+                  type="button"
+                  className="shortcut-save"
+                  disabled={!materialGroupNameDraft.trim()}
+                  onClick={createMaterialGroup}
+                >
+                  创建文件夹
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {iconGroupCreateOpen ? (
         <div
           className="shortcut-dialog-backdrop icon-group-create-backdrop"
@@ -14991,6 +15370,48 @@ const App = () => {
               <button
                 className="delete-confirm-submit"
                 onClick={() => deleteCatalogGroup(pendingGroupDelete)}
+              >
+                <Trash />
+                确认删除
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingSandboxFileDelete ? (
+        <div
+          className="shortcut-dialog-backdrop delete-confirm-backdrop"
+          onPointerDown={() => setPendingSandboxFileDelete(null)}
+        >
+          <section
+            className="delete-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-sandbox-file-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="delete-confirm-icon">
+              <Trash />
+            </div>
+            <div className="delete-confirm-copy">
+              <small>DELETE SANDBOX FILE</small>
+              <h2 id="delete-sandbox-file-title">确定删除这个 TSX 文件？</h2>
+              <p>{pendingSandboxFileDelete.name}</p>
+              <div className="delete-confirm-warning">
+                将删除本地历史副本；当前时间轴内容不会被删除。
+              </div>
+            </div>
+            <footer>
+              <button
+                className="delete-confirm-cancel"
+                onClick={() => setPendingSandboxFileDelete(null)}
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirm-submit"
+                onClick={() => void deleteSandboxFile(pendingSandboxFileDelete)}
               >
                 <Trash />
                 确认删除
@@ -16799,6 +17220,24 @@ const App = () => {
                   删除资源片段（S）
                 </button>
               </>
+            ) : contextMenu.source === "sandboxFile" ? (
+              <>
+                <small>{contextMenu.componentHistoryName ?? "导入 TSX"}</small>
+                <button
+                  className="delete-action"
+                  onClick={() => {
+                    const item = componentHistory.find(
+                      (entry) => entry.id === contextMenu.componentHistoryId,
+                    );
+                    if (item) {
+                      setContextMenu(null);
+                      setPendingSandboxFileDelete(item);
+                    }
+                  }}
+                >
+                  删除此 TSX 文件
+                </button>
+              </>
             ) : contextMenu.source === "arrangementRule" ? (
               <>
                 <small>{contextMenu.arrangementRuleName ?? "语义风格"}</small>
@@ -16970,6 +17409,13 @@ const App = () => {
                     删除图标
                   </button>
                 ) : null}
+              </>
+            ) : contextMenu.source === "materialLibrary" ? (
+              <>
+                <small>{contextMenu.groupName ?? "素材库"}</small>
+                <button className="icon-new-group-action" onClick={openCreateMaterialGroupDialog}>
+                  新建文件夹
+                </button>
               </>
             ) : contextMenu.source === "sfxLibrary" ? (
               <>
