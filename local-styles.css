@@ -3373,7 +3373,7 @@ main.is-resizing-sidebar * {
 
 /* Remotion writes the player host background inline, so mirror the same grid
    on that host to keep the red-box preview opaque to the outer canvas. */
-.player-wrap.reference-player-wrap > div {
+.player-wrap.reference-player-wrap > div:not(.canvas-selection):not(.canvas-marquee) {
   background-color: #0b0c11 !important;
   background-image:
     linear-gradient(45deg, #181b22 25%, transparent 25%),
@@ -3384,8 +3384,10 @@ main.is-resizing-sidebar * {
   background-size: 16px 16px !important;
 }
 
+/* 画布背景只应涂在 wrap 和播放器容器上；不能命中 .canvas-selection 等交互覆盖层，
+   否则未选中组件时覆盖层会带上不透明画布底色，把底下的组件内容盖成“空框”。 */
 .player-wrap.reference-player-wrap.has-card-background,
-.player-wrap.reference-player-wrap.has-card-background > div {
+.player-wrap.reference-player-wrap.has-card-background > div:not(.canvas-selection):not(.canvas-marquee) {
   background: rgb(var(--preview-bg-rgb)) !important;
   background-image: linear-gradient(
     145deg,
@@ -3395,7 +3397,7 @@ main.is-resizing-sidebar * {
 }
 
 .player-wrap.reference-player-wrap.has-card-background:not(.is-gradient),
-.player-wrap.reference-player-wrap.has-card-background:not(.is-gradient) > div {
+.player-wrap.reference-player-wrap.has-card-background:not(.is-gradient) > div:not(.canvas-selection):not(.canvas-marquee) {
   background-image: none !important;
 }
 
@@ -4503,18 +4505,6 @@ aside {
 .clip.selected {
   border-color: #8bedff;
   box-shadow: 0 0 18px rgba(101, 223, 247, 0.2);
-}
-
-.clip.arrangement-focused {
-  border-color: #c9a6ff;
-  box-shadow:
-    inset 0 0 0 1px rgba(201, 166, 255, 0.32),
-    0 0 16px rgba(160, 112, 238, 0.22);
-}
-
-.canvas-selection.arrangement-focused:not(.selected) {
-  border-color: rgba(201, 166, 255, 0.9);
-  box-shadow: 0 0 15px rgba(160, 112, 238, 0.34);
 }
 
 .timeline-video-track .track-body {
