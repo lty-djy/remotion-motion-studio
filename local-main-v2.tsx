@@ -11441,8 +11441,26 @@ const App = () => {
     });
   };
 
+  // 暂停状态下时间轴不自动跟随播放头（保留用户自由拖动滑轨浏览），
+  // 因此程序化跳转播放头（语义段定位、字幕点击、步进、回到开头等）后，
+  // 若播放头落在可视区外，把时间轴滚动到播放头可见；已在可视区内则不滚动，
+  // 不打断用户当前的浏览位置。阈值与播放跟随效果保持一致。
+  const revealPlayhead = (frame: number) => {
+    if (trackViewportWidth <= 0 || timelineContentWidth <= 0) return;
+    const frameToX = (targetFrame: number) =>
+      (timelineContentWidth * targetFrame) / Math.max(1, durationInFrames - 1);
+    const headX = frameToX(frame) - timelineScroll;
+    if (headX >= 0 && headX <= trackViewportWidth * 0.92) return;
+    const targetViewportPosition =
+      headX < 0 ? trackViewportWidth * 0.12 : trackViewportWidth * 0.88;
+    setTimelineScroll(
+      clamp(frameToX(frame) - targetViewportPosition, 0, timelineMaxScroll),
+    );
+  };
+
   const seekEditorFrame = (frame: number) => {
     const nextFrame = clamp(frame, 0, Math.max(0, durationInFrames - 1));
+    revealPlayhead(nextFrame);
     setCurrentFrame(nextFrame);
     playerRef.current?.seekTo(nextFrame);
     // Remotion Player 的 seek 可能先异步回传旧帧，下一帧再校正一次，
