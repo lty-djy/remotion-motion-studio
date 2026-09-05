@@ -4251,9 +4251,10 @@ aside {
 
 .timeline-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 14px;
+  gap: 6px 14px;
   min-height: 26px;
   padding-left: 2px;
   font-family: Consolas, "SFMono-Regular", monospace;

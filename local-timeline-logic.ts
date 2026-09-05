@@ -236,9 +236,13 @@ export const computeDropLaneOrder = ({
 // ===== 同轨碰撞边界 =====
 
 /**
- * 移动模式下整组的可移动增量边界（按目标轨道的实时占用计算）。
+ * 移动模式下整组的可移动增量边界。
+ * - 同轨道内移动（sharedLaneId 为 null）：邻居与成员天然不重叠，按左右
+ *   最近邻夹取；多选组跨轨道成员分别按各自原轨道计算。
+ * - 跨轨道移动：目标轨道的片段可能与成员原始区间重叠，不能按左右邻筛除，
+ *   改为把整组视为一个块，在目标轨道的空闲窗口内移动——选择包含/最接近
+ *   原始位置的窗口（放不下的窗口排最后），左右边界即窗口两端。
  * 左边界至少允许拖到 0 帧；右边界不锁总长，允许拖出以扩展时间轴。
- * sharedLaneId 为 null 时按各成员原轨道分别计算（跨轨多选组不换轨的场景）。
  */
 export const computeLaneCollisionBounds = ({
   members,
@@ -251,23 +255,63 @@ export const computeLaneCollisionBounds = ({
 }): { lowerDelta: number; upperDelta: number } => {
   let lowerDelta = -Math.min(...members.map((member) => member.startFrame));
   let upperDelta = Number.MAX_SAFE_INTEGER;
-  for (const member of members) {
-    const laneId = sharedLaneId ?? member.laneId;
-    const memberEnd = member.startFrame + member.durationInFrames;
-    let previousEnd = 0;
-    let nextStart = Number.MAX_SAFE_INTEGER;
-    for (const candidate of staticClips) {
-      if (candidate.laneId !== laneId) continue;
-      const candidateEnd = candidate.startFrame + candidate.durationInFrames;
-      if (candidateEnd <= member.startFrame) {
-        previousEnd = Math.max(previousEnd, candidateEnd);
-      } else if (candidate.startFrame >= memberEnd) {
-        nextStart = Math.min(nextStart, candidate.startFrame);
+  if (sharedLaneId === null) {
+    for (const member of members) {
+      const memberEnd = member.startFrame + member.durationInFrames;
+      let previousEnd = 0;
+      let nextStart = Number.MAX_SAFE_INTEGER;
+      for (const candidate of staticClips) {
+        if (candidate.laneId !== member.laneId) continue;
+        const candidateEnd = candidate.startFrame + candidate.durationInFrames;
+        if (candidateEnd <= member.startFrame) {
+          previousEnd = Math.max(previousEnd, candidateEnd);
+        } else if (candidate.startFrame >= memberEnd) {
+          nextStart = Math.min(nextStart, candidate.startFrame);
+        }
       }
+      lowerDelta = Math.max(lowerDelta, previousEnd - member.startFrame);
+      upperDelta = Math.min(upperDelta, nextStart - memberEnd);
     }
-    lowerDelta = Math.max(lowerDelta, previousEnd - member.startFrame);
-    upperDelta = Math.min(upperDelta, nextStart - memberEnd);
+    return { lowerDelta, upperDelta };
   }
+  const groupStart = Math.min(...members.map((member) => member.startFrame));
+  const groupEnd = Math.max(
+    ...members.map((member) => member.startFrame + member.durationInFrames),
+  );
+  const groupSpan = groupEnd - groupStart;
+  const laneClips = staticClips
+    .filter((clip) => clip.laneId === sharedLaneId)
+    .sort((a, b) => a.startFrame - b.startFrame);
+  const windows: Array<{ start: number; end: number }> = [];
+  let cursor = 0;
+  for (const clip of laneClips) {
+    if (clip.startFrame > cursor) {
+      windows.push({ start: cursor, end: clip.startFrame });
+    }
+    cursor = Math.max(cursor, clip.startFrame + clip.durationInFrames);
+  }
+  windows.push({ start: cursor, end: Number.MAX_SAFE_INTEGER });
+  let bestWindow = windows[windows.length - 1];
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const window of windows) {
+    const fits = window.end - window.start >= groupSpan;
+    const distance =
+      groupStart >= window.start && groupStart < window.end
+        ? 0
+        : groupStart < window.start
+          ? window.start - groupStart
+          : groupStart - window.end;
+    const score = fits ? distance : distance + 1e9;
+    if (score < bestScore) {
+      bestScore = score;
+      bestWindow = window;
+    }
+  }
+  lowerDelta = Math.max(lowerDelta, bestWindow.start - groupStart);
+  upperDelta = Math.min(
+    upperDelta,
+    bestWindow.end - groupSpan - groupStart,
+  );
   return { lowerDelta, upperDelta };
 };
 
@@ -306,6 +350,85 @@ export const planMagneticPush = (
       .map((candidate) => candidate.id),
   );
   return { overlapped, shiftIds, push };
+};
+
+// ===== 磁性空隙闭合 =====
+
+/**
+ * 一键闭合所有轨道内的空隙：每条轨道内按时间排序后，后续片段依次贴上
+ * 前一片段的尾边（保留每条轨道首个片段的位置，只关片段之间的洞）。
+ * 用于“补位”开关开启时的即时整理，与移出补位（planSourceLaneGapClose）配套。
+ */
+export const closeTimelineLaneGaps = <
+  V extends TimelineClipBase,
+  M extends TimelineClipBase,
+  R extends TimelineClipBase,
+>({
+  videoTracks,
+  instances,
+  resourceTracks,
+}: {
+  videoTracks: V[];
+  instances: M[];
+  resourceTracks: R[];
+}): { videoTracks: V[]; instances: M[]; resourceTracks: R[] } => {
+  const compact = <T extends TimelineClipBase>(clips: T[]): T[] => {
+    const byLane = new Map<string, T[]>();
+    for (const clip of clips) {
+      const list = byLane.get(clip.laneId);
+      if (list) list.push(clip);
+      else byLane.set(clip.laneId, [clip]);
+    }
+    const newStartById = new Map<string, number>();
+    for (const laneClips of byLane.values()) {
+      laneClips.sort((a, b) => a.startFrame - b.startFrame);
+      let cursor = laneClips[0].startFrame;
+      for (const clip of laneClips) {
+        newStartById.set(clip.id, cursor);
+        cursor += clip.durationInFrames;
+      }
+    }
+    return clips.map((clip) => {
+      const startFrame = newStartById.get(clip.id);
+      return startFrame === undefined || startFrame === clip.startFrame
+        ? clip
+        : { ...clip, startFrame };
+    });
+  };
+  return {
+    videoTracks: compact(videoTracks),
+    instances: compact(instances),
+    resourceTracks: compact(resourceTracks),
+  };
+};
+
+/**
+ * 磁性空隙闭合：片段被移出原轨道后，计算原轨道空隙的闭合方案。
+ * 位于空隙右侧（startFrame >= origEnd）的片段整体左移，贴到空隙左侧
+ * 邻近片段的尾边（prevEnd，没有则为 0 帧），与剪映主轨的移出补位一致。
+ * 返回 shift = 0 表示无需闭合（空隙右侧没有片段）。
+ */
+export const planSourceLaneGapClose = (
+  remainingClips: TimelineClipBase[],
+  origStart: number,
+  origEnd: number,
+): { shift: number; shiftIds: Set<string> } => {
+  let prevEnd = 0;
+  let hasPrev = false;
+  for (const clip of remainingClips) {
+    const end = clip.startFrame + clip.durationInFrames;
+    if (end <= origStart && (!hasPrev || end > prevEnd)) {
+      prevEnd = end;
+      hasPrev = true;
+    }
+  }
+  const shift = Math.max(0, origEnd - prevEnd);
+  const shiftIds = new Set(
+    remainingClips
+      .filter((clip) => clip.startFrame >= origEnd)
+      .map((clip) => clip.id),
+  );
+  return { shift, shiftIds };
 };
 
 // ===== 轨道层级归一 =====

@@ -12,6 +12,7 @@ import { Player, type PlayerRef } from "@remotion/player";
 import { AbsoluteFill, Audio, Html5Video, Img, Sequence } from "remotion";
 import {
   ArrowCounterClockwise,
+  ArrowsInLineHorizontal,
   ArrowsInLineVertical,
   ArrowsOutLineVertical,
   CaretDown,
@@ -80,8 +81,11 @@ import {
   computeDropLaneOrder,
   computeLaneCollisionBounds,
   normalizeTimelineLaneOrders,
+  closeTimelineLaneGaps,
   planMagneticPush,
+  planSourceLaneGapClose,
   resolveClipDropLane,
+  type TimelineClipBase,
 } from "./local-timeline-logic";
 import { CardMaskLayer, normalizeCardMask, DEFAULT_CARD_MASK_NEW } from "./card-mask-control";
 import {
@@ -3799,6 +3803,8 @@ const App = () => {
   const [isPlayheadDragging, setIsPlayheadDragging] = useState(false);
   // 剪映式吸附磁吸开关 + 拖拽时的吸附参考线 + 跨轨道拖拽的目标轨道高亮
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
+  // 剪映式主轨磁吸（补位）：开启时片段移出到其他轨道后，原轨道空隙自动闭合
+  const [timelineMagneticEnabled, setTimelineMagneticEnabled] = useState(true);
   const [timelineSnapGuideFrame, setTimelineSnapGuideFrame] = useState<
     number | null
   >(null);
@@ -4048,6 +4054,58 @@ const App = () => {
   // 结束后，把所有轨道的层级重排成连续整数，保持轨道堆顺序稳定
   const settleLaneOrders = () => {
     const next = normalizeTimelineLaneOrders(timelineClipsRef.current);
+    setInstances(next.instances);
+    setVideoTracks(next.videoTracks);
+    setResourceTracks(next.resourceTracks);
+  };
+
+  // 跨轨道拖拽落轨的最终处理：吸附开启时先闭合原轨道空隙（磁性补位），
+  // 再把所有轨道层级归一化。两步在内存中组合后一次写回——若分成两次
+  // setState，后者会读到尚未刷新的片段数据，把闭合结果覆盖掉。
+  const finalizeCrossLaneDrop = (state: {
+    sourceLaneId: string;
+    magneticEnabled: boolean;
+    members: Array<{
+      id: string;
+      laneId: string;
+      startFrame: number;
+      durationInFrames: number;
+    }>;
+  }) => {
+    const current = timelineClipsRef.current;
+    const draggedIds = new Set(state.members.map((member) => member.id));
+    const origStart = Math.min(
+      ...state.members.map((member) => member.startFrame),
+    );
+    const origEnd = Math.max(
+      ...state.members.map(
+        (member) => member.startFrame + member.durationInFrames,
+      ),
+    );
+    const adjust = <T extends TimelineClipBase>(clips: T[]): T[] => {
+      if (!state.magneticEnabled) return clips;
+      if (!clips.some((clip) => draggedIds.has(clip.id))) return clips;
+      const remaining = clips.filter(
+        (clip) =>
+          clip.laneId === state.sourceLaneId && !draggedIds.has(clip.id),
+      );
+      const { shift, shiftIds } = planSourceLaneGapClose(
+        remaining,
+        origStart,
+        origEnd,
+      );
+      if (shift <= 0 || shiftIds.size === 0) return clips;
+      return clips.map((clip) =>
+        shiftIds.has(clip.id)
+          ? { ...clip, startFrame: clip.startFrame - shift }
+          : clip,
+      );
+    };
+    const next = normalizeTimelineLaneOrders({
+      videoTracks: adjust(current.videoTracks),
+      instances: adjust(current.instances),
+      resourceTracks: adjust(current.resourceTracks),
+    });
     setInstances(next.instances);
     setVideoTracks(next.videoTracks);
     setResourceTracks(next.resourceTracks);
@@ -8788,6 +8846,7 @@ const App = () => {
     durationInFrames: number;
     width: number;
     snapEnabled: boolean;
+    magneticEnabled: boolean;
     snapTargets: number[];
     sourceLaneId: string;
     targetLaneId: string;
@@ -8816,6 +8875,7 @@ const App = () => {
         event.currentTarget.closest(".track-body")?.clientWidth ||
         1,
       snapEnabled: timelineSnapEnabled,
+      magneticEnabled: timelineMagneticEnabled,
       snapTargets: computeTimelineSnapTargets(new Set([track.id])),
       sourceLaneId: track.laneId,
       targetLaneId: track.laneId,
@@ -9016,7 +9076,7 @@ const App = () => {
         setTimelineSnapGuideFrame(null);
         setClipDropTargetLaneId(null);
         if (state.mode === "move" && state.targetLaneId !== state.sourceLaneId) {
-          settleLaneOrders();
+          finalizeCrossLaneDrop(state);
         }
       }
       videoTimelineDragState.current = null;
@@ -9041,6 +9101,7 @@ const App = () => {
     durationInFrames: number;
     width: number;
     snapEnabled: boolean;
+    magneticEnabled: boolean;
     snapTargets: number[];
     resourceKind: string;
     sourceLaneId: string;
@@ -9070,6 +9131,7 @@ const App = () => {
         event.currentTarget.closest(".track-body")?.clientWidth ||
         1,
       snapEnabled: timelineSnapEnabled,
+      magneticEnabled: timelineMagneticEnabled,
       snapTargets: computeTimelineSnapTargets(new Set([track.id])),
       resourceKind: track.kind,
       sourceLaneId: track.laneId,
@@ -9247,7 +9309,7 @@ const App = () => {
         setTimelineSnapGuideFrame(null);
         setClipDropTargetLaneId(null);
         if (state.mode === "move" && state.targetLaneId !== state.sourceLaneId) {
-          settleLaneOrders();
+          finalizeCrossLaneDrop(state);
         }
       }
       resourceTimelineDragState.current = null;
@@ -9281,10 +9343,12 @@ const App = () => {
     }>;
     memberIdSet: Set<string>;
     groupLaneId: string | null;
+    sourceLaneId: string;
     targetLaneId: string;
     pendingNewLaneId: string | null;
     pendingNewRef: string | null;
     snapEnabled: boolean;
+    magneticEnabled: boolean;
     snapTargets: number[];
     minStartFrame: number;
     maxEndFrame: number;
@@ -9399,10 +9463,12 @@ const App = () => {
       members,
       memberIdSet,
       groupLaneId,
+      sourceLaneId: instance.laneId,
       targetLaneId: instance.laneId,
       pendingNewLaneId: null,
       pendingNewRef: null,
       snapEnabled: timelineSnapEnabled,
+      magneticEnabled: timelineMagneticEnabled,
       snapTargets: computeTimelineSnapTargets(memberIdSet),
       minStartFrame: Math.min(...members.map((member) => member.startFrame)),
       maxEndFrame: Math.max(
@@ -9634,8 +9700,12 @@ const App = () => {
       if (state) {
         setTimelineSnapGuideFrame(null);
         setClipDropTargetLaneId(null);
-        if (state.mode === "move" && state.targetLaneId !== state.sourceLaneId) {
-          settleLaneOrders();
+        if (
+          state.mode === "move" &&
+          state.groupLaneId !== null &&
+          state.targetLaneId !== state.sourceLaneId
+        ) {
+          finalizeCrossLaneDrop(state);
         }
       }
       timelineDragState.current = null;
@@ -14459,13 +14529,47 @@ const App = () => {
                 aria-label={timelineSnapEnabled ? "关闭吸附" : "开启吸附"}
                 title={
                   timelineSnapEnabled
-                    ? "吸附已开启：拖动片段时自动对齐片段边缘、播放头与出入点。点击关闭。"
+                    ? "吸附已开启：拖动片段自动对齐片段边缘、播放头与出入点。点击关闭。"
                     : "吸附已关闭：点击开启磁吸对齐。"
                 }
                 onClick={() => setTimelineSnapEnabled((enabled) => !enabled)}
               >
                 <Magnet weight="bold" />
                 <span>吸附</span>
+              </button>
+              <button
+                type="button"
+                className={`timeline-snap-toggle ${
+                  timelineMagneticEnabled ? "active" : ""
+                }`}
+                aria-pressed={timelineMagneticEnabled}
+                aria-label={
+                  timelineMagneticEnabled
+                    ? "关闭主轨磁吸补位"
+                    : "开启主轨磁吸补位"
+                }
+                title={
+                  timelineMagneticEnabled
+                    ? "主轨磁吸（补位）已开启：片段移出到其他轨道后，原轨道空隙自动闭合，与剪映主轨磁吸一致。点击关闭。"
+                    : "主轨磁吸（补位）已关闭：片段移出后原轨道空隙保留。点击开启将立即闭合当前所有空隙。"
+                }
+                onClick={() => {
+                  const next = !timelineMagneticEnabled;
+                  setTimelineMagneticEnabled(next);
+                  // 开启补位的瞬间立即整理现有时间线：闭合所有轨道内的空隙，
+                  // 让按钮点击有即时可见效果（关闭只影响之后的移出操作）
+                  if (next) {
+                    const nextClips = closeTimelineLaneGaps(
+                      timelineClipsRef.current,
+                    );
+                    setInstances(nextClips.instances);
+                    setVideoTracks(nextClips.videoTracks);
+                    setResourceTracks(nextClips.resourceTracks);
+                  }
+                }}
+              >
+                <ArrowsInLineHorizontal weight="bold" />
+                <span>补位</span>
               </button>
             </div>
             {activeArrangementBatch ? (
