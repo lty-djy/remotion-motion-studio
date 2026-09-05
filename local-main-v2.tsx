@@ -5665,13 +5665,10 @@ const App = () => {
     const definition = definitionMap.get(componentId);
     if (!definition) return;
     const savedDefault = componentInstanceDefaults[componentId];
-    // 效果统一放入共享效果轨（最靠上的纯效果轨道，字幕轨除外），没有则新建；
+    // 点击添加的效果组件每次都新开一条独立轨道（不并入已有效果轨）；
+    // SRT / JSON 导入与自动编排的合并逻辑保持不变。
     // 落点被占用时由 appendClipsWithoutMovingExisting 顺延到空闲位置
-    const laneId =
-      findTopLaneOfKind(
-        instances,
-        (candidate) => candidate.sourceIntentId !== SRT_CAPTION_TRACK_ID,
-      ) ?? createSharedLaneId("motion");
+    const laneId = createSharedLaneId("motion");
     const instance = createInstance(
       definition,
       currentFrame,
