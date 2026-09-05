@@ -4376,12 +4376,12 @@ aside {
 
 .arrangement-focus-title strong {
   color: #eadfff;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .arrangement-focus-title span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .arrangement-focus-groups {
@@ -4404,7 +4404,7 @@ aside {
   border-radius: 6px;
   color: #aeb5c1;
   background: rgba(255, 255, 255, 0.035);
-  font-size: 8px;
+  font-size: 12px;
   cursor: pointer;
 }
 
