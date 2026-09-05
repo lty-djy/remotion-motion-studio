@@ -477,3 +477,135 @@ export const normalizeTimelineLaneOrders = <
     resourceTracks: reindex(resourceTracks),
   };
 };
+
+// ===== 同类轨道合并 =====
+
+/**
+ * 在既有片段里找“最靠上的同类型纯轨道”（轨道内全部片段都满足 matches）。
+ * 返回 null 表示时间线上还没有可复用的该类型轨道。
+ * 用于手动添加效果/图标/音效时并入对应共享轨道，而不是每次新建一条。
+ */
+export const findTopLaneOfKind = <T extends TimelineClipBase>(
+  clips: T[],
+  matches: (clip: T) => boolean,
+): string | null => {
+  const laneInfo = new Map<string, { order: number; pure: boolean }>();
+  for (const clip of clips) {
+    const info = laneInfo.get(clip.laneId);
+    if (info) {
+      info.order = Math.min(info.order, clip.trackOrder);
+      info.pure = info.pure && matches(clip);
+    } else {
+      laneInfo.set(clip.laneId, { order: clip.trackOrder, pure: matches(clip) });
+    }
+  }
+  let best: { laneId: string; order: number } | null = null;
+  for (const [laneId, info] of laneInfo) {
+    if (!info.pure) continue;
+    if (!best || info.order < best.order) best = { laneId, order: info.order };
+  }
+  return best?.laneId ?? null;
+};
+
+/**
+ * 同类片段合并到一条轨道：效果、音效、图标、素材各共用一条，不再每个
+ * 片段各占一条轨道；字幕语义动画轨（isCaptionClip 命中）与视频轨保持
+ * 各自轨道不动。每类目标轨道优先复用时间线上已有的同类型纯轨道（取最
+ * 靠上的一条），没有则使用 newLaneIdByKind 提供的新 laneId。
+ * 只调整 laneId 与轨道层级；行序固定为 字幕 → 效果 → 图标 → 素材 →
+ * 音效 → 视频（遗留混合轨道垫底），同类别内部保持原有相对次序。
+ * 片段时间一概不动：合并后同一条轨道内允许时间重叠的片段（保留预览
+ * 确认的时间），交给补位或手动拖拽整理。
+ */
+export const consolidateTimelineLanesByKind = <
+  V extends TimelineClipBase,
+  M extends TimelineClipBase,
+  R extends TimelineClipBase & { kind: "icon" | "material" | "sfx" },
+>({
+  videoTracks,
+  instances,
+  resourceTracks,
+  isCaptionClip,
+  newLaneIdByKind,
+}: {
+  videoTracks: V[];
+  instances: M[];
+  resourceTracks: R[];
+  isCaptionClip: (clip: M) => boolean;
+  newLaneIdByKind: Record<"motion" | "icon" | "material" | "sfx", string>;
+}): { videoTracks: V[]; instances: M[]; resourceTracks: R[] } => {
+  type LaneKind = "caption" | "motion" | "icon" | "material" | "sfx" | "video";
+  const laneInfo = new Map<string, { kinds: Set<LaneKind>; order: number }>();
+  const collect = (laneId: string, kind: LaneKind, trackOrder: number) => {
+    const info = laneInfo.get(laneId);
+    if (info) {
+      info.kinds.add(kind);
+      info.order = Math.min(info.order, trackOrder);
+    } else {
+      laneInfo.set(laneId, { kinds: new Set([kind]), order: trackOrder });
+    }
+  };
+  instances.forEach((clip) =>
+    collect(
+      clip.laneId,
+      isCaptionClip(clip) ? "caption" : "motion",
+      clip.trackOrder,
+    ),
+  );
+  resourceTracks.forEach((clip) => collect(clip.laneId, clip.kind, clip.trackOrder));
+  videoTracks.forEach((clip) => collect(clip.laneId, "video", clip.trackOrder));
+
+  const pureLanesOfKind = (kind: LaneKind) =>
+    [...laneInfo.entries()]
+      .filter(([, info]) => info.kinds.size === 1 && info.kinds.has(kind))
+      .sort((a, b) => a[1].order - b[1].order)
+      .map(([laneId]) => laneId);
+
+  const targetLaneByKind = { ...newLaneIdByKind };
+  for (const kind of ["motion", "icon", "material", "sfx"] as const) {
+    const [topLaneId] = pureLanesOfKind(kind);
+    if (topLaneId) targetLaneByKind[kind] = topLaneId;
+  }
+
+  const orderedLaneIds = [
+    ...pureLanesOfKind("caption"),
+    targetLaneByKind.motion,
+    targetLaneByKind.icon,
+    targetLaneByKind.material,
+    targetLaneByKind.sfx,
+    ...pureLanesOfKind("video"),
+  ];
+  const laneOrder = new Map<string, number>();
+  for (const laneId of orderedLaneIds) {
+    if (!laneOrder.has(laneId)) laneOrder.set(laneId, laneOrder.size);
+  }
+  // 兜底：未被显式排序的轨道（遗留混合轨道等）按原相对次序垫底
+  const leftoverLaneIds = [...laneInfo.keys()]
+    .filter((laneId) => !laneOrder.has(laneId))
+    .sort((a, b) => (laneInfo.get(a)?.order ?? 0) - (laneInfo.get(b)?.order ?? 0));
+  for (const laneId of leftoverLaneIds) {
+    laneOrder.set(laneId, laneOrder.size);
+  }
+  const orderOf = (laneId: string) => laneOrder.get(laneId) ?? laneOrder.size;
+
+  const nextInstances = instances.map((clip) => {
+    if (isCaptionClip(clip)) {
+      return { ...clip, trackOrder: orderOf(clip.laneId) };
+    }
+    const laneId = targetLaneByKind.motion;
+    return { ...clip, laneId, trackOrder: orderOf(laneId) };
+  });
+  const nextResourceTracks = resourceTracks.map((clip) => {
+    const laneId = targetLaneByKind[clip.kind];
+    return { ...clip, laneId, trackOrder: orderOf(laneId) };
+  });
+  const nextVideoTracks = videoTracks.map((clip) => ({
+    ...clip,
+    trackOrder: orderOf(clip.laneId),
+  }));
+  return {
+    videoTracks: nextVideoTracks,
+    instances: nextInstances,
+    resourceTracks: nextResourceTracks,
+  };
+};

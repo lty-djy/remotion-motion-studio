@@ -39,6 +39,7 @@ import {
   SlidersHorizontal,
   SpeakerHigh,
   SpeakerSlash,
+  Stack,
   Sun,
   TextAa,
   Trash,
@@ -80,6 +81,8 @@ import {
   collectTimelineSnapTargets,
   computeDropLaneOrder,
   computeLaneCollisionBounds,
+  consolidateTimelineLanesByKind,
+  findTopLaneOfKind,
   normalizeTimelineLaneOrders,
   closeTimelineLaneGaps,
   planMagneticPush,
@@ -1234,6 +1237,13 @@ const loadEffectGroupNameOverrides = (): Record<string, string> => {
 const createResourceTrackId = () => {
   resourceTrackSequence += 1;
   return `resource-${Date.now()}-${resourceTrackSequence}`;
+};
+
+// 共享轨道（同类片段合并所在轨）的 laneId 生成：效果/图标/素材/音效各一条
+let sharedLaneSequence = 0;
+const createSharedLaneId = (kind: "motion" | "icon" | "material" | "sfx") => {
+  sharedLaneSequence += 1;
+  return `lane-${kind}-${Date.now()}-${sharedLaneSequence}`;
 };
 
 const isSupportedResourceTrack = (
@@ -5655,6 +5665,13 @@ const App = () => {
     const definition = definitionMap.get(componentId);
     if (!definition) return;
     const savedDefault = componentInstanceDefaults[componentId];
+    // 效果统一放入共享效果轨（最靠上的纯效果轨道，字幕轨除外），没有则新建；
+    // 落点被占用时由 appendClipsWithoutMovingExisting 顺延到空闲位置
+    const laneId =
+      findTopLaneOfKind(
+        instances,
+        (candidate) => candidate.sourceIntentId !== SRT_CAPTION_TRACK_ID,
+      ) ?? createSharedLaneId("motion");
     const instance = createInstance(
       definition,
       currentFrame,
@@ -5665,6 +5682,7 @@ const App = () => {
       ),
       {
         ...(savedDefault ?? {}),
+        laneId,
         position: savedDefault?.position
           ? { ...savedDefault.position }
           : getRegisteredEffectPosition(definition, canvasOrientation),
@@ -5678,7 +5696,9 @@ const App = () => {
           ) - 1,
       },
     );
-    setInstances((current) => [...current, instance]);
+    setInstances((current) =>
+      appendClipsWithoutMovingExisting(current, [instance]),
+    );
     setManualTimelineEndFrame((current) =>
       Math.max(current, instance.startFrame + instance.durationInFrames),
     );
@@ -5690,9 +5710,16 @@ const App = () => {
     const id = createResourceTrackId();
     const iconSize = canvasOrientation === "portrait" ? 168 : 132;
     const clipDuration = Math.max(3, Math.round(fps * 3));
+    // 图标统一放入共享图标轨（最靠上的纯图标轨道），没有则新建；
+    // 落点被占用时由 appendClipsWithoutMovingExisting 顺延到空闲位置
+    const laneId =
+      findTopLaneOfKind(
+        resourceTracks,
+        (candidate) => candidate.kind === "icon",
+      ) ?? createSharedLaneId("icon");
     const track: ResourceTrack = {
       id,
-      laneId: id,
+      laneId,
       trackOrder:
         Math.min(
           0,
@@ -5721,7 +5748,9 @@ const App = () => {
       volume: 1,
       voiceDucking: 0,
     };
-    setResourceTracks((current) => [...current, track]);
+    setResourceTracks((current) =>
+      appendClipsWithoutMovingExisting(current, [track]),
+    );
     selectResourceTrack(track.id);
     setManualTimelineEndFrame((current) =>
       Math.max(current, track.startFrame + track.durationInFrames),
@@ -5735,9 +5764,16 @@ const App = () => {
       3,
       Math.round((sound.durationSeconds ?? 1) * fps),
     );
+    // 音效统一放入共享音效轨（最靠上的纯音效轨道），没有则新建；
+    // 落点被占用时由 appendClipsWithoutMovingExisting 顺延到空闲位置
+    const laneId =
+      findTopLaneOfKind(
+        resourceTracks,
+        (candidate) => candidate.kind === "sfx",
+      ) ?? createSharedLaneId("sfx");
     const track: ResourceTrack = {
       id,
-      laneId: id,
+      laneId,
       trackOrder:
         Math.min(
           0,
@@ -5766,7 +5802,9 @@ const App = () => {
       volume: 0.55,
       voiceDucking: 0,
     };
-    setResourceTracks((current) => [...current, track]);
+    setResourceTracks((current) =>
+      appendClipsWithoutMovingExisting(current, [track]),
+    );
     selectResourceTrack(track.id);
     setManualTimelineEndFrame((current) =>
       Math.max(current, track.startFrame + track.durationInFrames),
@@ -8090,14 +8128,37 @@ const App = () => {
         trackOrder:
           arrangementOrderBase + (arrangementRankById.get(clip.id) ?? 0),
       }));
-    const nextInstances = appendClipsWithoutMovingExisting(
-      instances,
-      withArrangementTrackOrders(selectedTimelineInstances),
+    // 同类片段共用一条轨道：本次插入的效果共享一条效果轨，音效/图标/素材
+    // 各共享一条，不再每个片段各占一条轨道；SRT 字幕语义动画轨时间跨度
+    // 覆盖全片，保持独占轨道。每批使用全新 laneId，片段时间保持预览确认
+    // 时的值（不做同轨碰撞推让）；与已有片段时间重叠时交给补位/手动拖拽整理。
+    const sharedLaneIds = {
+      motion: createSharedLaneId("motion"),
+      icon: createSharedLaneId("icon"),
+      material: createSharedLaneId("material"),
+      sfx: createSharedLaneId("sfx"),
+    };
+    const remappedTimelineInstances = selectedTimelineInstances.map(
+      (instance) => ({
+        ...instance,
+        laneId:
+          instance.sourceIntentId === SRT_CAPTION_TRACK_ID
+            ? instance.laneId
+            : sharedLaneIds.motion,
+      }),
     );
-    const nextResourceTracks = appendClipsWithoutMovingExisting(
-      resourceTracks,
-      withArrangementTrackOrders(selectedResourceTracks),
-    );
+    const remappedResourceTracks = selectedResourceTracks.map((track) => ({
+      ...track,
+      laneId: sharedLaneIds[track.kind],
+    }));
+    const nextInstances = [
+      ...instances,
+      ...withArrangementTrackOrders(remappedTimelineInstances),
+    ];
+    const nextResourceTracks = [
+      ...resourceTracks,
+      ...withArrangementTrackOrders(remappedResourceTracks),
+    ];
     const selectedEndFrame = Math.max(
       0,
       ...selectedTimelineInstances.map(
@@ -14570,6 +14631,37 @@ const App = () => {
               >
                 <ArrowsInLineHorizontal weight="bold" />
                 <span>补位</span>
+              </button>
+              <button
+                type="button"
+                className="timeline-snap-toggle"
+                aria-label="合并同类轨道"
+                title="合并同类轨道：效果、图标、素材、音效各合并为一条轨道（字幕与视频轨道保持不变），片段时间不变。"
+                onClick={() => {
+                  const next = consolidateTimelineLanesByKind({
+                    videoTracks,
+                    instances,
+                    resourceTracks,
+                    isCaptionClip: (instance) =>
+                      instance.sourceIntentId === SRT_CAPTION_TRACK_ID,
+                    newLaneIdByKind: {
+                      motion: createSharedLaneId("motion"),
+                      icon: createSharedLaneId("icon"),
+                      material: createSharedLaneId("material"),
+                      sfx: createSharedLaneId("sfx"),
+                    },
+                  });
+                  setInstances(next.instances);
+                  setVideoTracks(next.videoTracks);
+                  setResourceTracks(next.resourceTracks);
+                  setNotice({
+                    tone: "ok",
+                    text: "已合并同类轨道：效果、图标、素材、音效各一条，片段时间保持不变。",
+                  });
+                }}
+              >
+                <Stack weight="bold" />
+                <span>合并轨道</span>
               </button>
             </div>
             {activeArrangementBatch ? (
