@@ -3,12 +3,13 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **39** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **40** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
 
 - `GlobalExpedition`：环球征途地图 — 正交投影地球沿大圆航线环球飞行，途经节点停靠点亮，金色航迹＋HUD 任务面板（透明背景）（仅工作台可用；props：`enabled`、`title`、`subtitle`、`animationSeconds`、`accentColor`、`linkColor`、`showHud`）
+- `FocusCard`：FocusCard — 人物聚焦框 · 透明圆角框套视频/图片,画布可拖动（仅工作台可用；props：`mediaUrl`、`mediaType`、`mediaFit`、`accent`、`camDX`、`camDY`、`camW`、`camH`）
 
 ## 竖屏口播信息层
 

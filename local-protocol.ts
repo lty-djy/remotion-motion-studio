@@ -14,6 +14,8 @@ export type MotionPropSchema = {
   min?: number;
   max?: number;
   step?: number;
+  /** 数值单位(仅展示,如 "px"/"ms") */
+  unit?: string;
   options?: Array<string | { label: string; value: string }>;
 };
 

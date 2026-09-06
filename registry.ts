@@ -10,6 +10,7 @@ export {
 
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
 import { ChapterBarEffectDef } from "./effects/ChapterBar";
+import { FocusCardEffectDef } from "./effects/FocusCard";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
@@ -56,7 +57,7 @@ import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
 export type EffectDef = MotionComponentDefinition & {
   catalogGroup: string;
-  placement: "left" | "right" | "top" | "bottom";
+  placement: "left" | "right" | "top" | "bottom" | "full";
   semantic?: EffectSemanticCapabilities;
   arranger?: {
     compiler: "legacy-metric";
@@ -67,24 +68,32 @@ export type RegisteredEffectDef = EffectDef & {
   semantic: EffectSemanticCapabilities;
 };
 
-/** 固定锚定的通栏效果：画布不可拖拽缩放，"独立大小与位置"面板不开放，
- *  渲染时始终按贴顶全宽落位（与画幅联动），不叠加全局整体大小。 */
+/** 固定锚定的效果：画布不可拖拽缩放，"独立大小与位置"面板不开放。
+ *  ChapterBar 贴顶全宽（与画幅联动）。 */
 export const ANCHORED_EFFECT_IDS = new Set<string>(["ChapterBar"]);
 
-/** 锚定效果的唯一落位：贴顶、全宽。所有渲染入口（预览/弹窗/导出）共用。 */
+/** 锚定效果的唯一落位：贴顶、全宽。所有渲染入口（预览/弹窗/导出）共用。
+ *  placement 为 "full" 的全屏卡例外：scale 恒为 1，直接铺满画布。 */
 export const getAnchoredEffectPosition = (
   definition: MotionComponentDefinition,
   canvasWidth: number,
-): MotionPosition => ({
-  x: 0,
-  y: 0,
-  scale: definition.bounds.width > 0 ? canvasWidth / definition.bounds.width : 1,
-});
+): MotionPosition => {
+  if (definition.placement === "full") {
+    return { x: 0, y: 0, scale: 1 };
+  }
+  return {
+    x: 0,
+    y: 0,
+    scale:
+      definition.bounds.width > 0 ? canvasWidth / definition.bounds.width : 1,
+  };
+};
 
 const EFFECT_DEFINITIONS: EffectDef[] = [
 
   GlobalExpeditionEffectDef,
   ChapterBarEffectDef,
+  FocusCardEffectDef,
   SrtSemanticCaptionsEffectDef,
   SrtCueTextEffectDef,
   TerminalPanelEffectDef,

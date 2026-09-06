@@ -6000,6 +6000,15 @@ aside {
   background: rgba(139, 119, 255, 0.22);
 }
 
+.component-context-menu .rename-action {
+  color: #8fe388;
+  background: rgba(110, 227, 118, 0.11);
+}
+
+.component-context-menu .rename-action:hover {
+  background: rgba(110, 227, 118, 0.2);
+}
+
 .component-context-menu .delete-action {
   margin-top: 5px;
   color: #ff8294;

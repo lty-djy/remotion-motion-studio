@@ -1716,6 +1716,10 @@ const getRegisteredEffectPosition = (
   if (registeredEffect.placement === "top") {
     return { x: 0, y: 0, scale: canvasWidth / definition.bounds.width };
   }
+  // 全屏卡（placement "full"）：不缩放直接铺满，组件内部按画布宽高自适应布局
+  if (registeredEffect.placement === "full") {
+    return { x: 0, y: 0, scale: 1 };
+  }
   if (registeredEffect.placement === "bottom") {
     // 底部落点：贴画布下缘、水平居中、按画布宽度自适应，横竖屏都可见
     const scale = Math.min(1, canvasWidth / definition.bounds.width);
@@ -2851,6 +2855,185 @@ const TimingStepper = ({
         </button>
       </div>
     </label>
+  );
+};
+
+type RealtimePreviewDragTarget = {
+  instance: MotionInstance;
+  definition: MotionComponentDefinition;
+  stackIndex: number;
+};
+
+/** 独立实时预览窗的画布拖拽层：与主编辑台画布共用同一份实例位置，拖动直接写回
+ *  instances（自动进入撤销历史与「未保存」状态）。内容通过 portal 渲染进独立窗口
+ *  document，React 合成事件不跨 document 派发，因此这里使用原生事件监听。 */
+const RealtimePreviewDragLayer = ({
+  containerWindow,
+  targets,
+  canvasWidth,
+  canvasHeight,
+  globalCardScale,
+  onMove,
+}: {
+  containerWindow: Window;
+  targets: RealtimePreviewDragTarget[];
+  canvasWidth: number;
+  canvasHeight: number;
+  globalCardScale: number;
+  onMove: (instanceId: string, x: number, y: number) => void;
+}) => {
+  const dragStateRef = useRef<{
+    instanceId: string;
+    pointerX: number;
+    pointerY: number;
+    originX: number;
+    originY: number;
+    designPerPixelX: number;
+    designPerPixelY: number;
+  } | null>(null);
+  const latestRef = useRef({ targets, canvasWidth, canvasHeight, onMove });
+  latestRef.current = { targets, canvasWidth, canvasHeight, onMove };
+
+  useEffect(() => {
+    const popupWindow = containerWindow;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      // 注意：弹窗元素不能 instanceof 主窗口的 HTMLElement（跨 document 接口不同），只能鸭子类型判断
+      const handle = (
+        event.target as Element | null
+      )?.closest?.("[data-preview-drag-instance]") as HTMLElement | null;
+      if (!handle) return;
+      const instanceId = handle.dataset.previewDragInstance ?? "";
+      const { targets: currentTargets, canvasWidth: width, canvasHeight: height } =
+        latestRef.current;
+      const item = currentTargets.find(
+        (candidate) => candidate.instance.id === instanceId,
+      );
+      if (!item || ANCHORED_EFFECT_IDS.has(item.definition.id)) return;
+      const layer = handle.closest(".realtime-preview-drag-layer");
+      if (!layer) return;
+      const rect = layer.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      event.preventDefault();
+      if (typeof handle.setPointerCapture === "function") {
+        try {
+          handle.setPointerCapture(event.pointerId);
+        } catch {
+          // 指针捕获失败时仍可依赖 window 级 pointermove 完成拖拽
+        }
+      }
+      dragStateRef.current = {
+        instanceId,
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        originX: item.instance.position.x,
+        originY: item.instance.position.y,
+        designPerPixelX: width / rect.width,
+        designPerPixelY: height / rect.height,
+      };
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      event.preventDefault();
+      const deltaX = event.clientX - state.pointerX;
+      const deltaY = event.clientY - state.pointerY;
+      latestRef.current.onMove(
+        state.instanceId,
+        Math.round(state.originX + deltaX * state.designPerPixelX),
+        Math.round(state.originY + deltaY * state.designPerPixelY),
+      );
+    };
+    const finishDrag = () => {
+      dragStateRef.current = null;
+    };
+    // portal 可能因独立窗口文档重建而重新挂载宿主节点，因此统一把事件
+    // 委托到稳定的弹窗 window 上，rect 在事件发生时现场解析
+    popupWindow.addEventListener("pointerdown", handlePointerDown);
+    popupWindow.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    });
+    popupWindow.addEventListener("pointerup", finishDrag);
+    popupWindow.addEventListener("pointercancel", finishDrag);
+    return () => {
+      popupWindow.removeEventListener("pointerdown", handlePointerDown);
+      popupWindow.removeEventListener("pointermove", handlePointerMove);
+      popupWindow.removeEventListener("pointerup", finishDrag);
+      popupWindow.removeEventListener("pointercancel", finishDrag);
+    };
+  }, [containerWindow]);
+
+  return (
+    <div className="realtime-preview-drag-layer">
+      <style>{`
+        .realtime-preview-drag-layer {
+          position: absolute;
+          inset: 0;
+          z-index: 30;
+          pointer-events: none;
+        }
+        .realtime-preview-drag-handle {
+          position: absolute;
+          border: 1.5px solid transparent;
+          border-radius: 4px;
+          cursor: grab;
+          touch-action: none;
+          transform-origin: 0 0;
+          pointer-events: auto;
+        }
+        .realtime-preview-drag-handle:hover {
+          border-color: rgba(101, 223, 247, 0.48);
+          border-style: dashed;
+        }
+        .realtime-preview-drag-handle:active {
+          cursor: grabbing;
+          border-color: rgba(101, 223, 247, 0.95);
+          border-style: solid;
+        }
+      `}</style>
+      {targets.map(({ instance, definition, stackIndex }) => {
+        // 锚定效果固定落位（如 ChapterBar），不提供拖拽
+        if (ANCHORED_EFFECT_IDS.has(definition.id)) return null;
+        // 全屏卡（placement "full"）铺满画布，手柄直接 100%×100%
+        const fullscreenOverlay =
+          EFFECT_REGISTRY_BY_ID.get(definition.id)?.placement === "full";
+        const overlayScale = instance.position.scale * globalCardScale;
+        return (
+          <div
+            key={instance.id}
+            className="realtime-preview-drag-handle"
+            data-preview-drag-instance={instance.id}
+            title={`拖动移动 ${definition.name}`}
+            style={{
+              left: fullscreenOverlay
+                ? "0%"
+                : `${
+                    ((instance.position.x +
+                      definition.bounds.x * overlayScale) /
+                      canvasWidth) *
+                    100
+                  }%`,
+              top: fullscreenOverlay
+                ? "0%"
+                : `${
+                    ((instance.position.y +
+                      definition.bounds.y * overlayScale) /
+                      canvasHeight) *
+                    100
+                  }%`,
+              width: fullscreenOverlay
+                ? "100%"
+                : `${(definition.bounds.width / canvasWidth) * 100}%`,
+              height: fullscreenOverlay
+                ? "100%"
+                : `${(definition.bounds.height / canvasHeight) * 100}%`,
+              transform: `scale(${overlayScale})`,
+              zIndex: 20 + stackIndex,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 };
 
@@ -5555,6 +5738,17 @@ const App = () => {
       );
     },
     [],
+  );
+
+  // 独立实时预览窗内拖动组件：与主画布拖拽写回同一份实例位置
+  const moveInstanceFromPreviewWindow = useCallback(
+    (instanceId: string, x: number, y: number) => {
+      updateInstance(instanceId, (instance) => ({
+        ...instance,
+        position: { ...instance.position, x, y },
+      }));
+    },
+    [updateInstance],
   );
 
   const pendingPreviewInspectorInstance =
@@ -11911,7 +12105,7 @@ const App = () => {
     }
     const isSpotlightMediaUrl =
       key === "mediaUrl" &&
-      ["MediaSpotlightCard", "MaterialCard"].includes(
+      ["MediaSpotlightCard", "MaterialCard", "FocusCard"].includes(
         selectedDefinition?.id ?? "",
       ) ||
       (key === "mediaUrl" &&
@@ -12253,6 +12447,7 @@ const App = () => {
             {label}
             <output>
               {numericValue.toFixed(schema.step && schema.step < 1 ? 2 : 0)}
+              {schema.unit ?? ""}
             </output>
           </span>
           <input
@@ -14339,6 +14534,10 @@ const App = () => {
                     : instance.position;
                   const overlayScale =
                     overlayPosition.scale * (anchored ? 1 : globalCardScale);
+                  // 全屏卡（placement "full"）铺满画布，选择框直接 100%×100%
+                  const fullscreenOverlay =
+                    EFFECT_REGISTRY_BY_ID.get(definition.id)?.placement ===
+                    "full";
                   return (
                     <div
                       className={`canvas-selection ${
@@ -14351,20 +14550,28 @@ const App = () => {
                       aria-label={`选择预览组件 ${definition.name}`}
                       aria-pressed={isSelected}
                       style={{
-                        left: `${
-                          ((overlayPosition.x +
-                            definition.bounds.x * overlayScale) /
-                            canvasWidth) *
-                          100
-                        }%`,
-                        top: `${
-                          ((overlayPosition.y +
-                            definition.bounds.y * overlayScale) /
-                            canvasHeight) *
-                          100
-                        }%`,
-                        width: `${(definition.bounds.width / canvasWidth) * 100}%`,
-                        height: `${(definition.bounds.height / canvasHeight) * 100}%`,
+                        left: fullscreenOverlay
+                          ? "0%"
+                          : `${
+                              ((overlayPosition.x +
+                                definition.bounds.x * overlayScale) /
+                                canvasWidth) *
+                              100
+                            }%`,
+                        top: fullscreenOverlay
+                          ? "0%"
+                          : `${
+                              ((overlayPosition.y +
+                                definition.bounds.y * overlayScale) /
+                                canvasHeight) *
+                              100
+                            }%`,
+                        width: fullscreenOverlay
+                          ? "100%"
+                          : `${(definition.bounds.width / canvasWidth) * 100}%`,
+                        height: fullscreenOverlay
+                          ? "100%"
+                          : `${(definition.bounds.height / canvasHeight) * 100}%`,
                         transform: `scale(${overlayScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}
@@ -14382,7 +14589,10 @@ const App = () => {
                       }
                       title={
                         anchored
-                          ? "该效果固定贴顶全宽；点击选中后可在右侧修改内容参数"
+                          ? EFFECT_REGISTRY_BY_ID.get(definition.id)
+                              ?.placement === "full"
+                            ? "该效果固定铺满画布；点击选中后可在右侧修改内容参数"
+                            : "该效果固定贴顶全宽；点击选中后可在右侧修改内容参数"
                           : isSelected && selectedInstanceIds.length > 1
                             ? `已选 ${selectedInstanceIds.length} 个组件，拖动可整体移动`
                             : "点击选中；拖动移动；右键复制或删除"
@@ -18169,6 +18379,7 @@ const App = () => {
                       ? "arrangement-popout-player-frame"
                       : "arrangement-popout-player-frame transparent-grid"
                   }
+                  style={{ position: "relative" }}
                 >
                   {motionModule ? (
                     <Player
@@ -18202,6 +18413,16 @@ const App = () => {
                       }}
                     />
                   ) : <span>正在启动实时预览…</span>}
+                  {motionModule ? (
+                    <RealtimePreviewDragLayer
+                      containerWindow={realtimePreviewWindow}
+                      targets={visibleCanvasItems}
+                      canvasWidth={canvasWidth}
+                      canvasHeight={canvasHeight}
+                      globalCardScale={globalCardScale}
+                      onMove={moveInstanceFromPreviewWindow}
+                    />
+                  ) : null}
                 </div>
               </section>
             </main>,
@@ -18319,6 +18540,17 @@ const App = () => {
                     }
                   >
                     移动到其他分组
+                  </button>
+                ) : null}
+                {contextMenu.componentId ? (
+                  <button
+                    className="rename-action"
+                    onClick={() =>
+                      contextMenu.componentId &&
+                      openRenameEffectDialog(contextMenu.componentId)
+                    }
+                  >
+                    重命名组件
                   </button>
                 ) : null}
                 {!contextMenu.semanticIntentId ? (
