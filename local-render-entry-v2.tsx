@@ -22,6 +22,10 @@ import {
 } from "./local-protocol";
 import { mergeWithBuiltInDefinitions } from "./local-builtins";
 import {
+  ANCHORED_EFFECT_IDS,
+  getAnchoredEffectPosition,
+} from "./registry";
+import {
   CARD_BACKGROUND_CONTROL_CSS,
   getCardBackgroundControlVariables,
   supportsCardBackground,
@@ -105,6 +109,7 @@ const MultiComponentRender = ({
   instances = [],
   transparent = false,
   soundEnabled = true,
+  canvasWidth = 1920,
 }: RenderProps) => {
   const visibleVideoTracks = transparent
     ? []
@@ -216,6 +221,11 @@ const MultiComponentRender = ({
       if (!definition) return null;
       const Comp =
         definition.component as React.ComponentType<Record<string, unknown>>;
+      // 锚定效果（如 ChapterBar）：导出时与预览一致，忽略存储位置，始终贴顶全宽
+      const anchored = ANCHORED_EFFECT_IDS.has(instance.componentId);
+      const renderPosition = anchored
+        ? getAnchoredEffectPosition(definition, canvasWidth)
+        : instance.position;
       // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
       const cardBackgroundOn =
         supportsCardBackground(instance.componentId) &&
@@ -225,12 +235,12 @@ const MultiComponentRender = ({
           key={instance.id}
           from={Math.max(0, Math.round(instance.startFrame))}
           trimBefore={Math.max(0, Math.round(instance.sourceStartFrame))}
-          durationInFrames={Math.max(3, Math.round(instance.durationInFrames))}
+          durationInFrames={Math.max(3, instance.durationInFrames)}
         >
           <CardMaskLayer
             settings={instance.cardMask}
             bounds={definition.bounds}
-            position={instance.position}
+            position={renderPosition}
           />
           <AbsoluteFill
             className={`studio-card-render-shell${
@@ -244,7 +254,7 @@ const MultiComponentRender = ({
                 : ""
             }`}
             style={{
-              transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale})`,
+              transform: `translate(${renderPosition.x}px, ${renderPosition.y}px) scale(${renderPosition.scale})`,
               transformOrigin: "0 0",
               ...getCardBackgroundControlVariables({
                 enabled: cardBackgroundOn,

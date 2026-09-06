@@ -145,6 +145,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["代码", "终端", "命令", "步骤", "开发", "工具"],
     { density: "heavy", durationSeconds: { min: 3, max: 12 } },
   ),
+  ChapterBar: capability(
+    "transition",
+    ["process", "emphasis"],
+    ["short-text", "process"],
+    ["章节", "章节导航", "目录", "本期地图", "进度", "全程在场"],
+    { density: "light", durationSeconds: { min: 5, max: 600 } },
+  ),
   PortraitChapterRail: capability(
     "transition",
     ["emphasis", "process"],

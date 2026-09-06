@@ -103,8 +103,10 @@ import {
 } from "./local-builtins";
 import {
   AI_ARRANGEABLE_COMPONENT_IDS,
+  ANCHORED_EFFECT_IDS,
   EFFECT_REGISTRY,
   EFFECT_REGISTRY_BY_ID,
+  getAnchoredEffectPosition,
 } from "./registry";
 import {
   BUILT_IN_ICON_CATEGORIES,
@@ -2015,6 +2017,13 @@ const StudioPreviewComposition = ({
         const definition = previewDefinitionMap.get(instance.componentId);
         if (!definition) return null;
         const Comp = definition.component;
+        // 锚定效果（如 ChapterBar）：忽略存储位置与全局整体大小，始终贴顶全宽。
+        const anchored = ANCHORED_EFFECT_IDS.has(instance.componentId);
+        const renderPosition = anchored
+          ? getAnchoredEffectPosition(definition, previewCanvas.width)
+          : instance.position;
+        const renderScale =
+          renderPosition.scale * (anchored ? 1 : globalCardScale);
         // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
         const cardBackgroundOn =
           supportsCardBackground(instance.componentId) &&
@@ -2029,8 +2038,8 @@ const StudioPreviewComposition = ({
             <CardMaskLayer
               settings={instance.cardMask}
               bounds={definition.bounds}
-              position={instance.position}
-              scaleMultiplier={globalCardScale}
+              position={renderPosition}
+              scaleMultiplier={renderScale}
             />
             <AbsoluteFill
               className={`studio-card-render-shell${
@@ -2044,7 +2053,7 @@ const StudioPreviewComposition = ({
                   : ""
               }`}
               style={{
-                transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
+                transform: `translate(${renderPosition.x}px, ${renderPosition.y}px) scale(${renderScale})`,
                 transformOrigin: "0 0",
                 ...getCardBackgroundControlVariables({
                   enabled: cardBackgroundOn,
@@ -9996,7 +10005,17 @@ const App = () => {
       mode === "move" &&
       selectedInstanceIds.length > 1 &&
       selectedInstanceIdSet.has(instance.id);
-    const memberIds = keepGroup ? selectedInstanceIds : [instance.id];
+    // 锚定效果不参与画布拖拽/缩放，多选成组时也要排除，避免位置被顺带改写
+    const memberIds = (
+      keepGroup ? selectedInstanceIds : [instance.id]
+    ).filter((candidateId) => {
+      if (candidateId === instance.id && !keepGroup) return true;
+      const candidate = instances.find((item) => item.id === candidateId);
+      return (
+        candidate !== undefined &&
+        !ANCHORED_EFFECT_IDS.has(candidate.componentId)
+      );
+    });
     if (keepGroup) {
       setSelectedInstanceId(instance.id);
     } else {
@@ -14280,6 +14299,12 @@ const App = () => {
                     instance.arrangementBatchId === activeArrangementBatch?.id &&
                     (!activeArrangementIntentId ||
                       instance.sourceIntentId === activeArrangementIntentId);
+                  const anchored = ANCHORED_EFFECT_IDS.has(definition.id);
+                  const overlayPosition = anchored
+                    ? getAnchoredEffectPosition(definition, canvasWidth)
+                    : instance.position;
+                  const overlayScale =
+                    overlayPosition.scale * (anchored ? 1 : globalCardScale);
                   return (
                     <div
                       className={`canvas-selection ${
@@ -14293,36 +14318,40 @@ const App = () => {
                       aria-pressed={isSelected}
                       style={{
                         left: `${
-                          ((instance.position.x +
-                            definition.bounds.x *
-                              instance.position.scale *
-                              globalCardScale) /
+                          ((overlayPosition.x +
+                            definition.bounds.x * overlayScale) /
                             canvasWidth) *
                           100
                         }%`,
                         top: `${
-                          ((instance.position.y +
-                            definition.bounds.y *
-                              instance.position.scale *
-                              globalCardScale) /
+                          ((overlayPosition.y +
+                            definition.bounds.y * overlayScale) /
                             canvasHeight) *
                           100
                         }%`,
                         width: `${(definition.bounds.width / canvasWidth) * 100}%`,
                         height: `${(definition.bounds.height / canvasHeight) * 100}%`,
-                        transform: `scale(${instance.position.scale * globalCardScale})`,
+                        transform: `scale(${overlayScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}
-                      onPointerDown={(event) =>
-                        beginCanvasTransform(event, "move", instance)
-                      }
+                      onPointerDown={(event) => {
+                        if (anchored) {
+                          // 锚定效果固定落位：点击只选中，不进入拖拽
+                          event.stopPropagation();
+                          selectOnlyInstance(instance.id);
+                          return;
+                        }
+                        beginCanvasTransform(event, "move", instance);
+                      }}
                       onContextMenu={(event) =>
                         showComponentMenu(event, "preview", instance.id)
                       }
                       title={
-                        isSelected && selectedInstanceIds.length > 1
-                          ? `已选 ${selectedInstanceIds.length} 个组件，拖动可整体移动`
-                          : "点击选中；拖动移动；右键复制或删除"
+                        anchored
+                          ? "该效果固定贴顶全宽；点击选中后可在右侧修改内容参数"
+                          : isSelected && selectedInstanceIds.length > 1
+                            ? `已选 ${selectedInstanceIds.length} 个组件，拖动可整体移动`
+                            : "点击选中；拖动移动；右键复制或删除"
                       }
                     >
                       {isSelected ? (
@@ -14332,7 +14361,9 @@ const App = () => {
                             : definition.name}
                         </span>
                       ) : null}
-                      {isPrimary && selectedInstanceIds.length === 1 ? (
+                      {isPrimary &&
+                      selectedInstanceIds.length === 1 &&
+                      !anchored ? (
                         <span
                           className="canvas-scale-handle"
                           aria-hidden="true"
@@ -15318,7 +15349,24 @@ const App = () => {
                 </section>
               </>
             ) : null}
-            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition ? (
+            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition && ANCHORED_EFFECT_IDS.has(inspectorDefinition.id) ? (
+              <section className="reference-inspector-section">
+                <div className="reference-section-title">
+                  <strong>独立大小与位置</strong><small>SIZE · POSITION</small>
+                </div>
+                <div className="dynamic-prop-fields">
+                  <span
+                    style={{
+                      color: "var(--muted, #8ea0b5)",
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    该效果固定贴顶全宽（跟随画幅），不支持拖拽和独立大小/位置。
+                  </span>
+                </div>
+              </section>
+            ) : (!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition ? (
               <section className={`reference-inspector-section${inspectorSectionsExpanded.sizePosition ? "" : " collapsed"}`}>
                 <div className="reference-section-title" role="button" tabIndex={0} aria-expanded={inspectorSectionsExpanded.sizePosition} onClick={() => toggleInspectorSection("sizePosition")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleInspectorSection("sizePosition"); } }}>
                   <strong>独立大小与位置</strong><small>SIZE · POSITION</small>

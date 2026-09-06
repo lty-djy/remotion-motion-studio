@@ -3,24 +3,16 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **38** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **39** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
 
 - `GlobalExpedition`：环球征途地图 — 正交投影地球沿大圆航线环球飞行，途经节点停靠点亮，金色航迹＋HUD 任务面板（透明背景）（仅工作台可用；props：`enabled`、`title`、`subtitle`、`animationSeconds`、`accentColor`、`linkColor`、`showHud`）
 
-## 字幕与台词
-
-- `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线（仅工作台可用；props：`enabled`、`showIcon`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
-- `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
-
-## 终端教学 HUD
-
-- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
-
 ## 竖屏口播信息层
 
+- `ChapterBar`：ChapterBar — 常驻章节导航 · 顶部全程在场的本期地图（仅工作台可用；props：`chapters`、`progAlpha`、`speed`、`theme`、`accent`、`showProgress`、`progMode`、`progAccent`）
 - `PortraitChapterRail`：竖屏口播·章节条 — 左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。（仅工作台可用；props：`enabled`、`cardWidth`、`index`、`title`、`subtitle`、`accentColor`、`textColor`、`indexFontSize`、`titleFontSize`、`subtitleFontSize`、`animationSeconds`）
 - `PortraitIndexedChapterTitle`：竖屏口播·编号章节标题 — 参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。（仅工作台可用；props：`enabled`、`chapterNumber`、`eyebrow`、`title`、`subtitle`、`accentColor`、`titleColor`、`subtitleColor`、`numberFontSize`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`revealDelaySeconds`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
@@ -48,6 +40,15 @@
 - `PortraitRiskWarning`：竖屏口播·风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enabled`、`riskCount`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`risk4`、`risk5`、`risk6`、`risk7`、`risk8`、`icon1`、`icon2`、`icon3`、`icon4`、`icon5`、`icon6`、`icon7`、`icon8`、`riskIntervalSeconds`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitNextEpisodeCta`：竖屏口播·下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）
+
+## 字幕与台词
+
+- `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线（仅工作台可用；props：`enabled`、`showIcon`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
+- `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
+
+## 终端教学 HUD
+
+- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
 
 ## 风险提醒
 

@@ -1,4 +1,4 @@
-import type { MotionComponentDefinition } from "./local-protocol";
+import type { MotionComponentDefinition, MotionPosition } from "./local-protocol";
 import {
   EFFECT_SEMANTIC_CAPABILITIES,
   type EffectSemanticCapabilities,
@@ -9,6 +9,7 @@ export {
 } from "./effect-semantic-capabilities";
 
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
+import { ChapterBarEffectDef } from "./effects/ChapterBar";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
 import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
@@ -66,9 +67,24 @@ export type RegisteredEffectDef = EffectDef & {
   semantic: EffectSemanticCapabilities;
 };
 
+/** 固定锚定的通栏效果：画布不可拖拽缩放，"独立大小与位置"面板不开放，
+ *  渲染时始终按贴顶全宽落位（与画幅联动），不叠加全局整体大小。 */
+export const ANCHORED_EFFECT_IDS = new Set<string>(["ChapterBar"]);
+
+/** 锚定效果的唯一落位：贴顶、全宽。所有渲染入口（预览/弹窗/导出）共用。 */
+export const getAnchoredEffectPosition = (
+  definition: MotionComponentDefinition,
+  canvasWidth: number,
+): MotionPosition => ({
+  x: 0,
+  y: 0,
+  scale: definition.bounds.width > 0 ? canvasWidth / definition.bounds.width : 1,
+});
+
 const EFFECT_DEFINITIONS: EffectDef[] = [
 
   GlobalExpeditionEffectDef,
+  ChapterBarEffectDef,
   SrtSemanticCaptionsEffectDef,
   SrtCueTextEffectDef,
   TerminalPanelEffectDef,

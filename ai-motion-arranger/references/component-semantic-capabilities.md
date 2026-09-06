@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **38** 个注册组件。
+当前覆盖 **39** 个注册组件。
 
 ## 核心语义
 
@@ -27,32 +27,14 @@
   - 方向：any；密度：heavy；建议时长：6–60 秒
   - 检索词：地图、路线、地点、全球、跨区域、行程
 
-## 字幕与台词
-
-- **SRT字幕语义动画**（`SrtSemanticCaptions`）
-  - 主要：系统角色：caption-track
-  - 次要：重点强调
-  - 内容：caption、long-text
-  - 方向：portrait；密度：light；建议时长：0.5–20 秒
-  - 检索词：字幕、逐字、关键词高亮、语义字幕
-- **主字幕·关键词条**（`SrtCueText`）
-  - 主要：系统角色：caption-track
-  - 次要：无
-  - 内容：caption、long-text
-  - 方向：any；密度：light；建议时长：0.5–20 秒
-  - 检索词：字幕、台词、原文、时间定位
-
-## 终端教学 HUD
-
-- **终端教学面板**（`TerminalPanel`）
-  - 主要：流程说明
-  - 次要：概念解释、列举要点、案例与素材
-  - 内容：process、list、long-text
-  - 方向：any；密度：heavy；建议时长：3–12 秒
-  - 检索词：代码、终端、命令、步骤、开发、工具
-
 ## 竖屏口播信息层
 
+- **ChapterBar**（`ChapterBar`）
+  - 主要：章节转场
+  - 次要：流程说明、重点强调
+  - 内容：short-text、process
+  - 方向：any；密度：light；建议时长：5–600 秒
+  - 检索词：章节、章节导航、目录、本期地图、进度、全程在场
 - **竖屏口播·章节条**（`PortraitChapterRail`）
   - 主要：章节转场
   - 次要：重点强调、流程说明
@@ -215,6 +197,30 @@
   - 内容：list、short-text
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
   - 检索词：证明、快速、门槛、无需、几分钟
+
+## 字幕与台词
+
+- **SRT字幕语义动画**（`SrtSemanticCaptions`）
+  - 主要：系统角色：caption-track
+  - 次要：重点强调
+  - 内容：caption、long-text
+  - 方向：portrait；密度：light；建议时长：0.5–20 秒
+  - 检索词：字幕、逐字、关键词高亮、语义字幕
+- **主字幕·关键词条**（`SrtCueText`）
+  - 主要：系统角色：caption-track
+  - 次要：无
+  - 内容：caption、long-text
+  - 方向：any；密度：light；建议时长：0.5–20 秒
+  - 检索词：字幕、台词、原文、时间定位
+
+## 终端教学 HUD
+
+- **终端教学面板**（`TerminalPanel`）
+  - 主要：流程说明
+  - 次要：概念解释、列举要点、案例与素材
+  - 内容：process、list、long-text
+  - 方向：any；密度：heavy；建议时长：3–12 秒
+  - 检索词：代码、终端、命令、步骤、开发、工具
 
 ## 风险提醒
 
