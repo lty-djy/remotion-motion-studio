@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **40** 个注册组件。
+当前覆盖 **41** 个注册组件。
 
 ## 核心语义
 
@@ -32,6 +32,12 @@
   - 内容：process
   - 方向：any；密度：light；建议时长：5–600 秒
   - 检索词：聚焦、口播缩进、落位框、边框、素材、录屏
+- **FocusCamMove**（`FocusCamMove`）
+  - 主要：流程说明
+  - 次要：重点强调、章节转场
+  - 内容：process
+  - 方向：any；密度：light；建议时长：5–600 秒
+  - 检索词：聚焦、运镜、满屏收缩、口播缩进、小窗、人物聚焦、落位框
 
 ## 竖屏口播信息层
 
@@ -41,157 +47,157 @@
   - 内容：short-text、process
   - 方向：any；密度：light；建议时长：5–600 秒
   - 检索词：章节、章节导航、目录、本期地图、进度、全程在场
-- **竖屏口播·章节条**（`PortraitChapterRail`）
+- **章节条**（`PortraitChapterRail`）
   - 主要：章节转场
   - 次要：重点强调、流程说明
   - 内容：short-text、process
   - 方向：portrait；密度：light；建议时长：1.2–5 秒
   - 检索词：章节、下一步、接下来、阶段、开场
-- **竖屏口播·编号章节标题**（`PortraitIndexedChapterTitle`）
+- **编号章节标题**（`PortraitIndexedChapterTitle`）
   - 主要：章节转场
   - 次要：重点强调、流程说明
   - 内容：short-text、process
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
-- **竖屏口播·图标信息卡**（`PortraitInfoCallout`）
+- **图标信息卡**（`PortraitInfoCallout`）
   - 主要：概念解释
   - 次要：重点强调、案例与素材、流程说明、章节转场、风险提醒、行动引导
   - 内容：short-text、long-text
   - 方向：portrait；密度：medium；建议时长：1.5–7 秒
   - 检索词：说明、方法、工具、例如、提示、补充
-- **竖屏口播·数据决策卡**（`PortraitMetricDecision`）
+- **数据决策卡**（`PortraitMetricDecision`）
   - 主要：数字展示
   - 次要：对比差异、重点强调
   - 内容：metric、short-text
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
   - 检索词：数字、比例、金额、增长、降低、结果
-- **竖屏口播·优缺点标签组**（`PortraitDecisionTagStack`）
+- **优缺点标签组**（`PortraitDecisionTagStack`）
   - 主要：对比差异
   - 次要：列举要点、重点强调、数字展示
   - 内容：comparison、list、short-text
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
   - 检索词：标签、优缺点、选择、判断、并列
-- **竖屏口播·步骤清单卡**（`PortraitStepChecklist`）
+- **步骤清单卡**（`PortraitStepChecklist`）
   - 主要：流程说明
   - 次要：列举要点、概念解释
   - 内容：process、list、short-text
   - 方向：portrait；密度：heavy；建议时长：2.5–9 秒
   - 检索词：步骤、流程、首先、然后、最后
-- **竖屏口播·多工具错峰列表**（`PortraitStaggeredToolList`）
+- **多工具错峰列表**（`PortraitStaggeredToolList`）
   - 主要：列举要点
   - 次要：概念解释、重点强调、流程说明
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：3–9 秒
   - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
-- **竖屏口播·错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
+- **错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
   - 主要：风险提醒
   - 次要：概念解释、重点强调
   - 内容：short-text、list
   - 方向：portrait；密度：heavy；建议时长：3–9 秒
   - 检索词：直接提问、官网、页面普通、问题不在模型、缺少准备
-- **竖屏口播·先装工作流**（`PortraitWorkflowPrerequisite`）
+- **先装工作流**（`PortraitWorkflowPrerequisite`）
   - 主要：流程说明
   - 次要：概念解释、列举要点、重点强调
   - 内容：process、list、short-text
   - 方向：portrait；密度：heavy；建议时长：4–8 秒
   - 检索词：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
-- **竖屏口播·Skill 身份卡**（`PortraitSkillIdentityCard`）
+- **Skill 身份卡**（`PortraitSkillIdentityCard`）
   - 主要：概念解释
   - 次要：重点强调、案例与素材
   - 内容：short-text
   - 方向：portrait；密度：light；建议时长：2.5–6 秒
   - 检索词：第一个skill、我自己做的UI skill、持续更新、身份介绍
-- **竖屏口播·Skill 来源合成**（`PortraitSkillSourceFusion`）
+- **Skill 来源合成**（`PortraitSkillSourceFusion`）
   - 主要：案例与素材
   - 次要：概念解释、列举要点、重点强调
   - 内容：list、short-text
   - 方向：portrait；密度：medium；建议时长：4–12 秒
   - 检索词：taste、impeccable、自己的经验、三样拼成一个、经验来源
-- **竖屏口播·网页设计规则清单**（`PortraitDesignRuleChecklist`）
+- **网页设计规则清单**（`PortraitDesignRuleChecklist`）
   - 主要：概念解释
   - 次要：列举要点、流程说明、重点强调
   - 内容：list、short-text
   - 方向：portrait；密度：medium；建议时长：4–12 秒
   - 检索词：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
-- **竖屏口播·Skill 效果前后对比**（`PortraitSkillResultComparison`）
+- **Skill 效果前后对比**（`PortraitSkillResultComparison`）
   - 主要：对比差异
   - 次要：案例与素材、概念解释、重点强调
   - 内容：comparison、media、short-text
   - 方向：portrait；密度：heavy；建议时长：6–14 秒
   - 检索词：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
-- **竖屏口播·一句话连续改版**（`PortraitPromptIterationShowcase`）
+- **一句话连续改版**（`PortraitPromptIterationShowcase`）
   - 主要：流程说明
   - 次要：案例与素材、概念解释、对比差异
   - 内容：process、media、short-text
   - 方向：portrait；密度：heavy；建议时长：10–24 秒
   - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
-- **竖屏口播·GSAP 高级动画**（`PortraitGsapSkillShowcase`）
+- **GSAP 高级动画**（`PortraitGsapSkillShowcase`）
   - 主要：流程说明
   - 次要：概念解释、列举要点、对比差异
   - 内容：list、process、short-text
   - 方向：portrait；密度：heavy；建议时长：10–24 秒
   - 检索词：第二个skill、GSAP、高级动画、滚动触发、时间轴编排、错峰入场、什么时候出现、快慢怎么给、一起用、动得好不好看
-- **竖屏口播·Skill 身份条**（`PortraitSkillIdentityHeaderBar`）
+- **Skill 身份条**（`PortraitSkillIdentityHeaderBar`）
   - 主要：概念解释
   - 次要：重点强调、列举要点、流程说明
   - 内容：short-text
   - 方向：portrait；密度：light；建议时长：2–24 秒
   - 检索词：skill、技能、GSAP、动效引擎、高级动画、编号、徽标
-- **竖屏口播·代码决策检查清单**（`PortraitCodeDecisionChecklist`）
+- **代码决策检查清单**（`PortraitCodeDecisionChecklist`）
   - 主要：流程说明
   - 次要：列举要点、概念解释、风险提醒
   - 内容：list、process、short-text
   - 方向：portrait；密度：medium；建议时长：4–12 秒
   - 检索词：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
-- **竖屏口播·浏览器自动修复闭环**（`PortraitBrowserRepairLoop`）
+- **浏览器自动修复闭环**（`PortraitBrowserRepairLoop`）
   - 主要：流程说明
   - 次要：列举要点、概念解释、案例与素材
   - 内容：process、list、short-text
   - 方向：portrait；密度：heavy；建议时长：6–16 秒
   - 检索词：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
-- **竖屏口播·Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
+- **Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
   - 主要：案例与素材
   - 次要：流程说明、概念解释、重点强调
   - 内容：media、short-text
   - 方向：portrait；密度：heavy；建议时长：3–12 秒
   - 检索词：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
-- **竖屏口播·右滑媒体海报**（`PortraitMediaPosterReveal`）
+- **右滑媒体海报**（`PortraitMediaPosterReveal`）
   - 主要：案例与素材
   - 次要：重点强调、概念解释、章节转场
   - 内容：media、short-text
   - 方向：portrait；密度：medium；建议时长：2–12 秒
   - 检索词：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
-- **竖屏口播·Skill 四步卡片**（`PortraitSkillStepGrid`）
+- **Skill 四步卡片**（`PortraitSkillStepGrid`）
   - 主要：流程说明
   - 次要：列举要点、概念解释、章节转场
   - 内容：list、process、short-text
   - 方向：portrait；密度：medium；建议时长：2–8 秒
   - 检索词：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
-- **竖屏口播·差距不在模型标题**（`PortraitGapHeadline`）
+- **差距不在模型标题**（`PortraitGapHeadline`）
   - 主要：重点强调
   - 次要：对比差异、概念解释、章节转场
   - 内容：short-text、comparison
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：真正拉开差距、不是模型、差距不在模型、最后说一句、工作流
-- **竖屏口播·同样 AI 输出差距引用**（`PortraitAiOutputGapQuote`）
+- **同样 AI 输出差距引用**（`PortraitAiOutputGapQuote`）
   - 主要：对比差异
   - 次要：概念解释、重点强调、案例与素材
   - 内容：comparison、short-text
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：同样一个AI、同样一个 AI、做出来、差了一整个档次、一眼就是AI糊的、直接上线
-- **竖屏口播·AI 输出差距对比**（`PortraitAiOutputGapComparison`）
+- **AI 输出差距对比**（`PortraitAiOutputGapComparison`）
   - 主要：对比差异
   - 次要：重点强调、概念解释、案例与素材
   - 内容：comparison、short-text
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
-- **竖屏口播·风险提醒卡**（`PortraitRiskWarning`）
+- **风险提醒卡**（`PortraitRiskWarning`）
   - 主要：风险提醒
   - 次要：重点强调、列举要点、概念解释
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：2–8 秒
   - 检索词：风险、注意、限制、错误、异常、避免
-- **竖屏口播·下集预告卡**（`PortraitNextEpisodeCta`）
+- **下集预告卡**（`PortraitNextEpisodeCta`）
   - 主要：行动引导
   - 次要：章节转场、重点强调
   - 内容：short-text

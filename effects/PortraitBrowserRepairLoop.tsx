@@ -189,7 +189,7 @@ export const PortraitBrowserRepairLoop: React.FC<Props> = ({
 
 export const PortraitBrowserRepairLoopEffectDef: EffectDef = {
   id: "PortraitBrowserRepairLoop",
-  name: "竖屏口播·浏览器自动修复闭环",
+  name: "浏览器自动修复闭环",
   description: "复刻参考视频 123.050–132.850 秒的六步浏览器自动测试与修复闭环，节点按口播顺序循环点亮。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

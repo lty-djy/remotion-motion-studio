@@ -315,7 +315,7 @@ export const PortraitSkillIdentityCard: React.FC<Props> = ({
 
 export const PortraitSkillIdentityCardEffectDef: EffectDef = {
   id: "PortraitSkillIdentityCard",
-  name: "竖屏口播·Skill 身份卡",
+  name: "Skill 身份卡",
   description:
     "复刻参考视频 26.966–30.650 秒：用自动编号、身份标题、C 位徽标和持续更新胶囊介绍第一个 Skill。",
   category: "portrait-narrative",

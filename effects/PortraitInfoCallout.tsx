@@ -266,7 +266,7 @@ export const PortraitInfoCallout: React.FC<Props> = ({
 
 export const PortraitInfoCalloutEffectDef: EffectDef = {
   id: "PortraitInfoCallout",
-  name: "竖屏口播·图标信息卡",
+  name: "图标信息卡",
   description: "参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

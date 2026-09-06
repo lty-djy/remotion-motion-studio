@@ -53,7 +53,7 @@ export const PortraitGapHeadline: React.FC<Props> = ({
 
 export const PortraitGapHeadlineEffectDef: EffectDef = {
   id: "PortraitGapHeadline",
-  name: "竖屏口播·差距不在模型标题",
+  name: "差距不在模型标题",
   description: "三段拆分中的第 1 个组件：最后说一句徽标与“差距不在模型”大标题。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

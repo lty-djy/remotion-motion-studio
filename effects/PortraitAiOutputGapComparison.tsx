@@ -238,7 +238,7 @@ export const PortraitAiOutputGapComparison: React.FC<Props> = ({
 
 export const PortraitAiOutputGapComparisonEffectDef: EffectDef = {
   id: "PortraitAiOutputGapComparison",
-  name: "竖屏口播·AI 输出差距对比",
+  name: "AI 输出差距对比",
   description: "三段拆分中的第 3 个组件：AI 糊感与可直接上线的正反结果对比。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

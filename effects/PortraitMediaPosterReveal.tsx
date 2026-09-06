@@ -252,7 +252,7 @@ export const PortraitMediaPosterReveal: React.FC<Props> = ({
 
 export const PortraitMediaPosterRevealEffectDef: EffectDef = {
   id: "PortraitMediaPosterReveal",
-  name: "竖屏口播·右滑媒体海报",
+  name: "右滑媒体海报",
   description:
     "参考右侧竖版海报效果：图片或视频从左侧快速滑入并归正，底部带强调竖线标题。",
   category: "portrait-narrative",

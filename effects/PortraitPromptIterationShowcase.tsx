@@ -186,7 +186,7 @@ export const PortraitPromptIterationShowcase: React.FC<Props> = ({
 
 export const PortraitPromptIterationShowcaseEffectDef: EffectDef = {
   id: "PortraitPromptIterationShowcase",
-  name: "竖屏口播·一句话连续改版",
+  name: "一句话连续改版",
   description: "复刻参考视频 57.933–76.800 秒：提示词输入条联动页面结果，连续切换摄影官网、深色后台和产品落地页。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

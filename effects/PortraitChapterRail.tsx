@@ -226,7 +226,7 @@ export const PortraitChapterRail: React.FC<Props> = ({
 
 export const PortraitChapterRailEffectDef: EffectDef = {
   id: "PortraitChapterRail",
-  name: "竖屏口播·章节条",
+  name: "章节条",
   description:
     "左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。",
   category: "portrait-narrative",

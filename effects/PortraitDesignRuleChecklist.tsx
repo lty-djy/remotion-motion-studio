@@ -161,7 +161,7 @@ export const PortraitDesignRuleChecklist: React.FC<Props> = ({
 
 export const PortraitDesignRuleChecklistEffectDef: EffectDef = {
   id: "PortraitDesignRuleChecklist",
-  name: "竖屏口播·网页设计规则清单",
+  name: "网页设计规则清单",
   description: "复刻参考视频 39.566–47.683 秒：依次点亮排版、留白、配色和层级等网页设计规则。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

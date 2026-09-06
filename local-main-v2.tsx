@@ -108,6 +108,11 @@ import {
   EFFECT_REGISTRY_BY_ID,
   getAnchoredEffectPosition,
 } from "./registry";
+import {
+  resolveFocusCamStageTarget,
+  useFocusCamStageStyle,
+  type FocusCamStageTarget,
+} from "./effects/FocusCamMove";
 import { chapterBarAutoDurationSeconds } from "./effects/ChapterBar";
 import {
   BUILT_IN_ICON_CATEGORIES,
@@ -1880,6 +1885,30 @@ const formatSubtitleTimestamp = (milliseconds: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 };
 
+/** 舞台视频轨:运镜卡时间窗内套用收缩几何(视频元素自己缩),窗外保持满屏 contain */
+const StageCamMoveVideo: React.FC<{
+  src: string;
+  trimBefore: number;
+  volume: number;
+  muted: boolean;
+  camTarget: FocusCamStageTarget | null;
+  trackStartFrame: number;
+}> = ({ src, trimBefore, volume, muted, camTarget, trackStartFrame }) => {
+  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame);
+  return (
+    <Html5Video
+      src={src}
+      trimBefore={trimBefore}
+      volume={volume}
+      muted={muted}
+      pauseWhenBuffering
+      style={
+        camStyle ?? { width: "100%", height: "100%", objectFit: "contain" }
+      }
+    />
+  );
+};
+
 const StudioPreviewComposition = ({
   videoUrl,
   includeVideo,
@@ -1939,13 +1968,34 @@ const StudioPreviewComposition = ({
       })),
   ].sort((a, b) => b.order - a.order);
 
+  // 运镜卡(FocusCamMove 未手填素材)在时间轴上的时间窗:让舞台真实视频直接收缩
+  const camStageTarget = useMemo(
+    () =>
+      resolveFocusCamStageTarget(
+        instances,
+        canvasOrientation === "portrait" ? "portrait" : "landscape",
+      ),
+    [instances, canvasOrientation],
+  );
+  const camStageTrackId = camStageTarget
+    ? (orderedLayers.find((layer) => layer.kind === "video")?.id ?? null)
+    : null;
+  // 运镜激活时,收缩中的视频必须压过效果层(底色盘/描边/要点)。各图层容器可能
+  // 带隔离,跨层 zIndex 不可靠,直接把视频层挪到图层序列末尾(DOM 顺序)。
+  const renderLayers = camStageTrackId
+    ? [
+        ...orderedLayers.filter((layer) => layer.id !== camStageTrackId),
+        ...orderedLayers.filter((layer) => layer.id === camStageTrackId),
+      ]
+    : orderedLayers;
+
   return (
     <AbsoluteFill>
       <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
       {solidBackgroundEnabled ? (
         <AbsoluteFill style={{ backgroundColor: "#05070a" }} />
       ) : null}
-      {orderedLayers.map((layer) => {
+      {renderLayers.map((layer) => {
         if (layer.kind === "video") {
           const track = layer.track;
           return (
@@ -1954,13 +2004,13 @@ const StudioPreviewComposition = ({
             from={Math.max(0, Math.round(track.startFrame))}
             durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
           >
-            <Html5Video
+            <StageCamMoveVideo
               src={track.url}
               trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
               volume={soundEnabled ? 1 : 0}
               muted={!soundEnabled}
-              pauseWhenBuffering
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              camTarget={layer.id === camStageTrackId ? camStageTarget : null}
+              trackStartFrame={Math.max(0, Math.round(track.startFrame))}
             />
           </Sequence>
           );
@@ -2089,13 +2139,16 @@ const StudioPreviewComposition = ({
         );
       })}
       {includeVideo && shownVideoTracks.length === 0 && videoTracks.length === 0 && videoUrl ? (
-        <Html5Video
-          src={videoUrl}
-          volume={soundEnabled ? 1 : 0}
-          muted={!soundEnabled}
-          pauseWhenBuffering
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-        />
+        <Sequence from={0} durationInFrames={999999}>
+          <StageCamMoveVideo
+            src={videoUrl}
+            trimBefore={0}
+            volume={soundEnabled ? 1 : 0}
+            muted={!soundEnabled}
+            camTarget={camStageTarget}
+            trackStartFrame={0}
+          />
+        </Sequence>
       ) : null}
       {includeVideo && sourceIncludesVideo && !hasImportedVideo ? (
         <AbsoluteFill

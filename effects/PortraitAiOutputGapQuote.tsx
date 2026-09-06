@@ -168,7 +168,7 @@ export const PortraitAiOutputGapQuote: React.FC<Props> = ({
 
 export const PortraitAiOutputGapQuoteEffectDef: EffectDef = {
   id: "PortraitAiOutputGapQuote",
-  name: "竖屏口播·同样 AI 输出差距引用",
+  name: "同样 AI 输出差距引用",
   description: "三段拆分中的第 2 个组件：同样一个 AI，却产生不同输出档次的双行引用。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

@@ -239,7 +239,7 @@ export const PortraitNextEpisodeCta: React.FC<Props> = ({
 
 export const PortraitNextEpisodeCtaEffectDef: EffectDef = {
   id: "PortraitNextEpisodeCta",
-  name: "竖屏口播·下集预告卡",
+  name: "下集预告卡",
   description: "参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

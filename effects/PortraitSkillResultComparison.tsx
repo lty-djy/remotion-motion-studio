@@ -289,7 +289,7 @@ export const PortraitSkillResultComparison: React.FC<Props> = ({
 
 export const PortraitSkillResultComparisonEffectDef: EffectDef = {
   id: "PortraitSkillResultComparison",
-  name: "竖屏口播·Skill 效果前后对比",
+  name: "Skill 效果前后对比",
   description: "复刻参考视频 47.733–56.800 秒：默认效果擦除到 Skill 优化效果，再切换另一行业案例。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

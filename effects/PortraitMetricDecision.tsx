@@ -234,7 +234,7 @@ export const PortraitMetricDecision: React.FC<Props> = ({
 
 export const PortraitMetricDecisionEffectDef: EffectDef = {
   id: "PortraitMetricDecision",
-  name: "竖屏口播·数据决策卡",
+  name: "数据决策卡",
   description: "参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

@@ -332,7 +332,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
 
 export const PortraitStaggeredToolListEffectDef: EffectDef = {
   id: "PortraitStaggeredToolList",
-  name: "竖屏口播·多工具错峰列表",
+  name: "多工具错峰列表",
   description:
     "复刻参考视频 7.5–12.25 秒：标题先建立语境，四项工具以彩色竖线、说明与徽标依次滑入。",
   category: "portrait-narrative",

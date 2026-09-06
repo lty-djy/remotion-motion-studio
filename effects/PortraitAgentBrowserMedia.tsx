@@ -91,7 +91,7 @@ export const PortraitAgentBrowserMedia: React.FC<Props> = ({
 
 export const PortraitAgentBrowserMediaEffectDef: EffectDef = {
   id: "PortraitAgentBrowserMedia",
-  name: "竖屏口播·Agent 浏览器逐屏自查",
+  name: "Agent 浏览器逐屏自查",
   description: "顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

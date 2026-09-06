@@ -134,7 +134,7 @@ export const PortraitGsapSkillShowcase: React.FC<Props> = ({
 
 export const PortraitGsapSkillShowcaseEffectDef: EffectDef = {
   id: "PortraitGsapSkillShowcase",
-  name: "竖屏口播·GSAP 高级动画",
+  name: "GSAP 高级动画",
   description: "复刻参考视频 77.000–95.733 秒：动态能力卡、时间控制说明及双 Skill 协同关系；身份条已拆为独立组件。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

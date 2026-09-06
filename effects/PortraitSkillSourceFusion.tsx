@@ -247,7 +247,7 @@ export const PortraitSkillSourceFusion: React.FC<Props> = ({
 
 export const PortraitSkillSourceFusionEffectDef: EffectDef = {
   id: "PortraitSkillSourceFusion",
-  name: "竖屏口播·Skill 来源合成",
+  name: "Skill 来源合成",
   description: "复刻参考视频 30.883–39.566 秒：在 Skill 身份标题下按需增减并依次展示经验来源。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

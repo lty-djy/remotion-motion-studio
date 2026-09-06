@@ -51,7 +51,7 @@ export const PortraitSkillIdentityHeaderBar: React.FC<Props> = ({
 
 export const PortraitSkillIdentityHeaderBarEffectDef: EffectDef = {
   id: "PortraitSkillIdentityHeaderBar",
-  name: "竖屏口播·Skill 身份条",
+  name: "Skill 身份条",
   description: "从 GSAP 参考画面拆出的独立身份条：编号、Skill 标题、副标题与徽标。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

@@ -159,6 +159,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["聚焦", "口播缩进", "落位框", "边框", "素材", "录屏"],
     { density: "light", durationSeconds: { min: 5, max: 600 } },
   ),
+  FocusCamMove: capability(
+    "process",
+    ["emphasis", "transition"],
+    ["process"],
+    ["聚焦", "运镜", "满屏收缩", "口播缩进", "小窗", "人物聚焦", "落位框"],
+    { density: "light", durationSeconds: { min: 5, max: 600 } },
+  ),
   PortraitChapterRail: capability(
     "transition",
     ["emphasis", "process"],

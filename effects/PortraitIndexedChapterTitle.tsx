@@ -298,7 +298,7 @@ export const PortraitIndexedChapterTitle: React.FC<Props> = ({
 
 export const PortraitIndexedChapterTitleEffectDef: EffectDef = {
   id: "PortraitIndexedChapterTitle",
-  name: "竖屏口播·编号章节标题",
+  name: "编号章节标题",
   description:
     "参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。",
   category: "portrait-narrative",

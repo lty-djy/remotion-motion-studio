@@ -327,7 +327,7 @@ export const PortraitStepChecklist: React.FC<Props> = ({
 
 export const PortraitStepChecklistEffectDef: EffectDef = {
   id: "PortraitStepChecklist",
-  name: "竖屏口播·步骤清单卡",
+  name: "步骤清单卡",
   description: "可按需增减的步骤清单卡，顶部给出阶段结论，步骤卡依次滑入。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

@@ -297,7 +297,7 @@ export const PortraitRiskWarning: React.FC<Props> = ({
 
 export const PortraitRiskWarningEffectDef: EffectDef = {
   id: "PortraitRiskWarning",
-  name: "竖屏口播·风险提醒卡",
+  name: "风险提醒卡",
   description: "参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

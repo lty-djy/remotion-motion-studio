@@ -26,6 +26,11 @@ import {
   getAnchoredEffectPosition,
 } from "./registry";
 import {
+  resolveFocusCamStageTarget,
+  useFocusCamStageStyle,
+  type FocusCamStageTarget,
+} from "./effects/FocusCamMove";
+import {
   CARD_BACKGROUND_CONTROL_CSS,
   getCardBackgroundControlVariables,
   supportsCardBackground,
@@ -101,6 +106,29 @@ const WaitForFonts = () => {
   return null;
 };
 
+/** 舞台视频轨(导出):运镜卡时间窗内套用收缩几何,窗外保持满屏 contain */
+const StageCamMoveVideo: React.FC<{
+  src: string;
+  trimBefore: number;
+  volume: number;
+  muted: boolean;
+  camTarget: FocusCamStageTarget | null;
+  trackStartFrame: number;
+}> = ({ src, trimBefore, volume, muted, camTarget, trackStartFrame }) => {
+  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame);
+  return (
+    <OffthreadVideo
+      src={src}
+      trimBefore={trimBefore}
+      volume={volume}
+      muted={muted}
+      style={
+        camStyle ?? { width: "100%", height: "100%", objectFit: "contain" }
+      }
+    />
+  );
+};
+
 const MultiComponentRender = ({
   videoSrc = "",
   videoTracks = [],
@@ -110,6 +138,7 @@ const MultiComponentRender = ({
   transparent = false,
   soundEnabled = true,
   canvasWidth = 1920,
+  canvasHeight = 1080,
 }: RenderProps) => {
   const visibleVideoTracks = transparent
     ? []
@@ -139,13 +168,29 @@ const MultiComponentRender = ({
         track,
       })),
   ].sort((a, b) => b.order - a.order);
+  // 运镜卡(FocusCamMove 未手填素材)时间窗:合成导出时舞台真实视频直接收缩;
+  // 透明导出无视频轨,卡片自动退回占位框,口播画面交给剪映叠放
+  const camStageTarget = resolveFocusCamStageTarget(
+    instances,
+    canvasHeight > canvasWidth ? "portrait" : "landscape",
+  );
+  const camStageTrackId = camStageTarget
+    ? (orderedLayers.find((layer) => layer.kind === "video")?.id ?? null)
+    : null;
+  // 运镜激活时视频层挪到末尾,保证收缩画面压过效果层(与预览壳同一策略)
+  const renderLayers = camStageTrackId
+    ? [
+        ...orderedLayers.filter((layer) => layer.id !== camStageTrackId),
+        ...orderedLayers.filter((layer) => layer.id === camStageTrackId),
+      ]
+    : orderedLayers;
   return <AbsoluteFill
     style={transparent ? undefined : { backgroundColor: "#05070a" }}
   >
     <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
     <WaitForFonts />
     <VirtualClock />
-    {orderedLayers.map((layer) => {
+    {renderLayers.map((layer) => {
       if (layer.kind === "video") {
         const track = layer.track;
         return (
@@ -154,12 +199,13 @@ const MultiComponentRender = ({
           from={Math.max(0, Math.round(track.startFrame))}
           durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
         >
-          <OffthreadVideo
+          <StageCamMoveVideo
             src={track.url}
             trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
             volume={soundEnabled ? 1 : 0}
             muted={!soundEnabled}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            camTarget={layer.id === camStageTrackId ? camStageTarget : null}
+            trackStartFrame={Math.max(0, Math.round(track.startFrame))}
           />
         </Sequence>
         );
@@ -285,12 +331,16 @@ const MultiComponentRender = ({
       );
     })}
     {visibleVideoTracks.length === 0 && !transparent && videoSrc ? (
-      <OffthreadVideo
-        src={videoSrc}
-        volume={soundEnabled ? 1 : 0}
-        muted={!soundEnabled}
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
-      />
+      <Sequence from={0} durationInFrames={999999}>
+        <StageCamMoveVideo
+          src={videoSrc}
+          trimBefore={0}
+          volume={soundEnabled ? 1 : 0}
+          muted={!soundEnabled}
+          camTarget={camStageTarget}
+          trackStartFrame={0}
+        />
+      </Sequence>
     ) : null}
   </AbsoluteFill>;
 };

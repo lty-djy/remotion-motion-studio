@@ -191,7 +191,7 @@ export const PortraitDecisionTagStack: React.FC<Props> = ({
 
 export const PortraitDecisionTagStackEffectDef: EffectDef = {
   id: "PortraitDecisionTagStack",
-  name: "竖屏口播·优缺点标签组",
+  name: "优缺点标签组",
   description: "可按需增减的优缺点标签组，玻璃卡严格同宽对齐并按设定间隔依次滑入。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

@@ -342,7 +342,7 @@ export const PortraitPromptMistakeDiagnosis: React.FC<Props> = ({
 
 export const PortraitPromptMistakeDiagnosisEffectDef: EffectDef = {
   id: "PortraitPromptMistakeDiagnosis",
-  name: "竖屏口播·错误提问诊断",
+  name: "错误提问诊断",
   description:
     "复刻参考视频 12.566–20.933 秒：逐字输入错误提问，错峰展示三项问题，最后落到缺少准备步骤的诊断结论。",
   category: "portrait-narrative",

@@ -79,7 +79,7 @@ export const PortraitCodeDecisionChecklist: React.FC<Props> = ({
 
 export const PortraitCodeDecisionChecklistEffectDef: EffectDef = {
   id: "PortraitCodeDecisionChecklist",
-  name: "竖屏口播·代码决策检查清单",
+  name: "代码决策检查清单",
   description: "只复刻参考视频 102.333–109.050 秒的六项代码决策问题，逐行点亮，不包含身份条或行数对比。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
