@@ -8586,3 +8586,99 @@ body.arrangement-preview-popout-body {
 .export-dialog-checkline input {
   accent-color: #38bdf8;
 }
+
+/* ===== AI 自动编排弹窗（内置 LLM 调用） ===== */
+.ai-arrange-dialog {
+  max-width: 520px;
+}
+
+.ai-arrange-status {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(159, 238, 255, 0.85);
+}
+
+.ai-arrange-dialog select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  outline: none;
+}
+
+.ai-arrange-dialog select:focus {
+  border-color: rgba(104, 232, 255, 0.55);
+}
+
+.ai-arrange-dialog input[type="password"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  outline: none;
+}
+
+.ai-arrange-dialog hr {
+  margin: 14px 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-arrange-note {
+  margin: 12px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.ai-arrange-dialog .export-dialog-confirm {
+  border-color: rgba(104, 232, 255, 0.55);
+  color: #9feeff;
+}
+
+/* AI 编排弹窗按钮：未套 footer 结构，单独给全套样式 */
+.ai-arrange-dialog button {
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ai-arrange-dialog button:hover:not(:disabled) {
+  border-color: rgba(104, 232, 255, 0.5);
+  color: #9feeff;
+}
+
+.ai-arrange-dialog button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ai-arrange-dialog .export-dialog-confirm {
+  border-color: rgba(104, 232, 255, 0.6);
+  color: #9feeff;
+  background: rgba(104, 232, 255, 0.14);
+  font-weight: 600;
+}
+
+.ai-arrange-dialog .export-dialog-confirm:hover:not(:disabled) {
+  background: rgba(104, 232, 255, 0.22);
+  border-color: rgba(104, 232, 255, 0.8);
+}
+
+/* AI 编排弹窗：原生下拉选项在系统白底上要用深底浅字 */
+.ai-arrange-dialog select option {
+  background: #151a24;
+  color: #e8ecf4;
+}

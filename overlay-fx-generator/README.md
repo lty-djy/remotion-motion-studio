@@ -44,6 +44,7 @@ npm.cmd run lint:arrangement -- <编排.json> [--duration 视频秒数]   # 体�
 npm.cmd run sync:arranger-catalog                                  # registry 变了刷新组件目录
 ```
 
+组件目录也会随 `predev` / `prebuild` / `prestart`（`sync:registry` 链）自动刷新；
 个人偏好沉淀在 `我的偏好.md` / `经验规则.md` / `lint-rules.local.json`（第一次「学一下」时生成）。
 
 ## 与 ai-motion-arranger 的关系

@@ -785,6 +785,154 @@ const getBody = async (req: IncomingMessage, maxBytes: number) => {
   return Buffer.concat(chunks);
 };
 
+// ===== 内置 AI 编排（overlay-fx-generator 大脑 + OpenAI 兼容接口） =====
+const aiArrangeSkillDir = join(rootDir, "overlay-fx-generator");
+const llmSecretsDir = join(rootDir, "local-secrets");
+const llmConfigPath = join(llmSecretsDir, "llm.config.json");
+const arrangementLintScript = join(
+  aiArrangeSkillDir,
+  "scripts",
+  "lint-arrangement-json.mjs",
+);
+
+type LlmConfig = {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  temperature: number;
+  jsonMode: boolean;
+};
+
+const readLlmConfig = async (): Promise<LlmConfig | null> => {
+  try {
+    const raw = JSON.parse(
+      await readFile(llmConfigPath, "utf8"),
+    ) as Record<string, unknown>;
+    const config = {
+      baseUrl: String(raw.baseUrl ?? "").replace(/\/+$/, ""),
+      apiKey: String(raw.apiKey ?? ""),
+      model: String(raw.model ?? ""),
+      temperature: Number.isFinite(Number(raw.temperature))
+        ? Number(raw.temperature)
+        : 0.8,
+      jsonMode: raw.jsonMode !== false,
+    };
+    return config;
+  } catch {
+    return null;
+  }
+};
+
+/** 系统提示词 = SKILL + 组件目录 + 输出格式规范 + 用户偏好（每期实时读盘，改偏好即生效）。 */
+const buildArrangerSystemPrompt = async () => {
+  const read = (parts: string[]) =>
+    readFile(join(...parts), "utf8").catch(() => "");
+  const [skill, catalog, format, prefs, defaultPrefs, rules] =
+    await Promise.all([
+      read([aiArrangeSkillDir, "SKILL.md"]),
+      read([aiArrangeSkillDir, "references", "component-catalog.md"]),
+      read([aiArrangeSkillDir, "references", "timeline-json.md"]),
+      read([aiArrangeSkillDir, "我的偏好.md"]),
+      read([aiArrangeSkillDir, "我的偏好.default.md"]),
+      read([aiArrangeSkillDir, "经验规则.md"]),
+    ]);
+  return [
+    "你是动效工作台的内置编排大脑。下面是完整编排规范，必须逐条遵守：",
+    "=== 编排方法论（SKILL） ===",
+    skill,
+    "=== 组件目录（componentId 与 props 白名单，只能用这里登记的） ===",
+    catalog,
+    "=== 输出 JSON 格式规范 ===",
+    format,
+    prefs.trim()
+      ? `=== 用户偏好（优先级最高，覆盖默认） ===\n${prefs}`
+      : `=== 出厂默认偏好（用户尚未沉淀个人偏好） ===\n${defaultPrefs}`,
+    rules.trim() ? `=== 用户经验规则 ===\n${rules}` : "",
+  ]
+    .filter((block) => block.trim().length > 0)
+    .join("\n\n");
+};
+
+const callChatCompletion = async (
+  config: LlmConfig,
+  messages: Array<{ role: string; content: string }>,
+) => {
+  const request = async (withJsonMode: boolean) =>
+    fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages,
+        temperature: config.temperature,
+        ...(withJsonMode && config.jsonMode
+          ? { response_format: { type: "json_object" } }
+          : {}),
+      }),
+      signal: AbortSignal.timeout(180_000),
+    });
+  let response = await request(true);
+  if (response.status === 400) {
+    // 部分兼容端点不支持 response_format，去掉后重试一次。
+    response = await request(false);
+  }
+  const payload = (await response.json().catch(() => null)) as
+    | Record<string, unknown>
+    | null;
+  if (!response.ok) {
+    const error = payload?.error as Record<string, unknown> | undefined;
+    throw new Error(
+      String(error?.message ?? `模型接口返回 ${response.status}`),
+    );
+  }
+  const choices = payload?.choices as Array<Record<string, unknown>> | undefined;
+  const message = choices?.[0]?.message as Record<string, unknown> | undefined;
+  const text = String(message?.content ?? "");
+  if (!text.trim()) throw new Error("模型返回了空内容。");
+  return { text, usage: payload?.usage ?? null };
+};
+
+const extractJsonDoc = (text: string) => {
+  let raw = text.trim();
+  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) raw = fence[1].trim();
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("模型输出里没有找到 JSON 对象。");
+  return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
+};
+
+const runArrangementLint = async (doc: unknown, durationSec: number) => {
+  const tmpPath = join(llmSecretsDir, `lint-tmp-${Date.now()}.json`);
+  await mkdir(llmSecretsDir, { recursive: true });
+  await writeFile(tmpPath, JSON.stringify(doc), "utf8");
+  try {
+    const result = await new Promise<{ failed: boolean; output: string }>(
+      (resolve) => {
+        execFile(
+          process.execPath,
+          [
+            arrangementLintScript,
+            tmpPath,
+            "--duration",
+            String(Math.max(1, Math.round(durationSec))),
+          ],
+          { cwd: rootDir, timeout: 60_000 },
+          (error, stdout) =>
+            resolve({ failed: Boolean(error), output: String(stdout ?? "") }),
+        );
+      },
+    );
+    return { ok: !result.failed, output: result.output.trim() };
+  } finally {
+    await unlink(tmpPath).catch(() => {});
+  }
+};
+
+
 const SEMANTIC_INTENT_IDS = [
   "emphasis",
   "metric",
@@ -1959,6 +2107,155 @@ const localApi = (): Plugin => {
           const filePath = join(reviewDir, `${stamp}-review-log.json`);
           await writeFile(filePath, `${JSON.stringify(body, null, 2)}\n`, "utf8");
           sendJson(res, 200, { ok: true, path: filePath });
+          return;
+        }
+
+        if (url.pathname === "/api/llm-config" && req.method === "GET") {
+          const config = await readLlmConfig();
+          sendJson(res, 200, {
+            ok: true,
+            configured: Boolean(config?.baseUrl && config?.apiKey && config?.model),
+            baseUrl: config?.baseUrl ?? "",
+            model: config?.model ?? "",
+            temperature: config?.temperature ?? 0.8,
+            jsonMode: config?.jsonMode ?? true,
+            // 只回掩码，完整 key 永不下发到浏览器。
+            apiKeyMasked: config?.apiKey
+              ? `${config.apiKey.slice(0, 4)}****${config.apiKey.slice(-4)}`
+              : "",
+          });
+          return;
+        }
+
+        if (url.pathname === "/api/llm-config" && req.method === "PUT") {
+          const body = JSON.parse(
+            (await getBody(req, 64 * 1024)).toString("utf8"),
+          ) as Record<string, unknown>;
+          const baseUrl = String(body.baseUrl ?? "").trim().replace(/\/+$/, "");
+          const model = String(body.model ?? "").trim();
+          const apiKey = String(body.apiKey ?? "").trim();
+          const previous = await readLlmConfig();
+          if (!baseUrl || !model || (!apiKey && !previous?.apiKey)) {
+            sendJson(res, 400, {
+              ok: false,
+              error: "baseUrl、模型名、API Key 三项都要有（Key 已保存过可留空）。",
+            });
+            return;
+          }
+          mkdirSync(llmSecretsDir, { recursive: true });
+          await writeFile(
+            llmConfigPath,
+            `${JSON.stringify(
+              {
+                baseUrl,
+                model,
+                apiKey: apiKey || previous?.apiKey || "",
+                temperature: Number.isFinite(Number(body.temperature))
+                  ? Number(body.temperature)
+                  : (previous?.temperature ?? 0.8),
+                jsonMode: body.jsonMode !== false,
+              },
+              null,
+              2,
+            )}\n`,
+            "utf8",
+          );
+          // 防止 key 进 git：.gitignore 没有就补一行。
+          const gitignorePath = join(rootDir, ".gitignore");
+          const gitignore = await readFile(gitignorePath, "utf8").catch(
+            () => "",
+          );
+          if (!gitignore.split(/\r?\n/).includes("local-secrets/")) {
+            await writeFile(
+              gitignorePath,
+              `${gitignore}${gitignore.endsWith("\n") || !gitignore ? "" : "\n"}local-secrets/\n`,
+              "utf8",
+            );
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (url.pathname === "/api/ai-arrange" && req.method === "POST") {
+          const body = JSON.parse(
+            (await getBody(req, 2 * 1024 * 1024)).toString("utf8"),
+          ) as {
+            srtText?: string;
+            sourceSrt?: string;
+            canvas?: { width?: number; height?: number; orientation?: string };
+            fps?: number;
+            durationSec?: number;
+          };
+          const config = await readLlmConfig();
+          if (!config?.baseUrl || !config?.apiKey || !config?.model) {
+            sendJson(res, 400, {
+              ok: false,
+              error: "尚未配置模型：先在弹窗里保存 baseUrl / 模型名 / API Key。",
+            });
+            return;
+          }
+          const srtText = String(body.srtText ?? "").trim();
+          if (!srtText) {
+            sendJson(res, 400, { ok: false, error: "没有 SRT 内容。" });
+            return;
+          }
+          const fps = Number(body.fps) > 0 ? Number(body.fps) : 30;
+          const durationSec =
+            Number(body.durationSec) > 0 ? Number(body.durationSec) : 60;
+          const canvas = body.canvas ?? {
+            width: 1080,
+            height: 1920,
+            orientation: "portrait",
+          };
+          try {
+            const systemPrompt = await buildArrangerSystemPrompt();
+            const userPrompt = [
+              "【任务】为下面的 SRT 口播字幕编排动效。",
+              `【画布】${canvas.width}x${canvas.height}（${canvas.orientation}），fps=${fps}，视频时长约 ${Math.round(durationSec)} 秒。`,
+              body.sourceSrt ? `【文件名】${body.sourceSrt}` : "",
+              "【内置管线要求】直接输出一个编排 JSON 对象：以 { 开头、} 结尾，不要 markdown 代码块，不要输出分段脚本文本或素材清单。分段脚本与素材清单会由工作台另行展示。",
+              "【SRT 内容】",
+              srtText,
+            ]
+              .filter(Boolean)
+              .join("\n");
+            const messages: Array<{ role: string; content: string }> = [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ];
+            let call = await callChatCompletion(config, messages);
+            let doc = extractJsonDoc(call.text);
+            let lint = await runArrangementLint(doc, durationSec);
+            let repaired = false;
+            if (!lint.ok) {
+              // 自修复一轮：把 lint 报错发回给模型重写。
+              repaired = true;
+              messages.push(
+                { role: "assistant", content: call.text },
+                {
+                  role: "user",
+                  content: `lint 体检发现 error，必须全部修正。请重新输出完整编排 JSON（仍然只输出 JSON 本体）。lint 报告：\n${lint.output}`,
+                },
+              );
+              call = await callChatCompletion(config, messages);
+              doc = extractJsonDoc(call.text);
+              lint = await runArrangementLint(doc, durationSec);
+            }
+            sendJson(res, 200, {
+              ok: true,
+              doc,
+              lint,
+              usage: call.usage,
+              model: config.model,
+              repaired,
+            });
+          } catch (error) {
+            sendJson(res, 502, {
+              ok: false,
+              error:
+                error instanceof Error ? error.message : "编排调用失败",
+            });
+          }
           return;
         }
 

@@ -28,10 +28,11 @@ lint 通过、组件多样的编排 JSON。**
 | `public/input/arrangement-rules/rule-manifest.json` | 工作台自动学习的组件偏好分（`componentScores`）。**只作参考不作上限**——分数高只说明用户过去常用，不豁免多样性硬指标 |
 | `lint-rules.default.json` / `lint-rules.local.json` | lint 阈值 |
 
-组件库变了（`registry.ts` 增删组件）就跑 `npm.cmd run sync:arranger-catalog` 刷新目录。
+组件目录由 `npm.cmd run sync:arranger-catalog` 从真实 registry 生成（`predev` / `prebuild` / `prestart` 会随 `sync:registry` 自动刷新）；**每次会话开工仍要手动跑一次**（见 §2），杜绝拿着过期目录选卡。
 
 ## 2. 开工与收工（每次会话的固定动作）
 
+- **开工先刷新组件目录**：跑 `npm.cmd run sync:arranger-catalog`（约一两秒）。组件库有增删时这是硬要求；就算没变也跑一次——宁可多花一秒，不可拿过期目录漏掉新卡。
 - **开工先读 STATUS.md**：在这期视频的素材目录里找 `STATUS.md`（和 SRT/JSON 同目录）。有就先读，按里面的「当前阶段」和「待办」接着干；没有就从本目录 `STATUS.template.md` 复制一份创建。
 - **开工先读偏好表**（见 §1）。
 - **收工必更新 STATUS.md**：把当前阶段、关键文件路径、本期决定（章节条/字幕轨/点单）、已完成、待办写回去。下一个会话靠它接力。
@@ -184,6 +185,8 @@ lint 通过、组件多样的编排 JSON。**
 
 ## 15. 与工作台内置链路的分工
 
-- 工作台的「SRT导入」入口只负责生成字幕语义动画轨（含 semanticKey 路由），**不再用本地规则选组件**——组件选择 100% 由本 Skill 完成。
-- 工作台负责确定性的事：格式校验、资源解析、位置兜底、时间计算、编排预览、五项质检展示、确认插入、按语义组微调、整批撤销。
+- **工作台「AI 自动编排」弹窗（内置调用）**：把本 SKILL + 组件目录 + 输出格式 + `我的偏好.md`/`经验规则.md` 自动拼成系统提示词，发给用户配置的 OpenAI 兼容接口（key 存本机 `local-secrets/`，不进 git），返回 JSON 先过 lint、有 error 自动让模型修一轮，然后直接进现有预览管线。模型配置、token 用量都在弹窗里。
+- 离线会话流程不变：把 SRT 交给 AI 会话按本 SKILL 编排，产出 timeline JSON 后在工作台导入。
+- 工作台的「SRT导入」相关入口只负责生成字幕语义动画轨（含 semanticKey 路由），**不再用本地规则选组件**——组件选择 100% 由本 Skill（内置调用或会话）完成。
+- 工作台负责确定性的事：格式校验、资源解析、位置兜底、时间计算、编排预览、质检展示、确认插入、按语义组微调、整批撤销。
 - 离线批量编排等旧 manifest → TSX 链路（`ai-motion-arranger/`）仍可用于兼容，但**新编排一律走本 Skill 的 timeline JSON**。

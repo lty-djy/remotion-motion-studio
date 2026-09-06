@@ -3609,16 +3609,6 @@ const App = () => {
       ? parsed
       : 1;
   });
-  const [workspaceZoom, setWorkspaceZoom] = useState(() => {
-    const saved = localStorage.getItem("motion-studio-workspace-zoom");
-    const parsed = saved ? Number(saved) : NaN;
-    return Number.isFinite(parsed) && parsed >= 50 && parsed <= 200
-      ? parsed
-      : 100;
-  });
-  const [workspaceZoomInput, setWorkspaceZoomInput] = useState(() =>
-    String(workspaceZoom),
-  );
   const [srtFileName, setSrtFileName] = useState("");
   const [srtEntries, setSrtEntries] = useState<SrtEntry[]>([]);
   const [srtGenerating, setSrtGenerating] = useState(false);
@@ -5049,13 +5039,6 @@ const App = () => {
 
   useEffect(() => {
     window.localStorage.setItem(
-      "motion-studio-workspace-zoom",
-      String(workspaceZoom),
-    );
-  }, [workspaceZoom]);
-
-  useEffect(() => {
-    window.localStorage.setItem(
       ARRANGEMENT_PREFERENCES_STORAGE_KEY,
       JSON.stringify(arrangementPreferences),
     );
@@ -5175,10 +5158,6 @@ const App = () => {
     arrangementRules,
     arrangementRulesFileReady,
   ]);
-
-  useEffect(() => {
-    setWorkspaceZoomInput(String(workspaceZoom));
-  }, [workspaceZoom]);
 
   useEffect(
     () => () => {
@@ -6066,15 +6045,195 @@ const App = () => {
 
   const openVideoPicker = () => videoInput.current?.click();
 
+  // ===== 内置 AI 编排：调在线大模型（OpenAI 兼容），结果直接进现有预览管线 =====
+  const LLM_PRESETS = [
+    { id: "deepseek", label: "DeepSeek（便宜 · 国内直连）", baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
+    { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+    { id: "moonshot", label: "Kimi（月之暗面）", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-32k" },
+    { id: "custom", label: "OpenAI 兼容接口（自定义）", baseUrl: "", model: "" },
+  ] as const;
+
+  const [aiArrangeDialogOpen, setAiArrangeDialogOpen] = useState(false);
+  const [llmConfigStatus, setLlmConfigStatus] = useState<{
+    configured: boolean;
+    baseUrl: string;
+    model: string;
+    apiKeyMasked: string;
+  } | null>(null);
+  const [llmConfigDraft, setLlmConfigDraft] = useState({
+    preset: "deepseek",
+    baseUrl: LLM_PRESETS[0].baseUrl,
+    model: LLM_PRESETS[0].model,
+    apiKey: "",
+  });
+  const [llmConfigSaving, setLlmConfigSaving] = useState(false);
+  const [aiArrangeBusy, setAiArrangeBusy] = useState(false);
+  const [aiArrangeStatusText, setAiArrangeStatusText] = useState("");
+  const [aiArrangeDialogError, setAiArrangeDialogError] = useState("");
+  const [aiArrangeSrtText, setAiArrangeSrtText] = useState("");
+  const aiArrangeSrtInput = useRef<HTMLInputElement>(null);
+
+  const refreshLlmConfigStatus = async () => {
+    try {
+      const response = await fetch("/api/llm-config", { cache: "no-store" });
+      const payload = await response.json();
+      if (response.ok && payload?.ok) {
+        setLlmConfigStatus({
+          configured: Boolean(payload.configured),
+          baseUrl: String(payload.baseUrl ?? ""),
+          model: String(payload.model ?? ""),
+          apiKeyMasked: String(payload.apiKeyMasked ?? ""),
+        });
+        if (payload.configured) {
+          setLlmConfigDraft((current) => ({
+            ...current,
+            baseUrl: String(payload.baseUrl ?? current.baseUrl),
+            model: String(payload.model ?? current.model),
+          }));
+        }
+      }
+    } catch {
+      // 状态获取失败不阻塞弹窗，用户仍可手动导入 JSON。
+    }
+  };
+
+  const saveLlmConfig = async () => {
+    setLlmConfigSaving(true);
+    setAiArrangeDialogError("");
+    try {
+      const response = await fetch("/api/llm-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: llmConfigDraft.baseUrl,
+          model: llmConfigDraft.model,
+          apiKey: llmConfigDraft.apiKey,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "模型配置保存失败");
+      }
+      setLlmConfigDraft((current) => ({ ...current, apiKey: "" }));
+      await refreshLlmConfigStatus();
+      setNotice({ tone: "ok", text: "模型配置已保存（key 只存本机 local-secrets，不进 git）。" });
+    } catch (error) {
+      setAiArrangeDialogError(
+        error instanceof Error ? error.message : "模型配置保存失败",
+      );
+    } finally {
+      setLlmConfigSaving(false);
+    }
+  };
+
+  const srtTextFromEntries = (entries: SrtEntry[]) =>
+    entries
+      .map((entry) => {
+        const format = (ms: number) =>
+          new Date(ms).toISOString().substring(11, 23).replace(".", ",");
+        return `${entry.index}\n${format(entry.startMs)} --> ${format(entry.endMs)}\n${entry.text}\n`;
+      })
+      .join("\n");
+
+  const handleAiArrangeSrtFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      if (!text.trim()) throw new Error("SRT 文件是空的。");
+      setAiArrangeSrtText(text);
+    } catch (error) {
+      setAiArrangeDialogError(
+        error instanceof Error ? error.message : "SRT 读取失败",
+      );
+    }
+  };
+
+  const startAiArrangement = async () => {
+    const srtText = aiArrangeSrtText.trim() || (srtEntries.length > 0 ? srtTextFromEntries(srtEntries) : "");
+    if (!srtText) {
+      setAiArrangeDialogError("先选择一个 SRT 文件（或先把字幕载入字幕面板）。");
+      return;
+    }
+    if (!llmConfigStatus?.configured) {
+      setAiArrangeDialogError("先在上方填好模型配置并保存。");
+      return;
+    }
+    setAiArrangeBusy(true);
+    setAiArrangeDialogError("");
+    setAiArrangeStatusText("正在把编排规范 + SRT 发给在线模型（约 30–90 秒）…");
+    try {
+      const canvas =
+        canvasOrientation === "portrait"
+          ? { width: 1080, height: 1920, orientation: "portrait" }
+          : { width: 1920, height: 1080, orientation: "landscape" };
+      const response = await fetch("/api/ai-arrange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          srtText,
+          sourceSrt: srtFileName || "",
+          canvas,
+          fps,
+          durationSec: Math.max(1, Math.round(durationInFrames / fps)),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "编排调用失败");
+      }
+      setAiArrangeStatusText(
+        payload.repaired
+          ? "模型初稿有误，已自动修复一轮；正在进预览…"
+          : "编排完成，正在进预览…",
+      );
+      const baseName = (srtFileName || "AI编排")
+        .replace(/\.[^.]+$/, "")
+        .replace(/[\\/:*?"<>|]/g, "-");
+      await importTimelineJson(
+        new File(
+          [JSON.stringify(payload.doc)],
+          `${baseName}-AI编排.timeline.json`,
+          { type: "application/json" },
+        ),
+        { preferJsonDesign: true },
+      );
+      const usage = payload.usage as
+        | { prompt_tokens?: number; completion_tokens?: number }
+        | null;
+      const usageText = usage
+        ? `（tokens：${usage.prompt_tokens ?? "?"} 入 / ${usage.completion_tokens ?? "?"} 出）`
+        : "";
+      const lintText = payload.lint?.ok
+        ? "lint 通过"
+        : "lint 仍有问题，请在预览里检查（报告已打印到下方）";
+      setNotice({
+        tone: "ok",
+        text: `在线模型编排完成：${lintText}${usageText}；已进入编排预览，时间线尚未修改。`,
+      });
+      if (!payload.lint?.ok && payload.lint?.output) {
+        console.warn("[ai-arrange lint]\n", payload.lint.output);
+      }
+      setAiArrangeDialogOpen(false);
+    } catch (error) {
+      setAiArrangeDialogError(
+        error instanceof Error ? error.message : "编排调用失败",
+      );
+      setAiArrangeStatusText("");
+    } finally {
+      setAiArrangeBusy(false);
+    }
+  };
+
   const openAiArrangement = () => {
     if (srtGenerating) return;
-    setAiArrangementError("");
-    setAiArrangementStage("idle");
-    setNotice({
-      tone: "info",
-      text: "请导入由 overlay-fx-generator 编排大脑生成的编排 JSON（见 overlay-fx-generator/SKILL.md）；工作台不再用本地规则挑选效果组件。",
-    });
-    timelineJsonInput.current?.click();
+    setAiArrangeDialogError("");
+    setAiArrangeStatusText("");
+    setAiArrangeDialogOpen(true);
+    void refreshLlmConfigStatus();
   };
 
   const openSrtPicker = () => {
@@ -12678,11 +12837,7 @@ const App = () => {
   })?.index ?? selectedCaptionIndex;
 
   return (
-    <div
-      className="app"
-      data-theme={theme}
-      style={{ zoom: workspaceZoom / 100 }}
-    >
+    <div className="app" data-theme={theme}>
       <input
         ref={videoInput}
         type="file"
@@ -12695,6 +12850,13 @@ const App = () => {
         type="file"
         accept=".srt,text/plain"
         onChange={handleSrtFile}
+        hidden
+      />
+      <input
+        ref={aiArrangeSrtInput}
+        type="file"
+        accept=".srt,text/plain"
+        onChange={handleAiArrangeSrtFile}
         hidden
       />
       <input
@@ -12844,57 +13006,6 @@ const App = () => {
         </nav>
 
         <div className="studio-actions" aria-label="编辑操作">
-          <div className="workspace-zoom-control" aria-label="工作台界面缩放">
-            <button
-              type="button"
-              onClick={() => setWorkspaceZoom((zoom) => Math.max(50, zoom - 10))}
-              disabled={workspaceZoom <= 50}
-              title="缩小工作台界面"
-              aria-label="缩小工作台界面"
-            >
-              <Minus weight="bold" />
-            </button>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={workspaceZoomInput}
-              onChange={(event) => {
-                const nextText = event.target.value.replace(/\D/g, "");
-                setWorkspaceZoomInput(nextText);
-                const next = Number(nextText);
-                if (
-                  nextText &&
-                  Number.isFinite(next) &&
-                  next >= 50 &&
-                  next <= 200
-                ) {
-                  setWorkspaceZoom(next);
-                }
-              }}
-              onBlur={() => setWorkspaceZoomInput(String(workspaceZoom))}
-              aria-label="工作台界面缩放百分比"
-            />
-            <b>%</b>
-            <button
-              type="button"
-              onClick={() => setWorkspaceZoom((zoom) => Math.min(200, zoom + 10))}
-              disabled={workspaceZoom >= 200}
-              title="放大工作台界面"
-              aria-label="放大工作台界面"
-            >
-              <Plus weight="bold" />
-            </button>
-            <button
-              type="button"
-              className="workspace-zoom-reset"
-              onClick={() => setWorkspaceZoom(100)}
-              disabled={workspaceZoom === 100}
-              title="恢复 100% 工作台界面缩放"
-            >
-              重置
-            </button>
-          </div>
           <button
             className={canvasOrientation === "portrait" ? "format-entry active" : "format-entry"}
             onClick={toggleCanvasOrientation}
@@ -12937,15 +13048,6 @@ const App = () => {
           >
             {soundEnabled ? <SpeakerHigh /> : <SpeakerSlash />}
             {soundEnabled ? "声音" : "静音"}
-          </button>
-          <button
-            className={srtGenerating ? "ai-arrange-entry running" : "ai-arrange-entry"}
-            disabled={srtGenerating}
-            onClick={openSrtPicker}
-            title="选择 SRT 字幕，生成字幕语义动画轨道（动效编排请导入 overlay-fx-generator 的编排 JSON）"
-          >
-            <MagicWand weight="fill" />
-            {srtGenerating ? "读取字幕中…" : "SRT导入"}
           </button>
           <button
             onClick={clearAllTimelineTracks}
@@ -13036,9 +13138,14 @@ const App = () => {
                       <span>导入后显示真实字幕条目</span>
                     </button>
                     <button type="button" className="subtitle-template-empty" onClick={openAiArrangement} disabled={srtGenerating}>
+                      <MagicWand weight="fill" />
+                      <strong>✨ AI 自动编排</strong>
+                      <span>选 SRT 在线编排，结果进预览管线</span>
+                    </button>
+                    <button type="button" className="subtitle-template-empty" onClick={() => timelineJsonInput.current?.click()} disabled={srtGenerating}>
                       <UploadSimple />
                       <strong>选择 JSON 文件</strong>
-                      <span>导入 overlay-fx-generator 编排结果</span>
+                      <span>手动导入编排 JSON，进预览管线</span>
                     </button>
                     <div
                       className="arrangement-import-mode in-subtitle-panel"
@@ -14440,11 +14547,18 @@ const App = () => {
               导入 TSX 效果
             </button>
             <button
+              onClick={openAiArrangement}
+              title="AI 自动编排：选 SRT → 在线模型按 overlay-fx-generator 规范出编排 JSON → lint 自修 → 进预览"
+            >
+              <MagicWand weight="fill" />
+              AI 自动编排
+            </button>
+            <button
               onClick={() => timelineJsonInput.current?.click()}
-              title="载入 overlay-fx-generator 编排大脑生成的编排 JSON，预览并确认后才会插入时间线"
+              title="手动导入编排 JSON（如 AI 会话生成的 timeline JSON），预览并确认后才会插入时间线"
             >
               <UploadSimple />
-              载入AI大模型编排JSON
+              导入编排JSON
             </button>
             <button
               onClick={() => void exportArrangementForReview()}
@@ -18302,6 +18416,163 @@ const App = () => {
                 </button>
               ) : null}
             </footer>
+          </section>
+        </div>
+      ) : null}
+      {aiArrangeDialogOpen ? (
+        <div
+          className="export-dialog-layer"
+          onPointerDown={() => setAiArrangeDialogOpen(false)}
+        >
+          <section
+            className="export-dialog ai-arrange-dialog"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <strong>AI 自动编排（overlay-fx-generator）</strong>
+              <button
+                aria-label="关闭"
+                onClick={() => setAiArrangeDialogOpen(false)}
+              >
+                <X />
+              </button>
+            </header>
+            <div className="ai-arrange-status">
+              {llmConfigStatus?.configured
+                ? `已配置：${llmConfigStatus.model}（${llmConfigStatus.apiKeyMasked}）`
+                : "未配置模型——填写下方三项并保存即可开始。"}
+            </div>
+            <label className="export-dialog-field">
+              <span>模型预设</span>
+              <select
+                value={llmConfigDraft.preset}
+                onChange={(event) => {
+                  const preset = LLM_PRESETS.find(
+                    (item) => item.id === event.target.value,
+                  );
+                  if (!preset) return;
+                  setLlmConfigDraft((current) => ({
+                    ...current,
+                    preset: preset.id,
+                    baseUrl: preset.baseUrl || current.baseUrl,
+                    model: preset.model || current.model,
+                  }));
+                }}
+              >
+                {LLM_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="export-dialog-field">
+              <span>接口地址（OpenAI 兼容）</span>
+              <input
+                type="text"
+                value={llmConfigDraft.baseUrl}
+                onChange={(event) =>
+                  setLlmConfigDraft((current) => ({
+                    ...current,
+                    baseUrl: event.target.value,
+                  }))
+                }
+                placeholder="https://api.deepseek.com"
+                spellCheck={false}
+              />
+            </label>
+            <label className="export-dialog-field">
+              <span>模型名</span>
+              <input
+                type="text"
+                value={llmConfigDraft.model}
+                onChange={(event) =>
+                  setLlmConfigDraft((current) => ({
+                    ...current,
+                    model: event.target.value,
+                  }))
+                }
+                placeholder="deepseek-chat"
+                spellCheck={false}
+              />
+            </label>
+            <label className="export-dialog-field">
+              <span>
+                API Key
+                {llmConfigStatus?.configured
+                  ? `（已存 ${llmConfigStatus.apiKeyMasked}，留空即沿用）`
+                  : "（只存本机 local-secrets/，不进 git）"}
+              </span>
+              <input
+                type="password"
+                value={llmConfigDraft.apiKey}
+                onChange={(event) =>
+                  setLlmConfigDraft((current) => ({
+                    ...current,
+                    apiKey: event.target.value,
+                  }))
+                }
+                placeholder="sk-…"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+            <div className="export-dialog-row">
+              <button
+                disabled={llmConfigSaving}
+                onClick={() => void saveLlmConfig()}
+              >
+                {llmConfigSaving ? "保存中…" : "保存模型配置"}
+              </button>
+            </div>
+            <hr />
+            <label className="export-dialog-field">
+              <span>
+                字幕来源
+                {srtEntries.length > 0
+                  ? `（也可直接用已载入的 ${srtEntries.length} 条字幕）`
+                  : "（选择 .srt 文件）"}
+              </span>
+              <div className="export-dialog-row">
+                <button
+                  disabled={aiArrangeBusy}
+                  onClick={() => aiArrangeSrtInput.current?.click()}
+                >
+                  选择 SRT 文件
+                </button>
+                {aiArrangeSrtText ? (
+                  <span className="ai-arrange-status">
+                    已读取文件（{Math.round(aiArrangeSrtText.length / 1024)}KB）
+                  </span>
+                ) : null}
+              </div>
+            </label>
+            {aiArrangeStatusText ? (
+              <p className="ai-arrange-status" role="status">
+                {aiArrangeStatusText}
+              </p>
+            ) : null}
+            {aiArrangeDialogError ? (
+              <p
+                className="export-dialog-error"
+                role="alert"
+              >
+                {aiArrangeDialogError}
+              </p>
+            ) : null}
+            <div className="export-dialog-row">
+              <button
+                className="export-dialog-confirm"
+                disabled={aiArrangeBusy}
+                onClick={() => void startAiArrangement()}
+              >
+                {aiArrangeBusy ? "编排中…" : "开始 AI 编排"}
+              </button>
+            </div>
+            <p className="ai-arrange-note">
+              编排规范（SKILL + 组件目录 + 输出格式 + 你的偏好）由工作台自动拼进提示词；
+              返回结果先过 lint 体检，有 error 会自动让模型修一轮，再进预览管线。
+            </p>
           </section>
         </div>
       ) : null}

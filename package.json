@@ -6,7 +6,7 @@
   "scripts": {
     "generate:icons": "node ai-motion-arranger/scripts/generate-built-in-icons.mjs",
     "generate:candidate-thumbs": "node outputs/generate-candidate-thumbs.cjs",
-    "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs",
+    "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs && node overlay-fx-generator/scripts/generate-component-catalog.mjs",
     "sync:arranger-catalog": "node overlay-fx-generator/scripts/generate-component-catalog.mjs",
     "lint:arrangement": "node overlay-fx-generator/scripts/lint-arrangement-json.mjs",
     "sync:resources": "node ai-motion-arranger/scripts/build-resource-index.mjs",

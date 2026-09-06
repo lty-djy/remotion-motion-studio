@@ -11,14 +11,14 @@
       "componentScores": {
         "PortraitRiskWarning": 12,
         "PortraitMetricDecision": 12,
-        "PortraitDecisionTagStack": 4,
+        "PortraitDecisionTagStack": 12,
         "PortraitInfoCallout": 12,
         "PortraitChapterRail": 12,
         "PortraitStepChecklist": 12,
         "PortraitNextEpisodeCta": 12,
-        "ChapterBar": 2,
-        "PortraitGapHeadline": 2,
-        "PortraitAiOutputGapQuote": 2
+        "ChapterBar": 12,
+        "PortraitGapHeadline": 12,
+        "PortraitAiOutputGapQuote": 12
       },
       "semanticTags": {
         "emphasis": {

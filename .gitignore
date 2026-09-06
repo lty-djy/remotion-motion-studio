@@ -4,6 +4,7 @@ local-dist/
 local-media/
 local-components/
 local-projects/
+local-secrets/
 local-state.json
 .codex-qa/
 outputs/
