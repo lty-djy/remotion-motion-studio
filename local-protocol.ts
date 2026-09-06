@@ -17,6 +17,9 @@ export type MotionPropSchema = {
   /** 数值单位(仅展示,如 "px"/"ms") */
   unit?: string;
   options?: Array<string | { label: string; value: string }>;
+  /** 颜色行的行内开关:指向同组件的 boolean 参数键(如 "showRingColor"),
+   *  关 = 该颜色不生效(渲染层自行决定降级样式) */
+  toggleKey?: string;
 };
 
 export type MotionBounds = {

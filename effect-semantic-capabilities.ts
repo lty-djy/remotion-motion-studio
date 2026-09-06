@@ -152,13 +152,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["章节", "章节导航", "目录", "本期地图", "进度", "全程在场"],
     { density: "light", durationSeconds: { min: 5, max: 600 } },
   ),
-  FocusCard: capability(
-    "process",
-    ["emphasis", "transition"],
-    ["process"],
-    ["聚焦", "口播缩进", "落位框", "边框", "素材", "录屏"],
-    { density: "light", durationSeconds: { min: 5, max: 600 } },
-  ),
   FocusCamMove: capability(
     "process",
     ["emphasis", "transition"],

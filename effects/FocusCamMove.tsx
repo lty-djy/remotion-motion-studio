@@ -19,15 +19,14 @@ type Props = {
   mediaType?: MediaType;
   /** 素材填充方式;素材比例应与画幅一致,满屏阶段 cover 与底层画面才完全重合 */
   mediaFit?: "cover" | "contain";
-  /** 全屏底色(盖住底层轨道画面) */
-  bg?: "dark" | "cream" | "mist";
-  /** 口播缩到哪一侧(竖版忽略,固定上框下要点) */
+  /** 口播缩到哪一侧(竖版忽略,固定上框) */
   side?: "left" | "right";
-  /** 要点,| 分隔 */
-  items?: string;
-  /** 每条要点间隔(ms,卡点用) */
-  stepMs?: number;
+  /** 描边颜色:hex(选色器输出)或旧命名色 blue/alert/orange */
   accent?: string;
+  /** 口播框圆角(px,0 = 跟随画幅默认:横版 36 / 竖版 28) */
+  cornerRadius?: number;
+  /** 描边显示颜色:关 = 描边变白色(无彩色),框仍然可见 */
+  showRingColor?: boolean;
   showRing?: boolean;
   /** 口播框位置微调(px,相对该侧默认落位) */
   camDX?: number;
@@ -54,18 +53,16 @@ const ACCENT_COLORS: Record<string, string> = {
   orange: "#f0a24f",
 };
 
-const resolveAccent = (value: string | undefined) =>
-  (value && ACCENT_COLORS[value]) || ACCENT_COLORS.blue;
+/** 描边颜色:hex 直通(选色器输出);兼容旧实例的命名色(blue/alert/orange) */
+const resolveAccent = (value: string | undefined) => {
+  const v = (value ?? "").trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) return v;
+  return ACCENT_COLORS[v] ?? ACCENT_COLORS.blue;
+};
 
 /** 满屏起步时长与运镜曲线:与参考实现(overlay-studio FocusCard)完全一致 */
 const CAM_MS = 1050;
 const CAM_EASE = Easing.bezier(0.22, 1, 0.36, 1);
-
-const BG_GRADIENTS: Record<string, string> = {
-  dark: "linear-gradient(168deg, #1a1a22 0%, #131318 60%, #0e0e13 100%)",
-  cream: "linear-gradient(168deg, #f7eddd 0%, #f2e6d2 60%, #ecdec6 100%)",
-  mist: "linear-gradient(168deg, #f7f7f9 0%, #efeff2 60%, #e8e8ec 100%)",
-};
 
 /**
  * 运镜几何 —— 满屏矩形 → 落位小框的目标位置。
@@ -80,6 +77,7 @@ export const camMoveGeom = (
     camDY?: number;
     camW?: number;
     camH?: number;
+    camR?: number;
   },
   ratio: Ratio,
 ) => {
@@ -90,12 +88,15 @@ export const camMoveGeom = (
   // 换成竖版尺寸,用户真调过(≠700)就听用户的
   const w = vertical && (Number(p.camW) || 700) === 700 ? 960 : Number(p.camW) || 700;
   const h = vertical && (Number(p.camH) || 700) === 700 ? 720 : Number(p.camH) || 700;
+  // 圆角:用户设置(>0)优先,否则横版 36 / 竖版 28
+  const userR = Number(p.camR);
+  const r = userR > 0 ? userR : vertical ? 28 : 36;
   return {
     x: x + (Number(p.camDX) || 0),
     y: y + (Number(p.camDY) || 0),
     w,
     h,
-    r: vertical ? 28 : 36,
+    r,
   };
 };
 
@@ -149,6 +150,7 @@ export const resolveFocusCamStageTarget = (
         camDY: props.camDY as number | undefined,
         camW: props.camW as number | undefined,
         camH: props.camH as number | undefined,
+        camR: props.cornerRadius as number | undefined,
       },
       ratio,
     ),
@@ -189,26 +191,23 @@ export const useFocusCamStageStyle = (
     borderRadius: lerp(0, target.geom.r, progress),
     // cover:小框阶段只裁剪不变形;素材与画幅同比例时,满屏阶段与 contain 无差别
     objectFit: "cover",
-    // 收缩中的画面压在效果层(底色盘/描边/要点)之上,对应 studio 的 z-index 6
-    zIndex: 6,
   };
 };
 
 /**
- * 人物聚焦运镜:口播画面满屏起步,1050ms 内缩进圆角落位框,
- * 底色盘淡入盖住底层轨道,要点胶囊逐条弹入。满屏阶段素材画面与
- * 底层口播轨重合,收缩过程看起来就是底层视频自己在缩。
- * 口播素材自带的音频不放(底层轨道负责人声),避免双声。
+ * 人物聚焦运镜:口播画面满屏起步,1050ms 内缩进圆角落位框。
+ * 背景透明——框周围直接透出下方轨道的画面(上层视频缩进框里,
+ * 下层视频在后面继续播)。口播素材自带的音频不放(底层轨道负责人声),
+ * 避免双声。
  */
 export const FocusCamMove: React.FC<Props> = ({
   mediaUrl = "",
   mediaType,
   mediaFit = "cover",
-  bg = "dark",
   side = "left",
-  items = "",
-  stepMs = 600,
   accent = "blue",
+  cornerRadius = 36,
+  showRingColor = true,
   showRing = true,
   camDX = 0,
   camDY = 0,
@@ -223,14 +222,10 @@ export const FocusCamMove: React.FC<Props> = ({
 
   const accentColor = resolveAccent(accent);
   const ratio: Ratio = stageH > stageW ? "portrait" : "landscape";
-  const g = camMoveGeom({ side, camDX, camDY, camW, camH }, ratio);
-  const vertical = ratio === "portrait";
-  const rightSide = !vertical && side === "right";
-
-  const parsed = items
-    .split("|")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const g = camMoveGeom(
+    { side, camDX, camDY, camW, camH, camR: cornerRadius },
+    ratio,
+  );
 
   // 满屏 → 落位框
   const camProgress = interpolate(frame, [0, msToFrames(CAM_MS)], [0, 1], {
@@ -247,11 +242,6 @@ export const FocusCamMove: React.FC<Props> = ({
     overflow: "hidden",
   };
 
-  // 底色盘先淡入(此时被满屏素材盖住,不可见),素材一缩就露出纯色底
-  const bgOpacity = interpolate(frame, [0, msToFrames(520)], [0, 1], {
-    easing: CAM_EASE,
-    ...clampOpts,
-  });
   // 落位框描边在收缩中段浮现
   const ringOpacity = interpolate(
     frame,
@@ -272,31 +262,6 @@ export const FocusCamMove: React.FC<Props> = ({
     objectFit: mediaFit,
   };
 
-  // 要点胶囊逐条弹入(缩到右则要点在左,滑入方向镜像)
-  const chipFromX = rightSide ? -52 : 52;
-
-  const chipListStyle: React.CSSProperties = vertical
-    ? {
-        position: "absolute",
-        left: 80,
-        right: 80,
-        top: g.y + g.h + 70,
-        display: "flex",
-        flexDirection: "column",
-        gap: 34,
-      }
-    : {
-        position: "absolute",
-        left: rightSide ? 110 : 940,
-        right: rightSide ? 980 : 110,
-        top: "50%",
-        transform: "translateY(-50%)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: 34,
-      };
-
   return (
     <AbsoluteFill
       data-effect="FocusCamMove"
@@ -305,8 +270,6 @@ export const FocusCamMove: React.FC<Props> = ({
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
       }}
     >
-      <AbsoluteFill style={{ opacity: bgOpacity, background: BG_GRADIENTS[bg] ?? BG_GRADIENTS.dark }} />
-
       {hasMedia ? (
         <div style={camStyle}>
           {videoMode ? (
@@ -317,7 +280,7 @@ export const FocusCamMove: React.FC<Props> = ({
         </div>
       ) : null}
 
-      {showRing || !hasMedia ? (
+      {showRing ? (
         <div
           style={{
             position: "absolute",
@@ -326,57 +289,11 @@ export const FocusCamMove: React.FC<Props> = ({
             width: g.w,
             height: g.h,
             borderRadius: g.r,
-            border: `3px solid ${accentColor}`,
+            // 描边颜色开关:关 = 白色无彩色描边(框仍可见);开 = 使用描边颜色
+            border: `3px solid ${showRingColor ? accentColor : "rgba(255,255,255,0.92)"}`,
             opacity: ringOpacity,
           }}
         />
-      ) : null}
-
-      {parsed.length > 0 ? (
-        <div style={chipListStyle}>
-          {parsed.map((label, i) => {
-            const start = msToFrames(520 + i * stepMs);
-            const end = start + msToFrames(620);
-            const chipOpacity = interpolate(frame, [start, end], [0, 1], {
-              easing: CAM_EASE,
-              ...clampOpts,
-            });
-            const chipX = interpolate(frame, [start, end], [chipFromX, 0], {
-              easing: CAM_EASE,
-              ...clampOpts,
-            });
-            return (
-              <div
-                key={`${label}-${i}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 22,
-                  padding: "30px 38px",
-                  borderRadius: 16,
-                  background:
-                    bg === "dark"
-                      ? "linear-gradient(160deg, rgba(255,255,255,0.13), rgba(255,255,255,0.06))"
-                      : "linear-gradient(160deg, rgba(44,42,46,0.94), rgba(30,29,33,0.94))",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  boxShadow:
-                    bg === "dark"
-                      ? "0 14px 34px rgba(0,0,0,0.35)"
-                      : "0 14px 34px rgba(70,55,30,0.18)",
-                  color: "#fff",
-                  fontSize: 36,
-                  fontWeight: 700,
-                  letterSpacing: "0.01em",
-                  opacity: chipOpacity,
-                  transform: `translateX(${chipX}px)`,
-                }}
-              >
-                <span style={{ color: accentColor, fontSize: 30, flex: "none" }}>✦</span>
-                <span>{label}</span>
-              </div>
-            );
-          })}
-        </div>
       ) : null}
     </AbsoluteFill>
   );
@@ -385,7 +302,7 @@ export const FocusCamMove: React.FC<Props> = ({
 export const FocusCamMoveEffectDef: EffectDef = {
   id: "FocusCamMove",
   name: "FocusCamMove",
-  description: "人物聚焦运镜 · 舞台口播画面满屏缩进落位框,要点逐条弹入",
+  description: "人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道",
   category: "portrait-narrative",
   catalogGroup: "空间与聚焦",
   glyph: "FM",
@@ -400,11 +317,10 @@ export const FocusCamMoveEffectDef: EffectDef = {
     useMediaCopy: false,
     mediaType: "video",
     mediaFit: "cover",
-    bg: "dark",
     side: "left",
-    items: "本段要点一|本段要点二",
-    stepMs: 600,
-    accent: "blue",
+    accent: "#5fa0fa",
+    cornerRadius: 36,
+    showRingColor: true,
     showRing: true,
     camDX: 0,
     camDY: 0,
@@ -436,38 +352,31 @@ export const FocusCamMoveEffectDef: EffectDef = {
         { label: "完整显示", value: "contain" },
       ],
     },
-    bg: {
-      type: "select",
-      label: "全屏底色",
-      default: "dark",
-      options: [
-        { label: "暗色", value: "dark" },
-        { label: "米色", value: "cream" },
-        { label: "雾白", value: "mist" },
-      ],
-    },
     side: {
       type: "select",
       label: "口播缩到哪侧(竖版忽略)",
       default: "left",
       options: [
-        { label: "左侧(要点在右)", value: "left" },
-        { label: "右侧(要点在左)", value: "right" },
+        { label: "左侧", value: "left" },
+        { label: "右侧", value: "right" },
       ],
     },
-    items: { type: "text", label: "要点(| 分隔,空 = 留白)" },
-    stepMs: { type: "number", label: "每条要点间隔", unit: "ms", default: 600, min: 200, max: 8000, step: 100 },
     accent: {
-      type: "select",
-      label: "强调色",
-      default: "blue",
-      options: [
-        { label: "数据蓝", value: "blue" },
-        { label: "否定红", value: "alert" },
-        { label: "转变橙", value: "orange" },
-      ],
+      type: "color",
+      label: "描边颜色",
+      default: "#5fa0fa",
+      toggleKey: "showRingColor",
     },
-    showRing: { type: "boolean", label: "显示口播落位框", default: true },
+    cornerRadius: {
+      type: "number",
+      label: "口播框圆角(拉满=圆形)",
+      unit: "px",
+      default: 36,
+      min: 0,
+      max: 1000,
+      step: 10,
+    },
+    showRing: { type: "boolean", label: "显示口播框描边", default: true },
     camDX: { type: "number", label: "口播框水平移动", unit: "px", default: 0, min: -1100, max: 1100, step: 10 },
     camDY: { type: "number", label: "口播框垂直移动", unit: "px", default: 0, min: -400, max: 600, step: 10 },
     camW: { type: "number", label: "口播框宽", unit: "px", default: 700, min: 300, max: 1200, step: 10 },

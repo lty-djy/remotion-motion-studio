@@ -109,6 +109,7 @@ import {
   getAnchoredEffectPosition,
 } from "./registry";
 import {
+  camMoveGeom,
   resolveFocusCamStageTarget,
   useFocusCamStageStyle,
   type FocusCamStageTarget,
@@ -1903,7 +1904,15 @@ const StageCamMoveVideo: React.FC<{
       muted={muted}
       pauseWhenBuffering
       style={
-        camStyle ?? { width: "100%", height: "100%", objectFit: "contain" }
+        camStyle ?? {
+          // absolute:多条视频轨各自满屏叠放,DOM 顺序(上轨在后)决定压盖
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+        }
       }
     />
   );
@@ -1931,8 +1940,15 @@ const StudioPreviewComposition = ({
   const shownVideoTracks = includeVideo
     ? videoTracks.filter((track) => track.visible !== false)
     : [];
+  // 多条视频轨时,"当前画面"取最上层轨(trackOrder 最小 = 时间轴最上一行),
+  // 与"上轨盖下轨"的压盖惯例一致
+  const topmostVideoTrack = shownVideoTracks.length
+    ? shownVideoTracks.reduce((top, track) =>
+        track.trackOrder < top.trackOrder ? track : top,
+      )
+    : undefined;
   const activeVideoUrl =
-    shownVideoTracks[0]?.url || (videoTracks.length === 0 ? videoUrl : "");
+    topmostVideoTrack?.url || (videoTracks.length === 0 ? videoUrl : "");
   const hasImportedVideo = videoTracks.length > 0 || Boolean(videoUrl);
   const previewCanvas =
     canvasOrientation === "portrait"
@@ -1978,16 +1994,8 @@ const StudioPreviewComposition = ({
     [instances, canvasOrientation],
   );
   const camStageTrackId = camStageTarget
-    ? (orderedLayers.find((layer) => layer.kind === "video")?.id ?? null)
+    ? (orderedLayers.filter((layer) => layer.kind === "video").pop()?.id ?? null)
     : null;
-  // 运镜激活时,收缩中的视频必须压过效果层(底色盘/描边/要点)。各图层容器可能
-  // 带隔离,跨层 zIndex 不可靠,直接把视频层挪到图层序列末尾(DOM 顺序)。
-  const renderLayers = camStageTrackId
-    ? [
-        ...orderedLayers.filter((layer) => layer.id !== camStageTrackId),
-        ...orderedLayers.filter((layer) => layer.id === camStageTrackId),
-      ]
-    : orderedLayers;
 
   return (
     <AbsoluteFill>
@@ -1995,7 +2003,7 @@ const StudioPreviewComposition = ({
       {solidBackgroundEnabled ? (
         <AbsoluteFill style={{ backgroundColor: "#05070a" }} />
       ) : null}
-      {renderLayers.map((layer) => {
+      {orderedLayers.map((layer) => {
         if (layer.kind === "video") {
           const track = layer.track;
           return (
@@ -10233,6 +10241,8 @@ const App = () => {
     pointerX: number;
     pointerY: number;
     positions: Record<string, { x: number; y: number }>;
+    /** 参数拖拽(FocusCamMove):位移写入 camDX/camDY,而非 instance.position */
+    propStart: { camDX: number; camDY: number } | null;
     scale: number;
     playerWidth: number;
     playerHeight: number;
@@ -10281,13 +10291,22 @@ const App = () => {
           },
         ]),
     );
+    // FocusCamMove:拖拽改写落位框参数(描边/副本/舞台视频都读 camDX/camDY)
+    const propStart =
+      instance.componentId === "FocusCamMove"
+        ? {
+            camDX: Number(instance.props.camDX) || 0,
+            camDY: Number(instance.props.camDY) || 0,
+          }
+        : null;
     canvasDragState.current = {
       mode,
       instanceId: instance.id,
       memberIds,
       pointerX: event.clientX,
       pointerY: event.clientY,
-      positions,
+      positions: propStart ? {} : positions,
+      propStart,
       scale: instance.position.scale,
       playerWidth: bounds.width,
       playerHeight: bounds.height,
@@ -10308,6 +10327,17 @@ const App = () => {
       if (state.mode === "move") {
         const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
         const designDeltaY = (deltaY / state.playerHeight) * canvasHeight;
+        if (state.propStart) {
+          updateInstance(state.instanceId, (instance) => ({
+            ...instance,
+            props: {
+              ...instance.props,
+              camDX: Math.round(state.propStart!.camDX + designDeltaX),
+              camDY: Math.round(state.propStart!.camDY + designDeltaY),
+            },
+          }));
+          return;
+        }
         setInstances((current) =>
           current.map((instance) => {
             const start = state.positions[instance.id];
@@ -12008,6 +12038,7 @@ const App = () => {
     key: string,
     schema: MotionPropSchema,
     value: unknown,
+    allProps?: Record<string, unknown>,
   ) => {
     const label = schema.label ?? key;
     if (
@@ -12292,14 +12323,51 @@ const App = () => {
       );
     }
     if (schema.type === "color") {
+      // 旧实例可能存了命名色(如 "blue"),color input 只认 hex,非法值回退默认
+      const rawColor = String(value ?? schema.default ?? "#65dff7");
+      const colorValue = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(
+        rawColor,
+      )
+        ? rawColor
+        : String(schema.default ?? "#65dff7");
+      // 行内开关(schema.toggleKey 指向同组件的 boolean 参数):关 = 颜色不生效
+      const toggleKey = schema.toggleKey;
+      const toggleOn = toggleKey
+        ? Boolean(allProps?.[toggleKey] ?? true)
+        : true;
       return (
         <label key={key}>
           <span>{label}</span>
-          <input
-            type="color"
-            value={String(value ?? schema.default ?? "#65dff7")}
-            onChange={(event) => updateSelectedProp(key, event.target.value)}
-          />
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
+            <input
+              type="color"
+              value={colorValue}
+              disabled={Boolean(toggleKey) && !toggleOn}
+              onChange={(event) => updateSelectedProp(key, event.target.value)}
+              style={
+                toggleKey && !toggleOn
+                  ? { opacity: 0.35, cursor: "not-allowed" }
+                  : undefined
+              }
+            />
+            {toggleKey ? (
+              <input
+                type="checkbox"
+                checked={toggleOn}
+                title={toggleOn ? "颜色开启;点击关闭" : "颜色已关闭;点击开启"}
+                onChange={(event) =>
+                  updateSelectedProp(toggleKey, event.target.checked)
+                }
+              />
+            ) : null}
+          </span>
         </label>
       );
     }
@@ -14587,10 +14655,20 @@ const App = () => {
                     : instance.position;
                   const overlayScale =
                     overlayPosition.scale * (anchored ? 1 : globalCardScale);
-                  // 全屏卡（placement "full"）铺满画布，选择框直接 100%×100%
+                  // 全屏卡（placement "full"）铺满画布，选择框直接 100%×100%；
+                  // FocusCamMove 例外：手柄覆盖落位框（可拖拽移动）
                   const fullscreenOverlay =
                     EFFECT_REGISTRY_BY_ID.get(definition.id)?.placement ===
                     "full";
+                  const camBox =
+                    definition.id === "FocusCamMove"
+                      ? camMoveGeom(
+                          instance.props as Parameters<typeof camMoveGeom>[0],
+                          canvasOrientation === "portrait"
+                            ? "portrait"
+                            : "landscape",
+                        )
+                      : null;
                   return (
                     <div
                       className={`canvas-selection ${
@@ -14603,33 +14681,46 @@ const App = () => {
                       aria-label={`选择预览组件 ${definition.name}`}
                       aria-pressed={isSelected}
                       style={{
-                        left: fullscreenOverlay
-                          ? "0%"
-                          : `${
-                              ((overlayPosition.x +
-                                definition.bounds.x * overlayScale) /
-                                canvasWidth) *
-                              100
-                            }%`,
-                        top: fullscreenOverlay
-                          ? "0%"
-                          : `${
-                              ((overlayPosition.y +
-                                definition.bounds.y * overlayScale) /
-                                canvasHeight) *
-                              100
-                            }%`,
-                        width: fullscreenOverlay
-                          ? "100%"
-                          : `${(definition.bounds.width / canvasWidth) * 100}%`,
-                        height: fullscreenOverlay
-                          ? "100%"
-                          : `${(definition.bounds.height / canvasHeight) * 100}%`,
+                        left: camBox
+                          ? `${(camBox.x / canvasWidth) * 100}%`
+                          : fullscreenOverlay
+                            ? "0%"
+                            : `${
+                                ((overlayPosition.x +
+                                  definition.bounds.x * overlayScale) /
+                                  canvasWidth) *
+                                100
+                              }%`,
+                        top: camBox
+                          ? `${(camBox.y / canvasHeight) * 100}%`
+                          : fullscreenOverlay
+                            ? "0%"
+                            : `${
+                                ((overlayPosition.y +
+                                  definition.bounds.y * overlayScale) /
+                                  canvasHeight) *
+                                100
+                              }%`,
+                        width: camBox
+                          ? `${(camBox.w / canvasWidth) * 100}%`
+                          : fullscreenOverlay
+                            ? "100%"
+                            : `${(definition.bounds.width / canvasWidth) * 100}%`,
+                        height: camBox
+                          ? `${(camBox.h / canvasHeight) * 100}%`
+                          : fullscreenOverlay
+                            ? "100%"
+                            : `${(definition.bounds.height / canvasHeight) * 100}%`,
                         transform: `scale(${overlayScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}
                       onPointerDown={(event) => {
                         if (anchored) {
+                          if (camBox) {
+                            // 运镜卡:拖拽写 camDX/camDY,落位框/舞台视频实时跟随
+                            beginCanvasTransform(event, "move", instance);
+                            return;
+                          }
                           // 锚定效果固定落位：点击只选中，不进入拖拽
                           event.stopPropagation();
                           selectOnlyInstance(instance.id);
@@ -14641,7 +14732,9 @@ const App = () => {
                         showComponentMenu(event, "preview", instance.id)
                       }
                       title={
-                        anchored
+                        camBox
+                          ? "拖动移动落位框；右键复制或删除"
+                          : anchored
                           ? EFFECT_REGISTRY_BY_ID.get(definition.id)
                               ?.placement === "full"
                             ? "该效果固定铺满画布；点击选中后可在右侧修改内容参数"
@@ -16134,6 +16227,7 @@ const App = () => {
                           key,
                           schema,
                           inspectorInstance.props[key] ?? schema.default,
+                          inspectorInstance.props,
                         );
                       },
                     )}

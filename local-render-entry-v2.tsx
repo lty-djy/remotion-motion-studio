@@ -123,7 +123,15 @@ const StageCamMoveVideo: React.FC<{
       volume={volume}
       muted={muted}
       style={
-        camStyle ?? { width: "100%", height: "100%", objectFit: "contain" }
+        camStyle ?? {
+          // absolute:多条视频轨各自满屏叠放,DOM 顺序(上轨在后)决定压盖
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+        }
       }
     />
   );
@@ -143,7 +151,13 @@ const MultiComponentRender = ({
   const visibleVideoTracks = transparent
     ? []
     : videoTracks.filter((track) => track.visible !== false);
-  const activeVideoSrc = visibleVideoTracks[0]?.url || videoSrc;
+  // 多条视频轨时取最上层轨(trackOrder 最小),与"上轨盖下轨"的压盖惯例一致
+  const topmostVideoTrack = visibleVideoTracks.length
+    ? visibleVideoTracks.reduce((top, track) =>
+        track.trackOrder < top.trackOrder ? track : top,
+      )
+    : undefined;
+  const activeVideoSrc = topmostVideoTrack?.url || videoSrc;
   const orderedLayers = [
     ...visibleVideoTracks.map((track) => ({
       kind: "video" as const,
@@ -175,22 +189,15 @@ const MultiComponentRender = ({
     canvasHeight > canvasWidth ? "portrait" : "landscape",
   );
   const camStageTrackId = camStageTarget
-    ? (orderedLayers.find((layer) => layer.kind === "video")?.id ?? null)
+    ? (orderedLayers.filter((layer) => layer.kind === "video").pop()?.id ?? null)
     : null;
-  // 运镜激活时视频层挪到末尾,保证收缩画面压过效果层(与预览壳同一策略)
-  const renderLayers = camStageTrackId
-    ? [
-        ...orderedLayers.filter((layer) => layer.id !== camStageTrackId),
-        ...orderedLayers.filter((layer) => layer.id === camStageTrackId),
-      ]
-    : orderedLayers;
   return <AbsoluteFill
     style={transparent ? undefined : { backgroundColor: "#05070a" }}
   >
     <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
     <WaitForFonts />
     <VirtualClock />
-    {renderLayers.map((layer) => {
+    {orderedLayers.map((layer) => {
       if (layer.kind === "video") {
         const track = layer.track;
         return (
