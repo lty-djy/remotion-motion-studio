@@ -12,7 +12,7 @@
 
 ## 竖屏口播信息层
 
-- `ChapterBar`：ChapterBar — 常驻章节导航 · 顶部全程在场的本期地图（仅工作台可用；props：`chapters`、`progAlpha`、`speed`、`theme`、`accent`、`showProgress`、`progMode`、`progAccent`）
+- `ChapterBar`：ChapterBar — 常驻章节导航 · 顶部全程在场的本期地图（仅工作台可用；props：`chapters`、`lastChapterSeconds`、`progAlpha`、`panelColor`、`speed`、`showProgress`、`progMode`、`progAccent`、`textColor`）
 - `PortraitChapterRail`：竖屏口播·章节条 — 左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。（仅工作台可用；props：`enabled`、`cardWidth`、`index`、`title`、`subtitle`、`accentColor`、`textColor`、`indexFontSize`、`titleFontSize`、`subtitleFontSize`、`animationSeconds`）
 - `PortraitIndexedChapterTitle`：竖屏口播·编号章节标题 — 参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。（仅工作台可用；props：`enabled`、`chapterNumber`、`eyebrow`、`title`、`subtitle`、`accentColor`、`titleColor`、`subtitleColor`、`numberFontSize`、`eyebrowFontSize`、`titleFontSize`、`subtitleFontSize`、`revealDelaySeconds`、`animationSeconds`）
 - `PortraitInfoCallout`：竖屏口播·图标信息卡 — 参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`detail`、`note`、`iconText`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）

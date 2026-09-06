@@ -40,8 +40,11 @@ export const CARD_BACKGROUND_CONTROL_CSS = `
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-// 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律不再渲染底色。
-export const CARD_BACKGROUND_SUPPORTED_COMPONENT_IDS = new Set(["TerminalPanel"]);
+// 卡片底色只保留给终端教学面板（TerminalPanel）与 ChapterBar，其余组件一律不再渲染底色。
+export const CARD_BACKGROUND_SUPPORTED_COMPONENT_IDS = new Set([
+  "TerminalPanel",
+  "ChapterBar",
+]);
 
 export const supportsCardBackground = (componentId: unknown): boolean =>
   typeof componentId === "string" &&

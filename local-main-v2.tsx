@@ -108,6 +108,7 @@ import {
   EFFECT_REGISTRY_BY_ID,
   getAnchoredEffectPosition,
 } from "./registry";
+import { chapterBarAutoDurationSeconds } from "./effects/ChapterBar";
 import {
   BUILT_IN_ICON_CATEGORIES,
   BUILT_IN_ICONS,
@@ -11719,6 +11720,37 @@ const App = () => {
 
   const updateSelectedProp = (key: string, value: unknown) => {
     if (!inspectorInstance) return;
+    // ChapterBar：章节表/最后一章时长变化时，轨道长度自动跟随章节表
+    // （最后一章起始秒 + 最后一章保留时长），不用手动拖卡片边缘。
+    if (
+      inspectorDefinition?.id === "ChapterBar" &&
+      (key === "chapters" || key === "lastChapterSeconds") &&
+      !pendingPreviewInspectorInstance
+    ) {
+      const nextChapters =
+        key === "chapters"
+          ? String(value ?? "")
+          : String(inspectorInstance.props.chapters ?? "");
+      const nextTail = Number(
+        key === "lastChapterSeconds"
+          ? value
+          : inspectorInstance.props.lastChapterSeconds ?? 10,
+      );
+      const durationSeconds = chapterBarAutoDurationSeconds(
+        nextChapters,
+        Number.isFinite(nextTail) ? nextTail : 10,
+      );
+      const nextDuration = Math.max(3, Math.round(durationSeconds * fps));
+      updateInspectorInstance(inspectorInstance.id, (instance) => ({
+        ...instance,
+        durationInFrames: nextDuration,
+        props: { ...instance.props, [key]: value },
+      }));
+      setManualTimelineEndFrame((current) =>
+        Math.max(current, inspectorInstance.startFrame + nextDuration),
+      );
+      return;
+    }
     updateInspectorInstance(inspectorInstance.id, (instance) => ({
       ...instance,
       props: { ...instance.props, [key]: value },
@@ -12068,8 +12100,10 @@ const App = () => {
     }
     if (
       schema.type === "number" &&
-      ((selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
-        key === "ruleIntervalSeconds") ||
+      ((selectedDefinition?.id === "ChapterBar" &&
+        key === "lastChapterSeconds") ||
+        (selectedDefinition?.id === "PortraitDesignRuleChecklist" &&
+          key === "ruleIntervalSeconds") ||
         (selectedDefinition?.id === "TerminalPanel" &&
           key === "itemIntervalSeconds") ||
         (selectedDefinition?.id === "PortraitRiskWarning" &&

@@ -2,43 +2,57 @@ import React from "react";
 import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { EffectDef } from "../registry";
 
-type AccentKey = "blue" | "alert" | "orange";
-
-type ThemeKey = "dark" | "light";
-
 type Props = {
   chapters?: string;
-  theme?: ThemeKey;
-  accent?: AccentKey;
   showProgress?: boolean;
   progMode?: "fill" | "line";
-  progAccent?: "" | AccentKey;
+  /** 进度色:空 = 用默认蓝;兼容旧实例的预设名 */
+  progAccent?: string;
+  /** 章节文字色:空 = 用默认白;选中后按 100%/70%/44% 派生三级层次 */
+  textColor?: string;
   progAlpha?: number;
   speed?: number;
   instanceDurationInFrames?: number;
 };
 
-/** 主题令牌:与参考项目 hud.css 的亮/暗两组取值一一对应 */
-const THEME_TOKENS: Record<
-  ThemeKey,
-  { ink: string; muted: string; faint: string; node: string; brd: string; colors: Record<AccentKey, string> }
-> = {
-  dark: {
-    ink: "#ffffff",
-    muted: "rgba(255, 255, 255, 0.70)",
-    faint: "rgba(255, 255, 255, 0.44)",
-    node: "#12121a",
-    brd: "rgba(255, 255, 255, 0.22)",
-    colors: { blue: "#5fa0fa", alert: "#e88686", orange: "#f0a24f" },
-  },
-  light: {
-    ink: "#1a2540",
-    muted: "rgba(26, 37, 64, 0.66)",
-    faint: "rgba(26, 37, 64, 0.42)",
-    node: "#ece6e0",
-    brd: "rgba(255, 255, 255, 0.85)",
-    colors: { blue: "#1e63d8", alert: "#cf5555", orange: "#d97a1c" },
-  },
+/** 强调色默认值(原"数据蓝") */
+export const CHAPTER_BAR_DEFAULT_ACCENT = "#5fa0fa";
+
+/** 旧实例存的预设名 → hex;其余值原样透传 */
+const LEGACY_ACCENT_NAMES: Record<string, string> = {
+  blue: "#5fa0fa",
+  alert: "#e88686",
+  orange: "#f0a24f",
+};
+
+const resolveAccent = (value: string | undefined, fallback: string) => {
+  if (!value) return fallback;
+  return LEGACY_ACCENT_NAMES[value] ?? value;
+};
+
+/** #rgb / #rrggbb → {r,g,b};非法返回 null */
+const hexToRgb = (value: string): { r: number; g: number; b: number } | null => {
+  const m = /^#([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(value.trim());
+  if (!m) return null;
+  const hex = m[1];
+  const full =
+    hex.length === 3
+      ? hex.split("").map((c) => c + c).join("")
+      : hex;
+  return {
+    r: parseInt(full.slice(0, 2), 16),
+    g: parseInt(full.slice(2, 4), 16),
+    b: parseInt(full.slice(4, 6), 16),
+  };
+};
+
+/** 暗底令牌:与参考项目 hud.css 的暗色组取值一致 */
+const THEME_TOKENS = {
+  ink: "#ffffff",
+  muted: "rgba(255, 255, 255, 0.70)",
+  faint: "rgba(255, 255, 255, 0.44)",
+  node: "#12121a",
+  brd: "rgba(255, 255, 255, 0.22)",
 };
 
 interface Chapter {
@@ -61,6 +75,20 @@ function parseChapters(raw: string): Chapter[] {
     .sort((a, b) => a.start - b.start);
 }
 
+/** 根据章节表自动推导轨道长度(秒):最后一章起始 + 最后一章保留时长。 */
+export const chapterBarAutoDurationSeconds = (
+  raw: string,
+  lastChapterSeconds = 10,
+): number => {
+  const items = parseChapters(raw || "");
+  const lastStart = items.length ? items[items.length - 1].start : 0;
+  const tail =
+    Number.isFinite(lastChapterSeconds) && lastChapterSeconds > 0
+      ? lastChapterSeconds
+      : 10;
+  return Math.max(0, lastStart) + tail;
+};
+
 /**
  * 常驻章节导航条:整期视频的地图,贴在画面顶部全程在场。
  * 当前章节高亮 + 章内进度线,讲到哪一章观众随时知道。
@@ -68,11 +96,10 @@ function parseChapters(raw: string): Chapter[] {
  */
 export const ChapterBar: React.FC<Props> = ({
   chapters = "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
-  theme = "dark",
-  accent = "blue",
   showProgress = true,
   progMode = "fill",
   progAccent = "",
+  textColor = "",
   progAlpha = 0.25,
   speed = 1,
   instanceDurationInFrames,
@@ -95,12 +122,18 @@ export const ChapterBar: React.FC<Props> = ({
   const progLineHeight = 4 / fitScale;
   const edgeWidth = 3 / fitScale;
 
-  const tokens = THEME_TOKENS[theme] ?? THEME_TOKENS.dark;
-  const accentColor = tokens.colors[accent] ?? tokens.colors.blue;
-  const progColor =
-    progAccent && tokens.colors[progAccent as AccentKey]
-      ? tokens.colors[progAccent as AccentKey]
-      : accentColor;
+  const tokens = THEME_TOKENS;
+  // 进度色(整条上色/前沿亮边/细线进度共用);空值兼容旧实例,落到默认蓝
+  const progColor = resolveAccent(progAccent, CHAPTER_BAR_DEFAULT_ACCENT);
+  // 文字色为空时跟随底色主题;自定义后按透明度派生三级层次(当前章/已讲/未到)
+  const customTextRgb = hexToRgb(textColor);
+  const inkColor = customTextRgb ? textColor.trim() : tokens.ink;
+  const mutedColor = customTextRgb
+    ? `rgba(${customTextRgb.r}, ${customTextRgb.g}, ${customTextRgb.b}, 0.7)`
+    : tokens.muted;
+  const faintColor = customTextRgb
+    ? `rgba(${customTextRgb.r}, ${customTextRgb.g}, ${customTextRgb.b}, 0.44)`
+    : tokens.faint;
   const alpha = Math.min(1, Math.max(0.05, progAlpha));
 
   // 进场:从画面上方滑入,速度倍率只作用于这段进场
@@ -140,7 +173,7 @@ export const ChapterBar: React.FC<Props> = ({
         overflow: "hidden",
         background: `color-mix(in srgb, ${tokens.node} 88%, transparent)`,
         borderBottom: `${1 / fitScale}px solid ${tokens.brd}`,
-        color: tokens.ink,
+        color: inkColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
         transform: `translateY(${slide})`,
         pointerEvents: "none",
@@ -184,7 +217,7 @@ export const ChapterBar: React.FC<Props> = ({
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              color: isOn ? tokens.ink : isDone ? tokens.muted : tokens.faint,
+              color: isOn ? inkColor : isDone ? mutedColor : faintColor,
               fontSize,
               fontWeight: isOn ? 800 : 600,
               letterSpacing: "0.08em",
@@ -214,7 +247,7 @@ export const ChapterBar: React.FC<Props> = ({
                   bottom: 0,
                   height: progLineHeight,
                   width: `${pct * 100}%`,
-                  background: accentColor,
+                  background: progColor,
                 }}
               />
             ) : null}
@@ -234,16 +267,18 @@ export const ChapterBarEffectDef: EffectDef = {
   glyph: "CB",
   placement: "top",
   component: ChapterBar as React.ComponentType<Record<string, unknown>>,
-  durationInFrames: 300,
+  // 默认章节表最后一章起始 24 秒 + 最后一章保留 10 秒 = 34 秒(30fps → 1020 帧)
+  durationInFrames: 1020,
   bounds: { x: 0, y: 0, width: 1920, height: 48 },
   defaultPosition: { x: 0, y: 0, scale: 1 },
   defaultProps: {
     chapters: "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
-    theme: "dark",
-    accent: "blue",
+    lastChapterSeconds: 10,
+    panelColor: "#12121a",
     showProgress: true,
     progMode: "fill",
-    progAccent: "",
+    progAccent: CHAPTER_BAR_DEFAULT_ACCENT,
+    textColor: "",
     progAlpha: 0.25,
     speed: 1,
   },
@@ -253,6 +288,14 @@ export const ChapterBarEffectDef: EffectDef = {
       label: "章节表(名称 起始秒,| 分隔)",
       default: "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
     },
+    lastChapterSeconds: {
+      type: "number",
+      label: "最后一章时长(秒)",
+      default: 10,
+      min: 1,
+      max: 120,
+      step: 1,
+    },
     progAlpha: {
       type: "number",
       label: "进度色透明度",
@@ -261,6 +304,11 @@ export const ChapterBarEffectDef: EffectDef = {
       max: 1,
       step: 0.05,
     },
+    panelColor: {
+      type: "color",
+      label: "卡片底色",
+      default: "#12121a",
+    },
     speed: {
       type: "number",
       label: "动画速度(此卡)",
@@ -268,25 +316,6 @@ export const ChapterBarEffectDef: EffectDef = {
       min: 0.25,
       max: 3,
       step: 0.05,
-    },
-    theme: {
-      type: "select",
-      label: "底色(此卡独立生效)",
-      default: "dark",
-      options: [
-        { label: "🌞 亮底", value: "light" },
-        { label: "🌙 暗底", value: "dark" },
-      ],
-    },
-    accent: {
-      type: "select",
-      label: "强调色",
-      default: "blue",
-      options: [
-        { label: "数据蓝", value: "blue" },
-        { label: "否定红", value: "alert" },
-        { label: "转变橙", value: "orange" },
-      ],
     },
     showProgress: { type: "boolean", label: "显示进度", default: true },
     progMode: {
@@ -299,15 +328,14 @@ export const ChapterBarEffectDef: EffectDef = {
       ],
     },
     progAccent: {
-      type: "select",
-      label: "进度色(默认跟随强调色)",
+      type: "color",
+      label: "进度色",
+      default: CHAPTER_BAR_DEFAULT_ACCENT,
+    },
+    textColor: {
+      type: "color",
+      label: "文字颜色(默认跟随底色)",
       default: "",
-      options: [
-        { label: "跟随强调色", value: "" },
-        { label: "数据蓝", value: "blue" },
-        { label: "否定红", value: "alert" },
-        { label: "转变橙", value: "orange" },
-      ],
     },
   },
 };
