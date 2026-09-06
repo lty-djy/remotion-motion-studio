@@ -14,7 +14,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
-import { readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, type Plugin } from "vite";
@@ -1941,6 +1941,24 @@ const localApi = (): Plugin => {
             projects: projectHistory,
             snapshot: persistedSnapshot,
           });
+          return;
+        }
+
+        if (url.pathname === "/api/review-log" && req.method === "POST") {
+          // 「导出编排给AI」：保存 AI 初稿(origin) + 用户微调终稿(motionTimeline)，
+          // 供 overlay-fx-generator 的「学一下」逐卡 diff。
+          const body = JSON.parse(
+            (await getBody(req, 8 * 1024 * 1024)).toString("utf8"),
+          ) as Record<string, unknown>;
+          // 文件名用本地时间，避免 UTC 时间戳看着差 8 小时。
+          const now = new Date();
+          const pad = (value: number) => String(value).padStart(2, "0");
+          const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+          const reviewDir = join(projectDir, "review-logs");
+          await mkdir(reviewDir, { recursive: true });
+          const filePath = join(reviewDir, `${stamp}-review-log.json`);
+          await writeFile(filePath, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+          sendJson(res, 200, { ok: true, path: filePath });
           return;
         }
 

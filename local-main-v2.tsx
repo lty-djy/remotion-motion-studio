@@ -122,10 +122,8 @@ import {
 import { buildSemanticSrtArrangement } from "./ai-motion-arranger/semantic-srt-arranger.mjs";
 import { PORTRAIT_ROUTE_COMPONENT_IDS } from "./ai-motion-arranger/portrait-semantic-routes.mjs";
 import {
-  applyAvoidanceLayout,
   createKnownAvoidanceRegions,
 } from "./ai-motion-arranger/avoidance-layout-planner.mjs";
-import { runTimelineQualityControl } from "./ai-motion-arranger/quality-control.mjs";
 import {
   createArrangementBatch,
   removeArrangementBatch,
@@ -3150,6 +3148,8 @@ const App = () => {
   const materialImportCategoryRef = useRef("其他");
   const sfxLibraryAudioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const timelineJsonInput = useRef<HTMLInputElement>(null);
+  // 最近一次导入的编排 JSON 原文（AI 初稿）；「导出编排给AI」时作为 origin 附在终稿旁供 diff。
+  const arrangementOriginRef = useRef<Record<string, unknown> | null>(null);
   const activeComponentIdRef = useRef("");
   const workspaceReadyRef = useRef(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -6072,7 +6072,7 @@ const App = () => {
     setAiArrangementStage("idle");
     setNotice({
       tone: "info",
-      text: "请导入在线大模型生成的编排 JSON；工作台不会再用本地规则重新分析 SRT。",
+      text: "请导入由 overlay-fx-generator 编排大脑生成的编排 JSON（见 overlay-fx-generator/SKILL.md）；工作台不再用本地规则挑选效果组件。",
     });
     timelineJsonInput.current?.click();
   };
@@ -6127,7 +6127,7 @@ const App = () => {
       setSrtEntries(entries);
       setNotice({
         tone: "info",
-        text: `已读取 ${file.name}：${entries.length} 条字幕，正在进行本地编排。`,
+        text: `已读取 ${file.name}：${entries.length} 条字幕，正在生成字幕语义动画轨道。`,
       });
       await generateSrtTimeline(entries, file.name);
     } catch (error) {
@@ -6199,27 +6199,8 @@ const App = () => {
       if (!captionDefinition) {
         throw new Error("当前效果库缺少 SRT字幕语义动画，无法生成真实字幕轨道。");
       }
-      const componentDefinitions = arrangeableComponentIds.flatMap((componentId) => {
-        const definition = definitionMap.get(componentId);
-        return definition ? [definition] : [];
-      });
-      await showStage("layout");
-      const arrangedTimeline = applyAvoidanceLayout({
-        timeline: semanticTimeline,
-        canvas,
-        componentDefinitions,
-        includeFace: true,
-        includeCaptions: true,
-      });
-      await showStage("quality");
-      const checkedTimeline = runTimelineQualityControl({
-        timeline: arrangedTimeline,
-        canvas,
-        componentDefinitions,
-        resourceIndex,
-        includeFace: true,
-        includeCaptions: true,
-      });
+      // 本地规则不再挑选效果组件（组件选择由 overlay-fx-generator 编排 JSON 承载），
+      // 因此跳过避让布局与质检，语义分析只服务字幕轨的 semanticKey 标注。
       const srtEndSeconds = Math.max(
         ...entriesOverride.map((entry) => entry.endMs),
       ) / 1000;
@@ -6309,34 +6290,9 @@ const App = () => {
               : "",
         };
       });
-      const preferredMotionTimeline = (
-        Array.isArray(checkedTimeline.motionTimeline)
-          ? checkedTimeline.motionTimeline
-          : []
-      ).map((item) => ({
-        ...item,
-        props:
-          arrangementPreferences.keepStyleConsistent && isRecord(item.props)
-            ? applyConsistentAccent(
-                item.props,
-                arrangementPreferences.accentColor,
-              )
-            : item.props,
-      }));
-      const preferredResourceTracks = (
-        Array.isArray(checkedTimeline.resourceTracks)
-          ? checkedTimeline.resourceTracks
-          : []
-      ).filter(
-        (track) =>
-          track.kind !== "icon" ||
-          typeof track.sourceExpressionId !== "string" ||
-          !track.sourceExpressionId.startsWith("icon-"),
-      );
       const timelineWithCaption = {
-        ...checkedTimeline,
+        ...semanticTimeline,
         motionTimeline: [
-          ...preferredMotionTimeline,
           {
             componentId: "SrtSemanticCaptions",
             startFrame: 0,
@@ -6356,7 +6312,7 @@ const App = () => {
             sourceIntentId: SRT_CAPTION_TRACK_ID,
           },
         ],
-        resourceTracks: preferredResourceTracks,
+        resourceTracks: [],
       };
       await showStage("preview");
       const baseName = (fileNameOverride || "字幕")
@@ -6389,7 +6345,6 @@ const App = () => {
                   analysis.diversitySummary?.supportingSuppressedCount,
               },
               semanticSourcesBySegment,
-              layoutSummary: checkedTimeline.layoutSummary,
             }
           : current,
       );
@@ -6399,9 +6354,8 @@ const App = () => {
         intentCount: analysis.intentCount,
         detectedIntentCount: analysis.detectedIntentCount,
         suppressedIntentCount: analysis.suppressedIntentCount,
-        motionBudget: analysis.densitySummary?.motionBudget,
-        motionCount: analysis.motionCount,
-        resourceCount: analysis.resourceCount,
+        motionCount: 0,
+        resourceCount: 0,
         skippedCueCount: analysis.skippedCueCount,
         messages: analysis.messages,
       });
@@ -6410,7 +6364,7 @@ const App = () => {
       }
       setNotice({
         tone: "info",
-        text: `已识别 ${analysis.detectedIntentCount ?? analysis.intentCount} 个语义意图，密度筛选后 ${analysis.intentCount} 个进入预览；时间线尚未修改。`,
+        text: "已生成 SRT 字幕语义动画轨道预览（不选动效组件）；动效编排请导入 overlay-fx-generator 生成的编排 JSON。时间线尚未修改。",
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "语义编排生成失败";
@@ -7242,6 +7196,9 @@ const App = () => {
       throw new Error("JSON 格式无效，无法读取编排内容。");
     }
     const parsedRecord = isRecord(parsed) ? parsed : null;
+    if (parsedRecord) {
+      arrangementOriginRef.current = parsedRecord;
+    }
     const semanticAnalysis = isRecord(parsedRecord?.semanticAnalysis)
       ? parsedRecord.semanticAnalysis
       : null;
@@ -7601,6 +7558,99 @@ const App = () => {
       tone: "info",
       text: `已生成 ${arrangementMotionItems.length} 个动效、${arrangementBatch.resourceItems.length} 个资源和 ${captionInstance ? 1 : 0} 条真实字幕轨的编排预览，时间线尚未修改。`,
     });
+  };
+
+  // 「导出编排给AI」：把当前时间线（用户微调后的终稿）导出成编排 JSON，
+  // 附上最近一次导入的 AI 初稿 origin，交给 overlay-fx-generator 的「学一下」做逐卡 diff。
+  const exportArrangementForReview = async () => {
+    if (instances.length === 0 && resourceTracks.length === 0) {
+      setNotice({
+        tone: "error",
+        text: "时间线是空的：请先插入编排（或手动添加效果）后再导出。",
+      });
+      return;
+    }
+    const canvas =
+      canvasOrientation === "portrait"
+        ? { width: 1080, height: 1920, orientation: "portrait" }
+        : { width: 1920, height: 1080, orientation: "landscape" };
+    const doc = {
+      generatedBy: "workbench-review-export/1",
+      exportedAt: new Date().toISOString(),
+      sourceSrt: srtFileName,
+      canvas,
+      fps,
+      durationInFrames,
+      origin: arrangementOriginRef.current,
+      motionTimeline: instances.map((instance) => ({
+        componentId: instance.componentId,
+        startFrame: instance.startFrame,
+        durationInFrames: instance.durationInFrames,
+        laneId: instance.laneId,
+        trackOrder: instance.trackOrder,
+        visible: instance.visible,
+        sourceStartFrame: instance.sourceStartFrame,
+        position: { ...instance.position },
+        cardBackgroundEnabled: instance.cardBackgroundEnabled,
+        backgroundOpacity: instance.backgroundOpacity,
+        ...(instance.cardMask ? { cardMask: instance.cardMask } : {}),
+        props: instance.props,
+        sourceExpressionId: instance.sourceExpressionId,
+        sourceIntentId: instance.sourceIntentId,
+      })),
+      resourceTracks: resourceTracks.map((track) => ({
+        kind: track.kind,
+        resourceId: track.resourceId,
+        name: track.name,
+        laneId: track.laneId,
+        trackOrder: track.trackOrder,
+        url: track.url,
+        mimeType: track.mimeType,
+        sourceStartFrame: track.sourceStartFrame,
+        sourceDurationInFrames: track.sourceDurationInFrames,
+        startFrame: track.startFrame,
+        durationInFrames: track.durationInFrames,
+        visible: track.visible,
+        position: { ...track.position },
+        volume: track.volume,
+        voiceDucking: track.voiceDucking,
+        sourceExpressionId: track.sourceExpressionId,
+        sourceIntentId: track.sourceIntentId,
+      })),
+    };
+    try {
+      const response = await fetch("/api/review-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(doc),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error ?? "review-log 保存失败");
+      }
+      const baseName = (srtFileName || "时间线编排")
+        .replace(/\.srt$/i, "")
+        .replace(/[\\/:*?"<>|]/g, "-");
+      const fileName = `${baseName}-review-export.json`;
+      const blob = new Blob([JSON.stringify(doc, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setNotice({
+        tone: "ok",
+        text: `已导出编排快照（AI 初稿 + 你的微调终稿），服务端存到 ${payload.path}，下载文件 ${fileName}。对 AI 说「学一下」即可开始沉淀偏好。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "导出编排失败",
+      });
+    }
   };
 
   const togglePendingArrangementItem = (key: string) => {
@@ -12892,7 +12942,7 @@ const App = () => {
             className={srtGenerating ? "ai-arrange-entry running" : "ai-arrange-entry"}
             disabled={srtGenerating}
             onClick={openSrtPicker}
-            title="选择 SRT 字幕并使用本地规则自动编排"
+            title="选择 SRT 字幕，生成字幕语义动画轨道（动效编排请导入 overlay-fx-generator 的编排 JSON）"
           >
             <MagicWand weight="fill" />
             {srtGenerating ? "读取字幕中…" : "SRT导入"}
@@ -12988,7 +13038,7 @@ const App = () => {
                     <button type="button" className="subtitle-template-empty" onClick={openAiArrangement} disabled={srtGenerating}>
                       <UploadSimple />
                       <strong>选择 JSON 文件</strong>
-                      <span>导入 AI 大模型编排结果</span>
+                      <span>导入 overlay-fx-generator 编排结果</span>
                     </button>
                     <div
                       className="arrangement-import-mode in-subtitle-panel"
@@ -14391,10 +14441,17 @@ const App = () => {
             </button>
             <button
               onClick={() => timelineJsonInput.current?.click()}
-              title="载入 AI 大模型编排 JSON，预览并确认后才会插入时间线"
+              title="载入 overlay-fx-generator 编排大脑生成的编排 JSON，预览并确认后才会插入时间线"
             >
               <UploadSimple />
               载入AI大模型编排JSON
+            </button>
+            <button
+              onClick={() => void exportArrangementForReview()}
+              title="把当前时间线（你的微调终稿）连同 AI 初稿导出给 overlay-fx-generator 学习；导出后对 AI 说「学一下」"
+            >
+              <DownloadSimple />
+              导出编排给AI
             </button>
           </div>
 

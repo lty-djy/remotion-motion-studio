@@ -1,0 +1,10 @@
+{
+  "minDwellSec": 1.5,
+  "maxQuietGapSec": 10,
+  "minPerMinute": 4,
+  "maxPerMinute": 16,
+  "minDistinctComponents": 6,
+  "minDistinctComponentsPer60s": 3,
+  "maxSameComponentPerVideo": 4,
+  "maxConcurrentContent": 4
+}

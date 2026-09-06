@@ -1,92 +1,55 @@
-# AI 动效编排 Skill（ai-motion-arranger）
+# ai-motion-arranger · 确定性编排引擎
 
-> 把一段 SRT 口播字幕编排成动效工作台的 manifest JSON。
-> **AI 只做编排，不写代码。**
+> **编排大脑已迁移**：SRT → 编排 JSON 的 AI 编排规则现在由 [`../overlay-fx-generator/SKILL.md`](../overlay-fx-generator/SKILL.md)
+> 提供（沿用 Overlay Studio 的分段场景制方法论，组件库为本工作台真实效果库）。
+> 本目录降级为**确定性引擎**：工作台内置的避让布局、五项质检、插入批次、字幕语义路由、
+> 资源索引与离线 manifest 编译链路的实现都在这里。**AI 编排不再使用本目录的关键词路由选组件。**
 
 ## 文件结构
 
 ```
 ai-motion-arranger/
 ├── README.md                # 本文件
-├── SKILL.md                 # AI 编排器主文档（请勿手改）
-├── semantic-srt-arranger.mjs # 工作台内置的确定性 SRT 多意图路由器
-├── portrait-semantic-routes.mjs # 竖屏口播 7 类语义到 8 个参考组件的结构化路由表
-├── avoidance-layout-planner.mjs # 已知人物/字幕安全区避让布局器
-├── quality-control.mjs       # 五项确定性自动质检器
-├── arrangement-batch.mjs    # 插入批次、语义组摘要与整批撤销
-├── visual-script.schema.json # Visual Script 2.0 正式 JSON Schema
-├── references/
-│   ├── card-catalog.md      # 自动生成的卡片清单（AI 只能用这里登记的 id + props）
-│   ├── palette.md           # 语义色板（AI 只能用这里登记的 token）
-│   ├── design-tokens.md     # 顶层设计令牌：theme（基调）/ skin（配色）/ style（骨架）/ font（字体）
-│   └── visual-script-v2.md  # 2.0 协议边界与校验说明
-├── scripts/
-│   ├── arranger-overlay.json        # 编排层注释（人类可读的语义）
-│   ├── sync-runtime-registry.mjs    # 从真实运行时 registry 同步元数据与目录
-│   ├── registry-meta.mjs            # 自动生成的技术字段，禁止手改
-│   ├── generate-card-catalog.mjs    # 自动生成 references/card-catalog.md
-│   ├── generate-built-in-audio.mjs  # 重建仓库自带的原创 WAV 资源
-│   ├── build-resource-index.mjs     # 根据真实文件生成资源技术索引
-│   ├── validate-resource-index.mjs  # 校验资源文件、哈希与索引一致性
-│   ├── lint-manifest.mjs            # manifest 体检器：AI 自检清单的机械复核
-│   ├── validate-visual-script.mjs   # Visual Script 2.0 schema + 语义校验
-│   ├── test-visual-script.mjs       # Visual Script 2.0 正反样例回归
-│   ├── test-semantic-srt-arranger.mjs # SRT 多意图与固定资源路由回归
-│   ├── test-portrait-semantic-routes.mjs # 竖屏路由、组合、安全区与禁用项回归
-│   ├── test-avoidance-layout.mjs # 横竖屏人物/字幕避让回归
-│   ├── test-quality-control.mjs # 五项质检正反样例回归
-│   ├── test-arrangement-batch.mjs # 插入批次与原时间线保护回归
-│   └── manifest-to-tsx.mjs          # 把 manifest JSON 编译成 TSX（零 AI）
-└── examples/
-    ├── README.md
-    ├── sample-srt.srt
-    ├── sample-manifest.json
-    ├── sample-visual-script-v2.json
-    └── invalid-visual-script-v2.json
+├── semantic-srt-arranger.mjs    # 字幕语义路由器：现仅为「SRT导入」生成字幕轨的 semanticKey 标注服务
+├── portrait-semantic-routes.mjs # 竖屏口播语义路由表（字幕轨语义标注 + 历史测试）
+├── avoidance-layout-planner.mjs # 已知人物/字幕安全区避让布局器（确定性，工作台内置编排使用）
+├── quality-control.mjs         # 五项确定性自动质检器
+├── arrangement-batch.mjs       # 插入批次、语义组摘要与整批撤销
+├── srt-semantic-merger.mjs     # SRT 语义段合并
+├── built-in-icon-catalog.mjs   # 内置图标目录
+├── visual-script.schema.json   # Visual Script 2.0 正式 JSON Schema
+├── references/                 # palette.md / design-tokens.md / component-semantic-capabilities.md 等
+├── scripts/                    # 资源索引、registry 同步、lint-manifest、manifest-to-tsx、测试
+└── examples/                   # 样例 SRT / manifest / timeline JSON
 ```
+
+## 在新链路里的位置
+
+```
+SRT ──> overlay-fx-generator（AI 编排大脑，产出编排 JSON）
+          │
+          ▼
+工作台「载入AI大模型编排JSON」导入 ── 编排预览（本引擎的批次/质检结构承载）
+SRT导入入口 ──> semantic-srt-arranger（仅做字幕 semanticKey 标注）──> 字幕语义动画轨
+```
+
+- **工作台「SRT导入」**：只生成 SRT 字幕语义动画轨（逐句 `semanticKey` 高亮路由），
+  不再用本地规则自动挑选效果组件——组件选择全部由 overlay-fx-generator 编排 JSON 承载。
+- **工作台「载入AI大模型编排JSON」**：解析 `motionTimeline` / `resourceTracks` /
+  `semanticAnalysis` / `qualityControl`，进入编排预览；确认插入由本目录的
+  `arrangement-batch.mjs` 打批次、支持整批撤销。
+- **离线 manifest → TSX 编译链**（`lint-manifest.mjs` / `manifest-to-tsx.mjs` /
+  `references/card-catalog.md`）保留用于兼容旧工具与离线批量编排，不是新编排的必经路径。
 
 ## Visual Script 2.0
 
-`manifest 1.0` 继续服务现有 Board/Card 编译链路。新增的 Visual Script 2.0 是最终自动编排流程的上层内部协议，已覆盖一句多意图、多类视听表达、分段风格、避让布局、质检和确认后应用。详见 [`references/visual-script-v2.md`](references/visual-script-v2.md)。
+`manifest 1.0` 继续服务现有 Board/Card 编译链路。Visual Script 2.0 是内部上层协议，
+已覆盖一句多意图、多类视听表达、分段风格、避让布局、质检和确认后应用。
+详见 [`references/visual-script-v2.md`](references/visual-script-v2.md)。
 
 ```powershell
 npm.cmd run validate:visual-script -- ai-motion-arranger/examples/sample-visual-script-v2.json
 npm.cmd run test:visual-script
-```
-
-## 工作台内置 SRT 自动编排
-
-编辑台顶部“AI 自动编排”现在使用 `semantic-srt-arranger.mjs` 逐句识别多个语义意图，并只引用当前真实效果库与固定资源索引中的 ID。首次选择 SRT 后会自动执行完整链路；字幕已经加载时，点击顶部入口即可一键重新编排。当前确定性路由覆盖性能、流程、代码自动化、对比、完成度、覆盖率、倒计时、重点和数字指标；单句最多保留 3 个意图，避免画面过载。普通寒暄等未命中明确视觉语义的字幕会跳过，不会被强行套模板。
-
-生成结果只进入“编排预览”，默认全选但允许逐项取消；确认前不修改时间线，确认后也保留原有轨道。每个语义意图会同时保留经过真实组件 ID 校验的候选集、推荐顺序、选择理由和候选专属参数。预览按语义段展示这些候选，支持只替换当前动效、向当前段追加效果、只为当前段换一组以及锁定当前段，其他语义段不会被连带修改。
-
-竖屏初始编排会对最近使用的组件执行确定性冷却，并结合全局使用次数与候选排序选择下一组件，避免相邻同类语义连续重复。同一语义首次需要主辅组合时仍可保留多个组件；一句命中三个高密度意图或同类语义重复出现时，会优先保留主表达并减少辅助堆叠。预览摘要会显示本次“避免重复”和“减少堆叠”的数量。
-
-用户点击“替换”或“添加效果”时，候选组件以效果库普通分组展示。每张候选卡使用当前语义段的专属参数播放真实 Remotion 动效，并显示推荐顺序、适用原因、组件说明、当前组件及本段已使用状态；选择卡片后只修改当前编排预览。
-
-每个语义段还可以分别添加或替换图标、素材和音效。资源选择器读取固定资源索引，支持按名称、标签和用途搜索，优先展示当前语义推荐项；图标与素材显示缩略预览，音效支持试听。资源库为空时对应入口禁用，所有选择仍只修改待确认的编排预览。
-
-确认插入后，工作台会保留每项的来源语义 ID 和本次编排批次 ID，并在时间线顶部显示“本次自动编排”微调条。用户可以按语义组定位、高亮并逐项编辑，也可以一次撤销本批插入；撤销只按批次 ID 删除新项目，不会触碰插入前的原时间线。
-
-当前布局器会读取画幅、人工开启的“人物占位”和 SRT 底部字幕安全区，按语义首选落点依次尝试换位、缩小，并避开同一时间出现的其他视觉项。布局后会自动执行人物占位遮挡、字幕区遮挡、资源有效性、音效盖人声风险、时间线/画布边界五项确定性质检，并在编排预览中逐项显示；任一项失败时禁止确认插入。
-
-### 竖屏口播语义路由表
-
-`portrait-semantic-routes.mjs` 已固定 7 类语义到 9 个竖屏参考组件的映射：章节转换、重点词、补充说明、数字决策、操作流程、风险限制、下集预告。其中数字决策允许同时选择 `PortraitMetricDecision` 与 `PortraitDecisionTagStack`；风险限制会在一般风险卡与旧方案淘汰警告之间互斥选择，只有明确表达“过时、淘汰、出局、不再适用或被取代”时才使用淘汰警告。
-
-路由表同时记录组件 props 填充来源、首选/备用布局锚点、最多 3 个并行意图、人物与字幕避让、底部 20% 字幕安全区、禁止基础字幕轨道、禁止 BGM、先预览后确认以及保留原时间线。本阶段只建立可验证的路由数据，还没有替换现有 `semantic-srt-arranger.mjs` 的旧组件选择逻辑。
-
-```powershell
-npm.cmd run test:portrait-routes
-```
-
-这里的“人物”仍是已知中央占位区，不是真实人脸检测结果；关闭人物占位后该项会诚实保持“待检查”。“声音盖人声”也只是依据音量与人声闪避参数判断风险，不等同于真实响度或语音分析。
-
-```powershell
-npm.cmd run test:semantic-arranger
-npm.cmd run test:avoidance-layout
-npm.cmd run test:quality-control
-npm.cmd run test:arrangement-batch
 ```
 
 ## 固定资源库
@@ -98,100 +61,25 @@ npm.cmd run sync:resources
 npm.cmd run validate:resources
 ```
 
-`predev` / `prebuild` / `prestart` 和 Visual Script 校验前都会自动刷新索引，防止 manifest 与真实文件脱节。
+`predev` / `prebuild` / `prestart` 和 Visual Script 校验前都会自动刷新索引，防止编排与真实文件脱节。
 
-## 两层架构
+## 回归测试
 
+```powershell
+npm.cmd run test:semantic-arranger
+npm.cmd run test:semantic-capabilities
+npm.cmd run test:avoidance-layout
+npm.cmd run test:quality-control
+npm.cmd run test:arrangement-batch
+npm.cmd run test:portrait-routes
+npm.cmd run test:srt-merge
+npm.cmd run test:timeline-v2
 ```
-┌─ 卡片库层 · 资产 ─────────────────────────────────┐
-│ 动效卡 = React 组件 + 运行时注册表（registry.ts）     │
-│ 每张卡自带参数 schema → 工作台右栏面板自动生成        │
-│ 设计系统 = CSS 变量令牌：skin 管配色，style 管骨架   │
-└─────────────────────────────────────────────────┘
-               ▲ 编译消费（manifest-to-tsx）
-┌─ 编排层 · 大脑 ──────────────────────────────────┐
-│ overlayJSON = { theme, skin, style, font,         │
-│                 boards[] }                        │
-│ AI Skill 读 SRT 出 JSON —— 唯一花 token 的一一步    │
-│ lint-manifest.mjs 体检器做机械复核                  │
-└─────────────────────────────────────────────────┘
-```
-
-## 验收标准
-
-**新会话只丢 SRT、零额外说明，能直出可用 JSON。** 这是用户给项目的 hard 要求。
-
-具体表现为：
-1. AI 读 `SKILL.md` + `references/card-catalog.md` + `references/palette.md` + `references/design-tokens.md` 即可完整工作，无需追问用户。
-2. AI 的输出是 manifest JSON（不是 TSX），覆盖给定的硬规则输出格式（见 SKILL §9）。
-3. `node scripts/lint-manifest.mjs manifest.json` 体检通过（error=0）。
-4. `node scripts/manifest-to-tsx.mjs manifest.json > package.tsx` 必须零错误生成；TSX 直接被工作台现有 `import-to-studio.ps1` 接受。
-
-## 工作流
-
-```
-  SRT ─┐
-       ▼
-  ┌──────────────────┐
-  │  AI 编排器        │  ← ai-motion-arranger.SKILL.md
-  │  (本 Skill)       │
-  └────────┬─────────┘
-           │ manifest.json
-           ▼
-  ┌──────────────────┐
-  │ manifest-to-tsx  │  ← scripts/manifest-to-tsx.mjs（确定性、零 AI）
-  └────────┬─────────┘
-           │ package.tsx
-           ▼
-  ┌──────────────────┐
-  │ 动效工作台       │  ← import-to-studio.ps1
-  └──────────────────┘
-```
-
-每一步的边界都强制：
-- AI 只决定**用哪张卡 + 哪些 prop + 什么时序**；
-- manifest-to-tsx 是确定性转换，零猜测空间；
-- 工作台原生接口（导入 TSX、激活组件、用户拖动布局）保持不变。
-
-## 核心约束
-
-| 约束 | 实现位置 |
-| --- | --- |
-| 卡片 id 不允许捏造 | `references/card-catalog.md`（自动生成，对账 registry） |
-| 卡片 props 字段不允许扩展 | 同上，每张卡 props 行即白名单 |
-| 颜色只能是 token，不写 hex | `references/palette.md` + `manifest-to-tsx.mjs` 校验 |
-| 一段口播对应一块 Board | `manifest-to-tsx.mjs` 校验 board 计数与时序 |
-| Board 内卡片密度有上限 | 校验 `density → maxCards`（sparse=1, balanced=3, rich=5） |
-| 相邻 Board 主调不同 | 校验 `prevAccent === accent` 不允许 |
-| 整段视频主调去重 ∈ [2, 4] | 校验 `mainPaletteSet.size` |
-| 调色板 token 字典封闭 | `ALLOWED_ACCENT_TOKENS` / `ALLOWED_SUPPORT_TOKENS` |
-| 顶层设计令牌枚举封闭 | `ALLOWED_THEMES/SKINS/STYLES/FONTS`（编译器 + lint 双重校验） |
-| 不写 TSX、JSX、CSS、SVG | SKILL §0 强调；manifest 输出层就只有 JSON |
-| AI 看不到 component 实现 | catalog 只暴露 props/bounds，不暴露源码 |
 
 ## 维护时机
 
 | 改了什么 | 同步动什么 |
 | --- | --- |
-| registry 新增/修改一张卡片 | 修改真实组件与 `registry.ts`；确认编译支持后增加 overlay → 运行 `npm.cmd run sync:registry` |
-| 新增一种颜色语义 | `references/palette.md` §2/§3 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_*_TOKENS` 同步 |
-| 新增/修改 Board 锚点、密度、节奏枚举 | `SKILL.md` §10 + `scripts/manifest-to-tsx.mjs` 顶部 `ALLOWED_ANCHORS/DENSITY/RHYTHM` 同步 |
-| 新增 theme/skin/style/font 令牌 | `references/design-tokens.md` + `scripts/manifest-to-tsx.mjs` 与 `scripts/lint-manifest.mjs` 顶部枚举/预设同步 |
-| 新增编排层规则 | `SKILL.md` 全文改；`scripts/manifest-to-tsx.mjs` 校验逻辑同步 |
-
-## 跟现有 Skill 的分工
-
-- `remotion-motion-studio.SKILL.md` —— 给视频自由设计 Remotion 动效，生成可编辑 TSX。直接面向"创造新模板"。
-- `ai-motion-arranger.SKILL.md`（本 Skill）—— 给定 SRT，编排已有标准卡的展示。直接面向"批量编排"。
-
-两个 Skill 互不替代。当用户的需求是"想要一种新的视觉模板"，用前者；需求是"我有 30 段口播，先给我排个版"，用后者。
-
-## 接入到工作台
-
-用户入口已经内置为：
-
-`AI 自动编排 → 选择 SRT（首次）→ 多意图语义分析 → 自动选择效果/图标/SFX → 生成真实 SRT 字幕轨 → 自动避让 → 五项质检 → 编排预览选择字幕和其他项目 → 保留原时间线插入 → 按语义组人工微调或整批撤销`
-
-本项目不对导入视频执行语音识别。确定性的语义编排器仍只生成效果和资源决策；工作台在编排预览层把用户导入的 SRT 转成一条 SRT字幕语义动画轨道，并提供独立字幕开关。开关开启时字幕与所选动效、图标、素材和音效一起插入时间线，关闭时只插入其他所选项目；自动布局继续保留底部字幕安全区。
-
-Visual Script、时间线 JSON 和资源索引都作为内部实现细节，不要求用户手写或手动导入。旧的 manifest → TSX 编译链仍可用于离线批量编排和兼容已有工具。
+| registry 新增/修改一张卡片 | 修改真实组件与 `registry.ts`；运行 `npm.cmd run sync:registry` 和 `npm.cmd run sync:arranger-catalog`（刷新两份组件目录） |
+| 新增/修改避让锚点、质检规则 | `avoidance-layout-planner.mjs` / `quality-control.mjs` + 对应 test |
+| 新增编排层编辑规则 | 改 `../overlay-fx-generator/SKILL.md` 与 `lint-rules.default.json` |

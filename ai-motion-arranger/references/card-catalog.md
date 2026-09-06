@@ -5,7 +5,7 @@
 > 与自动生成的 `registry-meta.mjs`（技术字段 propsSchema/defaultProps/bounds 等）合成。
 > **不要手改本文件**——修改运行时组件或 overlay 后运行 `npm.cmd run sync:registry`。
 
-AI 编排器（即 `../SKILL.md`）只能使用本目录中存在的卡 id，
+离线 manifest 编译链路（manifest → TSX）只能使用本目录中存在的卡 id，
 并严格使用下面登记的 `props` 字段名。任何不在登记中的字段或 id 都视为非法。
 
 **当前卡片总数**：1 张
