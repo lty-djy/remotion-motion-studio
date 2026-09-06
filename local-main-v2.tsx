@@ -754,6 +754,47 @@ const EFFECT_GROUP_NAME_STORAGE_KEY = "motion-studio-effect-group-names-v1";
 const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
 const SEMANTIC_TYPE_COLOR_STORAGE_KEY = "motion-studio-semantic-type-colors-v1";
 const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
+const EFFECT_GROUP_ORDER_STORAGE_KEY = "motion-studio-effect-group-order-v1";
+const ICON_GROUP_ORDER_STORAGE_KEY = "motion-studio-icon-group-order-v1";
+const MATERIAL_GROUP_ORDER_STORAGE_KEY = "motion-studio-material-group-order-v1";
+const SFX_GROUP_ORDER_STORAGE_KEY = "motion-studio-sfx-group-order-v1";
+const SFX_GROUP_COLOR_STORAGE_KEY = "motion-studio-sfx-group-colors-v1";
+
+/** 按保存的顺序重排库分组：保存过的排前面，新分组按自然顺序追加在后面。 */
+const applyLibraryGroupOrder = <T,>(
+  groups: T[],
+  savedOrder: string[],
+  keyOf: (group: T) => string,
+): T[] => {
+  if (savedOrder.length === 0) return groups;
+  const orderIndex = new Map<string, number>();
+  savedOrder.forEach((key, index) => orderIndex.set(key, index));
+  return [...groups].sort((a, b) => {
+    const aIndex = orderIndex.get(keyOf(a));
+    const bIndex = orderIndex.get(keyOf(b));
+    if (aIndex === undefined && bIndex === undefined) return 0;
+    if (aIndex === undefined) return 1;
+    if (bIndex === undefined) return -1;
+    return aIndex - bIndex;
+  });
+};
+
+const loadLibraryGroupOrder = (storageKey: string): string[] => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]");
+    if (!Array.isArray(stored)) return [];
+    const seen = new Set<string>();
+    return stored.filter((key): key is string => {
+      if (typeof key !== "string" || key.length === 0 || seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  } catch {
+    return [];
+  }
+};
 const EFFECT_NAME_STORAGE_KEY = "motion-studio-effect-names-v1";
 const EFFECT_SEMANTIC_TYPE_STORAGE_KEY = "motion-studio-effect-semantic-types-v1";
 const ACTIVE_WORKSPACE_STORAGE_KEY = "motion-studio-active-workspace-v1";
@@ -2665,6 +2706,26 @@ const loadEffectGroupColorOverrides = (): Record<string, string> => {
   }
 };
 
+const loadSfxGroupColorOverrides = (): Record<string, string> => {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(SFX_GROUP_COLOR_STORAGE_KEY) ?? "{}",
+    );
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? Object.fromEntries(
+          Object.entries(stored).filter(
+            ([name, accent]) =>
+              typeof name === "string" &&
+              typeof accent === "string" &&
+              /^#[0-9a-f]{6}$/i.test(accent),
+          ),
+        )
+      : {};
+  } catch {
+    return {};
+  }
+};
+
 const loadSemanticTypeColorOverrides = (): Record<string, string> => {
   try {
     const stored = JSON.parse(
@@ -3795,6 +3856,21 @@ const App = () => {
     loadSemanticTypeColorOverrides,
   );
   const [semanticTypeOrder, setSemanticTypeOrder] = useState(loadSemanticTypeOrder);
+  const [effectGroupOrder, setEffectGroupOrder] = useState(() =>
+    loadLibraryGroupOrder(EFFECT_GROUP_ORDER_STORAGE_KEY),
+  );
+  const [iconGroupOrder, setIconGroupOrder] = useState(() =>
+    loadLibraryGroupOrder(ICON_GROUP_ORDER_STORAGE_KEY),
+  );
+  const [materialGroupOrder, setMaterialGroupOrder] = useState(() =>
+    loadLibraryGroupOrder(MATERIAL_GROUP_ORDER_STORAGE_KEY),
+  );
+  const [sfxGroupOrder, setSfxGroupOrder] = useState(() =>
+    loadLibraryGroupOrder(SFX_GROUP_ORDER_STORAGE_KEY),
+  );
+  const [sfxGroupColorOverrides, setSfxGroupColorOverrides] = useState(
+    loadSfxGroupColorOverrides,
+  );
   const semanticTypeDragIntentRef = useRef<string | null>(null);
   const [semanticTypeDraggingIntentId, setSemanticTypeDraggingIntentId] = useState<
     string | null
@@ -4439,7 +4515,7 @@ const App = () => {
         });
       }
     }
-    return groups;
+    return applyLibraryGroupOrder(groups, effectGroupOrder, (group) => group.id);
   }, [
     customCatalogGroups,
     customDefinitions,
@@ -4447,6 +4523,7 @@ const App = () => {
     effectGroupAssignments,
     effectGroupColorOverrides,
     effectGroupNameOverrides,
+    effectGroupOrder,
     effectNameOverrides,
   ]);
   const catalogDefinitionMap = useMemo(() => {
@@ -4565,10 +4642,14 @@ const App = () => {
       group.items.push(icon);
       categories.set(category, group);
     }
-    return [...categories.values()].filter(
+    return applyLibraryGroupOrder(
+      [...categories.values()],
+      iconGroupOrder,
+      (category) => category.name,
+    ).filter(
       (category) => category.items.length > 0 || (!query && !category.builtin),
     );
-  }, [iconResources, iconSearch, customIconGroups]);
+  }, [iconResources, iconGroupOrder, iconSearch, customIconGroups]);
   const visibleIconCount = useMemo(
     () =>
       filteredIconCatalog.reduce(
@@ -4581,7 +4662,11 @@ const App = () => {
     const query = sfxSearch.trim().toLocaleLowerCase("zh-CN");
     const sections = new Map<string, IconCategoryGroup & { items: SoundResource[] }>();
     for (const group of [...BUILT_IN_SFX_SECTIONS, ...customSfxGroups]) {
-      sections.set(group.name, { ...group, items: [] });
+      sections.set(group.name, {
+        ...group,
+        accent: sfxGroupColorOverrides[group.name] ?? group.accent,
+        items: [],
+      });
     }
     for (const sound of arrangementResourceLibrary.sfx as SoundResource[]) {
       if (query) {
@@ -4593,10 +4678,14 @@ const App = () => {
       const section = sections.get(sfxSectionName(sound, customSfxGroups));
       if (section) section.items.push(sound);
     }
-    return [...sections.values()].filter(
+    return applyLibraryGroupOrder(
+      [...sections.values()],
+      sfxGroupOrder,
+      (section) => section.name,
+    ).filter(
       (section) => section.items.length > 0 || (!query && !section.builtin),
     );
-  }, [arrangementResourceLibrary.sfx, sfxSearch, customSfxGroups]);
+  }, [arrangementResourceLibrary.sfx, sfxGroupColorOverrides, sfxGroupOrder, sfxSearch, customSfxGroups]);
   const materialCatalog = useMemo(() => {
     const query = materialSearch.trim().toLocaleLowerCase("zh-CN");
     const sections = new Map<string, { name: string; accent: string; items: ArrangementResourceEntry[] }>();
@@ -4617,12 +4706,124 @@ const App = () => {
       section.items.push(material);
       sections.set(category, section);
     }
-    return [...sections.values()].filter(
+    return applyLibraryGroupOrder(
+      [...sections.values()],
+      materialGroupOrder,
+      (section) => section.name,
+    ).filter(
       (section) =>
         section.items.length > 0 ||
         (!query && customMaterialGroups.some((group) => group.name === section.name)),
     );
-  }, [arrangementResourceLibrary.material, customMaterialGroups, materialSearch]);
+  }, [arrangementResourceLibrary.material, customMaterialGroups, materialGroupOrder, materialSearch]);
+
+  // ===== 四个库的分组拖拽排序（复用语义类型面板的交互模式） =====
+  type LibraryGroupKey = "effects" | "icons" | "materials" | "sfx";
+  const [libraryGroupDrag, setLibraryGroupDrag] = useState<{
+    library: LibraryGroupKey;
+    key: string;
+  } | null>(null);
+  const [libraryGroupDropTarget, setLibraryGroupDropTarget] = useState<{
+    library: LibraryGroupKey;
+    key: string;
+    position: "before" | "after";
+  } | null>(null);
+  const libraryGroupDragRef = useRef<{ library: LibraryGroupKey; key: string } | null>(
+    null,
+  );
+
+  const libraryGroupDragClass = (library: LibraryGroupKey, key: string) => {
+    const dragging =
+      libraryGroupDrag?.library === library && libraryGroupDrag.key === key
+        ? " is-dragging"
+        : "";
+    const dropping =
+      libraryGroupDropTarget?.library === library &&
+      libraryGroupDropTarget.key === key
+        ? ` is-drop-${libraryGroupDropTarget.position}`
+        : "";
+    return `${dragging}${dropping}`;
+  };
+
+  const reorderLibraryGroups = (
+    library: LibraryGroupKey,
+    draggedKey: string,
+    targetKey: string,
+    position: "before" | "after",
+  ) => {
+    if (draggedKey === targetKey) return;
+    const currentKeys =
+      library === "effects"
+        ? effectCatalog.map((group) => group.id)
+        : library === "icons"
+          ? filteredIconCatalog.map((group) => group.name)
+          : library === "sfx"
+            ? sfxCatalog.map((group) => group.name)
+            : materialCatalog.map((group) => group.name);
+    const next = currentKeys.filter((key) => key !== draggedKey);
+    const targetIndex = next.indexOf(targetKey);
+    if (targetIndex < 0) return;
+    next.splice(position === "after" ? targetIndex + 1 : targetIndex, 0, draggedKey);
+    if (library === "effects") setEffectGroupOrder(next);
+    else if (library === "icons") setIconGroupOrder(next);
+    else if (library === "sfx") setSfxGroupOrder(next);
+    else setMaterialGroupOrder(next);
+  };
+
+  const libraryGroupDragProps = (library: LibraryGroupKey, key: string) => ({
+    draggable: true,
+    title: "拖拽分组上下调整顺序",
+    onDragStart: (event: React.DragEvent<HTMLElement>) => {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", key);
+      libraryGroupDragRef.current = { library, key };
+      setLibraryGroupDrag({ library, key });
+      setLibraryGroupDropTarget(null);
+    },
+    onDragEnd: () => {
+      libraryGroupDragRef.current = null;
+      setLibraryGroupDrag(null);
+      setLibraryGroupDropTarget(null);
+    },
+    onDragOver: (event: React.DragEvent<HTMLElement>) => {
+      // 文件拖放（如素材入库）走各库原有逻辑。
+      if (event.dataTransfer.types.includes("Files")) return;
+      const dragged = libraryGroupDragRef.current;
+      if (!dragged || dragged.library !== library || dragged.key === key) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position =
+        event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+      setLibraryGroupDropTarget((current) =>
+        current?.library === library &&
+        current.key === key &&
+        current.position === position
+          ? current
+          : { library, key, position },
+      );
+    },
+    onDragLeave: (event: React.DragEvent<HTMLElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+        setLibraryGroupDropTarget((current) =>
+          current?.library === library && current.key === key ? null : current,
+        );
+      }
+    },
+    onDrop: (event: React.DragEvent<HTMLElement>) => {
+      if (event.dataTransfer.types.includes("Files")) return;
+      event.preventDefault();
+      const dragged = libraryGroupDragRef.current;
+      if (!dragged || dragged.library !== library || dragged.key === key) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position =
+        event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+      reorderLibraryGroups(library, dragged.key, key, position);
+      libraryGroupDragRef.current = null;
+      setLibraryGroupDrag(null);
+      setLibraryGroupDropTarget(null);
+    },
+  });
   const ungroupedCustomDefinitions = useMemo(() => {
     const groupedIds = new Set(
       effectCatalog.flatMap((group) => group.items.map((item) => item.ids[0])),
@@ -5050,6 +5251,26 @@ const App = () => {
       JSON.stringify(semanticTypeOrder),
     );
   }, [semanticTypeOrder]);
+
+  // 四个库（效果/图标/素材/音效）的分组拖拽排序持久化。
+  useEffect(() => {
+    window.localStorage.setItem(
+      EFFECT_GROUP_ORDER_STORAGE_KEY,
+      JSON.stringify(effectGroupOrder),
+    );
+    window.localStorage.setItem(
+      ICON_GROUP_ORDER_STORAGE_KEY,
+      JSON.stringify(iconGroupOrder),
+    );
+    window.localStorage.setItem(
+      MATERIAL_GROUP_ORDER_STORAGE_KEY,
+      JSON.stringify(materialGroupOrder),
+    );
+    window.localStorage.setItem(
+      SFX_GROUP_ORDER_STORAGE_KEY,
+      JSON.stringify(sfxGroupOrder),
+    );
+  }, [effectGroupOrder, iconGroupOrder, materialGroupOrder, sfxGroupOrder]);
 
   useEffect(() => {
     let cancelled = false;
@@ -11596,6 +11817,19 @@ const App = () => {
     setNotice({ tone: "ok", text: `已更新“${groupName}”的分组颜色。` });
   };
 
+  const updateSfxGroupColor = (groupName: string, accent: string) => {
+    if (!/^#[0-9a-f]{6}$/i.test(accent)) return;
+    setSfxGroupColorOverrides((current) => {
+      const next = { ...current, [groupName]: accent.toLowerCase() };
+      window.localStorage.setItem(
+        SFX_GROUP_COLOR_STORAGE_KEY,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+    setNotice({ tone: "ok", text: `已更新“${groupName}”的分组颜色。` });
+  };
+
   const requestDeleteCatalogGroup = (
     groupId: string,
     groupName: string,
@@ -13969,9 +14203,10 @@ const App = () => {
                     openCatalogCategories.includes(category.id);
                   return (
                     <section
-                      className="effect-library-category"
+                      className={`effect-library-category${libraryGroupDragClass("effects", category.id)}`}
                       key={category.id}
                       style={{ "--effect-group-accent": category.accent } as React.CSSProperties}
+                      {...libraryGroupDragProps("effects", category.id)}
                     >
                       <button
                         className={isOpen ? "category-toggle open" : "category-toggle"}
@@ -14003,7 +14238,7 @@ const App = () => {
                             )
                           }
                         />
-                        <b>{category.items.length}</b>
+                        <b style={{ color: category.accent }}>{category.items.length}</b>
                         <CaretDown />
                       </button>
 
@@ -14168,23 +14403,34 @@ const App = () => {
                     openMaterialCategories.includes(category.name);
                   return (
                     <section
-                      className={`material-library-category${materialDropTarget === category.name ? " is-drop-target" : ""}`}
+                      className={`material-library-category${materialDropTarget === category.name ? " is-drop-target" : ""}${libraryGroupDragClass("materials", category.name)}`}
                       key={category.name}
                       style={{ "--material-group-accent": category.accent } as React.CSSProperties}
                       onContextMenu={(event) => showMaterialLibraryMenu(event, category.name)}
+                      {...libraryGroupDragProps("materials", category.name)}
                       onDragOver={(event) => {
+                        // 文件入库优先（原有逻辑）；分组排序拖拽次之。
                         if (event.dataTransfer.types.includes("Files")) {
                           event.preventDefault();
                           event.dataTransfer.dropEffect = "copy";
                           setMaterialDropTarget(category.name);
+                          return;
                         }
+                        libraryGroupDragProps("materials", category.name).onDragOver(event);
                       }}
                       onDragLeave={(event) => {
                         if (!event.currentTarget.contains(event.relatedTarget as Node)) {
                           setMaterialDropTarget((current) => current === category.name ? null : current);
                         }
+                        libraryGroupDragProps("materials", category.name).onDragLeave(event);
                       }}
-                      onDrop={(event) => handleMaterialDrop(event, category.name)}
+                      onDrop={(event) => {
+                        if (event.dataTransfer.types.includes("Files")) {
+                          handleMaterialDrop(event, category.name);
+                          return;
+                        }
+                        libraryGroupDragProps("materials", category.name).onDrop(event);
+                      }}
                     >
                       <button
                         type="button"
@@ -14203,7 +14449,7 @@ const App = () => {
                           style={{ background: category.accent }}
                           aria-hidden="true"
                         />
-                        <b>{category.items.length}</b>
+                        <b style={{ color: category.accent }}>{category.items.length}</b>
                         <CaretDown />
                       </button>
                       {isOpen ? (
@@ -14284,9 +14530,10 @@ const App = () => {
                     openIconCategories.includes(category.name);
                   return (
                     <section
-                      className="icon-library-category"
+                      className={`icon-library-category${libraryGroupDragClass("icons", category.name)}`}
                       key={category.name}
                       style={{ "--icon-accent": category.accent } as React.CSSProperties}
+                      {...libraryGroupDragProps("icons", category.name)}
                     >
                       <button
                         className={isOpen ? "icon-category-toggle open" : "icon-category-toggle"}
@@ -14322,7 +14569,7 @@ const App = () => {
                             }
                           />
                         )}
-                        <b>{category.items.length}</b>
+                        <b style={{ color: category.accent }}>{category.items.length}</b>
                         <CaretDown />
                       </button>
                       {isOpen ? (
@@ -14414,9 +14661,10 @@ const App = () => {
                     openSfxGroups.includes(section.name);
                   return (
                     <section
-                      className="sfx-library-category"
+                      className={`sfx-library-category${libraryGroupDragClass("sfx", section.name)}`}
                       key={section.name}
                       style={{ "--sfx-accent": section.accent } as React.CSSProperties}
+                      {...libraryGroupDragProps("sfx", section.name)}
                     >
                       <button
                         type="button"
@@ -14435,12 +14683,20 @@ const App = () => {
                           )
                         }
                       >
-                        <i
-                          className="sfx-category-dot"
-                          style={{ background: section.accent }}
-                        />
                         <span>{section.name}</span>
-                        <b>{section.items.length}</b>
+                        <input
+                          className="sfx-category-color-swatch"
+                          type="color"
+                          value={section.accent}
+                          title="选择分组颜色"
+                          aria-label={`选择“${section.name}”的分组颜色`}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            updateSfxGroupColor(section.name, event.currentTarget.value)
+                          }
+                        />
+                        <b style={{ color: section.accent }}>{section.items.length}</b>
                         <CaretDown />
                       </button>
                       {isOpen ? (
