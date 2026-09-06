@@ -24,6 +24,7 @@ import { mergeWithBuiltInDefinitions } from "./local-builtins";
 import {
   CARD_BACKGROUND_CONTROL_CSS,
   getCardBackgroundControlVariables,
+  supportsCardBackground,
 } from "./card-background-control";
 import { CardMaskLayer } from "./card-mask-control";
 
@@ -215,6 +216,10 @@ const MultiComponentRender = ({
       if (!definition) return null;
       const Comp =
         definition.component as React.ComponentType<Record<string, unknown>>;
+      // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
+      const cardBackgroundOn =
+        supportsCardBackground(instance.componentId) &&
+        instance.cardBackgroundEnabled !== false;
       return (
         <Sequence
           key={instance.id}
@@ -229,7 +234,7 @@ const MultiComponentRender = ({
           />
           <AbsoluteFill
             className={`studio-card-render-shell${
-              instance.cardBackgroundEnabled === false
+              !cardBackgroundOn
                 ? " studio-card-background-off"
                 : ""
             }${
@@ -242,7 +247,7 @@ const MultiComponentRender = ({
               transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale})`,
               transformOrigin: "0 0",
               ...getCardBackgroundControlVariables({
-                enabled: instance.cardBackgroundEnabled !== false,
+                enabled: cardBackgroundOn,
                 opacity: instance.backgroundOpacity,
                 panelColor: instance.props.panelColor,
                 borderColor: instance.props.cardBorderColor,
@@ -258,12 +263,10 @@ const MultiComponentRender = ({
               muteVideo={!soundEnabled}
               videoVolume={soundEnabled ? 1 : 0}
               backgroundOpacity={
-                instance.cardBackgroundEnabled !== false
-                  ? instance.backgroundOpacity
-                  : 0
+                cardBackgroundOn ? instance.backgroundOpacity : 0
               }
               cardTransparent={
-                instance.cardBackgroundEnabled === false ||
+                !cardBackgroundOn ||
                 instance.props.cardTransparent === true
               }
             />

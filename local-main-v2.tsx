@@ -31,7 +31,6 @@ import {
   MagnifyingGlass,
   Magnet,
   Minus,
-  MoonStars,
   Pause,
   Play,
   Plus,
@@ -40,7 +39,6 @@ import {
   SpeakerHigh,
   SpeakerSlash,
   Stack,
-  Sun,
   TextAa,
   Trash,
   UploadSimple,
@@ -127,6 +125,7 @@ import {
 import {
   CARD_BACKGROUND_CONTROL_CSS,
   getCardBackgroundControlVariables,
+  supportsCardBackground,
 } from "./card-background-control";
 import "./local-styles.css";
 
@@ -991,7 +990,6 @@ type ProjectSnapshot = {
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   globalCardScale?: number;
-  globalCardBase?: "dark" | "light";
   cardShadowEnabled?: boolean;
   cardShadowStrength?: number;
   cardShadowOpacity?: number;
@@ -2017,6 +2015,10 @@ const StudioPreviewComposition = ({
         const definition = previewDefinitionMap.get(instance.componentId);
         if (!definition) return null;
         const Comp = definition.component;
+        // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
+        const cardBackgroundOn =
+          supportsCardBackground(instance.componentId) &&
+          instance.cardBackgroundEnabled;
         return (
           <Sequence
             key={instance.id}
@@ -2032,7 +2034,7 @@ const StudioPreviewComposition = ({
             />
             <AbsoluteFill
               className={`studio-card-render-shell${
-                !instance.cardBackgroundEnabled
+                !cardBackgroundOn
                   ? " studio-card-background-off"
                   : ""
               }${
@@ -2045,7 +2047,7 @@ const StudioPreviewComposition = ({
                 transform: `translate(${instance.position.x}px, ${instance.position.y}px) scale(${instance.position.scale * globalCardScale})`,
                 transformOrigin: "0 0",
                 ...getCardBackgroundControlVariables({
-                  enabled: instance.cardBackgroundEnabled,
+                  enabled: cardBackgroundOn,
                   opacity: instance.backgroundOpacity,
                   panelColor: instance.props.panelColor,
                   borderColor: instance.props.cardBorderColor,
@@ -2061,12 +2063,10 @@ const StudioPreviewComposition = ({
                 muteVideo={!soundEnabled}
                 videoVolume={soundEnabled ? 1 : 0}
                 backgroundOpacity={
-                  instance.cardBackgroundEnabled
-                    ? instance.backgroundOpacity
-                    : 0
+                  cardBackgroundOn ? instance.backgroundOpacity : 0
                 }
                 cardTransparent={
-                  !instance.cardBackgroundEnabled ||
+                  !cardBackgroundOn ||
                   instance.props.cardTransparent === true
                 }
               />
@@ -3429,9 +3429,6 @@ const App = () => {
   const [regionInFrame, setRegionInFrame] = useState<number | null>(null);
   const [regionOutFrame, setRegionOutFrame] = useState<number | null>(null);
   const [exportUseRegion, setExportUseRegion] = useState(true);
-  const [globalCardBase, setGlobalCardBase] = useState<"dark" | "light">(
-    "dark",
-  );
   const [activeCardColorPicker, setActiveCardColorPicker] = useState<
     "panel" | "border" | null
   >(null);
@@ -4717,7 +4714,6 @@ const App = () => {
         if (Number(draft?.globalCardScale) >= 0.5 && Number(draft?.globalCardScale) <= 2) {
           setGlobalCardScale(Number(draft?.globalCardScale));
         }
-        setGlobalCardBase(draft?.globalCardBase === "light" ? "light" : "dark");
         setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
         setPersonSafetyGuideVisible(draft?.personSafetyGuideVisible !== false);
         setSolidBackgroundEnabled(
@@ -5055,19 +5051,6 @@ const App = () => {
     return () => window.cancelAnimationFrame(animationFrame);
   }, [durationInFrames, fps, isPlaying]);
 
-  // 亮底模式：所有卡片背景透明（backgroundOpacity 归零），暗底保持原值
-  const effectiveInstances = useMemo<MotionInstance[]>(
-    () =>
-      globalCardBase === "light"
-        ? instances.map((instance) => ({
-            ...instance,
-            backgroundOpacity: 0,
-            props: { ...instance.props, cardTransparent: true },
-          }))
-        : instances,
-    [instances, globalCardBase],
-  );
-
   const previewInputProps = useMemo<StudioPreviewProps>(
     () => ({
       videoUrl,
@@ -5076,7 +5059,7 @@ const App = () => {
       videoTracks,
       resourceTracks,
       definitions,
-      instances: effectiveInstances,
+      instances,
       canvasOrientation,
       globalCardScale,
       safetyGuideVisible,
@@ -5086,7 +5069,7 @@ const App = () => {
     }),
     [
       definitions,
-      effectiveInstances,
+      instances,
       canvasOrientation,
       safetyGuideVisible,
       personSafetyGuideVisible,
@@ -5118,14 +5101,7 @@ const App = () => {
     }
     return {
       ...previewInputProps,
-      instances:
-        globalCardBase === "light"
-          ? previewInstances.map((instance) => ({
-              ...instance,
-              backgroundOpacity: 0,
-              props: { ...instance.props, cardTransparent: true },
-            }))
-          : previewInstances,
+      instances: previewInstances,
       resourceTracks: pendingArrangement.resourceTracks.filter((track) =>
         selectedKeys.has(`resource:${track.id}`),
       ),
@@ -5133,7 +5109,6 @@ const App = () => {
       personSafetyGuideVisible,
     };
   }, [
-    globalCardBase,
     pendingArrangement,
     personSafetyGuideVisible,
     previewInputProps,
@@ -5207,7 +5182,6 @@ const App = () => {
       trackHeights,
       canvasOrientation,
       globalCardScale,
-      globalCardBase,
       safetyGuideVisible,
       personSafetyGuideVisible,
       solidBackgroundEnabled,
@@ -5217,7 +5191,6 @@ const App = () => {
       activeComponentId,
       activeArrangementBatchId,
       canvasOrientation,
-      globalCardBase,
       globalCardScale,
       componentName,
       currentFrame,
@@ -5506,7 +5479,6 @@ const App = () => {
       if (Number(snapshot.globalCardScale) >= 0.5 && Number(snapshot.globalCardScale) <= 2) {
         setGlobalCardScale(Number(snapshot.globalCardScale));
       }
-      setGlobalCardBase(snapshot.globalCardBase === "light" ? "light" : "dark");
       setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
       setPersonSafetyGuideVisible(snapshot.personSafetyGuideVisible !== false);
       setSolidBackgroundEnabled(
@@ -8432,7 +8404,7 @@ const App = () => {
           })),
           sourceIncludesVideo,
           soundEnabled,
-          instances: effectiveInstances,
+          instances,
           timelineDurationInFrames: durationInFrames,
           ...(exportUseRegion &&
           regionInFrame !== null &&
@@ -14029,28 +14001,6 @@ const App = () => {
           <div className="reference-kicker">全局 <i>·</i> 影响所有卡片</div>
 
           <section className="reference-control-group">
-            <label>全局底色(所有卡片)</label>
-            <div className="reference-segmented">
-              <button
-                className={globalCardBase === "dark" ? "active" : ""}
-                onClick={() => setGlobalCardBase("dark")}
-                title="保持各卡片默认背景底色"
-              >
-                <MoonStars weight="fill" />
-                暗底
-              </button>
-              <button
-                className={globalCardBase === "light" ? "active" : ""}
-                onClick={() => setGlobalCardBase("light")}
-                title="所有卡片透明：去掉背景底色，只留文字与图形"
-              >
-                <Sun weight="fill" />
-                亮底
-              </button>
-            </div>
-          </section>
-
-          <section className="reference-control-group">
             <label>皮肤(所有卡片)</label>
             <button className="reference-select"><SelectionForeground />晨雾象牙<span><CaretDown /></span></button>
           </section>
@@ -15445,7 +15395,7 @@ const App = () => {
                 </div>
               </section>
             ) : null}
-            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition ? (
+            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition && supportsCardBackground(inspectorDefinition.id) ? (
               <section className={`reference-inspector-section${inspectorSectionsExpanded.cardBackground ? "" : " collapsed"}`}>
                 <div className="reference-section-title" role="button" tabIndex={0} aria-expanded={inspectorSectionsExpanded.cardBackground} onClick={() => toggleInspectorSection("cardBackground")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleInspectorSection("cardBackground"); } }}>
                   <strong>卡片底色</strong><small>OPACITY</small>
