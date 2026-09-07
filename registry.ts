@@ -54,6 +54,10 @@ import { MaterialCardEffectDef } from "./effects/MaterialCard";
 import { ComparisonProgressBarsEffectDef } from "./effects/ComparisonProgressBars";
 import { MilestoneFollowerProgressEffectDef } from "./effects/MilestoneFollowerProgress";
 
+import { PinBoardEffectDef } from "./effects/PinBoard";
+import { StepTimelineEffectDef } from "./effects/StepTimeline";
+import { TermCardEffectDef } from "./effects/TermCard";
+
 import { LEGACY_EFFECT_DEFS } from "./legacy-effects";
 
 export type EffectDef = MotionComponentDefinition & {
@@ -154,6 +158,10 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   MaterialCardEffectDef,
   ComparisonProgressBarsEffectDef,
   MilestoneFollowerProgressEffectDef,
+
+  PinBoardEffectDef,
+  StepTimelineEffectDef,
+  TermCardEffectDef,
 
   ...LEGACY_EFFECT_DEFS,
 ];

@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **40** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **43** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -69,3 +69,9 @@
 
 - `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+
+## 口播HUD常驻卡
+
+- `PinBoard`：要点钉板 — 章节标题+副题钉在角落，黑牌要点逐条落钉且全程不消失，观众随时知道讲到哪。（仅工作台可用；props：`title`、`subtitle`、`items`、`stepMs`、`speed`、`accentColor`、`textColor`、`side`、`offsetX`、`offsetY`）
+- `StepTimeline`：步骤时间线卡 — 章节大纲沿竖向导轨逐句冒出，未讲到的章节留空轮廓，标题支持 *关键词* 高亮。（仅工作台可用；props：`title`、`steps`、`revealed`、`speed`、`accentColor`、`textColor`、`side`、`offsetX`、`offsetY`）
+- `TermCard`：术语解释卡 — 名词 + 一句人话定义的玻璃卡，讲到新概念时弹出，强调色竖条压住卡边。（仅工作台可用；props：`en`、`term`、`definition`、`speed`、`accentColor`、`textColor`、`side`、`offsetX`、`offsetY`）

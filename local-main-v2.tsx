@@ -15916,18 +15916,6 @@ const App = () => {
 
         <aside className="right-panel reference-right-panel">
           <header className="reference-inspector-head">
-            <small>
-              单卡参数 <i>·</i>{" "}
-              {selectedResourceTrack
-                ? `RESOURCE · ${selectedResourceTrack.kind.toUpperCase()}`
-                : inspectorInstance
-                ? `CARD-${String(
-                    instances.findIndex(
-                      (instance) => instance.id === inspectorInstance.id,
-                    ) + 1,
-                  ).padStart(2, "0")}`
-                : "NO SELECTION"}
-            </small>
             <div>
               <SlidersHorizontal weight="fill" />
               <strong>

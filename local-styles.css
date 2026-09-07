@@ -3464,24 +3464,11 @@ main.is-resizing-sidebar * {
   border-bottom: 1px solid #30333a;
 }
 
-.reference-inspector-head > small {
-  color: #ff6845;
-  font-family: Consolas, monospace;
-  font-size: 9px;
-  letter-spacing: 0.24em;
-}
-
-.reference-inspector-head > small i {
-  padding: 0 5px;
-  font-style: normal;
-}
-
 .reference-inspector-head > div {
   display: grid;
   grid-template-columns: 13px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  margin-top: 9px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -3499,7 +3486,7 @@ main.is-resizing-sidebar * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: -0.01em;
 }
 
@@ -3510,7 +3497,7 @@ main.is-resizing-sidebar * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .reference-inspector-body {

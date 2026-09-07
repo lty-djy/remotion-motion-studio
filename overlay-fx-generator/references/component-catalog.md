@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（40 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（43 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -51,6 +51,9 @@
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
+| `PinBoard` | 要点钉板 | 口播HUD常驻卡 | 列举要点 | any | 常驻 |
+| `StepTimeline` | 步骤时间线卡 | 口播HUD常驻卡 | 流程说明 | any |  |
+| `TermCard` | 术语解释卡 | 口播HUD常驻卡 | 概念解释 | any |  |
 | `SegmentedMeter` | 分段能量条 | 数字与指标 | 数字展示 | any |  |
 
 ## 核心语义图例
@@ -1343,6 +1346,72 @@
 - `animationSeconds` — 动画时长(秒)（0.2–8）
 - `accentColor` — 强调色（color）
 - `secondaryColor` — 辅助色（color）
+
+## 口播HUD常驻卡
+
+### `PinBoard` · 要点钉板
+
+- 用途：章节标题+副题钉在角落，黑牌要点逐条落钉且全程不消失，观众随时知道讲到哪。
+- 主要语义：列举要点；次要：重点强调、流程说明、章节转场
+- 何时使用（检索词）：要点、钉板、重点、清单、逐条、小结、本段主题、常驻
+- 画布方向：any；密度：light；建议驻留：5–120 秒
+- 默认落位：x=1160，y=96，scale=1（占位 640×560，placement=right）
+- 默认时长：450 帧（约 15 秒）
+- 分组：口播HUD常驻卡；**常驻层**（不计密度/多样性）
+
+- 可编排 props：
+- `title` — 章节标题(可空)
+- `subtitle` — 强调副题(可空)
+- `items` — 要点(|分隔,逐条落钉)
+- `stepMs` — 每条落钉间隔(卡点用)（500–15000）
+- `speed` — 动画速度（0.5–2）
+- `accentColor` — 强调色(副题)（color）
+- `textColor` — 文字颜色（color）
+- `side` — 落位
+- `offsetX` — 水平微调（-900–900）
+- `offsetY` — 垂直微调（-600–600）
+
+### `StepTimeline` · 步骤时间线卡
+
+- 用途：章节大纲沿竖向导轨逐句冒出，未讲到的章节留空轮廓，标题支持 *关键词* 高亮。
+- 主要语义：流程说明；次要：章节转场、列举要点、重点强调
+- 何时使用（检索词）：章节、大纲、步骤、流程、目录、第一步、接下来、讲到第几
+- 画布方向：any；密度：light；建议驻留：3–60 秒
+- 默认落位：x=1040，y=200，scale=1（占位 760×680，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：口播HUD常驻卡
+
+- 可编排 props：
+- `title` — 标题(*关键词*高亮)
+- `steps` — 章节(|分隔)
+- `revealed` — 已讲到第几章（0–6）
+- `speed` — 动画速度（0.5–2）
+- `accentColor` — 标题强调色（color）
+- `textColor` — 文字颜色（color）
+- `side` — 落位
+- `offsetX` — 水平微调（-900–900）
+- `offsetY` — 垂直微调（-600–600）
+
+### `TermCard` · 术语解释卡
+
+- 用途：名词 + 一句人话定义的玻璃卡，讲到新概念时弹出，强调色竖条压住卡边。
+- 主要语义：概念解释；次要：重点强调
+- 何时使用（检索词）：术语、名词、解释、定义、概念、人话、是什么、翻译
+- 画布方向：any；密度：light；建议驻留：2–20 秒
+- 默认落位：x=1140，y=380，scale=1（占位 660×340，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：口播HUD常驻卡
+
+- 可编排 props：
+- `en` — 英文/拼音(可空)
+- `term` — 术语
+- `definition` — 一句话定义
+- `speed` — 动画速度（0.5–2）
+- `accentColor` — 强调色（color）
+- `textColor` — 文字颜色（color）
+- `side` — 落位
+- `offsetX` — 水平微调（-900–900）
+- `offsetY` — 垂直微调（-600–600）
 
 ## 编排建议（人工维护，随目录一起读）
 

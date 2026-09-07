@@ -42,6 +42,7 @@ overlay-fx-generator/
 ```powershell
 npm.cmd run lint:arrangement -- <编排.json> [--duration 视频秒数]   # 体检
 npm.cmd run sync:arranger-catalog                                  # registry 变了刷新组件目录
+npm.cmd run prompt:web -- <SRT路径> [--out 输出.txt]               # 打包网页版 GPT 编排提示词
 ```
 
 组件目录也会随 `predev` / `prebuild` / `prestart`（`sync:registry` 链）自动刷新；

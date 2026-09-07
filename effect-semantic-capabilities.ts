@@ -396,6 +396,27 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["metric", "process"],
     ["容量", "阶段", "进度", "性能", "分段"],
   ),
+  PinBoard: capability(
+    "list",
+    ["emphasis", "process", "transition"],
+    ["list", "short-text"],
+    ["要点", "钉板", "重点", "清单", "逐条", "小结", "本段主题", "常驻"],
+    { density: "light", durationSeconds: { min: 5, max: 120 } },
+  ),
+  StepTimeline: capability(
+    "process",
+    ["transition", "list", "emphasis"],
+    ["process", "list", "short-text"],
+    ["章节", "大纲", "步骤", "流程", "目录", "第一步", "接下来", "讲到第几"],
+    { density: "light", durationSeconds: { min: 3, max: 60 } },
+  ),
+  TermCard: capability(
+    "explanation",
+    ["emphasis"],
+    ["short-text", "long-text"],
+    ["术语", "名词", "解释", "定义", "概念", "人话", "是什么", "翻译"],
+    { density: "light", durationSeconds: { min: 2, max: 20 } },
+  ),
 });
 
 export const semanticIntentIdsFor = (

@@ -9,6 +9,7 @@
     "sync:registry": "node ai-motion-arranger/scripts/sync-runtime-registry.mjs && node ai-motion-arranger/scripts/generate-card-catalog.mjs && node overlay-fx-generator/scripts/generate-component-catalog.mjs",
     "sync:arranger-catalog": "node overlay-fx-generator/scripts/generate-component-catalog.mjs",
     "lint:arrangement": "node overlay-fx-generator/scripts/lint-arrangement-json.mjs",
+    "prompt:web": "node overlay-fx-generator/scripts/build-web-prompt.mjs",
     "sync:resources": "node ai-motion-arranger/scripts/build-resource-index.mjs",
     "validate:resources": "node ai-motion-arranger/scripts/validate-resource-index.mjs",
     "prevalidate:visual-script": "npm run sync:registry && npm run sync:resources",

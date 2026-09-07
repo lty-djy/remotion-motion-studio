@@ -34,6 +34,7 @@ const RESIDENT_COMPONENT_IDS = new Set([
   "ChapterBar",
   "SrtSemanticCaptions",
   "SrtCueText",
+  "PinBoard",
 ]);
 
 const formatFrameDuration = (frames, fps) => `${frames} 帧（约 ${Math.round((frames / fps) * 10) / 10} 秒）`;
