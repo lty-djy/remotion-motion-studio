@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（43 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（44 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -49,6 +49,7 @@
 | `MarketEliminationStamp` | 淘汰警告·市场印章 | 风险提醒 | 风险提醒 | portrait |  |
 | `MediaSpotlightCard` | 媒体聚焦卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
+| `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
 | `PinBoard` | 要点钉板 | 口播HUD常驻卡 | 列举要点 | any | 常驻 |
@@ -1271,6 +1272,24 @@
 - `mediaPositionX` — 裁剪水平位置(%)（0–100）
 - `mediaPositionY` — 裁剪垂直位置(%)（0–100）
 - `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PhoneRecordingFrameNeutral` · 手机与竖屏录屏
+
+- 用途：中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。
+- 主要语义：案例与素材；次要：概念解释、重点强调、流程说明
+- 何时使用（检索词）：手机、录屏、竖屏、屏幕、界面、产品演示、设备、录制
+- 画布方向：landscape；密度：heavy；建议驻留：4–8 秒
+- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
+- 默认时长：180 帧（约 6 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `mediaUrl` — 内屏图片 / 视频
+- `mediaType` — 内屏素材类型
+- `mediaFit` — 内屏填充方式
+- `enterEndSeconds` — 入场结束（相对组件起点 / 秒）
+- `exitStartSeconds` — 出场开始（相对组件起点 / 秒）
+- `exitEndSeconds` — 出场结束（相对组件起点 / 秒）
 
 ## 图表与比较
 

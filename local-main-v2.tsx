@@ -12440,6 +12440,23 @@ const App = () => {
 
   const updateSelectedProp = (key: string, value: unknown) => {
     if (!inspectorInstance) return;
+    if (inspectorDefinition?.id === "PhoneRecordingFrameNeutral" &&
+        ["enterEndSeconds", "exitStartSeconds", "exitEndSeconds"].includes(key)) {
+      const next = { enterEndSeconds: 1, exitStartSeconds: 5.33, exitEndSeconds: 6, ...inspectorInstance.props, [key]: value };
+      const enterEndSeconds = Math.max(0.1, Number(next.enterEndSeconds) || 0.1);
+      const exitStartSeconds = Math.max(enterEndSeconds, Number(next.exitStartSeconds) || 0);
+      const exitEndSeconds = Math.max(exitStartSeconds + 1 / fps, Number(next.exitEndSeconds) || 0);
+      const nextDuration = Math.max(inspectorInstance.durationInFrames, Math.ceil(exitEndSeconds * fps) + 1);
+      updateInspectorInstance(inspectorInstance.id, (instance) => ({
+        ...instance,
+        durationInFrames: nextDuration,
+        props: { ...instance.props, enterEndSeconds, exitStartSeconds, exitEndSeconds },
+      }));
+      if (!pendingPreviewInspectorInstance) {
+        setManualTimelineEndFrame((current) => Math.max(current, inspectorInstance.startFrame + nextDuration));
+      }
+      return;
+    }
     // ChapterBar：章节表/最后一章时长变化时，轨道长度自动跟随章节表
     // （最后一章起始秒 + 最后一章保留时长），不用手动拖卡片边缘。
     if (
@@ -12632,7 +12649,7 @@ const App = () => {
     }
     const isSpotlightMediaUrl =
       key === "mediaUrl" &&
-      ["MediaSpotlightCard", "MaterialCard", "FocusCard"].includes(
+      ["MediaSpotlightCard", "MaterialCard", "FocusCard", "PhoneRecordingFrameNeutral"].includes(
         selectedDefinition?.id ?? "",
       ) ||
       (key === "mediaUrl" &&
@@ -12812,6 +12829,22 @@ const App = () => {
             ) : null}
           </span>
         </label>
+      );
+    }
+    if (
+      inspectorDefinition?.id === "PhoneRecordingFrameNeutral" &&
+      schema.type === "number" &&
+      ["enterEndSeconds", "exitStartSeconds", "exitEndSeconds"].includes(key)
+    ) {
+      return (
+        <TimingStepper
+          key={key}
+          label={label}
+          value={Number(value ?? schema.default ?? 0)}
+          min={schema.min ?? 0}
+          step={0.1}
+          onChange={(nextValue) => updateSelectedProp(key, nextValue)}
+        />
       );
     }
     if (schema.type === "number" && key.endsWith("FontSize")) {

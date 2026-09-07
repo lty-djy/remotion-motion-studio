@@ -376,6 +376,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["图片", "视频", "素材", "截图", "录屏"],
     { density: "medium", durationSeconds: { min: 2, max: 12 } },
   ),
+  PhoneRecordingFrameNeutral: capability(
+    "evidence",
+    ["explanation", "emphasis", "process"],
+    ["media", "short-text"],
+    ["手机", "录屏", "竖屏", "屏幕", "界面", "产品演示", "设备", "录制"],
+    { orientation: "landscape", density: "heavy", durationSeconds: { min: 4, max: 8 } },
+  ),
   ComparisonProgressBars: capability(
     "comparison",
     ["metric", "process", "emphasis"],
