@@ -2494,7 +2494,7 @@ const localApi = (): Plugin => {
             String(req.headers["x-file-name"] ?? "media-file"),
           );
           const lower = extname(inputName).toLowerCase();
-          const imageExt = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif"];
+          const imageExt = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif", ".svg"];
           const videoExt = [".mp4", ".mov", ".webm", ".m4v", ".ogg"];
           const isImage = imageExt.includes(lower);
           const isVideo = videoExt.includes(lower);
@@ -3041,23 +3041,27 @@ const localApi = (): Plugin => {
           const inputProps = JSON.parse(
             (await getBody(req, 1024 * 1024)).toString("utf8"),
           ) as Record<string, unknown>;
+          const resolveLocalAssetUrl = (value: unknown) => {
+            if (typeof value !== "string" || !value.trim()) return value;
+            if (value.startsWith("/")) {
+              return `http://127.0.0.1:41735${value}`;
+            }
+            // 旧版本曾把本地资源保存为 Remotion 默认的 3001 地址；
+            // 导出浏览器无法访问该端口，统一迁移到工作台 API 服务。
+            return value
+              .replace(/^http:\/\/localhost:3001(?=\/)/i, "http://127.0.0.1:41735")
+              .replace(/^http:\/\/127\.0\.0\.1:3001(?=\/)/i, "http://127.0.0.1:41735");
+          };
           const resolvedInputProps = {
             ...inputProps,
-            videoSrc:
-              typeof inputProps.videoSrc === "string" &&
-              inputProps.videoSrc.startsWith("/")
-                ? `http://127.0.0.1:41735${inputProps.videoSrc}`
-                : inputProps.videoSrc,
+            videoSrc: resolveLocalAssetUrl(inputProps.videoSrc),
             videoTracks: Array.isArray(inputProps.videoTracks)
               ? inputProps.videoTracks.map((track) => {
                   if (!track || typeof track !== "object") return track;
                   const record = track as Record<string, unknown>;
                   return {
                     ...record,
-                    url:
-                      typeof record.url === "string" && record.url.startsWith("/")
-                        ? `http://127.0.0.1:41735${record.url}`
-                        : record.url,
+                    url: resolveLocalAssetUrl(record.url),
                   };
                 })
               : [],
@@ -3067,11 +3071,27 @@ const localApi = (): Plugin => {
                   const record = track as Record<string, unknown>;
                   return {
                     ...record,
-                    url:
-                      typeof record.url === "string" && record.url.startsWith("/")
-                        ? `http://127.0.0.1:41735${record.url}`
-                        : record.url,
+                    url: resolveLocalAssetUrl(record.url),
                   };
+                })
+              : [],
+            instances: Array.isArray(inputProps.instances)
+              ? inputProps.instances.map((instance) => {
+                  if (!instance || typeof instance !== "object") return instance;
+                  const record = instance as Record<string, unknown>;
+                  const props =
+                    record.props && typeof record.props === "object"
+                      ? (record.props as Record<string, unknown>)
+                      : null;
+                  return props
+                    ? {
+                        ...record,
+                        props: {
+                          ...props,
+                          customLogoUrl: resolveLocalAssetUrl(props.customLogoUrl),
+                        },
+                      }
+                    : record;
                 })
               : [],
           };

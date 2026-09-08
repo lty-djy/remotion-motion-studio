@@ -40,10 +40,11 @@ export const CARD_BACKGROUND_CONTROL_CSS = `
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-// 卡片底色只保留给终端教学面板（TerminalPanel）与 ChapterBar，其余组件一律不再渲染底色。
+// 复用终端教学面板的卡片底色控制；团队归因卡片默认关闭，打开后使用同一套透明度和模糊效果。
 export const CARD_BACKGROUND_SUPPORTED_COMPONENT_IDS = new Set([
   "TerminalPanel",
   "ChapterBar",
+  "TeamAttributionCard",
 ]);
 
 export const supportsCardBackground = (componentId: unknown): boolean =>
@@ -84,3 +85,4 @@ export const getCardBackgroundControlVariables = ({
       : {}),
   };
 };
+

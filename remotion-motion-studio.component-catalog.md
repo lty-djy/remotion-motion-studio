@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **44** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **47** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -70,6 +70,15 @@
 
 - `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+
+## 案例与数据
+
+- `CaseStudySidebar`：案例商业数据侧栏 — 商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。（仅工作台可用；props：`enabled`、`headline`、`headlineValue`、`metric1Label`、`metric1Value`、`metric1Progress`、`metric2Label`、`metric2Value`、`metric2Progress`、`reviewLabel`、`reviewTime`、`reviewSuffix`、`attribution`、`attributionSubtitle`、`accentColor`、`textColor`、`animationSeconds`）
+
+## 品牌与标识
+
+- `BrandLogo`：品牌 Logo — 独立品牌标识组件：可选内置图标，或使用图标库/手动添加的图片 URL。（仅工作台可用；props：`enabled`、`logoSource`、`builtinIcon`、`customLogoUrl`、`label`、`subtitle`、`accentColor`、`panelColor`、`width`、`height`、`animationSeconds`）
+- `TeamAttributionCard`：Logo徽章名片 — 品牌、团队背书或归因结论出现时使用的黑底金边 Logo 徽章名片，可选择内置图标或导入外部图标。（仅工作台可用；props：`enabled`、`logoSource`、`builtinIcon`、`customLogoUrl`、`attribution`、`attributionSubtitle`、`accentColor`、`textColor`、`panelColor`、`width`、`height`、`animationSeconds`）
 
 ## 口播HUD常驻卡
 

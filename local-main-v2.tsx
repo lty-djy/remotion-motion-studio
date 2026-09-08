@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -1691,7 +1691,7 @@ const createInstance = (
       ...definition.defaultPosition,
       ...(overrides.position ?? {}),
     },
-    cardBackgroundEnabled: overrides.cardBackgroundEnabled !== false,
+    cardBackgroundEnabled: overrides.cardBackgroundEnabled ?? definition.id !== "TeamAttributionCard",
     backgroundOpacity: clamp(overrides.backgroundOpacity ?? 1, 0, 1),
     // 还原已有项目 / 编排产物时尊重 overrides.cardMask；
     // 没有外部遮罩设置时（效果库新增、AI 编排新生成的 instance）使用新建默认：默认不显示。
@@ -2126,7 +2126,7 @@ const StudioPreviewComposition = ({
           : instance.position;
         const renderScale =
           renderPosition.scale * (anchored ? 1 : globalCardScale);
-        // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
+        // 终端教学面板与团队归因卡片共用可选卡片底色控制。
         const cardBackgroundOn =
           supportsCardBackground(instance.componentId) &&
           instance.cardBackgroundEnabled;
@@ -3203,6 +3203,7 @@ const App = () => {
   const videoInput = useRef<HTMLInputElement>(null);
   const componentInput = useRef<HTMLInputElement>(null);
   const iconImportInput = useRef<HTMLInputElement>(null);
+  const brandLogoExternalIconInput = useRef<HTMLInputElement>(null);
   const iconImportCategoryRef = useRef("内容与素材");
   const sfxImportInput = useRef<HTMLInputElement>(null);
   const materialImportInput = useRef<HTMLInputElement>(null);
@@ -3781,6 +3782,52 @@ const App = () => {
   const [sfxSearch, setSfxSearch] = useState("");
   const [previewingSfxId, setPreviewingSfxId] = useState("");
   const [iconResources, setIconResources] = useState<IconResource[]>([]);
+  const [brandLogoResourcePickerOpen, setBrandLogoResourcePickerOpen] =
+    useState(false);
+  const [brandLogoResourceSearch, setBrandLogoResourceSearch] = useState("");
+  const brandLogoResourceGroups = useMemo(() => {
+    const categoryOrder = [
+      "内容与素材",
+      "表达与强调",
+      "商务与教育",
+      "状态与数据",
+      "自动化与流程",
+      "沟通与传播",
+    ];
+    const groups = new Map<string, IconResource[]>();
+    const query = brandLogoResourceSearch.trim().toLocaleLowerCase("zh-CN");
+    for (const resource of iconResources) {
+      if (
+        query &&
+        ![
+          resource.label,
+          resource.id,
+          resource.category,
+          resource.usage,
+          ...resource.tags,
+        ].some((text) => text.toLocaleLowerCase("zh-CN").includes(query))
+      ) {
+        continue;
+      }
+      const category = resource.category || "其他";
+      const list = groups.get(category) ?? [];
+      list.push(resource);
+      groups.set(category, list);
+    }
+    return [...groups.entries()]
+      .map(([category, resources]) => [
+        category,
+        [...resources].sort((left, right) =>
+          left.label.localeCompare(right.label, "zh-CN"),
+        ),
+      ] as const)
+      .sort(
+        ([left], [right]) =>
+          (categoryOrder.indexOf(left) < 0 ? 999 : categoryOrder.indexOf(left)) -
+            (categoryOrder.indexOf(right) < 0 ? 999 : categoryOrder.indexOf(right)) ||
+          left.localeCompare(right, "zh-CN"),
+      );
+  }, [iconResources, brandLogoResourceSearch]);
   const [arrangementResourceLibrary, setArrangementResourceLibrary] =
     useState<ArrangementResourceLibrary>({
       icon: [],
@@ -7448,6 +7495,7 @@ const App = () => {
     );
     setIconSearch("");
     setNotice({ tone: "ok", text: `已将“${icon.label}”导入“${icon.category}”。` });
+    return icon;
   };
 
   const importSfx = async (file: File) => {
@@ -12494,6 +12542,15 @@ const App = () => {
     }));
   };
 
+  const chooseBrandLogoResource = (resource: IconResource) => {
+    if (!inspectorInstance || !(inspectorDefinition?.id === "BrandLogo" || inspectorDefinition?.id === "TeamAttributionCard")) return;
+    updateSelectedProp("logoSource", "custom");
+    updateSelectedProp("customLogoUrl", resource.url);
+    setBrandLogoResourcePickerOpen(false);
+    setBrandLogoResourceSearch("");
+    setNotice({ tone: "ok", text: `已选择品牌图标“${resource.label}”。` });
+  };
+
   const renderPropControl = (
     key: string,
     schema: MotionPropSchema,
@@ -12501,6 +12558,65 @@ const App = () => {
     allProps?: Record<string, unknown>,
   ) => {
     const label = schema.label ?? key;
+    if ((inspectorDefinition?.id === "BrandLogo" || inspectorDefinition?.id === "TeamAttributionCard") && key === "customLogoUrl") {
+      const selectedResourceUrl = String(value ?? "");
+      const selectedResource = iconResources.find(
+        (resource) => resource.url === selectedResourceUrl,
+      );
+      return (
+        <label key={key}>
+          <span>手动添加图片</span>
+          <button
+            type="button"
+            className="brand-logo-resource-button"
+            onClick={() => setBrandLogoResourcePickerOpen(true)}
+          >
+            {selectedResource ? `已选：${selectedResource.label}` : "选择资源"}
+          </button>
+          <button
+            type="button"
+            className="brand-logo-resource-upload"
+            onClick={() => brandLogoExternalIconInput.current?.click()}
+          >
+            从电脑选择外部图标（SVG）
+          </button>
+          <input
+            ref={brandLogoExternalIconInput}
+            type="file"
+            accept=".svg,image/svg+xml"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file || !inspectorInstance) return;
+              (async () => {
+                const response = await fetch("/api/upload-media", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": file.type || "image/svg+xml",
+                    "X-File-Name": encodeURIComponent(file.name),
+                  },
+                  body: file,
+                });
+                const data = await response.json();
+                if (!response.ok || !data?.mediaUrl) {
+                  throw new Error(data?.error ?? "外部图标导入失败");
+                }
+                const mediaUrl = new URL(String(data.mediaUrl), window.location.origin).toString();
+                updateSelectedProp("logoSource", "custom");
+                updateSelectedProp("customLogoUrl", mediaUrl);
+                setNotice({ tone: "ok", text: `图标已使用“${file.name}”。` });
+              })().catch((error) => {
+                setNotice({ tone: "error", text: error instanceof Error ? error.message : "外部图标导入失败" });
+              });
+            }}
+          />
+          <small className="brand-logo-resource-path">
+            {selectedResourceUrl || "尚未选择资源"}
+          </small>
+        </label>
+      );
+    }
     if (
       ((inspectorDefinition?.id === "PortraitWorkflowPrerequisite" &&
         key === "stepCount") ||
@@ -12765,7 +12881,17 @@ const App = () => {
           <span>{label}</span>
           <select
             value={String(value ?? "")}
-            onChange={(event) => updateSelectedProp(key, event.target.value)}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              updateSelectedProp(key, nextValue);
+              if (
+                (inspectorDefinition?.id === "BrandLogo" || inspectorDefinition?.id === "TeamAttributionCard") &&
+                key === "logoSource" &&
+                nextValue === "custom"
+              ) {
+                setBrandLogoResourcePickerOpen(true);
+              }
+            }}
           >
             {options.map((option) => {
               const optionValue =
@@ -16496,6 +16622,12 @@ const App = () => {
                     {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
                         if (key === "panelColor") return null;
+                        if (
+                          (inspectorDefinition.id === "BrandLogo" || inspectorDefinition.id === "TeamAttributionCard") &&
+                          (key === "logoSource" || key === "builtinIcon")
+                        ) {
+                          return null;
+                        }
                         if (inspectorDefinition.id === "TerminalPanel") {
                           const match = key.match(/^item(\d+)$/);
                           const activeStepCount = clamp(Math.round(Number(inspectorInstance.props.stepCount ?? 3)), 1, 8);
@@ -19182,6 +19314,93 @@ const App = () => {
           )
         : null}
 
+      {brandLogoResourcePickerOpen ? (
+        <div className="export-dialog-layer" role="dialog" aria-modal="true">
+          <div className="export-dialog brand-logo-resource-dialog">
+            <div className="export-dialog-title">
+              <strong>选择品牌 Logo / 团队卡片资源</strong>
+              <button
+                type="button"
+                className="export-dialog-close"
+                onClick={() => {
+                  setBrandLogoResourcePickerOpen(false);
+                  setBrandLogoResourceSearch("");
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p className="export-dialog-help">
+              选择内置图标或已手动导入到图标库的资源；选择后会自动回填到当前组件。
+            </p>
+            <label className="brand-logo-resource-search">
+              <MagnifyingGlass />
+              <input
+                type="search"
+                value={brandLogoResourceSearch}
+                onChange={(event) => setBrandLogoResourceSearch(event.target.value)}
+                placeholder="搜索名称、ID、分类或标签"
+                autoFocus
+              />
+              <b>{brandLogoResourceGroups.reduce((count, [, resources]) => count + resources.length, 0)}</b>
+            </label>
+            <div className="brand-logo-resource-groups">
+              {brandLogoResourceGroups.map(([category, resources]) => (
+                <section key={category} className="brand-logo-resource-group">
+                  <header>
+                    <strong>{category}</strong>
+                    <small>{resources.length} 项</small>
+                  </header>
+                  <div className="brand-logo-resource-grid">
+                    {resources.map((resource) => (
+                      <button
+                        type="button"
+                        className="brand-logo-resource-card"
+                        key={resource.id}
+                        onClick={() => chooseBrandLogoResource(resource)}
+                      >
+                        <span className="brand-logo-resource-preview">
+                          <img src={resource.url} alt="" />
+                        </span>
+                        <span>{resource.label}</span>
+                        <small>{resource.source === "manual" ? "手动" : "内置"}</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+            {iconResources.length === 0 ? (
+              <div className="effect-library-empty">图标库暂无资源，请先到图标库导入图标。</div>
+            ) : brandLogoResourceGroups.length === 0 ? (
+              <div className="effect-library-empty">没有找到匹配的图标。</div>
+            ) : null}
+            <div className="export-dialog-row">
+              <button
+                type="button"
+                className="export-dialog-cancel"
+                onClick={() => {
+                  setBrandLogoResourcePickerOpen(false);
+                  setBrandLogoResourceSearch("");
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="export-dialog-browse"
+                onClick={() => {
+                  setBrandLogoResourcePickerOpen(false);
+                  setBrandLogoResourceSearch("");
+                  setActiveWorkspace("icons");
+                }}
+              >
+                去图标库导入
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {contextMenu ? (
         <>
           <div
@@ -19585,3 +19804,8 @@ studioRoot.render(
     <App />
   </React.StrictMode>,
 );
+
+
+
+
+

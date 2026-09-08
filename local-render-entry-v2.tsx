@@ -279,7 +279,7 @@ const MultiComponentRender = ({
       const renderPosition = anchored
         ? getAnchoredEffectPosition(definition, canvasWidth)
         : instance.position;
-      // 卡片底色只保留给终端教学面板（TerminalPanel），其余组件一律无底色。
+      // 终端教学面板与团队归因卡片共用可选卡片底色控制。
       const cardBackgroundOn =
         supportsCardBackground(instance.componentId) &&
         instance.cardBackgroundEnabled !== false;
@@ -391,3 +391,4 @@ const Root = () => (
 );
 
 registerRoot(Root);
+

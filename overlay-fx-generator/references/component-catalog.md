@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（44 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（47 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -52,6 +52,9 @@
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
+| `CaseStudySidebar` | 案例商业数据侧栏 | 案例与数据 | 案例与素材 | portrait |  |
+| `BrandLogo` | 品牌 Logo | 品牌与标识 | 案例与素材 | portrait |  |
+| `TeamAttributionCard` | Logo徽章名片 | 品牌与标识 | 案例与素材 | portrait |  |
 | `PinBoard` | 要点钉板 | 口播HUD常驻卡 | 列举要点 | any | 常驻 |
 | `StepTimeline` | 步骤时间线卡 | 口播HUD常驻卡 | 流程说明 | any |  |
 | `TermCard` | 术语解释卡 | 口播HUD常驻卡 | 概念解释 | any |  |
@@ -1365,6 +1368,86 @@
 - `animationSeconds` — 动画时长(秒)（0.2–8）
 - `accentColor` — 强调色（color）
 - `secondaryColor` — 辅助色（color）
+
+## 案例与数据
+
+### `CaseStudySidebar` · 案例商业数据侧栏
+
+- 用途：商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。
+- 主要语义：案例与素材；次要：数字展示、重点强调、对比差异、概念解释
+- 何时使用（检索词）：账号、案例、商业价值、变现、报价、收入、倍数、专业团队、AI 工具
+- 画布方向：portrait；密度：medium；建议驻留：3–12 秒
+- 默认落位：x=72，y=185，scale=1（占位 520×390，placement=left）
+- 默认时长：300 帧（约 10 秒）
+- 分组：案例与数据
+
+- 可编排 props：
+- `enabled` — 显示侧栏
+- `headline` — 结论标题
+- `headlineValue` — 核心倍数
+- `metric1Label` — 指标一名称
+- `metric1Value` — 指标一数值
+- `metric1Progress` — 指标一进度(%)（0–100）
+- `metric2Label` — 指标二名称
+- `metric2Value` — 指标二数值
+- `metric2Progress` — 指标二进度(%)（0–100）
+- `reviewLabel` — 审核说明
+- `reviewTime` — 审核时长
+- `reviewSuffix` — 审核英文说明
+- `attribution` — 团队说明
+- `attributionSubtitle` — 团队英文副标题
+- `accentColor` — 强调色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.2–2）
+
+## 品牌与标识
+
+### `BrandLogo` · 品牌 Logo
+
+- 用途：独立品牌标识组件：可选内置图标，或使用图标库/手动添加的图片 URL。
+- 主要语义：案例与素材；次要：重点强调、案例与素材、章节转场
+- 何时使用（检索词）：品牌、logo、标识、抖音、平台、账号、官方图标
+- 画布方向：portrait；密度：light；建议驻留：0.5–12 秒
+- 默认落位：x=72，y=120，scale=1（占位 300×100，placement=left）
+- 默认时长：180 帧（约 6 秒）
+- 分组：品牌与标识
+
+- 可编排 props：
+- `enabled` — 显示品牌 Logo
+- `logoSource` — Logo 来源
+- `builtinIcon` — 内置图标
+- `customLogoUrl` — 手动图片 URL
+- `label` — 品牌名称
+- `subtitle` — 英文副标题
+- `accentColor` — 图标强调色（color）
+- `panelColor` — 卡片颜色（color）
+- `width` — 宽度(px)（180–800）
+- `height` — 高度(px)（64–240）
+- `animationSeconds` — 入场时长(秒)（0.2–2）
+
+### `TeamAttributionCard` · Logo徽章名片
+
+- 用途：品牌、团队背书或归因结论出现时使用的黑底金边 Logo 徽章名片，可选择内置图标或导入外部图标。
+- 主要语义：案例与素材；次要：重点强调、概念解释
+- 何时使用（检索词）：Logo徽章名片、logo徽章、徽章、名片、团队、专业团队、团队背书、团队实力、归因、品牌标识、品牌背书、官方Logo、官方图标、AI 工具、品牌、logo、brand
+- 画布方向：portrait；密度：light；建议驻留：0.5–12 秒
+- 默认落位：x=72，y=420，scale=1（占位 320×74，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：品牌与标识
+
+- 可编排 props：
+- `enabled` — 显示团队卡片
+- `logoSource` — 图标来源
+- `builtinIcon` — 内置图标
+- `customLogoUrl` — 手动图片 URL
+- `attribution` — 团队说明
+- `attributionSubtitle` — 英文副标题
+- `accentColor` — 强调色（color）
+- `textColor` — 文字颜色（color）
+- `panelColor` — 卡片颜色（color）
+- `width` — 宽度(px)（220–620）
+- `height` — 高度(px)（56–180）
+- `animationSeconds` — 入场时长(秒)（0.2–2）
 
 ## 口播HUD常驻卡
 

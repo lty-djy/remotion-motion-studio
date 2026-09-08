@@ -376,6 +376,21 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["图片", "视频", "素材", "截图", "录屏"],
     { density: "medium", durationSeconds: { min: 2, max: 12 } },
   ),
+  CaseStudySidebar: capability(
+    "evidence",
+    ["metric", "emphasis", "comparison", "explanation"],
+    ["metric", "short-text", "list", "media"],
+    ["账号", "案例", "商业价值", "变现", "报价", "收入", "倍数", "专业团队", "AI 工具"],
+    { orientation: "portrait", density: "medium", durationSeconds: { min: 3, max: 12 } },
+  ),
+  BrandLogo: capability(
+    "evidence",
+    ["emphasis", "evidence", "transition"],
+    ["media", "short-text"],
+    ["品牌", "logo", "标识", "抖音", "平台", "账号", "官方图标"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 0.5, max: 12 } },
+  ),
+  TeamAttributionCard: capability("evidence", ["emphasis", "explanation"], ["media", "short-text"], ["Logo徽章名片", "logo徽章", "徽章", "名片", "团队", "专业团队", "团队背书", "团队实力", "归因", "品牌标识", "品牌背书", "官方Logo", "官方图标", "AI 工具", "品牌", "logo", "brand"], { orientation: "portrait", density: "light", durationSeconds: { min: 0.5, max: 12 } }),
   PhoneRecordingFrameNeutral: capability(
     "evidence",
     ["explanation", "emphasis", "process"],
@@ -432,3 +447,6 @@ export const semanticIntentIdsFor = (
   ...(capabilities.primaryIntent ? [capabilities.primaryIntent] : []),
   ...capabilities.secondaryIntents,
 ];
+
+
+

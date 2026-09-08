@@ -92,6 +92,8 @@ lint 通过、组件多样的编排 JSON。**
 1. **证据优先（最高）**：观点要用数字和真素材背书，不要用文字复述——数字结论 → `PortraitMetricDecision`；增长/里程碑 → `MilestoneFollowerProgress`；档位/容量 → `SegmentedMeter`；两项对比走势 → `ComparisonProgressBars`；要演示的界面让用户「导入素材」，用 `MaterialCard` / `MediaSpotlightCard` / `ui 标注类` 卡呈现。
 2. **数字可视化**：一出现数字就用数字卡——大数字 + 一行小注，不写整句。
 3. **图标/图形结构**：并列列举 → `PortraitStaggeredToolList` / `PortraitSkillStepGrid`；流程/步骤 → `PortraitStepChecklist` / `PortraitWorkflowPrerequisite`；二选一 → `PortraitAiOutputGapComparison` / `PortraitSkillResultComparison` / `PortraitDecisionTagStack`；文件/代码/和 AI 的拉扯对话 → `TerminalPanel` / `PortraitBrowserRepairLoop` / `PortraitPromptIterationShowcase`。
+
+   **品牌与团队背书**：字幕出现品牌标识、官方 Logo、团队介绍、专业团队、团队实力、品牌背书、归因说明、AI 工具放大或“名片/徽章”语义时，优先使用 `TeamAttributionCard`（显示名：Logo徽章名片）。这是独立内容卡，不要把它误选成 `BrandLogo`：`BrandLogo` 用于平台/账号 Logo，`TeamAttributionCard` 用于团队/品牌背书与归因结论。默认只填 `attribution` 与 `attributionSubtitle`，图标来源由工作台默认值或用户资源设置。
 4. **实物图/截图/录屏**：引用他人的话 → `PortraitAiOutputGapQuote`；讲界面某个区域 → `PortraitInfoCallout` 圈注；地图/路线类叙事 → `GlobalExpedition`。聊天记录、群消息这类长文字，让用户截图铺底，绝不要打成文字卡。
 5. **纯文字卡是最后的选择**：只给钩子/反转/金句时刻（`PortraitGapHeadline` / `PortraitInfoCallout` 轻提示），占比见【偏好·文字量】。
 
@@ -190,3 +192,4 @@ lint 通过、组件多样的编排 JSON。**
 - 工作台的「SRT导入」相关入口只负责生成字幕语义动画轨（含 semanticKey 路由），**不再用本地规则选组件**——组件选择 100% 由本 Skill（内置调用或会话）完成。
 - 工作台负责确定性的事：格式校验、资源解析、位置兜底、时间计算、编排预览、质检展示、确认插入、按语义组微调、整批撤销。
 - 离线批量编排等旧 manifest → TSX 链路（`ai-motion-arranger/`）仍可用于兼容，但**新编排一律走本 Skill 的 timeline JSON**。
+

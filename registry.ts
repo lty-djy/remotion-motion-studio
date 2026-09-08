@@ -54,6 +54,9 @@ import { MaterialCardEffectDef } from "./effects/MaterialCard";
 import { PhoneRecordingFrameNeutralEffectDef } from "./effects/PhoneRecordingFrameNeutral";
 import { ComparisonProgressBarsEffectDef } from "./effects/ComparisonProgressBars";
 import { MilestoneFollowerProgressEffectDef } from "./effects/MilestoneFollowerProgress";
+import { CaseStudySidebarEffectDef } from "./effects/CaseStudySidebar";
+import { BrandLogoEffectDef } from "./effects/BrandLogo";
+import { TeamAttributionCardEffectDef } from "./effects/TeamAttributionCard";
 
 import { PinBoardEffectDef } from "./effects/PinBoard";
 import { StepTimelineEffectDef } from "./effects/StepTimeline";
@@ -160,6 +163,9 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PhoneRecordingFrameNeutralEffectDef,
   ComparisonProgressBarsEffectDef,
   MilestoneFollowerProgressEffectDef,
+  CaseStudySidebarEffectDef,
+  BrandLogoEffectDef,
+  TeamAttributionCardEffectDef,
 
   PinBoardEffectDef,
   StepTimelineEffectDef,
@@ -205,3 +211,5 @@ export const EFFECT_REGISTRY_BY_ID = new Map(
 export const AI_ARRANGEABLE_COMPONENT_IDS = EFFECT_REGISTRY.filter(
   (definition) => definition.arranger,
 ).map((definition) => definition.id);
+
+
