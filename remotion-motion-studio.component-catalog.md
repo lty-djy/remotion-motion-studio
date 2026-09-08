@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **47** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **48** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 空间与聚焦
@@ -50,6 +50,7 @@
 ## 终端教学 HUD
 
 - `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
+- `Terminal3D`：3D 终端打字机 — 3D 倾斜玻璃终端，支持命令、参数、注释、成功/失败状态逐字打出。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`theme`、`position`、`file`、`lines`、`cps`、`offsetX`、`offsetY`）
 
 ## 风险提醒
 

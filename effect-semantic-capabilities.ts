@@ -145,6 +145,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["代码", "终端", "命令", "步骤", "开发", "工具"],
     { density: "heavy", durationSeconds: { min: 3, max: 12 } },
   ),
+  Terminal3D: capability(
+    "process",
+    ["explanation", "list", "evidence", "emphasis"],
+    ["process", "list", "long-text"],
+    ["代码", "终端", "命令", "命令行", "参数", "打字机", "开发", "工具", "执行结果"],
+    { density: "heavy", durationSeconds: { min: 3, max: 20 } },
+  ),
   ChapterBar: capability(
     "transition",
     ["process", "emphasis"],
@@ -447,6 +454,8 @@ export const semanticIntentIdsFor = (
   ...(capabilities.primaryIntent ? [capabilities.primaryIntent] : []),
   ...capabilities.secondaryIntents,
 ];
+
+
 
 
 

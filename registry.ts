@@ -17,6 +17,7 @@ import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
+import { Terminal3DEffectDef } from "./effects/Terminal3D";
 
 
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
@@ -107,6 +108,7 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   SrtSemanticCaptionsEffectDef,
   SrtCueTextEffectDef,
   TerminalPanelEffectDef,
+  Terminal3DEffectDef,
 
   PortraitChapterRailEffectDef,
   PortraitIndexedChapterTitleEffectDef,
@@ -211,5 +213,7 @@ export const EFFECT_REGISTRY_BY_ID = new Map(
 export const AI_ARRANGEABLE_COMPONENT_IDS = EFFECT_REGISTRY.filter(
   (definition) => definition.arranger,
 ).map((definition) => definition.id);
+
+
 
 

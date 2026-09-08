@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（47 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（48 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -18,6 +18,7 @@
 | `SrtSemanticCaptions` | SRT字幕语义动画 | 字幕与台词 | caption-track | portrait | 常驻 |
 | `SrtCueText` | 主字幕·关键词条 | 字幕与台词 | caption-track | any | 常驻 |
 | `TerminalPanel` | 终端教学面板 | 终端教学 HUD | 流程说明 | any |  |
+| `Terminal3D` | 3D 终端打字机 | 终端教学 HUD | 流程说明 | any |  |
 | `PortraitChapterRail` | 章节条 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitIndexedChapterTitle` | 编号章节标题 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitInfoCallout` | 图标信息卡 | 竖屏口播信息层 | 概念解释 | portrait |  |
@@ -1182,6 +1183,27 @@
 - `statusFontSize` — 底部状态字号(px)（8–32）
 - `accentColor` — 强调色（color）
 - `animationSeconds` — 动画时长(秒)（0.2–8）
+
+### `Terminal3D` · 3D 终端打字机
+
+- 用途：3D 倾斜玻璃终端，支持命令、参数、注释、成功/失败状态逐字打出。
+- 主要语义：流程说明；次要：概念解释、列举要点、案例与素材、重点强调
+- 何时使用（检索词）：代码、终端、命令、命令行、参数、打字机、开发、工具、执行结果
+- 画布方向：any；密度：heavy；建议驻留：3–20 秒
+- 默认落位：x=1080，y=220，scale=1（占位 760×606，placement=right）
+- 默认时长：240 帧（约 8 秒）
+- 分组：终端教学 HUD
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `theme` — 底色
+- `position` — 卡片微落位
+- `file` — 标题栏文件名
+- `lines` — 命令行（用 | 分隔；支持 $ 参数 #注释 ✓成功 ✗失败）
+- `cps` — 打字速度（8–60）
+- `offsetX` — 水平微调（-900–900）
+- `offsetY` — 垂直微调（-600–600）
 
 ## 风险提醒
 
