@@ -185,12 +185,6 @@
   - 内容：comparison、short-text
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
-- **风险提醒卡**（`PortraitRiskWarning`）
-  - 主要：风险提醒
-  - 次要：重点强调、列举要点、概念解释
-  - 内容：list、short-text
-  - 方向：portrait；密度：heavy；建议时长：2–8 秒
-  - 检索词：风险、注意、限制、错误、异常、避免
 - **下集预告卡**（`PortraitNextEpisodeCta`）
   - 主要：行动引导
   - 次要：章节转场、重点强调
@@ -204,7 +198,7 @@
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
   - 检索词：证明、快速、门槛、无需、几分钟
 
-## 字幕与台词
+## 系统字幕
 
 - **SRT字幕语义动画**（`SrtSemanticCaptions`）
   - 主要：系统角色：caption-track
@@ -227,30 +221,15 @@
   - 内容：process、list、long-text
   - 方向：any；密度：heavy；建议时长：3–12 秒
   - 检索词：代码、终端、命令、步骤、开发、工具
+
+## 媒体展示组件
+
 - **3D 终端打字机**（`Terminal3D`）
   - 主要：流程说明
   - 次要：概念解释、列举要点、案例与素材、重点强调
   - 内容：process、list、long-text
   - 方向：any；密度：heavy；建议时长：3–20 秒
   - 检索词：代码、终端、命令、命令行、参数、打字机、开发、工具、执行结果
-
-## 风险提醒
-
-- **淘汰警告·旧方案面板**（`LegacyEliminationPanel`）
-  - 主要：风险提醒
-  - 次要：对比差异、重点强调
-  - 内容：comparison、short-text
-  - 方向：portrait；密度：medium；建议时长：1–7 秒
-  - 检索词：淘汰、过时、落后、失效、旧方案
-- **淘汰警告·市场印章**（`MarketEliminationStamp`）
-  - 主要：风险提醒
-  - 次要：重点强调、行动引导
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：0.3–4 秒
-  - 检索词：市场淘汰、淘汰、出局、取代
-
-## 媒体展示组件
-
 - **媒体聚焦卡**（`MediaSpotlightCard`）
   - 主要：案例与素材
   - 次要：概念解释、重点强调
@@ -269,6 +248,27 @@
   - 内容：media、short-text
   - 方向：landscape；密度：heavy；建议时长：4–8 秒
   - 检索词：手机、录屏、竖屏、屏幕、界面、产品演示、设备、录制
+
+## 风险提醒
+
+- **风险提醒卡**（`PortraitRiskWarning`）
+  - 主要：风险提醒
+  - 次要：重点强调、列举要点、概念解释
+  - 内容：list、short-text
+  - 方向：portrait；密度：heavy；建议时长：2–8 秒
+  - 检索词：风险、注意、限制、错误、异常、避免
+- **淘汰警告·旧方案面板**（`LegacyEliminationPanel`）
+  - 主要：风险提醒
+  - 次要：对比差异、重点强调
+  - 内容：comparison、short-text
+  - 方向：portrait；密度：medium；建议时长：1–7 秒
+  - 检索词：淘汰、过时、落后、失效、旧方案
+- **淘汰警告·市场印章**（`MarketEliminationStamp`）
+  - 主要：风险提醒
+  - 次要：重点强调、行动引导
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：0.3–4 秒
+  - 检索词：市场淘汰、淘汰、出局、取代
 
 ## 图表与比较
 
@@ -294,7 +294,7 @@
   - 方向：any；密度：medium；建议时长：1.5–6 秒
   - 检索词：容量、阶段、进度、性能、分段
 
-## 案例与数据
+## 品牌与标识
 
 - **案例商业数据侧栏**（`CaseStudySidebar`）
   - 主要：案例与素材
@@ -302,9 +302,6 @@
   - 内容：metric、short-text、list、media
   - 方向：portrait；密度：medium；建议时长：3–12 秒
   - 检索词：账号、案例、商业价值、变现、报价、收入、倍数、专业团队、AI 工具
-
-## 品牌与标识
-
 - **品牌 Logo**（`BrandLogo`）
   - 主要：案例与素材
   - 次要：重点强调、案例与素材、章节转场

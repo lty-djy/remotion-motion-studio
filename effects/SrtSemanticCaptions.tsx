@@ -435,7 +435,7 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
   name: "SRT字幕语义动画",
   description: "读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线",
   category: "captions",
-  catalogGroup: "字幕与台词",
+  catalogGroup: "口播HUD常驻卡",
   glyph: "SRT",
   placement: "bottom",
   component: SrtSemanticCaptions as React.ComponentType<
@@ -475,3 +475,4 @@ export const SrtSemanticCaptionsEffectDef: EffectDef = {
     },
   },
 };
+

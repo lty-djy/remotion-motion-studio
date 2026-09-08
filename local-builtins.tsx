@@ -17,11 +17,14 @@ const categoryIds = new Map<string, string>();
 
 export const BUILT_IN_CATALOG: BuiltInCatalogCategory[] = Array.from(
   EFFECT_REGISTRY.reduce((groups, definition) => {
+    if (EFFECT_REGISTRY_BY_ID.get(definition.id)?.semantic.systemRole === "caption-track") {
+      return groups;
+    }
     const current = groups.get(definition.catalogGroup) ?? [];
     current.push({ ids: [definition.id], name: definition.name });
     groups.set(definition.catalogGroup, current);
     if (!categoryIds.has(definition.catalogGroup)) {
-      categoryIds.set(definition.catalogGroup, definition.category);
+      categoryIds.set(definition.catalogGroup, `group:${definition.catalogGroup}`);
     }
     return groups;
   }, new Map<string, BuiltInCatalogItem[]>()),

@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import { readLibrary, saveLibrary } from './effect-library-store.mjs';
 import { bundle } from "@remotion/bundler";
 import {
   renderFrames,
@@ -1974,40 +1975,19 @@ const localApi = (): Plugin => {
           return;
         }
 
-        if (
-          url.pathname === "/api/delete-effect-group" &&
-          req.method === "POST"
-        ) {
-          const body = JSON.parse(
-            (await getBody(req, 128 * 1024)).toString("utf8"),
-          ) as { componentIds?: string[] };
-          const componentIds = Array.from(
-            new Set(
-              Array.isArray(body.componentIds)
-                ? body.componentIds.filter(
-                    (id): id is string =>
-                      typeof id === "string" && /^[A-Za-z0-9_-]+$/.test(id),
-                  )
-                : [],
-            ),
-          );
-          if (componentIds.length === 0 || componentIds.length > 100) {
-            throw new Error("分组内没有可删除的注册效果");
-          }
-          const deleted = await withoutEffectSourceHotReload(async () => {
-            const results = [];
-            for (const componentId of componentIds) {
-              results.push({
-                componentId,
-                ...(await deleteRegisteredEffectSource(componentId)),
-              });
-            }
-            return results;
-          });
-          sendJson(res, 200, { ok: true, deleted });
+        if (url.pathname === '/api/effect-library' && req.method === 'GET') {
+          sendJson(res, 200, { library: await readLibrary(rootDir) });
           return;
         }
-
+        if (url.pathname === '/api/effect-library' && req.method === 'POST') {
+          const body = JSON.parse((await getBody(req, 1024 * 1024)).toString('utf8'));
+          const library = await saveLibrary(rootDir, body.library, body.initialize === true);
+          await new Promise<void>((resolveSync, reject) => execFile(process.execPath,
+            [join(rootDir, 'overlay-fx-generator/scripts/generate-component-catalog.mjs')],
+            { cwd: rootDir }, (error) => error ? reject(error) : resolveSync()));
+          sendJson(res, 200, { library });
+          return;
+        }
         if (url.pathname === "/api/state" && req.method === "GET") {
           sendJson(res, 200, { ok: true, ...(await readState()) });
           return;

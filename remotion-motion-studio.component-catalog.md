@@ -38,11 +38,10 @@
 - `PortraitGapHeadline`：差距不在模型标题 — 三段拆分中的第 1 个组件：最后说一句徽标与“差距不在模型”大标题。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`showBadge`、`badgeText`、`titlePrefix`、`titleEmphasis`、`badgeFontSize`、`titlePrefixFontSize`、`titleEmphasisFontSize`、`badgeColor`、`titleColor`、`emphasisColor`、`panelColor`、`badgeEnterSeconds`、`titleEnterSeconds`、`animationSeconds`）
 - `PortraitAiOutputGapQuote`：同样 AI 输出差距引用 — 三段拆分中的第 2 个组件：同样一个 AI，却产生不同输出档次的双行引用。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`showAccentLine`、`leadText`、`bodyText`、`leadFontSize`、`bodyFontSize`、`leadColor`、`bodyColor`、`accentColor`、`panelColor`、`leadEnterSeconds`、`bodyEnterSeconds`、`animationSeconds`）
 - `PortraitAiOutputGapComparison`：AI 输出差距对比 — 三段拆分中的第 3 个组件：AI 糊感与可直接上线的正反结果对比。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`showGapLabel`、`gapLabel`、`badText`、`goodText`、`badSymbol`、`goodSymbol`、`labelFontSize`、`itemFontSize`、`symbolFontSize`、`labelColor`、`textColor`、`badColor`、`goodColor`、`panelColor`、`labelEnterSeconds`、`firstRowEnterSeconds`、`nextRowEnterIntervalSeconds`、`animationSeconds`）
-- `PortraitRiskWarning`：风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`riskCount`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`risk4`、`risk5`、`risk6`、`risk7`、`risk8`、`icon1`、`icon2`、`icon3`、`icon4`、`icon5`、`icon6`、`icon7`、`icon8`、`riskIntervalSeconds`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `PortraitNextEpisodeCta`：下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）
 
-## 字幕与台词
+## 系统字幕
 
 - `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`showIcon`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
 - `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
@@ -50,18 +49,19 @@
 ## 终端教学 HUD
 
 - `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
-- `Terminal3D`：3D 终端打字机 — 3D 倾斜玻璃终端，支持命令、参数、注释、成功/失败状态逐字打出。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`theme`、`position`、`file`、`lines`、`cps`、`offsetX`、`offsetY`）
-
-## 风险提醒
-
-- `LegacyEliminationPanel`：淘汰警告·旧方案面板 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
-- `MarketEliminationStamp`：淘汰警告·市场印章 — 独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`stampText`、`warningColor`、`panelColor`、`textColor`、`fontSize`、`fixedRotationDegrees`、`rotationDegrees`、`delaySeconds`、`animationSeconds`）
 
 ## 媒体展示组件
 
+- `Terminal3D`：3D 终端打字机 — 3D 倾斜玻璃终端，支持命令、参数、注释、成功/失败状态逐字打出。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`theme`、`position`、`file`、`lines`、`cps`、`offsetX`、`offsetY`）
 - `MediaSpotlightCard`：媒体聚焦卡 — 可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`caption`、`eyebrow`、`accentColor`、`panelColor`、`textColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `PhoneRecordingFrameNeutral`：手机与竖屏录屏 — 中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`mediaType`、`mediaFit`、`enterEndSeconds`、`exitStartSeconds`、`exitEndSeconds`）
+
+## 风险提醒
+
+- `PortraitRiskWarning`：风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`riskCount`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`risk4`、`risk5`、`risk6`、`risk7`、`risk8`、`icon1`、`icon2`、`icon3`、`icon4`、`icon5`、`icon6`、`icon7`、`icon8`、`riskIntervalSeconds`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `LegacyEliminationPanel`：淘汰警告·旧方案面板 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `MarketEliminationStamp`：淘汰警告·市场印章 — 独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`stampText`、`warningColor`、`panelColor`、`textColor`、`fontSize`、`fixedRotationDegrees`、`rotationDegrees`、`delaySeconds`、`animationSeconds`）
 
 ## 图表与比较
 
@@ -72,12 +72,9 @@
 - `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`enterAnimation`、`exitAnimation`、`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 
-## 案例与数据
-
-- `CaseStudySidebar`：案例商业数据侧栏 — 商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`headline`、`headlineValue`、`metric1Label`、`metric1Value`、`metric1Progress`、`metric2Label`、`metric2Value`、`metric2Progress`、`reviewLabel`、`reviewTime`、`reviewSuffix`、`attribution`、`attributionSubtitle`、`accentColor`、`textColor`、`animationSeconds`）
-
 ## 品牌与标识
 
+- `CaseStudySidebar`：案例商业数据侧栏 — 商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`headline`、`headlineValue`、`metric1Label`、`metric1Value`、`metric1Progress`、`metric2Label`、`metric2Value`、`metric2Progress`、`reviewLabel`、`reviewTime`、`reviewSuffix`、`attribution`、`attributionSubtitle`、`accentColor`、`textColor`、`animationSeconds`）
 - `BrandLogo`：品牌 Logo — 独立品牌标识组件：可选内置图标，或使用图标库/手动添加的图片 URL。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`logoSource`、`builtinIcon`、`customLogoUrl`、`label`、`subtitle`、`accentColor`、`panelColor`、`width`、`height`、`animationSeconds`）
 - `TeamAttributionCard`：Logo徽章名片 — 品牌、团队背书或归因结论出现时使用的黑底金边 Logo 徽章名片，可选择内置图标或导入外部图标。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`logoSource`、`builtinIcon`、`customLogoUrl`、`attribution`、`attributionSubtitle`、`accentColor`、`textColor`、`panelColor`、`width`、`height`、`animationSeconds`）
 

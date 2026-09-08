@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { migrateLibrary } from './effect-library.mjs';
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
@@ -756,8 +757,6 @@ const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
 const SEMANTIC_TYPE_COLOR_STORAGE_KEY = "motion-studio-semantic-type-colors-v1";
 const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
 const EFFECT_GROUP_ORDER_STORAGE_KEY = "motion-studio-effect-group-order-v1";
-// 已确认无组件的内置空分组：仅从效果库界面移除，组件源码仍保留。
-const REMOVED_EMPTY_BUILTIN_EFFECT_GROUP_IDS = new Set(["portrait-narrative", "captions"]);
 const ICON_GROUP_ORDER_STORAGE_KEY = "motion-studio-icon-group-order-v1";
 const MATERIAL_GROUP_ORDER_STORAGE_KEY = "motion-studio-material-group-order-v1";
 const SFX_GROUP_ORDER_STORAGE_KEY = "motion-studio-sfx-group-order-v1";
@@ -3923,6 +3922,67 @@ const App = () => {
   const [sfxGroupColorOverrides, setSfxGroupColorOverrides] = useState(
     loadSfxGroupColorOverrides,
   );
+
+  const [libraryReady, setLibraryReady] = useState(false);
+  const librarySaved = useRef('');
+  const librarySaveQueue = useRef(Promise.resolve());
+  useEffect(() => {
+    let cancelled = false;
+    const hydrate = async () => {
+      const response = await fetch('/api/effect-library');
+      if (!response.ok) throw new Error('读取效果分组失败');
+      let { library } = await response.json();
+      if (!library) {
+        const initial = migrateLibrary(BUILT_IN_CATALOG, {
+          custom: loadCustomCatalogGroups(), assignments: loadEffectGroupAssignments(),
+          names: loadEffectGroupNameOverrides(), colors: loadEffectGroupColorOverrides(),
+          order: loadLibraryGroupOrder(EFFECT_GROUP_ORDER_STORAGE_KEY),
+        });
+        const saved = await fetch('/api/effect-library', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ library: initial, initialize: true }) });
+        if (!saved.ok) throw new Error('迁移效果分组失败');
+        library = (await saved.json()).library;
+      }
+      if (cancelled) return;
+      // Register new effects without recreating deleted groups.
+      for (const group of BUILT_IN_CATALOG) for (const item of group.items) {
+        if (library.assignments[item.ids[0]]) continue;
+        let target = library.groups.find((g: CustomCatalogGroup) => g.id === group.id) ?? library.groups[0];
+        if (!target) { target = { id: 'group:其他', name: '其他' }; library.groups.push(target); }
+        library.assignments[item.ids[0]] = target.id;
+      }
+      setCustomCatalogGroups(library.groups.map(({ id, name }: CustomCatalogGroup) => ({ id, name })));
+      setEffectGroupAssignments(library.assignments);
+      setEffectGroupNameOverrides({});
+      setEffectGroupColorOverrides(Object.fromEntries(library.groups.filter((g: { color?: string }) => g.color).map((g: { id: string; color: string }) => [g.id, g.color])));
+      setEffectGroupOrder(library.groups.map((g: CustomCatalogGroup) => g.id));
+      librarySaved.current = '';
+      setLibraryReady(true);
+    };
+    void hydrate().catch((error) => { if (!cancelled) setNotice({ tone: 'error', text: error.message }); });
+    return () => { cancelled = true; };
+  }, []);
+  useEffect(() => {
+    if (!libraryReady) return;
+    const library = { version: 1, groups: applyLibraryGroupOrder(customCatalogGroups, effectGroupOrder, (g) => g.id)
+      .map((g) => ({ id: g.id, name: effectGroupNameOverrides[g.id] ?? g.name, color: effectGroupColorOverrides[g.id] })), assignments: effectGroupAssignments };
+    const snapshot = JSON.stringify(library);
+    if (snapshot === librarySaved.current) return;
+    librarySaved.current = snapshot;
+    librarySaveQueue.current = librarySaveQueue.current.catch(() => {}).then(async () => {
+      const response = await fetch('/api/effect-library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ library }) });
+      if (!response.ok) throw new Error('分组保存失败，请保留页面并重试操作');
+      for (const key of [CUSTOM_GROUP_STORAGE_KEY, EFFECT_GROUP_STORAGE_KEY, EFFECT_GROUP_NAME_STORAGE_KEY, EFFECT_GROUP_COLOR_STORAGE_KEY, EFFECT_GROUP_ORDER_STORAGE_KEY, 'motion-studio-hidden-empty-effect-groups-v1']) window.localStorage.removeItem(key);
+    }).catch((error) => { librarySaved.current = ''; setNotice({ tone: 'error', text: error.message }); });
+  }, [libraryReady, customCatalogGroups, effectGroupAssignments, effectGroupNameOverrides, effectGroupColorOverrides, effectGroupOrder]);
+  useEffect(() => {
+    if (!libraryReady || !motionModule || definitions.length === 0) return;
+    const visibleIds = new Set(definitions.filter((d) => EFFECT_REGISTRY_BY_ID.get(d.id)?.semantic.systemRole !== 'caption-track').map((d) => d.id));
+    setEffectGroupAssignments((current) => {
+      const entries = Object.entries(current).filter(([id]) => visibleIds.has(id));
+      return entries.length === Object.keys(current).length ? current : Object.fromEntries(entries);
+    });
+  }, [libraryReady, motionModule, definitions]);
   const semanticTypeDragIntentRef = useRef<string | null>(null);
   const [semanticTypeDraggingIntentId, setSemanticTypeDraggingIntentId] = useState<
     string | null
@@ -4514,7 +4574,7 @@ const App = () => {
   );
   const effectCatalog = useMemo(() => {
     const groups = [
-      ...BUILT_IN_CATALOG.map((group, index) => ({
+      ...(libraryReady ? [] : BUILT_IN_CATALOG).map((group, index) => ({
         ...group,
         name: effectGroupNameOverrides[group.id] ?? group.name,
         accent:
@@ -4529,7 +4589,7 @@ const App = () => {
           EFFECT_GROUP_ACCENTS[
             (BUILT_IN_CATALOG.length + index) % EFFECT_GROUP_ACCENTS.length
           ],
-        items: [],
+        items: [] as Array<{ ids: string[]; name: string }>,
       })),
     ];
     const availableGroupIds = new Set(groups.map((group) => group.id));
@@ -4553,7 +4613,7 @@ const App = () => {
       const assignedGroupId = effectGroupAssignments[item.ids[0]];
       const targetGroupId = availableGroupIds.has(assignedGroupId)
         ? assignedGroupId
-        : sourceGroupId;
+        : libraryReady ? '' : sourceGroupId;
       const target = groups.find((group) => group.id === targetGroupId);
       target?.items.push(item);
     }
@@ -4567,8 +4627,9 @@ const App = () => {
         });
       }
     }
-    return applyLibraryGroupOrder(groups, effectGroupOrder, (group) => group.id).filter((group) => !REMOVED_EMPTY_BUILTIN_EFFECT_GROUP_IDS.has(group.id) || group.items.length > 0);
+    return applyLibraryGroupOrder(groups, effectGroupOrder, (group) => group.id);
   }, [
+    libraryReady,
     customCatalogGroups,
     customDefinitions,
     definitionMap,
@@ -4578,23 +4639,6 @@ const App = () => {
     effectGroupOrder,
     effectNameOverrides,
   ]);
-  useEffect(() => {
-    const customGroupIds = new Set(customCatalogGroups.map((group) => group.id));
-    const emptyCustomIds = new Set(
-      effectCatalog
-        .filter((group) => customGroupIds.has(group.id) && group.items.length === 0)
-        .map((group) => group.id),
-    );
-    if (emptyCustomIds.size === 0) return;
-    setCustomCatalogGroups((current) => {
-      const next = current.filter((group) => !emptyCustomIds.has(group.id));
-      window.localStorage.setItem(CUSTOM_GROUP_STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-    setOpenCatalogCategories((current) =>
-      current.filter((id) => !emptyCustomIds.has(id)),
-    );
-  }, [customCatalogGroups, effectCatalog]);
   const catalogDefinitionMap = useMemo(() => {
     const resolved = new Map<string, MotionComponentDefinition>();
     for (const category of effectCatalog) {
@@ -4657,16 +4701,12 @@ const App = () => {
     })).filter((category) => {
       // 空分组也要保留显示；只有搜索时才按分组名称隐藏不匹配的空分组。
       if (!query) return true;
-      return category.name.toLocaleLowerCase("zh-CN").includes(query);
+      return category.items.length > 0 || category.name.toLocaleLowerCase("zh-CN").includes(query);
     });
   }, [customCatalogGroups, effectCatalog, effectSearch]);
   const availableEffectMoveGroups = useMemo(
     () =>
-      effectCatalog.filter(
-        (group) =>
-          group.items.length > 0 ||
-          customCatalogGroups.some((customGroup) => customGroup.id === group.id),
-      ),
+      effectCatalog,
     [customCatalogGroups, effectCatalog],
   );
   const visibleBuiltInEffectCount = useMemo(
@@ -5318,10 +5358,6 @@ const App = () => {
 
   // 四个库（效果/图标/素材/音效）的分组拖拽排序持久化。
   useEffect(() => {
-    window.localStorage.setItem(
-      EFFECT_GROUP_ORDER_STORAGE_KEY,
-      JSON.stringify(effectGroupOrder),
-    );
     window.localStorage.setItem(
       ICON_GROUP_ORDER_STORAGE_KEY,
       JSON.stringify(iconGroupOrder),
@@ -11818,15 +11854,13 @@ const App = () => {
   };
 
   const createCatalogGroup = () => {
+    if (!libraryReady) return;
     const name = groupNameDraft.trim().slice(0, 30);
     if (!name) return;
     const group = { id: `custom-${Date.now()}`, name };
+    setEffectGroupColorOverrides((current) => ({ ...current, [group.id]: EFFECT_GROUP_ACCENTS[customCatalogGroups.length % EFFECT_GROUP_ACCENTS.length] }));
     setCustomCatalogGroups((current) => {
       const next = [...current, group];
-      window.localStorage.setItem(
-        CUSTOM_GROUP_STORAGE_KEY,
-        JSON.stringify(next),
-      );
       return next;
     });
     setOpenCatalogCategories((current) => [...current, group.id]);
@@ -11847,19 +11881,11 @@ const App = () => {
         const next = current.map((group) =>
           group.id === groupRenameTarget.id ? { ...group, name } : group,
         );
-        window.localStorage.setItem(
-          CUSTOM_GROUP_STORAGE_KEY,
-          JSON.stringify(next),
-        );
         return next;
       });
     } else {
       setEffectGroupNameOverrides((current) => {
         const next = { ...current, [groupRenameTarget.id]: name };
-        window.localStorage.setItem(
-          EFFECT_GROUP_NAME_STORAGE_KEY,
-          JSON.stringify(next),
-        );
         return next;
       });
     }
@@ -11873,10 +11899,6 @@ const App = () => {
     if (!/^#[0-9a-f]{6}$/i.test(accent)) return;
     setEffectGroupColorOverrides((current) => {
       const next = { ...current, [groupId]: accent.toLowerCase() };
-      window.localStorage.setItem(
-        EFFECT_GROUP_COLOR_STORAGE_KEY,
-        JSON.stringify(next),
-      );
       return next;
     });
     setNotice({ tone: "ok", text: `已更新“${groupName}”的分组颜色。` });
@@ -11901,6 +11923,7 @@ const App = () => {
     componentIds: string[],
   ) => {
     setContextMenu(null);
+    componentIds = Object.keys(effectGroupAssignments).filter((id) => effectGroupAssignments[id] === groupId);
     if (componentIds.length > 0) {
       setNotice({
         tone: "error",
@@ -11929,11 +11952,11 @@ const App = () => {
   };
 
   const moveEffectToGroup = (groupId: string, groupName: string) => {
+    if (!libraryReady || !customCatalogGroups.some((g) => g.id === groupId)) return;
     if (!effectMoveTarget || groupId === effectMoveTarget.currentGroupId) return;
     const effectName = effectMoveTarget.effectName;
     setEffectGroupAssignments((current) => {
       const next = { ...current, [effectMoveTarget.componentId]: groupId };
-      window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
     setOpenCatalogCategories((current) =>
@@ -11952,6 +11975,7 @@ const App = () => {
       (group) => group.id === groupId,
     );
     setPendingGroupDelete(null);
+    componentIds = Object.keys(effectGroupAssignments).filter((id) => effectGroupAssignments[id] === groupId);
     if (componentIds.length > 0) {
       setNotice({
         tone: "error",
@@ -11966,62 +11990,34 @@ const App = () => {
       });
       return;
     }
-    if (isCustomGroup && componentIds.length === 0) {
-      setCustomCatalogGroups((current) => {
-        const next = current.filter((group) => group.id !== groupId);
-        window.localStorage.setItem(
-          CUSTOM_GROUP_STORAGE_KEY,
-          JSON.stringify(next),
-        );
-        return next;
-      });
-      setOpenCatalogCategories((current) =>
-        current.filter((id) => id !== groupId),
+    setCustomCatalogGroups((current) => {
+      const next = current.filter((group) => group.id !== groupId);
+      return next;
+    });
+    setEffectGroupAssignments((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([, assignedGroupId]) => assignedGroupId !== groupId),
       );
-      setNotice({ tone: "ok", text: `已删除分组“${groupName}”。` });
-      return;
-    }
-    try {
-      setNotice({ tone: "info", text: `正在删除“${groupName}”及组内源码…` });
-      const response = await fetch("/api/delete-effect-group", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ componentIds }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "删除分组失败");
-      const idSet = new Set(componentIds);
-      setInstances((current) =>
-        current.filter((instance) => !idSet.has(instance.componentId)),
+      return next;
+    });
+    setEffectGroupNameOverrides((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([assignedGroupId]) => assignedGroupId !== groupId),
       );
-      setEffectGroupAssignments((current) => {
-        const next = Object.fromEntries(
-          Object.entries(current).filter(([componentId]) => !idSet.has(componentId)),
-        );
-        window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
-        return next;
-      });
-      setEffectNameOverrides((current) => {
-        const next = Object.fromEntries(
-          Object.entries(current).filter(([componentId]) => !idSet.has(componentId)),
-        );
-        window.localStorage.setItem(EFFECT_NAME_STORAGE_KEY, JSON.stringify(next));
-        return next;
-      });
-      if (isCustomGroup) {
-        setCustomCatalogGroups((current) => {
-          const next = current.filter((group) => group.id !== groupId);
-          window.localStorage.setItem(CUSTOM_GROUP_STORAGE_KEY, JSON.stringify(next));
-          return next;
-        });
-      }
-      setNotice({ tone: "ok", text: `已彻底删除分组“${groupName}”。` });
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        text: error instanceof Error ? error.message : "删除分组失败",
-      });
-    }
+      return next;
+    });
+    setEffectGroupColorOverrides((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([assignedGroupId]) => assignedGroupId !== groupId),
+      );
+      return next;
+    });
+    setEffectGroupOrder((current) => {
+      const next = current.filter((id) => id !== groupId);
+      return next;
+    });
+    setOpenCatalogCategories((current) => current.filter((id) => id !== groupId));
+    setNotice({ tone: "ok", text: `已安全删除空分组“${groupName}”，未删除任何组件或时间线内容。` });
   };
 
   const permanentlyDeleteEffect = async (componentId: string) => {
@@ -12047,7 +12043,6 @@ const App = () => {
       setEffectGroupAssignments((current) => {
         const next = { ...current };
         delete next[componentId];
-        window.localStorage.setItem(EFFECT_GROUP_STORAGE_KEY, JSON.stringify(next));
         return next;
       });
       setEffectNameOverrides((current) => {
@@ -14364,6 +14359,8 @@ const App = () => {
           ) : activeWorkspace === "effects" ? (
             <div
               className="effect-library-panel"
+              style={{ pointerEvents: libraryReady ? undefined : 'none', opacity: libraryReady ? 1 : 0.5 }}
+              aria-busy={!libraryReady}
               onContextMenu={(event) => {
                 if (event.target instanceof Element && event.target.closest("button, input, textarea, select, a")) return;
                 showLibraryRootMenu(event);
@@ -17396,8 +17393,8 @@ const App = () => {
               <h2 id="delete-group-title">删除“{pendingGroupDelete.groupName}”？</h2>
               <p>
                 {pendingGroupDelete.componentIds.length > 0
-                  ? `该分组包含 ${pendingGroupDelete.componentIds.length} 个效果。确认后将同时删除对应源码、效果库条目和所有时间轴实例。`
-                  : "该分组当前没有效果，确认后将从效果库中移除。"}
+                  ? `该分组包含 ${pendingGroupDelete.componentIds.length} 个效果，不能删除；请先将组件移到其他分组。`
+                  : "该分组当前没有效果，确认后只移除分组设置，不会影响组件源码或时间线。"}
               </p>
               <div className="delete-confirm-warning">
                 此操作不可撤销，请确认已保留需要的 Git 或本地备份。
@@ -17415,7 +17412,7 @@ const App = () => {
                 onClick={() => deleteCatalogGroup(pendingGroupDelete)}
               >
                 <Trash />
-                确认删除
+                确认删除空分组
               </button>
             </footer>
           </section>
@@ -19842,6 +19839,7 @@ studioRoot.render(
     <App />
   </React.StrictMode>,
 );
+
 
 
 

@@ -15,10 +15,10 @@
 | `GlobalExpedition` | 环球征途地图 | 空间与聚焦 | 案例与素材 | any |  |
 | `ChapterBar` | ChapterBar | 竖屏口播信息层 | 章节转场 | any | 常驻 |
 | `FocusCamMove` | FocusCamMove | 空间与聚焦 | 流程说明 | any |  |
-| `SrtSemanticCaptions` | SRT字幕语义动画 | 字幕与台词 | caption-track | portrait | 常驻 |
-| `SrtCueText` | 主字幕·关键词条 | 字幕与台词 | caption-track | any | 常驻 |
+| `SrtSemanticCaptions` | SRT字幕语义动画 | 系统字幕 | caption-track | portrait | 常驻 |
+| `SrtCueText` | 主字幕·关键词条 | 系统字幕 | caption-track | any | 常驻 |
 | `TerminalPanel` | 终端教学面板 | 终端教学 HUD | 流程说明 | any |  |
-| `Terminal3D` | 3D 终端打字机 | 终端教学 HUD | 流程说明 | any |  |
+| `Terminal3D` | 3D 终端打字机 | 媒体展示组件 | 流程说明 | any |  |
 | `PortraitChapterRail` | 章节条 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitIndexedChapterTitle` | 编号章节标题 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitInfoCallout` | 图标信息卡 | 竖屏口播信息层 | 概念解释 | portrait |  |
@@ -43,7 +43,7 @@
 | `PortraitGapHeadline` | 差距不在模型标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitAiOutputGapQuote` | 同样 AI 输出差距引用 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitAiOutputGapComparison` | AI 输出差距对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
-| `PortraitRiskWarning` | 风险提醒卡 | 竖屏口播信息层 | 风险提醒 | portrait |  |
+| `PortraitRiskWarning` | 风险提醒卡 | 风险提醒 | 风险提醒 | portrait |  |
 | `PortraitNextEpisodeCta` | 下集预告卡 | 竖屏口播信息层 | 行动引导 | portrait |  |
 | `QuickSetupProof` | 快速上手证明条 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `LegacyEliminationPanel` | 淘汰警告·旧方案面板 | 风险提醒 | 风险提醒 | portrait |  |
@@ -53,7 +53,7 @@
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
-| `CaseStudySidebar` | 案例商业数据侧栏 | 案例与数据 | 案例与素材 | portrait |  |
+| `CaseStudySidebar` | 案例商业数据侧栏 | 品牌与标识 | 案例与素材 | portrait |  |
 | `BrandLogo` | 品牌 Logo | 品牌与标识 | 案例与素材 | portrait |  |
 | `TeamAttributionCard` | Logo徽章名片 | 品牌与标识 | 案例与素材 | portrait |  |
 | `PinBoard` | 要点钉板 | 口播HUD常驻卡 | 列举要点 | any | 常驻 |
@@ -1074,46 +1074,6 @@
 - `nextRowEnterIntervalSeconds` — 下一条入场间隔(秒)（0–120）
 - `animationSeconds` — 完整动画时长(秒)（1–120）
 
-### `PortraitRiskWarning` · 风险提醒卡
-
-- 用途：参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。
-- 主要语义：风险提醒；次要：重点强调、列举要点、概念解释
-- 何时使用（检索词）：风险、注意、限制、错误、异常、避免
-- 画布方向：portrait；密度：heavy；建议驻留：2–8 秒
-- 默认落位：x=58，y=292，scale=1（占位 500×900，placement=left）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示风险提醒
-- `riskCount` — 风险数量（1–8）
-- `eyebrow` — 警示引导语
-- `title` — 结论标题
-- `emphasis` — 强调结论
-- `risk1` — 风险一
-- `risk2` — 风险二
-- `risk3` — 风险三
-- `risk4` — 风险四
-- `risk5` — 风险五
-- `risk6` — 风险六
-- `risk7` — 风险七
-- `risk8` — 风险八
-- `icon1` — 图标一
-- `icon2` — 图标二
-- `icon3` — 图标三
-- `icon4` — 图标四
-- `icon5` — 图标五
-- `icon6` — 图标六
-- `icon7` — 图标七
-- `icon8` — 图标八
-- `riskIntervalSeconds` — 下一条风险入场间隔(秒)
-- `accentColor` — 警示色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
 ### `PortraitNextEpisodeCta` · 下集预告卡
 
 - 用途：参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。
@@ -1165,7 +1125,7 @@
 - `textColor` — 标题颜色（color）
 - `animationSeconds` — 主入场时长(秒)（0.45–1.8）
 
-## 字幕与台词
+## 系统字幕
 
 ### `SrtSemanticCaptions` · SRT字幕语义动画
 
@@ -1175,7 +1135,7 @@
 - 画布方向：portrait；密度：light；建议驻留：0.5–20 秒
 - 默认落位：x=0，y=1360，scale=1（占位 1080×300，placement=bottom）
 - 默认时长：582 帧（约 19.4 秒）
-- 分组：字幕与台词；**常驻层**（不计密度/多样性）
+- 分组：系统字幕；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -1196,7 +1156,7 @@
 - 画布方向：any；密度：light；建议驻留：0.5–20 秒
 - 默认落位：x=0，y=1560，scale=1（占位 1080×220，placement=bottom）
 - 默认时长：582 帧（约 19.4 秒）
-- 分组：字幕与台词；**常驻层**（不计密度/多样性）
+- 分组：系统字幕；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -1250,6 +1210,8 @@
 - `accentColor` — 强调色（color）
 - `animationSeconds` — 动画时长(秒)（0.2–8）
 
+## 媒体展示组件
+
 ### `Terminal3D` · 3D 终端打字机
 
 - 用途：3D 倾斜玻璃终端，支持命令、参数、注释、成功/失败状态逐字打出。
@@ -1258,7 +1220,7 @@
 - 画布方向：any；密度：heavy；建议驻留：3–20 秒
 - 默认落位：x=1080，y=220，scale=1（占位 760×606，placement=right）
 - 默认时长：240 帧（约 8 秒）
-- 分组：终端教学 HUD
+- 分组：媒体展示组件
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -1270,57 +1232,6 @@
 - `cps` — 打字速度（8–60）
 - `offsetX` — 水平微调（-900–900）
 - `offsetY` — 垂直微调（-600–600）
-
-## 风险提醒
-
-### `LegacyEliminationPanel` · 淘汰警告·旧方案面板
-
-- 用途：独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。
-- 主要语义：风险提醒；次要：对比差异、重点强调
-- 何时使用（检索词）：淘汰、过时、落后、失效、旧方案
-- 画布方向：portrait；密度：medium；建议驻留：1–7 秒
-- 默认落位：x=58，y=300，scale=1（占位 560×190，placement=left）
-- 默认时长：96 帧（约 3.2 秒）
-- 分组：风险提醒
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示旧方案面板
-- `kicker` — 顶部警告标签
-- `title` — 淘汰对象
-- `subtitle` — 英文小标签
-- `warningColor` — 警示色（color）
-- `accentColor` — 边框强调色（color）
-- `panelColor` — 面板颜色（color）
-- `textColor` — 标题颜色（color）
-- `animationSeconds` — 划线完成时间(秒)（0.6–2.2）
-
-### `MarketEliminationStamp` · 淘汰警告·市场印章
-
-- 用途：独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。
-- 主要语义：风险提醒；次要：重点强调、行动引导
-- 何时使用（检索词）：市场淘汰、淘汰、出局、取代
-- 画布方向：portrait；密度：light；建议驻留：0.3–4 秒
-- 默认落位：x=58，y=510，scale=1（占位 560×180，placement=left）
-- 默认时长：72 帧（约 2.4 秒）
-- 分组：风险提醒
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示市场印章
-- `stampText` — 印章结论
-- `warningColor` — 警示色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `fontSize` — 印章字号(px)（22–72）
-- `fixedRotationDegrees` — 固定旋转角度(°)（-180–180）
-- `rotationDegrees` — 入场旋转角度(°)（0–360）
-- `delaySeconds` — 入场延迟(秒)（0–8）
-- `animationSeconds` — 入场时长(秒)（0.15–1.5）
-
-## 媒体展示组件
 
 ### `MediaSpotlightCard` · 媒体聚焦卡
 
@@ -1391,6 +1302,95 @@
 - `enterEndSeconds` — 入场结束（相对组件起点 / 秒）
 - `exitStartSeconds` — 出场开始（相对组件起点 / 秒）
 - `exitEndSeconds` — 出场结束（相对组件起点 / 秒）
+
+## 风险提醒
+
+### `PortraitRiskWarning` · 风险提醒卡
+
+- 用途：参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。
+- 主要语义：风险提醒；次要：重点强调、列举要点、概念解释
+- 何时使用（检索词）：风险、注意、限制、错误、异常、避免
+- 画布方向：portrait；密度：heavy；建议驻留：2–8 秒
+- 默认落位：x=58，y=292，scale=1（占位 500×900，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：风险提醒
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示风险提醒
+- `riskCount` — 风险数量（1–8）
+- `eyebrow` — 警示引导语
+- `title` — 结论标题
+- `emphasis` — 强调结论
+- `risk1` — 风险一
+- `risk2` — 风险二
+- `risk3` — 风险三
+- `risk4` — 风险四
+- `risk5` — 风险五
+- `risk6` — 风险六
+- `risk7` — 风险七
+- `risk8` — 风险八
+- `icon1` — 图标一
+- `icon2` — 图标二
+- `icon3` — 图标三
+- `icon4` — 图标四
+- `icon5` — 图标五
+- `icon6` — 图标六
+- `icon7` — 图标七
+- `icon8` — 图标八
+- `riskIntervalSeconds` — 下一条风险入场间隔(秒)
+- `accentColor` — 警示色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `LegacyEliminationPanel` · 淘汰警告·旧方案面板
+
+- 用途：独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。
+- 主要语义：风险提醒；次要：对比差异、重点强调
+- 何时使用（检索词）：淘汰、过时、落后、失效、旧方案
+- 画布方向：portrait；密度：medium；建议驻留：1–7 秒
+- 默认落位：x=58，y=300，scale=1（占位 560×190，placement=left）
+- 默认时长：96 帧（约 3.2 秒）
+- 分组：风险提醒
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示旧方案面板
+- `kicker` — 顶部警告标签
+- `title` — 淘汰对象
+- `subtitle` — 英文小标签
+- `warningColor` — 警示色（color）
+- `accentColor` — 边框强调色（color）
+- `panelColor` — 面板颜色（color）
+- `textColor` — 标题颜色（color）
+- `animationSeconds` — 划线完成时间(秒)（0.6–2.2）
+
+### `MarketEliminationStamp` · 淘汰警告·市场印章
+
+- 用途：独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。
+- 主要语义：风险提醒；次要：重点强调、行动引导
+- 何时使用（检索词）：市场淘汰、淘汰、出局、取代
+- 画布方向：portrait；密度：light；建议驻留：0.3–4 秒
+- 默认落位：x=58，y=510，scale=1（占位 560×180，placement=left）
+- 默认时长：72 帧（约 2.4 秒）
+- 分组：风险提醒
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示市场印章
+- `stampText` — 印章结论
+- `warningColor` — 警示色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `fontSize` — 印章字号(px)（22–72）
+- `fixedRotationDegrees` — 固定旋转角度(°)（-180–180）
+- `rotationDegrees` — 入场旋转角度(°)（0–360）
+- `delaySeconds` — 入场延迟(秒)（0–8）
+- `animationSeconds` — 入场时长(秒)（0.15–1.5）
 
 ## 图表与比较
 
@@ -1473,7 +1473,7 @@
 - `accentColor` — 强调色（color）
 - `secondaryColor` — 辅助色（color）
 
-## 案例与数据
+## 品牌与标识
 
 ### `CaseStudySidebar` · 案例商业数据侧栏
 
@@ -1483,7 +1483,7 @@
 - 画布方向：portrait；密度：medium；建议驻留：3–12 秒
 - 默认落位：x=72，y=185，scale=1（占位 520×390，placement=left）
 - 默认时长：300 帧（约 10 秒）
-- 分组：案例与数据
+- 分组：品牌与标识
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -1505,8 +1505,6 @@
 - `accentColor` — 强调色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 入场时长(秒)（0.2–2）
-
-## 品牌与标识
 
 ### `BrandLogo` · 品牌 Logo
 

@@ -188,7 +188,7 @@ export const SrtCueTextEffectDef: EffectDef = {
   name: "主字幕·关键词条",
   description: "GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色",
   category: "captions",
-  catalogGroup: "字幕与台词",
+  catalogGroup: "口播HUD常驻卡",
   glyph: "字",
   placement: "bottom",
   component: SrtCueText as React.ComponentType<Record<string, unknown>>,
@@ -228,3 +228,4 @@ export const SrtCueTextEffectDef: EffectDef = {
     cuesJson: { type: "text", label: "自定义台词JSON(start/end/text)", default: "" },
   },
 };
+

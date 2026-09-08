@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "group:品牌与标识",
+      "name": "品牌与标识",
+      "color": "#d0920b"
+    },
+    {
+      "id": "group:空间与聚焦",
+      "name": "空间与聚焦",
+      "color": "#8dc318"
+    },
+    {
+      "id": "group:竖屏口播信息层",
+      "name": "竖屏口播信息层",
+      "color": "#d0920b"
+    },
+    {
+      "id": "group:口播HUD常驻卡",
+      "name": "口播HUD常驻卡",
+      "color": "#20d7a0"
+    },
+    {
+      "id": "group:终端教学 HUD",
+      "name": "终端教学 HUD",
+      "color": "#f2b93d"
+    },
+    {
+      "id": "group:风险提醒",
+      "name": "风险提醒",
+      "color": "#f77878"
+    },
+    {
+      "id": "group:媒体展示组件",
+      "name": "媒体展示组件",
+      "color": "#b67aff"
+    },
+    {
+      "id": "group:图表与比较",
+      "name": "图表与比较",
+      "color": "#b5f23d"
+    },
+    {
+      "id": "group:数字与指标",
+      "name": "数字与指标",
+      "color": "#4f9dff"
+    }
+  ],
+  "assignments": {
+    "GlobalExpedition": "group:空间与聚焦",
+    "FocusCamMove": "group:空间与聚焦",
+    "ChapterBar": "group:竖屏口播信息层",
+    "PortraitChapterRail": "group:竖屏口播信息层",
+    "PortraitIndexedChapterTitle": "group:竖屏口播信息层",
+    "PortraitInfoCallout": "group:竖屏口播信息层",
+    "PortraitMetricDecision": "group:竖屏口播信息层",
+    "PortraitDecisionTagStack": "group:竖屏口播信息层",
+    "PortraitStepChecklist": "group:竖屏口播信息层",
+    "PortraitStaggeredToolList": "group:竖屏口播信息层",
+    "PortraitPromptMistakeDiagnosis": "group:竖屏口播信息层",
+    "PortraitWorkflowPrerequisite": "group:竖屏口播信息层",
+    "PortraitSkillIdentityCard": "group:竖屏口播信息层",
+    "PortraitSkillSourceFusion": "group:竖屏口播信息层",
+    "PortraitDesignRuleChecklist": "group:竖屏口播信息层",
+    "PortraitSkillResultComparison": "group:竖屏口播信息层",
+    "PortraitPromptIterationShowcase": "group:竖屏口播信息层",
+    "PortraitGsapSkillShowcase": "group:竖屏口播信息层",
+    "PortraitSkillIdentityHeaderBar": "group:竖屏口播信息层",
+    "PortraitCodeDecisionChecklist": "group:竖屏口播信息层",
+    "PortraitBrowserRepairLoop": "group:竖屏口播信息层",
+    "PortraitAgentBrowserMedia": "group:竖屏口播信息层",
+    "PortraitMediaPosterReveal": "group:竖屏口播信息层",
+    "PortraitSkillStepGrid": "group:竖屏口播信息层",
+    "PortraitGapHeadline": "group:竖屏口播信息层",
+    "PortraitAiOutputGapQuote": "group:竖屏口播信息层",
+    "PortraitAiOutputGapComparison": "group:竖屏口播信息层",
+    "PortraitRiskWarning": "group:风险提醒",
+    "PortraitNextEpisodeCta": "group:竖屏口播信息层",
+    "QuickSetupProof": "group:竖屏口播信息层",
+    "PinBoard": "group:口播HUD常驻卡",
+    "StepTimeline": "group:口播HUD常驻卡",
+    "TermCard": "group:口播HUD常驻卡",
+    "TerminalPanel": "group:终端教学 HUD",
+    "Terminal3D": "group:媒体展示组件",
+    "LegacyEliminationPanel": "group:风险提醒",
+    "MarketEliminationStamp": "group:风险提醒",
+    "MediaSpotlightCard": "group:媒体展示组件",
+    "MaterialCard": "group:媒体展示组件",
+    "PhoneRecordingFrameNeutral": "group:媒体展示组件",
+    "ComparisonProgressBars": "group:图表与比较",
+    "MilestoneFollowerProgress": "group:数字与指标",
+    "SegmentedMeter": "group:数字与指标",
+    "CaseStudySidebar": "group:品牌与标识",
+    "BrandLogo": "group:品牌与标识",
+    "TeamAttributionCard": "group:品牌与标识"
+  }
+}

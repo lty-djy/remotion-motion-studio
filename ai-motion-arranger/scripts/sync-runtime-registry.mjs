@@ -5,6 +5,8 @@ import { createRequire } from "node:module";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readLibrary } from '../../effect-library-store.mjs';
+import { applyLibraryToRegistry } from '../../effect-library.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
@@ -61,7 +63,7 @@ const loadRuntimeRegistry = async () => {
   if (!Array.isArray(semanticIntentDefinitions)) {
     throw new Error("registry.ts 没有导出有效的 SEMANTIC_INTENT_DEFINITIONS");
   }
-  return { registry, semanticIntentDefinitions };
+  return { registry: applyLibraryToRegistry(registry, await readLibrary(root)), semanticIntentDefinitions };
 };
 
 const assertUniqueIds = (items, label) => {

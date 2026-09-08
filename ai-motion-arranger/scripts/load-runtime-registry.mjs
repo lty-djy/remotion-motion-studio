@@ -1,6 +1,8 @@
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readLibrary } from '../../effect-library-store.mjs';
+import { applyLibraryToRegistry } from '../../effect-library.mjs';
 
 export const loadRuntimeRegistry = async () => {
   const root = resolve(import.meta.dirname, "..", "..");
@@ -32,5 +34,5 @@ export const loadRuntimeRegistry = async () => {
   if (!Array.isArray(registry) || registry.length === 0) {
     throw new Error("运行时效果库为空。");
   }
-  return registry;
+  return applyLibraryToRegistry(registry, await readLibrary(root));
 };

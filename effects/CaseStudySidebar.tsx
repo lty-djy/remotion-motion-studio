@@ -114,7 +114,7 @@ export const CaseStudySidebarEffectDef: EffectDef = {
   name: "案例商业数据侧栏",
   description: "商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。",
   category: "portrait-narrative",
-  catalogGroup: "案例与数据",
+  catalogGroup: "品牌与标识",
   glyph: "×4",
   placement: "left",
   component: CaseStudySidebar as React.ComponentType<Record<string, unknown>>,
@@ -149,6 +149,7 @@ export const CaseStudySidebarEffectDef: EffectDef = {
     animationSeconds: { type: "number", label: "入场时长(秒)", default: 0.55, min: 0.2, max: 2, step: 0.05 },
   },
 };
+
 
 
 
