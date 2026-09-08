@@ -23,6 +23,8 @@ export const REGISTERED_CARDS = [
       "scale": 1
     },
     "defaultProps": {
+      "enterAnimation": "auto",
+      "exitAnimation": "auto",
       "title": "分段能量条",
       "subtitle": "MOTION COMPONENT",
       "value": "75%",
@@ -34,6 +36,68 @@ export const REGISTERED_CARDS = [
       "animationSeconds": 1.2
     },
     "propsSchema": {
+      "enterAnimation": {
+        "type": "select",
+        "label": "入场动画",
+        "default": "auto",
+        "options": [
+          {
+            "label": "保持组件原有",
+            "value": "auto"
+          },
+          {
+            "label": "淡入",
+            "value": "fade"
+          },
+          {
+            "label": "向上滑入",
+            "value": "slide-up"
+          },
+          {
+            "label": "向左滑入",
+            "value": "slide-left"
+          },
+          {
+            "label": "缩放进入",
+            "value": "zoom"
+          },
+          {
+            "label": "3D 倾斜进入",
+            "value": "tilt"
+          }
+        ]
+      },
+      "exitAnimation": {
+        "type": "select",
+        "label": "出场动画",
+        "default": "auto",
+        "options": [
+          {
+            "label": "保持组件原有",
+            "value": "auto"
+          },
+          {
+            "label": "淡出",
+            "value": "fade"
+          },
+          {
+            "label": "向下滑出",
+            "value": "slide-up"
+          },
+          {
+            "label": "向右滑出",
+            "value": "slide-left"
+          },
+          {
+            "label": "缩放退出",
+            "value": "zoom"
+          },
+          {
+            "label": "3D 倾斜退出",
+            "value": "tilt"
+          }
+        ]
+      },
       "title": {
         "type": "text",
         "label": "主标题"

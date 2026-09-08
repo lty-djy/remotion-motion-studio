@@ -36,6 +36,7 @@ import {
   supportsCardBackground,
 } from "./card-background-control";
 import { CardMaskLayer } from "./card-mask-control";
+import { UnifiedMotionAnimation } from "./effects/UniversalMotionAnimation";
 
 const motionModule = ImportedModule as MotionModule;
 const fps = getNumberExport(
@@ -317,6 +318,7 @@ const MultiComponentRender = ({
               }),
             } as React.CSSProperties}
           >
+            <UnifiedMotionAnimation enterAnimation={instance.props.enterAnimation as any} exitAnimation={instance.props.exitAnimation as any} durationInFrames={Math.max(3, instance.durationInFrames)}>
             <Comp
               {...instance.props}
               instanceDurationInFrames={instance.durationInFrames}
@@ -333,6 +335,7 @@ const MultiComponentRender = ({
                 instance.props.cardTransparent === true
               }
             />
+            </UnifiedMotionAnimation>
           </AbsoluteFill>
         </Sequence>
       );
@@ -391,4 +394,6 @@ const Root = () => (
 );
 
 registerRoot(Root);
+
+
 

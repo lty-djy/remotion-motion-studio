@@ -87,6 +87,8 @@
 - 分组：空间与聚焦
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示环球地图
 - `title` — 主标题
 - `subtitle` — 副标题
@@ -106,6 +108,8 @@
 - 分组：空间与聚焦
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `mediaUrl` — 口播素材地址(空 = 收缩舞台口播视频)
 - `useMediaCopy` — 副本模式(预览收缩异常时开启)
 - `mediaType` — 素材类型
@@ -132,6 +136,8 @@
 - 分组：竖屏口播信息层；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `chapters` — 章节表(名称 起始秒,| 分隔)
 - `lastChapterSeconds` — 最后一章时长(秒)（1–120）
 - `progAlpha` — 进度色透明度（0.1–1）
@@ -153,6 +159,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示章节条
 - `cardWidth` — 卡片宽度(px)（120–1920）
 - `index` — 章节编号
@@ -176,6 +184,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示编号章节标题
 - `chapterNumber` — 章节编号
 - `eyebrow` — 英文眉题
@@ -202,6 +212,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示信息卡
 - `eyebrow` — 引导词
 - `title` — 主标题
@@ -224,6 +236,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示决策卡
 - `lead` — 结论引导词
 - `conclusion` — 决策结论
@@ -247,6 +261,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示标签组
 - `tagCount` — 标签数量（1–8）
 - `tag1` — 标签一
@@ -284,6 +300,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示步骤卡
 - `eyebrow` — 阶段引导词
 - `title` — 阶段标题
@@ -322,6 +340,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示工具列表
 - `eyebrow` — 顶部引导词
 - `titlePrefix` — 标题第一行
@@ -368,6 +388,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示错误提问诊断
 - `eyebrow` — 顶部引导词
 - `titlePrefix` — 标题前半句
@@ -400,6 +422,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示工作流
 - `kicker` — 顶部章节标签
 - `titleEmphasis` — 标题强调词
@@ -449,6 +473,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 Skill 身份卡
 - `sequenceText` — Skill 编号
 - `title` — Skill 主标题
@@ -476,6 +502,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 Skill 来源合成
 - `sequenceText` — Skill 编号
 - `title` — Skill 主标题
@@ -529,6 +557,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示网页设计规则
 - `ruleCount` — 规则数量（1–8）
 - `rule1` — 规则一
@@ -559,6 +589,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示效果前后对比
 - `materialCount` — 素材数量（1–8）
 - `material1Url` — 素材一
@@ -626,6 +658,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示一句话连续改版
 - `iterationCount` — 改版数量（1–8）
 - `iteration1Url` — 改版一素材
@@ -693,6 +727,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 GSAP 高级动画
 - `capabilityCount` — 能力数量（1–8）
 - `capability1Title` — 能力一标题
@@ -747,6 +783,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 Skill 身份条
 - `sequenceText` — Skill 编号
 - `title` — Skill 标题
@@ -772,6 +810,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示代码决策检查清单
 - `backgroundOpacity` — 底板透明度（0–1）
 - `questionCount` — 问题数量（1–8）
@@ -805,6 +845,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示浏览器自动修复闭环
 - `stepCount` — 节点数量（2–8）
 - `step1` — 节点一
@@ -843,6 +885,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示浏览器逐屏自查
 - `titlePrefix` — 标题前半句
 - `titleHighlight` — 标题强调词
@@ -876,6 +920,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示右滑媒体海报
 - `mediaUrl` — 海报图片或视频
 - `mediaType` — 素材类型
@@ -907,6 +953,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 Skill 四步卡片
 - `stepCount` — 卡片数量（1–8）
 - `headerText` — 顶部步骤标题
@@ -948,6 +996,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示差距标题
 - `showBadge` — 显示最后说一句徽标
 - `badgeText` — 徽标文字
@@ -975,6 +1025,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 AI 输出差距引用
 - `showAccentLine` — 显示引用竖线
 - `leadText` — 第一行文字
@@ -1000,6 +1052,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示 AI 输出差距对比
 - `showGapLabel` — 显示 THE GAP 标签
 - `gapLabel` — 顶部标签
@@ -1031,6 +1085,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示风险提醒
 - `riskCount` — 风险数量（1–8）
 - `eyebrow` — 警示引导语
@@ -1069,6 +1125,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示下集预告
 - `eyebrow` — 预告引导语
 - `title` — 核心关键词
@@ -1092,6 +1150,8 @@
 - 分组：竖屏口播信息层
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示证明条
 - `title` — 结论标题
 - `kicker` — 英文副标
@@ -1118,6 +1178,8 @@
 - 分组：字幕与台词；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示字幕动画
 - `showIcon` — 显示语义图标
 - `fontSize` — 字号(px)（24–110）
@@ -1137,6 +1199,8 @@
 - 分组：字幕与台词；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示主字幕
 - `fontSize` — 字号(px)（28–110）
 - `baseColor` — 正文颜色（color）
@@ -1161,6 +1225,8 @@
 - 分组：终端教学 HUD
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示面板
 - `title` — 主标题
 - `subtitle` — 终端标签
@@ -1218,6 +1284,8 @@
 - 分组：风险提醒
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示旧方案面板
 - `kicker` — 顶部警告标签
 - `title` — 淘汰对象
@@ -1239,6 +1307,8 @@
 - 分组：风险提醒
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示市场印章
 - `stampText` — 印章结论
 - `warningColor` — 警示色（color）
@@ -1263,6 +1333,8 @@
 - 分组：媒体展示组件
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示卡片
 - `mediaUrl` — 素材地址
 - `mediaType` — 素材类型
@@ -1288,6 +1360,8 @@
 - 分组：媒体展示组件
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示卡片
 - `mediaUrl` — 素材地址
 - `mediaType` — 素材类型
@@ -1309,6 +1383,8 @@
 - 分组：媒体展示组件
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `mediaUrl` — 内屏图片 / 视频
 - `mediaType` — 内屏素材类型
 - `mediaFit` — 内屏填充方式
@@ -1329,6 +1405,8 @@
 - 分组：图表与比较
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示对比进度条
 - `baselineLabel` — 旧方案标题
 - `baselineStatus` — 旧方案状态
@@ -1357,6 +1435,8 @@
 - 分组：数字与指标
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示里程碑指标
 - `eyebrow` — 顶部英文标签
 - `title` — 中文标题
@@ -1381,6 +1461,8 @@
 - 分组：数字与指标
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `title` — 主标题
 - `subtitle` — 副标题
 - `value` — 核心数值
@@ -1404,6 +1486,8 @@
 - 分组：案例与数据
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示侧栏
 - `headline` — 结论标题
 - `headlineValue` — 核心倍数
@@ -1435,6 +1519,8 @@
 - 分组：品牌与标识
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示品牌 Logo
 - `logoSource` — Logo 来源
 - `builtinIcon` — 内置图标
@@ -1458,6 +1544,8 @@
 - 分组：品牌与标识
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `enabled` — 显示团队卡片
 - `logoSource` — 图标来源
 - `builtinIcon` — 内置图标
@@ -1484,6 +1572,8 @@
 - 分组：口播HUD常驻卡；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `title` — 章节标题(可空)
 - `subtitle` — 强调副题(可空)
 - `items` — 要点(|分隔,逐条落钉)
@@ -1506,6 +1596,8 @@
 - 分组：口播HUD常驻卡
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `title` — 标题(*关键词*高亮)
 - `steps` — 章节(|分隔)
 - `revealed` — 已讲到第几章（0–6）
@@ -1527,6 +1619,8 @@
 - 分组：口播HUD常驻卡
 
 - 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
 - `en` — 英文/拼音(可空)
 - `term` — 术语
 - `definition` — 一句话定义

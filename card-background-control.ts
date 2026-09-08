@@ -36,7 +36,31 @@ export const CARD_BACKGROUND_CONTROL_CSS = `
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-`;
+
+/* 统一入/出场动画包装器保持透明，底色只落在真实组件根节点，避免动画层撑满画布。 */
+.studio-card-render-shell > [data-unified-motion-animation] {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.studio-card-render-shell > [data-unified-motion-animation] > * {
+  background: var(--studio-card-background-fill) !important;
+  background-color: var(--studio-card-background-fill) !important;
+  backdrop-filter: var(--studio-card-backdrop-filter) !important;
+  -webkit-backdrop-filter: var(--studio-card-backdrop-filter) !important;
+}
+.studio-card-render-shell.studio-card-border-override > [data-unified-motion-animation] > * {
+  border-color: var(--studio-card-border-color) !important;
+}
+.studio-card-render-shell.studio-card-background-off > [data-unified-motion-animation] > * {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}`;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -85,4 +109,5 @@ export const getCardBackgroundControlVariables = ({
       : {}),
   };
 };
+
 

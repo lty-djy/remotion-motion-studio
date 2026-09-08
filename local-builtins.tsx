@@ -1,5 +1,6 @@
 import type { MotionComponentDefinition } from "./local-protocol";
 import { EFFECT_REGISTRY, EFFECT_REGISTRY_BY_ID } from "./registry";
+import { UNIFIED_ANIMATION_DEFAULTS, UNIFIED_ANIMATION_SCHEMA } from "./effects/UniversalMotionAnimation";
 
 export type BuiltInCatalogItem = {
   ids: string[];
@@ -42,8 +43,14 @@ export const mergeWithBuiltInDefinitions = (
   importedDefinitions: MotionComponentDefinition[],
 ) => {
   const importedIds = new Set(importedDefinitions.map((definition) => definition.id));
+  const normalizedImportedDefinitions = importedDefinitions.map((definition) => ({
+    ...definition,
+    defaultProps: { ...UNIFIED_ANIMATION_DEFAULTS, ...definition.defaultProps },
+    propsSchema: { ...UNIFIED_ANIMATION_SCHEMA, ...definition.propsSchema },
+  }));
   return [
-    ...importedDefinitions,
+    ...normalizedImportedDefinitions,
     ...EFFECT_REGISTRY.filter((definition) => !importedIds.has(definition.id)),
   ];
 };
+

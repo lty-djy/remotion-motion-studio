@@ -18,6 +18,7 @@ import { SrtCueTextEffectDef } from "./effects/SrtCueText";
 
 import { TerminalPanelEffectDef } from "./effects/TerminalPanel";
 import { Terminal3DEffectDef } from "./effects/Terminal3D";
+import { UNIFIED_ANIMATION_DEFAULTS, UNIFIED_ANIMATION_SCHEMA } from "./effects/UniversalMotionAnimation";
 
 
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
@@ -202,6 +203,8 @@ if (missingSemanticIds.length > 0 || staleSemanticIds.length > 0) {
 export const EFFECT_REGISTRY: RegisteredEffectDef[] = EFFECT_DEFINITIONS.map(
   (definition) => ({
     ...definition,
+    defaultProps: { ...UNIFIED_ANIMATION_DEFAULTS, ...definition.defaultProps },
+    propsSchema: { ...UNIFIED_ANIMATION_SCHEMA, ...definition.propsSchema },
     semantic: EFFECT_SEMANTIC_CAPABILITIES[definition.id],
   }),
 );
@@ -213,6 +216,9 @@ export const EFFECT_REGISTRY_BY_ID = new Map(
 export const AI_ARRANGEABLE_COMPONENT_IDS = EFFECT_REGISTRY.filter(
   (definition) => definition.arranger,
 ).map((definition) => definition.id);
+
+
+
 
 
 

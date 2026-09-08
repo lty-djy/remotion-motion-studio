@@ -108,6 +108,7 @@ import {
   EFFECT_REGISTRY_BY_ID,
   getAnchoredEffectPosition,
 } from "./registry";
+import { UnifiedMotionAnimation } from "./effects/UniversalMotionAnimation";
 import {
   camMoveGeom,
   resolveFocusCamStageTarget,
@@ -755,6 +756,8 @@ const EFFECT_GROUP_COLOR_STORAGE_KEY = "motion-studio-effect-group-colors-v1";
 const SEMANTIC_TYPE_COLOR_STORAGE_KEY = "motion-studio-semantic-type-colors-v1";
 const SEMANTIC_TYPE_ORDER_STORAGE_KEY = "motion-studio-semantic-type-order-v1";
 const EFFECT_GROUP_ORDER_STORAGE_KEY = "motion-studio-effect-group-order-v1";
+// 已确认无组件的内置空分组：仅从效果库界面移除，组件源码仍保留。
+const REMOVED_EMPTY_BUILTIN_EFFECT_GROUP_IDS = new Set(["portrait-narrative", "captions"]);
 const ICON_GROUP_ORDER_STORAGE_KEY = "motion-studio-icon-group-order-v1";
 const MATERIAL_GROUP_ORDER_STORAGE_KEY = "motion-studio-material-group-order-v1";
 const SFX_GROUP_ORDER_STORAGE_KEY = "motion-studio-sfx-group-order-v1";
@@ -2165,6 +2168,7 @@ const StudioPreviewComposition = ({
                 }),
               } as React.CSSProperties}
             >
+              <UnifiedMotionAnimation enterAnimation={instance.props.enterAnimation as any} exitAnimation={instance.props.exitAnimation as any} durationInFrames={Math.max(3, instance.durationInFrames)}>
               <Comp
                 {...instance.props}
                 instanceDurationInFrames={instance.durationInFrames}
@@ -2181,6 +2185,7 @@ const StudioPreviewComposition = ({
                   instance.props.cardTransparent === true
                 }
               />
+              </UnifiedMotionAnimation>
             </AbsoluteFill>
           </Sequence>
         );
@@ -4562,7 +4567,7 @@ const App = () => {
         });
       }
     }
-    return applyLibraryGroupOrder(groups, effectGroupOrder, (group) => group.id);
+    return applyLibraryGroupOrder(groups, effectGroupOrder, (group) => group.id).filter((group) => !REMOVED_EMPTY_BUILTIN_EFFECT_GROUP_IDS.has(group.id) || group.items.length > 0);
   }, [
     customCatalogGroups,
     customDefinitions,
@@ -4573,6 +4578,23 @@ const App = () => {
     effectGroupOrder,
     effectNameOverrides,
   ]);
+  useEffect(() => {
+    const customGroupIds = new Set(customCatalogGroups.map((group) => group.id));
+    const emptyCustomIds = new Set(
+      effectCatalog
+        .filter((group) => customGroupIds.has(group.id) && group.items.length === 0)
+        .map((group) => group.id),
+    );
+    if (emptyCustomIds.size === 0) return;
+    setCustomCatalogGroups((current) => {
+      const next = current.filter((group) => !emptyCustomIds.has(group.id));
+      window.localStorage.setItem(CUSTOM_GROUP_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setOpenCatalogCategories((current) =>
+      current.filter((id) => !emptyCustomIds.has(id)),
+    );
+  }, [customCatalogGroups, effectCatalog]);
   const catalogDefinitionMap = useMemo(() => {
     const resolved = new Map<string, MotionComponentDefinition>();
     for (const category of effectCatalog) {
@@ -4633,14 +4655,9 @@ const App = () => {
             item.name.toLocaleLowerCase("zh-CN").includes(query)),
       ),
     })).filter((category) => {
-      if (category.items.length > 0) return true;
-      const isCustomGroup = customCatalogGroups.some(
-        (group) => group.id === category.id,
-      );
-      if (!isCustomGroup) return false;
-      return (
-        !query || category.name.toLocaleLowerCase("zh-CN").includes(query)
-      );
+      // 空分组也要保留显示；只有搜索时才按分组名称隐藏不匹配的空分组。
+      if (!query) return true;
+      return category.name.toLocaleLowerCase("zh-CN").includes(query);
     });
   }, [customCatalogGroups, effectCatalog, effectSearch]);
   const availableEffectMoveGroups = useMemo(
@@ -11884,6 +11901,13 @@ const App = () => {
     componentIds: string[],
   ) => {
     setContextMenu(null);
+    if (componentIds.length > 0) {
+      setNotice({
+        tone: "error",
+        text: `无法删除分组“${groupName}”：请先将组内 ${componentIds.length} 个组件移到其他分组。`,
+      });
+      return;
+    }
     setPendingGroupDelete({ groupId, groupName, componentIds });
   };
 
@@ -11928,6 +11952,20 @@ const App = () => {
       (group) => group.id === groupId,
     );
     setPendingGroupDelete(null);
+    if (componentIds.length > 0) {
+      setNotice({
+        tone: "error",
+        text: `无法删除分组“${groupName}”：请先将组内组件移到其他分组。`,
+      });
+      return;
+    }
+    if (!isCustomGroup) {
+      setNotice({
+        tone: "error",
+        text: `“${groupName}”是内置分组，不能删除；空分组会继续显示在效果库中。`,
+      });
+      return;
+    }
     if (isCustomGroup && componentIds.length === 0) {
       setCustomCatalogGroups((current) => {
         const next = current.filter((group) => group.id !== groupId);
@@ -19804,6 +19842,16 @@ studioRoot.render(
     <App />
   </React.StrictMode>,
 );
+
+
+
+
+
+
+
+
+
+
 
 
 
