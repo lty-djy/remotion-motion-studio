@@ -1,4 +1,5 @@
 import {GigCardsEditor} from "./effects/GigCardsEditor";
+import { assignArrangementLanes } from "./arrangement-lanes";
 import {readGigCards} from "./effects/gig-card-model";
 import React, {
   useCallback,
@@ -70,6 +71,7 @@ import {
   getMotionTimeline,
   getNumberExport,
   type MotionComponentDefinition,
+  type BackgroundDimMode,
   type MotionInstance,
   type MotionModule,
   type MotionPosition,
@@ -92,6 +94,10 @@ import {
   type TimelineClipBase,
 } from "./local-timeline-logic";
 import { CardMaskLayer, normalizeCardMask, DEFAULT_CARD_MASK_NEW } from "./card-mask-control";
+import {
+  BackgroundDimLayer,
+  isBackgroundDimExcludedInstance,
+} from "./background-dim-control";
 import {
   EFFECT_SEMANTIC_CAPABILITIES,
   SEMANTIC_INTENT_DEFINITIONS,
@@ -529,6 +535,7 @@ type TimelineJsonItem = {
   position?: Partial<MotionInstance["position"]>;
   cardBackgroundEnabled?: boolean;
   backgroundOpacity?: number;
+  backgroundDimEnabled?: boolean;
   cardMask?: Partial<MotionInstance["cardMask"]>;
   props?: Record<string, unknown>;
   sourceExpressionId?: string;
@@ -1042,6 +1049,9 @@ type ProjectSnapshot = {
   trackHeights?: Record<string, number>;
   canvasOrientation?: "landscape" | "portrait";
   globalCardScale?: number;
+  backgroundDimEnabled?: boolean;
+  backgroundDimStrength?: number;
+  backgroundDimMode?: BackgroundDimMode;
   cardShadowEnabled?: boolean;
   cardShadowStrength?: number;
   cardShadowOpacity?: number;
@@ -1069,6 +1079,7 @@ type ComponentInstanceDefault = Pick<
   | "position"
   | "cardBackgroundEnabled"
   | "backgroundOpacity"
+  | "backgroundDimEnabled"
   | "cardMask"
   | "props"
 >;
@@ -1085,6 +1096,7 @@ const createComponentInstanceDefault = (
   position: { ...instance.position },
   cardBackgroundEnabled: instance.cardBackgroundEnabled,
   backgroundOpacity: instance.backgroundOpacity,
+  backgroundDimEnabled: instance.backgroundDimEnabled,
   cardMask: normalizeCardMask(instance.cardMask),
   props: { ...instance.props },
 });
@@ -1697,6 +1709,10 @@ const createInstance = (
     },
     cardBackgroundEnabled: overrides.cardBackgroundEnabled ?? definition.id !== "TeamAttributionCard",
     backgroundOpacity: clamp(overrides.backgroundOpacity ?? 1, 0, 1),
+    // 全局背景压暗默认关闭；全局打开后，新卡片默认参与，卡片开关可单独关闭。
+    backgroundDimEnabled:
+      !isBackgroundDimExcludedInstance({ componentId: definition.id }) &&
+      overrides.backgroundDimEnabled !== false,
     // 还原已有项目 / 编排产物时尊重 overrides.cardMask；
     // 没有外部遮罩设置时（效果库新增、AI 编排新生成的 instance）使用新建默认：默认不显示。
     cardMask: overrides.cardMask && Object.keys(overrides.cardMask).length > 0
@@ -1917,8 +1933,12 @@ type StudioPreviewProps = {
   safetyGuideVisible: boolean;
   personSafetyGuideVisible: boolean;
   solidBackgroundEnabled: boolean;
+  previewBackdropEnabled?: boolean;
   soundEnabled: boolean;
   globalCardScale: number;
+  backgroundDimEnabled: boolean;
+  backgroundDimStrength: number;
+  backgroundDimMode: BackgroundDimMode;
 };
 
 const formatSubtitleTimestamp = (milliseconds: number) => {
@@ -1973,8 +1993,12 @@ const StudioPreviewComposition = ({
   safetyGuideVisible,
   personSafetyGuideVisible,
   solidBackgroundEnabled,
+  previewBackdropEnabled = false,
   soundEnabled,
   globalCardScale,
+  backgroundDimEnabled,
+  backgroundDimStrength,
+  backgroundDimMode,
 }: StudioPreviewProps) => {
   const previewDefinitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -2046,6 +2070,19 @@ const StudioPreviewComposition = ({
       {solidBackgroundEnabled ? (
         <AbsoluteFill style={{ backgroundColor: "#05070a" }} />
       ) : null}
+      <BackgroundDimLayer
+        enabled={backgroundDimEnabled}
+        strength={backgroundDimStrength}
+        mode={backgroundDimMode}
+        instances={instances}
+        hasBackground={
+          previewBackdropEnabled ||
+          solidBackgroundEnabled ||
+          (includeVideo &&
+            (shownVideoTracks.length > 0 ||
+              (videoTracks.length === 0 && Boolean(videoUrl))))
+        }
+      />
       {orderedLayers.map((layer) => {
         if (layer.kind === "video") {
           const track = layer.track;
@@ -2097,7 +2134,7 @@ const StudioPreviewComposition = ({
             transform: `scale(${track.position.scale})`,
             transformOrigin: "0 0",
             objectFit: "contain",
-            zIndex: track.position.zIndex,
+            zIndex: 20 + track.position.zIndex,
           };
           return (
             <Sequence
@@ -2161,6 +2198,7 @@ const StudioPreviewComposition = ({
               style={{
                 transform: `translate(${renderPosition.x}px, ${renderPosition.y}px) scale(${renderScale})`,
                 transformOrigin: "0 0",
+                zIndex: 20,
                 ...getCardBackgroundControlVariables({
                   enabled: cardBackgroundOn,
                   opacity: instance.backgroundOpacity,
@@ -3718,10 +3756,34 @@ const App = () => {
   const [canvasOrientation, setCanvasOrientation] = useState<
     "landscape" | "portrait"
   >("landscape");
-  const [safetyGuideVisible, setSafetyGuideVisible] = useState(true);
-  const [personSafetyGuideVisible, setPersonSafetyGuideVisible] = useState(true);
+  const [safetyGuideVisible, setSafetyGuideVisible] = useState(false);
+  const [personSafetyGuideVisible, setPersonSafetyGuideVisible] = useState(false);
   const [solidBackgroundEnabled, setSolidBackgroundEnabled] =
     useState(true);
+  // 默认关闭：即使个别卡片已勾选，也须由用户明确打开全局总开关才会压暗背景。
+  const [backgroundDimEnabled, setBackgroundDimEnabled] = useState(false);
+  const [backgroundDimStrength, setBackgroundDimStrength] = useState(0.35);
+  const [backgroundDimMode, setBackgroundDimMode] =
+    useState<BackgroundDimMode>("full");
+
+  const toggleBackgroundDimGlobal = useCallback(() => {
+    setBackgroundDimEnabled((enabled) => {
+      const next = !enabled;
+      // 兼容此前已创建的实例：旧版本把缺省值保存成 false，首次打开全局开关时
+      // 将它们迁移为“参与全局压暗”，用户仍可在当前卡片检查器中单独关闭。
+      if (next) {
+        setInstances((current) =>
+          current.map((instance) =>
+            instance.backgroundDimEnabled === false &&
+            !isBackgroundDimExcludedInstance(instance)
+              ? { ...instance, backgroundDimEnabled: true }
+              : instance,
+          ),
+        );
+      }
+      return next;
+    });
+  }, []);
   const [previewCardBackgroundEnabled, setPreviewCardBackgroundEnabled] =
     useState(true);
   const [previewCardBackgroundRgb, setPreviewCardBackgroundRgb] = useState({
@@ -5026,6 +5088,7 @@ const App = () => {
               ),
               cardBackgroundEnabled: savedInstance.cardBackgroundEnabled,
               backgroundOpacity: savedInstance.backgroundOpacity,
+              backgroundDimEnabled: savedInstance.backgroundDimEnabled,
               cardMask: savedInstance.cardMask,
               props: savedInstance.props,
               sourceExpressionId: savedInstance.sourceExpressionId,
@@ -5063,6 +5126,7 @@ const App = () => {
             },
             cardBackgroundEnabled: preset.cardBackgroundEnabled,
             backgroundOpacity: preset.backgroundOpacity,
+            backgroundDimEnabled: preset.backgroundDimEnabled,
             cardMask: preset.cardMask,
             props: preset.props,
             trackOrder: presetIndex + 1,
@@ -5266,10 +5330,19 @@ const App = () => {
         if (Number(draft?.globalCardScale) >= 0.5 && Number(draft?.globalCardScale) <= 2) {
           setGlobalCardScale(Number(draft?.globalCardScale));
         }
-        setSafetyGuideVisible(draft?.safetyGuideVisible !== false);
-        setPersonSafetyGuideVisible(draft?.personSafetyGuideVisible !== false);
+        setSafetyGuideVisible(draft?.safetyGuideVisible === true);
+        setPersonSafetyGuideVisible(draft?.personSafetyGuideVisible === true);
         setSolidBackgroundEnabled(
           draft?.solidBackgroundEnabled !== false,
+        );
+        setBackgroundDimEnabled(draft?.backgroundDimEnabled === true);
+        setBackgroundDimStrength(
+          clamp(Number(draft?.backgroundDimStrength), 0, 1) || 0.35,
+        );
+        setBackgroundDimMode(
+          draft?.backgroundDimMode === "left" || draft?.backgroundDimMode === "right"
+            ? draft.backgroundDimMode
+            : "full",
         );
         setSoundEnabled(draft?.soundEnabled !== false);
         setActiveArrangementBatchId(
@@ -5619,6 +5692,9 @@ const App = () => {
       instances,
       canvasOrientation,
       globalCardScale,
+      backgroundDimEnabled,
+      backgroundDimStrength,
+      backgroundDimMode,
       safetyGuideVisible,
       personSafetyGuideVisible,
       solidBackgroundEnabled,
@@ -5638,11 +5714,19 @@ const App = () => {
       videoTracks,
       resourceTracks,
       globalCardScale,
+      backgroundDimEnabled,
+      backgroundDimStrength,
+      backgroundDimMode,
     ],
   );
   const previewPlayerInputProps = useMemo<StudioPreviewProps>(
-    () => ({ ...previewInputProps, solidBackgroundEnabled: false }),
-    [previewInputProps],
+    () => ({
+      ...previewInputProps,
+      solidBackgroundEnabled: false,
+      // The main player's backdrop is painted by CSS outside the composition.
+      previewBackdropEnabled: previewCardBackgroundEnabled || solidBackgroundEnabled,
+    }),
+    [previewInputProps, previewCardBackgroundEnabled, solidBackgroundEnabled],
   );
   const pendingArrangementPreviewInputProps = useMemo<StudioPreviewProps>(() => {
     if (!pendingArrangement) return previewInputProps;
@@ -5739,6 +5823,9 @@ const App = () => {
       trackHeights,
       canvasOrientation,
       globalCardScale,
+      backgroundDimEnabled,
+      backgroundDimStrength,
+      backgroundDimMode,
       safetyGuideVisible,
       personSafetyGuideVisible,
       solidBackgroundEnabled,
@@ -5749,6 +5836,9 @@ const App = () => {
       activeArrangementBatchId,
       canvasOrientation,
       globalCardScale,
+      backgroundDimEnabled,
+      backgroundDimStrength,
+      backgroundDimMode,
       componentName,
       currentFrame,
       instances,
@@ -6036,10 +6126,19 @@ const App = () => {
       if (Number(snapshot.globalCardScale) >= 0.5 && Number(snapshot.globalCardScale) <= 2) {
         setGlobalCardScale(Number(snapshot.globalCardScale));
       }
-      setSafetyGuideVisible(snapshot.safetyGuideVisible !== false);
-      setPersonSafetyGuideVisible(snapshot.personSafetyGuideVisible !== false);
+      setSafetyGuideVisible(snapshot.safetyGuideVisible === true);
+      setPersonSafetyGuideVisible(snapshot.personSafetyGuideVisible === true);
       setSolidBackgroundEnabled(
         snapshot.solidBackgroundEnabled !== false,
+      );
+      setBackgroundDimEnabled(snapshot.backgroundDimEnabled === true);
+      setBackgroundDimStrength(
+        clamp(Number(snapshot.backgroundDimStrength), 0, 1) || 0.35,
+      );
+      setBackgroundDimMode(
+        snapshot.backgroundDimMode === "left" || snapshot.backgroundDimMode === "right"
+          ? snapshot.backgroundDimMode
+          : "full",
       );
       setSoundEnabled(snapshot.soundEnabled !== false);
       setTimelineHeight(
@@ -6153,6 +6252,7 @@ const App = () => {
     resourceTiming: false,
     sizePosition: false,
     cardBackground: false,
+    backgroundDim: false,
     cardMask: false,
     singleExport: false,
     properties: false,
@@ -7850,6 +7950,8 @@ const App = () => {
           rawItem.backgroundOpacity === undefined
             ? undefined
             : finiteNumber(rawItem.backgroundOpacity, 0),
+        // AI 编排不能默认压暗画面（全局开关仍默认关闭）；明确 false 才排除当前卡片。
+        backgroundDimEnabled: rawItem.backgroundDimEnabled !== false,
         cardMask: isRecord(rawItem.cardMask)
           ? normalizeCardMask(rawItem.cardMask)
           : undefined,
@@ -7954,6 +8056,7 @@ const App = () => {
                   ),
           cardBackgroundEnabled: item.cardBackgroundEnabled,
           backgroundOpacity: item.backgroundOpacity,
+          backgroundDimEnabled: item.backgroundDimEnabled,
           props: preferJsonDesign
             ? item.props
             : {
@@ -8077,6 +8180,7 @@ const App = () => {
         position: { ...instance.position },
         cardBackgroundEnabled: instance.cardBackgroundEnabled,
         backgroundOpacity: instance.backgroundOpacity,
+        backgroundDimEnabled: instance.backgroundDimEnabled,
         ...(instance.cardMask ? { cardMask: instance.cardMask } : {}),
         props: instance.props,
         sourceExpressionId: instance.sourceExpressionId,
@@ -8896,29 +9000,21 @@ const App = () => {
         trackOrder:
           arrangementOrderBase + (arrangementRankById.get(clip.id) ?? 0),
       }));
-    // 同类片段共用一条轨道：本次插入的效果共享一条效果轨，音效/图标/素材
-    // 各共享一条，不再每个片段各占一条轨道；SRT 字幕语义动画轨时间跨度
-    // 覆盖全片，保持独占轨道。每批使用全新 laneId，片段时间保持预览确认
-    // 时的值（不做同轨碰撞推让）；与已有片段时间重叠时交给补位/手动拖拽整理。
-    const sharedLaneIds = {
-      motion: createSharedLaneId("motion"),
-      icon: createSharedLaneId("icon"),
-      material: createSharedLaneId("material"),
-      sfx: createSharedLaneId("sfx"),
-    };
-    const remappedTimelineInstances = selectedTimelineInstances.map(
-      (instance) => ({
-        ...instance,
-        laneId:
-          instance.sourceIntentId === SRT_CAPTION_TRACK_ID
-            ? instance.laneId
-            : sharedLaneIds.motion,
-      }),
+    // 保留编排时间：同类不重叠片段复用轨道，重叠片段分轨，章节/字幕独占。
+    // 每次插入均分配新轨道，避免与已有时间线或其他批次串轨。
+    const remappedTimelineInstances = assignArrangementLanes(
+      selectedTimelineInstances,
+      () => "motion",
+      () => createSharedLaneId("motion"),
+      (instance) => instance.componentId === "ChapterBar" ||
+        instance.componentId === "SrtSemanticCaptions" ||
+        instance.sourceIntentId === SRT_CAPTION_TRACK_ID,
     );
-    const remappedResourceTracks = selectedResourceTracks.map((track) => ({
-      ...track,
-      laneId: sharedLaneIds[track.kind],
-    }));
+    const remappedResourceTracks = assignArrangementLanes(
+      selectedResourceTracks,
+      (track) => track.kind,
+      () => createSharedLaneId("material"),
+    );
     const nextInstances = [
       ...instances,
       ...withArrangementTrackOrders(remappedTimelineInstances),
@@ -9203,6 +9299,9 @@ const App = () => {
           })),
           sourceIncludesVideo,
           soundEnabled,
+          backgroundDimEnabled,
+          backgroundDimStrength,
+          backgroundDimMode,
           instances,
           timelineDurationInFrames: durationInFrames,
           ...(exportUseRegion &&
@@ -14388,6 +14487,55 @@ const App = () => {
                 <b>{visibleBuiltInEffectCount}</b>
               </header>
 
+              <button
+                type="button"
+                className={`left-background-dim-toggle${backgroundDimEnabled ? " active" : ""}`}
+                aria-pressed={backgroundDimEnabled}
+                onClick={toggleBackgroundDimGlobal}
+                title="全局总开关。开启后，只有已勾选“此卡片出现时压暗”的卡片才会触发背景压暗。"
+              >
+                <span>
+                  <small>GLOBAL DIM</small>
+                  <strong>背景压暗</strong>
+                </span>
+                <b>{backgroundDimEnabled ? "已开启" : "默认关闭"}</b>
+              </button>
+
+              <div className="left-background-dim-options">
+                <div className="reference-range-group">
+                  <div className="reference-range-head">
+                    <label>压暗强度</label>
+                    <b>{Math.round(backgroundDimStrength * 100)}%</b>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={backgroundDimStrength}
+                    onChange={(event) =>
+                      setBackgroundDimStrength(
+                        clamp(Number(event.target.value), 0, 1),
+                      )
+                    }
+                    title="压暗由已开启“此卡片出现时压暗”的卡片触发"
+                  />
+                </div>
+                <label className="dynamic-prop-field">
+                  <span>压暗范围</span>
+                  <select
+                    value={backgroundDimMode}
+                    onChange={(event) =>
+                      setBackgroundDimMode(event.target.value as BackgroundDimMode)
+                    }
+                  >
+                    <option value="full">全画面</option>
+                    <option value="left">左侧渐变</option>
+                    <option value="right">右侧渐变</option>
+                  </select>
+                </label>
+              </div>
+
               <label className="effect-library-search">
                 <MagnifyingGlass />
                 <input
@@ -16589,6 +16737,32 @@ const App = () => {
                       }
                     />
                   </div>
+                </div>
+              </section>
+            ) : null}
+            {(!selectedResourceTrack || pendingPreviewInspectorInstance) && inspectorInstance && inspectorDefinition && !isBackgroundDimExcludedInstance(inspectorInstance) ? (
+              <section className={`reference-inspector-section${inspectorSectionsExpanded.backgroundDim ? "" : " collapsed"}`}>
+                <div className="reference-section-title" role="button" tabIndex={0} aria-expanded={inspectorSectionsExpanded.backgroundDim} onClick={() => toggleInspectorSection("backgroundDim")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleInspectorSection("backgroundDim"); } }}>
+                  <strong>画面背景压暗</strong><small>DIM</small>
+                </div>
+                <div className="dynamic-prop-fields">
+                  <span
+                    className={`pill-toggle${inspectorInstance.backgroundDimEnabled ? " active" : ""}`}
+                    role="switch"
+                    aria-checked={inspectorInstance.backgroundDimEnabled}
+                    onClick={() =>
+                      updateInspectorInstance(inspectorInstance.id, (instance) => ({
+                        ...instance,
+                        backgroundDimEnabled: !instance.backgroundDimEnabled,
+                      }))
+                    }
+                  >
+                    <span className="pill-toggle-dot" />
+                    <span className="pill-toggle-text">此卡片出现时压暗</span>
+                  </span>
+                  <small className="reference-help-text">
+                    需同时打开“全局控制”中的背景压暗；多张卡片同时出现时保持同一强度，不会叠加变黑。
+                  </small>
                 </div>
               </section>
             ) : null}

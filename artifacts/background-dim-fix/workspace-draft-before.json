@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "演示项目",
+  "activeComponentId": "",
+  "componentName": "本地示例动效",
+  "sourceIncludesVideo": false,
+  "videoName": "尚未导入视频",
+  "videoDuration": 6,
+  "videoTracks": [],
+  "resourceTracks": [],
+  "instances": [],
+  "currentFrame": 67,
+  "theme": "dark",
+  "timelineHeight": 424,
+  "trackHeights": {},
+  "canvasOrientation": "landscape",
+  "safetyGuideVisible": false,
+  "solidBackgroundEnabled": false,
+  "soundEnabled": false,
+  "updatedAt": "2026-09-09T17:12:23.742Z"
+}

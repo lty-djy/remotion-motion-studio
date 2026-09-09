@@ -3779,6 +3779,92 @@ main.is-resizing-sidebar * {
   justify-content: space-between;
 }
 
+.left-background-dim-toggle {
+  width: 100%;
+  margin: 14px 0 10px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #30333a;
+  border-radius: 9px;
+  background: #1b1d22;
+  color: #f1f1f3;
+  cursor: pointer;
+  text-align: left;
+}
+
+.left-background-dim-toggle:hover {
+  border-color: #5a5e68;
+  background: #20232a;
+}
+
+.left-background-dim-toggle.active {
+  border-color: #ff704b;
+  background: rgba(255, 75, 37, 0.13);
+}
+
+.left-background-dim-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.left-background-dim-toggle small {
+  color: #989ca6;
+  font: 10px Consolas, monospace;
+  letter-spacing: 0.12em;
+}
+
+.left-background-dim-toggle strong {
+  font-size: 13px;
+}
+
+.left-background-dim-toggle > b {
+  color: #989ca6;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.left-background-dim-toggle.active > b {
+  color: #ff946f;
+}
+
+.left-background-dim-options {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
+
+.left-background-dim-options .reference-range-group {
+  margin: 0;
+}
+
+.left-background-dim-options .dynamic-prop-field {
+  display: grid;
+  gap: 6px;
+  color: #989ca6;
+  font-size: 11px;
+}
+
+.left-background-dim-options .dynamic-prop-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1px solid #30333a;
+  border-radius: 6px;
+  background: #1b1d22;
+  color: #e7e8eb;
+}
+
+.reference-help-text {
+  display: block;
+  color: var(--muted, #8e9aa8);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .dynamic-prop-fields input:not([type="checkbox"]),
 .dynamic-prop-fields select {
   width: 100%;

@@ -18,6 +18,7 @@ import {
   getNumberExport,
   type MotionInstance,
   type MotionModule,
+  type BackgroundDimMode,
   type ResourceTrack,
   type VideoTrack,
 } from "./local-protocol";
@@ -37,6 +38,7 @@ import {
   supportsCardBackground,
 } from "./card-background-control";
 import { CardMaskLayer } from "./card-mask-control";
+import { BackgroundDimLayer } from "./background-dim-control";
 import { UnifiedMotionAnimation } from "./effects/UniversalMotionAnimation";
 
 const motionModule = ImportedModule as MotionModule;
@@ -72,6 +74,9 @@ type RenderProps = {
   canvasHeight?: number;
   transparent?: boolean;
   soundEnabled?: boolean;
+  backgroundDimEnabled?: boolean;
+  backgroundDimStrength?: number;
+  backgroundDimMode?: BackgroundDimMode;
 };
 
 // 页面加载时刻的真实墙钟，作为虚拟时钟的起点。
@@ -147,6 +152,9 @@ const MultiComponentRender = ({
   instances = [],
   transparent = false,
   soundEnabled = true,
+  backgroundDimEnabled = false,
+  backgroundDimStrength = 0.35,
+  backgroundDimMode = "full",
   canvasWidth = 1920,
   canvasHeight = 1080,
 }: RenderProps) => {
@@ -199,6 +207,13 @@ const MultiComponentRender = ({
     <style>{CARD_BACKGROUND_CONTROL_CSS}</style>
     <WaitForFonts />
     <VirtualClock />
+    <BackgroundDimLayer
+      enabled={!transparent && backgroundDimEnabled}
+      strength={backgroundDimStrength}
+      mode={backgroundDimMode}
+      instances={instances}
+      hasBackground={Boolean(activeVideoSrc)}
+    />
     {orderedLayers.map((layer) => {
       if (layer.kind === "video") {
         const track = layer.track;
@@ -250,7 +265,7 @@ const MultiComponentRender = ({
           transform: `scale(${track.position.scale})`,
           transformOrigin: "0 0",
           objectFit: "contain",
-          zIndex: track.position.zIndex,
+          zIndex: 20 + track.position.zIndex,
         };
         return (
           <Sequence
@@ -311,6 +326,7 @@ const MultiComponentRender = ({
             style={{
               transform: `translate(${renderPosition.x}px, ${renderPosition.y}px) scale(${renderPosition.scale})`,
               transformOrigin: "0 0",
+              zIndex: 20,
               ...getCardBackgroundControlVariables({
                 enabled: cardBackgroundOn,
                 opacity: instance.backgroundOpacity,
@@ -377,6 +393,9 @@ const Root = () => (
       canvasHeight: 1080,
       transparent: false,
       soundEnabled: true,
+      backgroundDimEnabled: false,
+      backgroundDimStrength: 0.35,
+      backgroundDimMode: "full",
     }}
     calculateMetadata={({ props }) => {
       const portrait =

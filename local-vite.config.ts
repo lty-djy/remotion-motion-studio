@@ -737,7 +737,9 @@ const normalizeProjectSnapshot = (
     trackHeights,
     canvasOrientation:
       input.canvasOrientation === "portrait" ? "portrait" : "landscape",
-    safetyGuideVisible: input.safetyGuideVisible !== false,
+    // 新项目默认隐藏两条参考线；只有用户明确打开并保存才恢复显示。
+    safetyGuideVisible: input.safetyGuideVisible === true,
+    personSafetyGuideVisible: input.personSafetyGuideVisible === true,
     solidBackgroundEnabled: input.solidBackgroundEnabled !== false,
     soundEnabled: input.soundEnabled !== false,
     createdAt:

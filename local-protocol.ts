@@ -48,6 +48,8 @@ export type CardMaskSettings = {
   offsetY: number;
 };
 
+export type BackgroundDimMode = "full" | "left" | "right";
+
 export type MotionComponentDefinition = {
   id: string;
   name: string;
@@ -74,6 +76,8 @@ export type MotionInstance = {
   position: MotionPosition;
   cardBackgroundEnabled: boolean;
   backgroundOpacity: number;
+  /** 当前卡片出现时是否请求压暗画面背景；全局总开关关闭时不生效。 */
+  backgroundDimEnabled: boolean;
   cardMask: CardMaskSettings;
   props: Record<string, unknown>;
   sourceExpressionId?: string;
@@ -89,6 +93,7 @@ export type MotionTimelinePreset = {
   position?: Partial<MotionPosition>;
   cardBackgroundEnabled?: boolean;
   backgroundOpacity?: number;
+  backgroundDimEnabled?: boolean;
   cardMask?: Partial<CardMaskSettings>;
   props?: Record<string, unknown>;
 };
@@ -288,6 +293,7 @@ export const getMotionTimeline = (
                   record.backgroundOpacity,
                   0,
                 ),
+                backgroundDimEnabled: record.backgroundDimEnabled !== false,
                 cardMask: toRecord(record.cardMask),
                 props: toRecord(record.props),
               },
