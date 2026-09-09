@@ -4304,6 +4304,10 @@ const App = () => {
   // 时间轴横向缩放与滚动（剪映式底部滑轨）
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineScroll, setTimelineScroll] = useState(0);
+  const timelineScrollRef = useRef(timelineScroll);
+  useEffect(() => {
+    timelineScrollRef.current = timelineScroll;
+  }, [timelineScroll]);
   const [isPlayheadDragging, setIsPlayheadDragging] = useState(false);
   // 剪映式吸附磁吸开关 + 拖拽时的吸附参考线 + 跨轨道拖拽的目标轨道高亮
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
@@ -4369,6 +4373,26 @@ const App = () => {
     0,
     timelineContentWidth - trackViewportWidth,
   );
+  // 拖动片段靠近时间轴左右边缘时自动平移底部滑轨，并把平移量计入帧换算。
+  const followTimelineDrag = useCallback((clientX: number) => {
+    const body = timelineTracksRef.current?.querySelector<HTMLElement>(".track-body");
+    if (!body || timelineMaxScroll <= 0) return timelineScrollRef.current;
+    const rect = body.getBoundingClientRect();
+    const edge = 72;
+    const leftPressure = rect.left + edge - clientX;
+    const rightPressure = clientX - (rect.right - edge);
+    const direction = rightPressure > 0 ? 1 : leftPressure > 0 ? -1 : 0;
+    if (!direction) return timelineScrollRef.current;
+    const pressure = Math.min(edge, Math.max(leftPressure, rightPressure));
+    const next = clamp(
+      timelineScrollRef.current + direction * (8 + Math.round((pressure / edge) * 40)),
+      0,
+      timelineMaxScroll,
+    );
+    timelineScrollRef.current = next;
+    setTimelineScroll(next);
+    return next;
+  }, [timelineMaxScroll]);
   useEffect(() => {
     setTimelineScroll((current) =>
       clamp(current, 0, Math.max(0, timelineContentWidth - trackViewportWidth)),
@@ -9768,6 +9792,7 @@ const App = () => {
     mode: "move" | "left" | "right";
     trackId: string;
     pointerX: number;
+    startTimelineScroll: number;
     startFrame: number;
     sourceStartFrame: number;
     sourceDurationInFrames: number;
@@ -9794,6 +9819,7 @@ const App = () => {
       mode,
       trackId: track.id,
       pointerX: event.clientX,
+      startTimelineScroll: timelineScrollRef.current,
       startFrame: track.startFrame,
       sourceStartFrame: track.sourceStartFrame,
       sourceDurationInFrames: track.sourceDurationInFrames,
@@ -9817,8 +9843,9 @@ const App = () => {
       const state = videoTimelineDragState.current;
       if (!state) return;
       event.preventDefault();
+      const dragScroll = followTimelineDrag(event.clientX);
       const deltaFrames = Math.round(
-        ((event.clientX - state.pointerX) / state.width) * durationInFrames,
+        ((event.clientX - state.pointerX + dragScroll - state.startTimelineScroll) / state.width) * durationInFrames,
       );
       const minFrames = Math.max(3, Math.round(fps * 0.1));
       const clips = timelineClipsRef.current;
@@ -10017,12 +10044,13 @@ const App = () => {
       window.removeEventListener("pointerup", finishVideoTimeline);
       window.removeEventListener("pointercancel", finishVideoTimeline);
     };
-  }, [durationInFrames, fps]);
+  }, [durationInFrames, fps, followTimelineDrag]);
 
   const resourceTimelineDragState = useRef<{
     mode: "move" | "left" | "right";
     trackId: string;
     pointerX: number;
+    startTimelineScroll: number;
     startFrame: number;
     sourceStartFrame: number;
     sourceDurationInFrames: number;
@@ -10050,6 +10078,7 @@ const App = () => {
       mode,
       trackId: track.id,
       pointerX: event.clientX,
+      startTimelineScroll: timelineScrollRef.current,
       startFrame: track.startFrame,
       sourceStartFrame: track.sourceStartFrame,
       sourceDurationInFrames: track.sourceDurationInFrames,
@@ -10074,8 +10103,9 @@ const App = () => {
       const state = resourceTimelineDragState.current;
       if (!state) return;
       event.preventDefault();
+      const dragScroll = followTimelineDrag(event.clientX);
       const deltaFrames = Math.round(
-        ((event.clientX - state.pointerX) / state.width) * durationInFrames,
+        ((event.clientX - state.pointerX + dragScroll - state.startTimelineScroll) / state.width) * durationInFrames,
       );
       const minFrames = Math.max(3, Math.round(fps * 0.1));
       const clips = timelineClipsRef.current;
@@ -10252,12 +10282,13 @@ const App = () => {
       window.removeEventListener("pointerup", finishResourceTimeline);
       window.removeEventListener("pointercancel", finishResourceTimeline);
     };
-  }, [durationInFrames, fps]);
+  }, [durationInFrames, fps, followTimelineDrag]);
 
   const timelineDragState = useRef<{
     mode: "move" | "left" | "right";
     instanceId: string;
     pointerX: number;
+    startTimelineScroll: number;
     startFrame: number;
     durationInFrames: number;
     baseDurationInFrames: number;
@@ -10383,6 +10414,7 @@ const App = () => {
       mode,
       instanceId: instance.id,
       pointerX: event.clientX,
+      startTimelineScroll: timelineScrollRef.current,
       startFrame: instance.startFrame,
       durationInFrames: instance.durationInFrames,
       baseDurationInFrames: durationInFrames,
@@ -10422,9 +10454,10 @@ const App = () => {
       const state = timelineDragState.current;
       if (!state) return;
       event.preventDefault();
+      const dragScroll = followTimelineDrag(event.clientX);
       // 帧换算固定用拖拽开始时的总长，避免时间轴扩展后 delta 正反馈放大
       const deltaFrames = Math.round(
-        ((event.clientX - state.pointerX) / state.width) *
+        ((event.clientX - state.pointerX + dragScroll - state.startTimelineScroll) / state.width) *
           state.baseDurationInFrames,
       );
       if (Math.abs(event.clientX - state.pointerX) > 2) {
@@ -10646,7 +10679,7 @@ const App = () => {
       window.removeEventListener("pointerup", finishTimeline);
       window.removeEventListener("pointercancel", finishTimeline);
     };
-  }, [durationInFrames, fps, selectOnlyInstance, updateInstance]);
+  }, [durationInFrames, fps, followTimelineDrag, selectOnlyInstance, updateInstance]);
 
   const timelineResizeState = useRef<{
     pointerY: number;
