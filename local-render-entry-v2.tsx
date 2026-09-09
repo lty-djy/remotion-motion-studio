@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { resolveGigCardExportProps } from "./effects/gig-card-export";
 import {
   AbsoluteFill,
   Audio,
@@ -320,7 +321,9 @@ const MultiComponentRender = ({
           >
             <UnifiedMotionAnimation enterAnimation={instance.props.enterAnimation as any} exitAnimation={instance.props.exitAnimation as any} durationInFrames={Math.max(3, instance.durationInFrames)}>
             <Comp
-              {...instance.props}
+              {...(instance.componentId === "BrollGigCardFloat"
+                ? resolveGigCardExportProps(instance.props)
+                : instance.props)}
               instanceDurationInFrames={instance.durationInFrames}
               videoSrc={transparent ? "" : activeVideoSrc}
               hideVideo={sourceIncludesVideo}

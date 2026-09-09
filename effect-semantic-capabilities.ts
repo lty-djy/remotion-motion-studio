@@ -446,6 +446,21 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["术语", "名词", "解释", "定义", "概念", "人话", "是什么", "翻译"],
     { density: "light", durationSeconds: { min: 2, max: 20 } },
   ),
+  GigHourlyTitle: capability("metric", ["emphasis"], ["metric", "short-text"], ["时薪", "薪资", "收入", "金色大字", "价格区间"], {orientation:"landscape",density:"light",durationSeconds:{min:2,max:15}}),
+  BrollGigCardFloat: capability(
+    "evidence",
+    ["list", "evidence", "emphasis"],
+    ["metric", "list", "media"],
+    ["兼职", "时薪", "收入", "薪资", "招聘", "招募", "机会", "价格区间", "副业", "悬浮卡片", "卡片群", "b-roll"],
+    { orientation: "landscape", density: "heavy", durationSeconds: { min: 3, max: 10 } },
+  ),
+  BrollEpisodePosterDuo: capability(
+    "evidence",
+    ["metric", "transition"],
+    ["media", "metric"],
+    ["往期", "回顾", "上一期", "海报", "封面", "播放量", "成绩", "数据", "两期", "合集", "b-roll"],
+    { orientation: "landscape", density: "medium", durationSeconds: { min: 3, max: 10 } },
+  ),
 });
 
 export const semanticIntentIdsFor = (

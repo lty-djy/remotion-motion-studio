@@ -54,6 +54,9 @@ import { MarketEliminationStampEffectDef } from "./effects/MarketEliminationStam
 import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { MaterialCardEffectDef } from "./effects/MaterialCard";
 import { PhoneRecordingFrameNeutralEffectDef } from "./effects/PhoneRecordingFrameNeutral";
+import { GigHourlyTitleEffectDef } from "./effects/GigHourlyTitle";
+import { BrollGigCardFloatEffectDef } from "./effects/BrollGigCardFloat";
+import { BrollEpisodePosterDuoEffectDef } from "./effects/BrollEpisodePosterDuo";
 import { ComparisonProgressBarsEffectDef } from "./effects/ComparisonProgressBars";
 import { MilestoneFollowerProgressEffectDef } from "./effects/MilestoneFollowerProgress";
 import { CaseStudySidebarEffectDef } from "./effects/CaseStudySidebar";
@@ -164,6 +167,9 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   MaterialCardEffectDef,
   PhoneRecordingFrameNeutralEffectDef,
+  BrollGigCardFloatEffectDef,
+  GigHourlyTitleEffectDef,
+  BrollEpisodePosterDuoEffectDef,
   ComparisonProgressBarsEffectDef,
   MilestoneFollowerProgressEffectDef,
   CaseStudySidebarEffectDef,

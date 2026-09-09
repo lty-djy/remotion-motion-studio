@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（48 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（51 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -51,6 +51,9 @@
 | `MediaSpotlightCard` | 媒体聚焦卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
+| `BrollGigCardFloat` | 悬浮兼职卡片群 | 媒体展示组件 | 案例与素材 | landscape |  |
+| `GigHourlyTitle` | 金色时薪标题 | 媒体展示组件 | 数字展示 | landscape |  |
+| `BrollEpisodePosterDuo` | 往期海报回顾 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
 | `CaseStudySidebar` | 案例商业数据侧栏 | 品牌与标识 | 案例与素材 | portrait |  |
@@ -1302,6 +1305,72 @@
 - `enterEndSeconds` — 入场结束（相对组件起点 / 秒）
 - `exitStartSeconds` — 出场开始（相对组件起点 / 秒）
 - `exitEndSeconds` — 出场结束（相对组件起点 / 秒）
+
+### `BrollGigCardFloat` · 悬浮兼职卡片群
+
+- 用途：按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。
+- 主要语义：案例与素材；次要：列举要点、案例与素材、重点强调
+- 何时使用（检索词）：兼职、时薪、收入、薪资、招聘、招募、机会、价格区间、副业、悬浮卡片、卡片群、b-roll
+- 画布方向：landscape；密度：heavy；建议驻留：3–10 秒
+- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
+- 默认时长：150 帧（约 5 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示图片卡片
+- `cardsJson` — 图片列表
+- `enterStaggerSeconds` — 入场间隔（秒）（0–1）
+- `floatAmplitude` — 悬浮幅度（0–30）
+- `wiggleAmplitude` — 摇摆幅度（度）（0–15）
+- `badgeText` — 招聘卡片角标
+- `ctaText` — 招聘卡片按钮
+
+### `GigHourlyTitle` · 金色时薪标题
+
+- 用途：独立的金色时薪大字、中英文标签与说明，透明背景。
+- 主要语义：数字展示；次要：重点强调
+- 何时使用（检索词）：时薪、薪资、收入、金色大字、价格区间
+- 画布方向：landscape；密度：light；建议驻留：2–15 秒
+- 默认落位：x=92，y=104，scale=1（占位 850×230，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `eyebrowEn` — 左上角英文标签
+- `eyebrowZh` — 左上角中文标签
+- `priceText` — 时薪大字
+- `priceUnit` — 大字右侧单位
+- `priceNote` — 大字下方说明
+- `accentColor` — 金色强调色（color）
+
+### `BrollEpisodePosterDuo` · 往期海报回顾
+
+- 用途：横屏口播 b-roll：背景压暗，两张竖版海报带 3D 倾斜先后升入并悬浮，随后金色播放量徽章弹出，适合回顾往期内容或展示成绩。
+- 主要语义：案例与素材；次要：数字展示、章节转场
+- 何时使用（检索词）：往期、回顾、上一期、海报、封面、播放量、成绩、数据、两期、合集、b-roll
+- 画布方向：landscape；密度：medium；建议驻留：3–10 秒
+- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
+- 默认时长：180 帧（约 6 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示往期海报回顾
+- `dimOpacity` — 背景压暗强度（0–0.9）
+- `poster1Url` — 左海报图片
+- `poster2Url` — 右海报图片
+- `posterWidth` — 海报宽度(px)（220–560）
+- `tiltDeg` — 3D 倾斜角度(度)（0–30）
+- `badgeKicker` — 徽章小字
+- `badgePrefix` — 徽章前缀
+- `badgeNumber` — 徽章数字
+- `accentColor` — 金色强调色（color）
+- `floatAmplitude` — 悬浮幅度(px)（0–30）
 
 ## 风险提醒
 

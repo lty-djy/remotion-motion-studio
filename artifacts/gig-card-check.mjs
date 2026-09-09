@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import assert from 'node:assert/strict';
+await build({entryPoints:['effects/gig-card-model.ts'],outfile:'artifacts/gig-card-model-check.mjs',bundle:true,platform:'node',format:'esm',packages:'external'});
+const {readGigCards,createGigCard,gigCardMotion}=await import('./gig-card-model-check.mjs');
+assert.equal(readGigCards({}).length,1);
+assert.equal(readGigCards({cardsJson:'[]'}).length,0);
+const legacy=readGigCards({card1Title:'A',card2Title:'B',card3Title:'C',card4Title:'D'});
+assert.equal(legacy.length,4);assert.equal(legacy[1].left,1352);assert.equal(legacy[0].mode,'card');
+const a=createGigCard('a'),b={...createGigCard('b'),left:-240,top:1700,rotateX:45,rotateY:-60};
+const saved=readGigCards({cardsJson:JSON.stringify([a,b])});assert.equal(saved[1].left,-240);assert.equal(saved[1].rotateY,-60);
+const afterDelete=readGigCards({cardsJson:JSON.stringify(saved.filter(c=>c.id!=='a'))});assert.deepEqual(afterDelete[0],b);
+assert.equal(gigCardMotion(b,0,180,30,{floatAmplitude:0,wiggleAmplitude:0}).transform.includes('rotateX(45deg) rotateY(-60deg)'),true);
+console.log('PASS: single default, empty list, legacy layout, independent transforms, deletion and JSON round trip, 3D motion');

@@ -4005,6 +4005,160 @@ main.is-resizing-sidebar * {
   accent-color: #ff4b25;
 }
 
+/* 悬浮兼职卡片群：使用紧凑的组件内编辑器，避免原生 file/button 控件撑破检查器。 */
+.gig-cards-editor {
+  display: grid;
+  gap: 10px;
+  color: #d8dbe2;
+  font-size: 11px;
+}
+
+.gig-editor-heading,
+.gig-editor-heading > div,
+.gig-toolbar,
+.gig-card-actions,
+.gig-upload-line,
+.gig-action-row {
+  display: flex;
+  align-items: center;
+}
+
+.gig-editor-heading,
+.gig-toolbar,
+.gig-card-actions,
+.gig-action-row {
+  gap: 7px;
+}
+
+.gig-editor-heading {
+  justify-content: space-between;
+  padding: 2px 0 1px;
+}
+
+.gig-editor-heading > div { gap: 7px; }
+.gig-editor-heading strong { color: #f2f3f5; font-size: 12px; }
+.gig-editor-heading span,
+.gig-editor-heading small,
+.gig-file-state,
+.gig-help { color: #808691; font-size: 10px; }
+.gig-editor-heading small { white-space: nowrap; }
+
+.gig-button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #353942;
+  border-radius: 5px;
+  color: #cdd1d9;
+  background: #1a1c21;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gig-button:hover:not(:disabled) { border-color: #ff6845; color: #fff; background: #202329; }
+.gig-button:disabled { opacity: .48; cursor: wait; }
+.gig-button-primary { border-color: rgba(255, 104, 69, .7); color: #ff947a; background: rgba(255, 75, 37, .12); }
+.gig-hidden-input { display: none !important; }
+
+.gig-error {
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 88, 88, .42);
+  border-radius: 5px;
+  color: #ff9b9b;
+  background: rgba(255, 70, 70, .08);
+  line-height: 1.4;
+}
+
+.gig-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 112px;
+  overflow-y: auto;
+  padding: 1px;
+}
+
+.gig-card-tab {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #30343b;
+  border-radius: 5px;
+  color: #9ea3ad;
+  background: #17191e;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gig-card-tab:hover { border-color: #677080; color: #e7e9ed; }
+.gig-card-tab.is-active { border-color: #ff6845; color: #fff; background: rgba(255, 75, 37, .1); box-shadow: inset 2px 0 #ff6845; }
+.gig-card-tab > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gig-card-tab-index { display: grid; flex: 0 0 18px; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: #ffb29d; background: rgba(255, 104, 69, .16); font-size: 10px; font-variant-numeric: tabular-nums; }
+.gig-card-tab em { margin-left: auto; color: #7d8591; font-size: 9px; font-style: normal; }
+.gig-card-actions { padding-top: 1px; }
+.gig-card-actions .gig-button { min-height: 25px; padding: 0 9px; }
+
+.gig-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #2d3139;
+  border-radius: 6px;
+  background: #15171b;
+}
+
+.gig-section-tabs button {
+  height: 27px;
+  border: 0;
+  border-radius: 4px;
+  color: #838a96;
+  background: transparent;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.gig-section-tabs button:hover { color: #e7e9ed; }
+.gig-section-tabs button.is-active { color: #fff; background: #292d35; box-shadow: 0 0 0 1px rgba(255, 104, 69, .38); }
+.gig-editor-section { display: grid; gap: 9px; padding: 2px 0 1px; }
+.gig-field { display: grid; gap: 5px; color: #aab0ba; font-size: 10px; }
+.gig-field > span { display: flex; justify-content: space-between; align-items: center; }
+.gig-field > span i { color: #6f7681; font-size: 9px; font-style: normal; }
+.gig-field input:not([type="checkbox"]),
+.gig-field select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #30343b;
+  border-radius: 5px;
+  outline: none;
+  color: #e0e3e8;
+  background: #191b20;
+  font-size: 11px;
+}
+.gig-field input:not([type="checkbox"]):focus,
+.gig-field select:focus { border-color: #ff6845; background: #1e2127; }
+.gig-upload-line { gap: 8px; }
+.gig-upload-line .gig-file-state { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gig-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 8px; }
+.gig-number-field > div { display: grid; grid-template-columns: 27px minmax(0, 1fr) 27px; gap: 4px; }
+.gig-number-field > div > button { height: 30px; padding: 0; border: 1px solid #353942; border-radius: 4px; color: #aeb4bd; background: #1b1d22; cursor: pointer; }
+.gig-number-field > div > button:hover { border-color: #ff6845; color: #fff; }
+.gig-number-field > div > input { min-width: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.gig-range { width: 100%; height: 13px; margin: -1px 0 0; accent-color: #ff5734; }
+.gig-action-row { flex-wrap: wrap; }
+.gig-action-row .gig-button { min-height: 26px; font-size: 10px; }
+.gig-checkbox { display: flex; align-items: center; gap: 7px; color: #bac0c9; cursor: pointer; }
+.gig-checkbox input { width: 14px; height: 14px; accent-color: #ff5734; }
+.gig-help { margin: 0; line-height: 1.6; }
+.gig-empty-state { padding: 9px 0; color: #7e8591; }
+
 .media-upload-row {
   display: flex;
   gap: 8px;

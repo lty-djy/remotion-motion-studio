@@ -1,3 +1,5 @@
+import {GigCardsEditor} from "./effects/GigCardsEditor";
+import {readGigCards} from "./effects/gig-card-model";
 import React, {
   useCallback,
   useEffect,
@@ -3735,6 +3737,7 @@ const App = () => {
   const [resizingSidebar, setResizingSidebar] = useState<"left" | "right" | null>(null);
   const [sourceIncludesVideo, setSourceIncludesVideo] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [selectedGigCardId,setSelectedGigCardId]=useState<string>();
   const [manualTimelineEndFrame, setManualTimelineEndFrame] = useState(0);
   const [regionInFrame, setRegionInFrame] = useState<number | null>(null);
   const [regionOutFrame, setRegionOutFrame] = useState<number | null>(null);
@@ -12811,7 +12814,17 @@ const App = () => {
     const isIterationMediaUrl =
       selectedDefinition?.id === "PortraitPromptIterationShowcase" &&
       /^iteration[1-8]Url$/.test(key);
-    if (isSpotlightMediaUrl || isComparisonMediaUrl || isIterationMediaUrl) {
+    const isBrollMediaUrl =
+      (selectedDefinition?.id === "BrollGigCardFloat" &&
+        /^card[1-4]ImageUrl$/.test(key)) ||
+      (selectedDefinition?.id === "BrollEpisodePosterDuo" &&
+        /^poster[12]Url$/.test(key));
+    if (
+      isSpotlightMediaUrl ||
+      isComparisonMediaUrl ||
+      isIterationMediaUrl ||
+      isBrollMediaUrl
+    ) {
       const handleMediaUpload = async (
         event: React.ChangeEvent<HTMLInputElement>,
       ) => {
@@ -12851,7 +12864,7 @@ const App = () => {
           <div className="media-upload-row">
             <input
               type="file"
-              accept={isComparisonMediaUrl || isIterationMediaUrl ? "image/*" : "image/*,video/*"}
+              accept={isComparisonMediaUrl || isIterationMediaUrl || isBrollMediaUrl ? "image/*" : "image/*,video/*"}
               onChange={handleMediaUpload}
               style={{ display: "none" }}
               id={uploadInputId}
@@ -15305,7 +15318,7 @@ const App = () => {
                         left: camBox
                           ? `${(camBox.x / canvasWidth) * 100}%`
                           : fullscreenOverlay
-                            ? "0%"
+                            ? `${overlayPosition.x/canvasWidth*100}%`
                             : `${
                                 ((overlayPosition.x +
                                   definition.bounds.x * overlayScale) /
@@ -15315,7 +15328,7 @@ const App = () => {
                         top: camBox
                           ? `${(camBox.y / canvasHeight) * 100}%`
                           : fullscreenOverlay
-                            ? "0%"
+                            ? `${overlayPosition.y/canvasHeight*100}%`
                             : `${
                                 ((overlayPosition.y +
                                   definition.bounds.y * overlayScale) /
@@ -15332,6 +15345,7 @@ const App = () => {
                           : fullscreenOverlay
                             ? "100%"
                             : `${(definition.bounds.height / canvasHeight) * 100}%`,
+                        containerType: definition.id === "BrollGigCardFloat" ? "size" : undefined,
                         transform: `scale(${overlayScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
                       }}
@@ -15365,6 +15379,18 @@ const App = () => {
                             : "点击选中；拖动移动；右键复制或删除"
                       }
                     >
+                      {isSelected && definition.id === "BrollGigCardFloat" ? readGigCards(instance.props).filter(c=>c.visible).map((card,cardIndex) => {
+                        const ss=Math.min(canvasWidth/1920,canvasHeight/1080);
+                        const begin=(event:React.PointerEvent<HTMLElement>,resize=false)=>{
+                          event.preventDefault();event.stopPropagation();setSelectedGigCardId(card.id);
+                          const bounds=event.currentTarget.closest(".player-wrap")?.getBoundingClientRect();if(!bounds)return;
+                          const x=event.clientX,y=event.clientY;const ratio=canvasWidth/bounds.width/ss/overlayScale;
+                          const move=(e:PointerEvent)=>updateInstance(instance.id,current=>({...current,props:{...current.props,cardsJson:JSON.stringify(readGigCards(current.props).map(c=>c.id===card.id?{...c,...(resize?{scale:Math.max(0.05,card.scale+(e.clientX-x)*ratio/card.width)}:{left:card.left+(e.clientX-x)*ratio,top:card.top+(e.clientY-y)*ratio})}:c))}}));
+                          const end=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",end);window.removeEventListener("pointercancel",end);};
+                          window.addEventListener("pointermove",move);window.addEventListener("pointerup",end);window.addEventListener("pointercancel",end);
+                        };
+                        return <div key={card.id} aria-label="拖动独立图片" onPointerDown={e=>begin(e)} style={{position:"absolute",left:`${card.left/1920*100}%`,top:`${card.top/1080*100}%`,width:`${card.width/1920*100}%`,height:`${(card.mode === "image" ? card.width/card.aspectRatio : 268)/1080*100}%`,transform:`rotateX(${card.rotateX}deg) rotateY(${card.rotateY}deg) rotate(${card.rotate}deg) scale(${card.scale})`,transformOrigin:"center center",border:card.id===selectedGigCardId?"2px solid #89aaff":"1px dashed #89aaff",pointerEvents:"auto",zIndex:card.zIndex+2,cursor:"move"}}><span style={{position:"absolute",right:-5,bottom:-5,width:12,height:12,background:"#89aaff",cursor:"nwse-resize"}} onPointerDown={e=>begin(e,true)}/></div>;
+                      }) : null}
                       {isSelected ? (
                         <span className="canvas-selection-label">
                           {isPrimary && selectedInstanceIds.length > 1
@@ -16654,9 +16680,10 @@ const App = () => {
                     <strong>组件参数</strong><small>PROPERTIES</small>
                   </div>
                   <div className="dynamic-prop-fields">
+                    {inspectorDefinition.id === "BrollGigCardFloat" ? <GigCardsEditor selectedId={selectedGigCardId} onSelect={setSelectedGigCardId} key={inspectorInstance.id} props={inspectorInstance.props} onChange={json => updateInspectorInstance(inspectorInstance.id, instance => ({...instance,props:{...instance.props,cardsJson:json}}))} /> : null}
                     {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
-                        if (key === "panelColor") return null;
+                        if (key === "panelColor" || key === "cardsJson") return null;
                         if (
                           (inspectorDefinition.id === "BrandLogo" || inspectorDefinition.id === "TeamAttributionCard") &&
                           (key === "logoSource" || key === "builtinIcon")
