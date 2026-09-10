@@ -4394,6 +4394,57 @@ aside {
   touch-action: none;
 }
 
+.focus-cam-resize-handle {
+  position: absolute;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #071015;
+  border-radius: 3px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(101, 223, 247, 0.58);
+  touch-action: none;
+}
+
+.focus-cam-resize-handle.nw {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+
+.focus-cam-resize-handle.ne {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+
+.focus-cam-resize-handle.se {
+  right: -7px;
+  bottom: -7px;
+  cursor: nwse-resize;
+}
+
+.focus-cam-resize-handle.sw {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+
+.focus-cam-radius-handle {
+  position: absolute;
+  z-index: 3;
+  top: -7px;
+  left: 20px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #201506;
+  border-radius: 50%;
+  background: #ffd166;
+  box-shadow: 0 0 8px rgba(255, 209, 102, 0.65);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
 .canvas-marquee {
   position: absolute;
   z-index: 120;

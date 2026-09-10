@@ -12,12 +12,12 @@
 
 | componentId | 名称 | 分组 | 主要语义 | 方向 | 角色 |
 | --- | --- | --- | --- | --- | --- |
-| `GlobalExpedition` | 环球征途地图 | 空间与聚焦 | 案例与素材 | any |  |
+| `GlobalExpedition` | 环球征途地图 | 其他 | 案例与素材 | any |  |
 | `ChapterBar` | ChapterBar | 竖屏口播信息层 | 章节转场 | any | 常驻 |
-| `FocusCamMove` | FocusCamMove | 空间与聚焦 | 流程说明 | any |  |
+| `FocusCamMove` | FocusCamMove | 常用 | 流程说明 | any |  |
 | `SrtSemanticCaptions` | SRT字幕语义动画 | 系统字幕 | caption-track | portrait | 常驻 |
 | `SrtCueText` | 主字幕·关键词条 | 系统字幕 | caption-track | any | 常驻 |
-| `TerminalPanel` | 终端教学面板 | 终端教学 HUD | 流程说明 | any |  |
+| `TerminalPanel` | 终端教学面板 | 其他 | 流程说明 | any |  |
 | `Terminal3D` | 3D 终端打字机 | 媒体展示组件 | 流程说明 | any |  |
 | `PortraitChapterRail` | 章节条 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitIndexedChapterTitle` | 编号章节标题 | 竖屏口播信息层 | 章节转场 | portrait |  |
@@ -77,7 +77,7 @@
 - **章节转场**（`transition`）
 - **行动引导**（`call-to-action`）
 
-## 空间与聚焦
+## 其他
 
 ### `GlobalExpedition` · 环球征途地图
 
@@ -87,7 +87,7 @@
 - 画布方向：any；密度：heavy；建议驻留：6–60 秒
 - 默认落位：x=510，y=278，scale=1（占位 900×525，placement=left）
 - 默认时长：660 帧（约 22 秒）
-- 分组：空间与聚焦
+- 分组：其他
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -100,31 +100,41 @@
 - `linkColor` — 大气/虚线色（color）
 - `showHud` — 显示HUD面板
 
-### `FocusCamMove` · FocusCamMove
+### `TerminalPanel` · 终端教学面板
 
-- 用途：人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道
-- 主要语义：流程说明；次要：重点强调、章节转场
-- 何时使用（检索词）：聚焦、运镜、满屏收缩、口播缩进、小窗、人物聚焦、落位框
-- 画布方向：any；密度：light；建议驻留：5–600 秒
-- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
-- 默认时长：300 帧（约 10 秒）
-- 分组：空间与聚焦
+- 用途：带命令行、步骤清单和终端状态的讲解主面板。
+- 主要语义：流程说明；次要：概念解释、列举要点、案例与素材
+- 何时使用（检索词）：代码、终端、命令、步骤、开发、工具
+- 画布方向：any；密度：heavy；建议驻留：3–12 秒
+- 默认落位：x=58，y=540，scale=1（占位 560×620，placement=left）
+- 默认时长：210 帧（约 7 秒）
+- 分组：其他
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
-- `mediaUrl` — 口播素材地址(空 = 收缩舞台口播视频)
-- `useMediaCopy` — 副本模式(预览收缩异常时开启)
-- `mediaType` — 素材类型
-- `mediaFit` — 填充方式
-- `side` — 口播缩到哪侧(竖版忽略)
-- `accent` — 描边颜色（color）
-- `cornerRadius` — 口播框圆角(拉满=圆形)（0–1000）
-- `showRing` — 显示口播框描边
-- `camDX` — 口播框水平移动（-1100–1100）
-- `camDY` — 口播框垂直移动（-400–600）
-- `camW` — 口播框宽（300–1200）
-- `camH` — 口播框高（300–1000）
+- `enabled` — 显示面板
+- `title` — 主标题
+- `subtitle` — 终端标签
+- `command` — 命令行
+- `stepCount` — 步骤数量（1–8）
+- `item1` — 步骤一
+- `item2` — 步骤二
+- `item3` — 步骤三
+- `item4` — 步骤四
+- `item5` — 步骤五
+- `item6` — 步骤六
+- `item7` — 步骤七
+- `item8` — 步骤八
+- `itemIntervalSeconds` — 下一条入场间隔(秒)（0–8）
+- `subtitleFontSize` — 终端标签字号(px)（8–32）
+- `titleFontSize` — 主标题字号(px)（16–72）
+- `commandFontSize` — 命令行字号(px)（8–32）
+- `stepNumberFontSize` — 步骤编号字号(px)（8–32）
+- `itemFontSize` — 步骤文字字号(px)（10–48）
+- `statusFontSize` — 底部状态字号(px)（8–32）
+- `accentColor` — 强调色（color）
+- `animationSeconds` — 动画时长(秒)（0.2–8）
 
 ## 竖屏口播信息层
 
@@ -1128,6 +1138,34 @@
 - `textColor` — 标题颜色（color）
 - `animationSeconds` — 主入场时长(秒)（0.45–1.8）
 
+## 常用
+
+### `FocusCamMove` · FocusCamMove
+
+- 用途：人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道
+- 主要语义：流程说明；次要：重点强调、章节转场
+- 何时使用（检索词）：聚焦、运镜、满屏收缩、口播缩进、小窗、人物聚焦、落位框
+- 画布方向：any；密度：light；建议驻留：5–600 秒
+- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
+- 默认时长：300 帧（约 10 秒）
+- 分组：常用
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `mediaUrl` — 口播素材地址(空 = 收缩舞台口播视频)
+- `useMediaCopy` — 副本模式(预览收缩异常时开启)
+- `mediaType` — 素材类型
+- `mediaFit` — 填充方式
+- `side` — 口播缩到哪侧(竖版忽略)
+- `accent` — 描边颜色（color）
+- `cornerRadius` — 口播框圆角(拉满=圆形)（0–1000）
+- `showRing` — 显示口播框描边
+- `camDX` — 口播框水平移动（-1100–1100）
+- `camDY` — 口播框垂直移动（-400–600）
+- `camW` — 口播框宽（300–1200）
+- `camH` — 口播框高（300–1000）
+
 ## 系统字幕
 
 ### `SrtSemanticCaptions` · SRT字幕语义动画
@@ -1174,44 +1212,6 @@
 - `showTagChip` — 显示语义标签
 - `timeOffset` — 时间偏移(秒)（-10–10）
 - `cuesJson` — 自定义台词JSON(start/end/text)
-
-## 终端教学 HUD
-
-### `TerminalPanel` · 终端教学面板
-
-- 用途：带命令行、步骤清单和终端状态的讲解主面板。
-- 主要语义：流程说明；次要：概念解释、列举要点、案例与素材
-- 何时使用（检索词）：代码、终端、命令、步骤、开发、工具
-- 画布方向：any；密度：heavy；建议驻留：3–12 秒
-- 默认落位：x=58，y=540，scale=1（占位 560×620，placement=left）
-- 默认时长：210 帧（约 7 秒）
-- 分组：终端教学 HUD
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示面板
-- `title` — 主标题
-- `subtitle` — 终端标签
-- `command` — 命令行
-- `stepCount` — 步骤数量（1–8）
-- `item1` — 步骤一
-- `item2` — 步骤二
-- `item3` — 步骤三
-- `item4` — 步骤四
-- `item5` — 步骤五
-- `item6` — 步骤六
-- `item7` — 步骤七
-- `item8` — 步骤八
-- `itemIntervalSeconds` — 下一条入场间隔(秒)（0–8）
-- `subtitleFontSize` — 终端标签字号(px)（8–32）
-- `titleFontSize` — 主标题字号(px)（16–72）
-- `commandFontSize` — 命令行字号(px)（8–32）
-- `stepNumberFontSize` — 步骤编号字号(px)（8–32）
-- `itemFontSize` — 步骤文字字号(px)（10–48）
-- `statusFontSize` — 底部状态字号(px)（8–32）
-- `accentColor` — 强调色（color）
-- `animationSeconds` — 动画时长(秒)（0.2–8）
 
 ## 媒体展示组件
 

@@ -8,7 +8,7 @@
     },
     {
       "id": "group:空间与聚焦",
-      "name": "空间与聚焦",
+      "name": "常用",
       "color": "#8dc318"
     },
     {
@@ -20,11 +20,6 @@
       "id": "group:口播HUD常驻卡",
       "name": "口播HUD常驻卡",
       "color": "#20d7a0"
-    },
-    {
-      "id": "group:终端教学 HUD",
-      "name": "终端教学 HUD",
-      "color": "#f2b93d"
     },
     {
       "id": "group:风险提醒",
@@ -45,10 +40,15 @@
       "id": "group:数字与指标",
       "name": "数字与指标",
       "color": "#4f9dff"
+    },
+    {
+      "id": "custom-1789041797431",
+      "name": "其他",
+      "color": "#20d7a0"
     }
   ],
   "assignments": {
-    "GlobalExpedition": "group:空间与聚焦",
+    "GlobalExpedition": "custom-1789041797431",
     "FocusCamMove": "group:空间与聚焦",
     "ChapterBar": "group:竖屏口播信息层",
     "PortraitChapterRail": "group:竖屏口播信息层",
@@ -81,7 +81,7 @@
     "PinBoard": "group:口播HUD常驻卡",
     "StepTimeline": "group:口播HUD常驻卡",
     "TermCard": "group:口播HUD常驻卡",
-    "TerminalPanel": "group:终端教学 HUD",
+    "TerminalPanel": "custom-1789041797431",
     "Terminal3D": "group:媒体展示组件",
     "LegacyEliminationPanel": "group:风险提醒",
     "MarketEliminationStamp": "group:风险提醒",

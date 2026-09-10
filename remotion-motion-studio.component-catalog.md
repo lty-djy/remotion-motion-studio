@@ -6,10 +6,10 @@
 工作台当前实际注册 **51** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
-## 空间与聚焦
+## 其他
 
 - `GlobalExpedition`：环球征途地图 — 正交投影地球沿大圆航线环球飞行，途经节点停靠点亮，金色航迹＋HUD 任务面板（透明背景）（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`subtitle`、`animationSeconds`、`accentColor`、`linkColor`、`showHud`）
-- `FocusCamMove`：FocusCamMove — 人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`useMediaCopy`、`mediaType`、`mediaFit`、`side`、`accent`、`cornerRadius`、`showRing`、`camDX`、`camDY`、`camW`、`camH`）
+- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
 
 ## 竖屏口播信息层
 
@@ -41,14 +41,14 @@
 - `PortraitNextEpisodeCta`：下集预告卡 — 参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`subtitle`、`cta`、`icon`、`accentColor`、`secondaryColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `QuickSetupProof`：快速上手证明条 — 橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`kicker`、`tag1`、`tag2`、`checkmark`、`accentColor`、`warningColor`、`strikeColor`、`panelColor`、`textColor`、`animationSeconds`）
 
+## 常用
+
+- `FocusCamMove`：FocusCamMove — 人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`useMediaCopy`、`mediaType`、`mediaFit`、`side`、`accent`、`cornerRadius`、`showRing`、`camDX`、`camDY`、`camW`、`camH`）
+
 ## 系统字幕
 
 - `SrtSemanticCaptions`：SRT字幕语义动画 — 读取导入的真实 SRT 时间戳逐句显示，调用固定图标库并支持语义配色与关键词扫线（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`showIcon`、`fontSize`、`accentMode`、`accentColor`、`timeOffset`、`cuesJson`）
 - `SrtCueText`：主字幕·关键词条 — GSAP 风格底部主字幕：逐句滑入，语义关键词过冲弹入＋琥珀辉光脉冲，可开逐字扫色（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`fontSize`、`baseColor`、`dimColor`、`accentMode`、`accentColor`、`sweep`、`showTagChip`、`timeOffset`、`cuesJson`）
-
-## 终端教学 HUD
-
-- `TerminalPanel`：终端教学面板 — 带命令行、步骤清单和终端状态的讲解主面板。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`title`、`subtitle`、`command`、`stepCount`、`item1`、`item2`、`item3`、`item4`、`item5`、`item6`、`item7`、`item8`、`itemIntervalSeconds`、`subtitleFontSize`、`titleFontSize`、`commandFontSize`、`stepNumberFontSize`、`itemFontSize`、`statusFontSize`、`accentColor`、`animationSeconds`）
 
 ## 媒体展示组件
 

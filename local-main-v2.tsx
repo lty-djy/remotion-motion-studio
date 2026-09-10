@@ -10988,7 +10988,7 @@ const App = () => {
   }, []);
 
   const canvasDragState = useRef<{
-    mode: "move" | "scale";
+    mode: "move" | "scale" | "resize" | "radius";
     instanceId: string;
     memberIds: string[];
     pointerX: number;
@@ -11000,12 +11000,23 @@ const App = () => {
     playerWidth: number;
     playerHeight: number;
     moved: boolean;
+    resizeHandle?: "nw" | "ne" | "se" | "sw";
+    resizeStart?: {
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      camDX: number;
+      camDY: number;
+    };
+    radiusStart?: number;
   } | null>(null);
 
   const beginCanvasTransform = (
     event: React.PointerEvent<HTMLElement>,
-    mode: "move" | "scale",
+    mode: "move" | "scale" | "resize" | "radius",
     instance: MotionInstance,
+    resizeHandle?: "nw" | "ne" | "se" | "sw",
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -11052,6 +11063,35 @@ const App = () => {
             camDY: Number(instance.props.camDY) || 0,
           }
         : null;
+    const resizeStart =
+      mode === "resize" && instance.componentId === "FocusCamMove"
+        ? (() => {
+            const box = camMoveGeom(
+              instance.props as Parameters<typeof camMoveGeom>[0],
+              canvasOrientation === "portrait" ? "portrait" : "landscape",
+            );
+            return {
+              x: box.x,
+              y: box.y,
+              w: box.w,
+              h: box.h,
+              camDX: Number(instance.props.camDX) || 0,
+              camDY: Number(instance.props.camDY) || 0,
+            };
+          })()
+        : undefined;
+    const radiusStart =
+      mode === "radius" && instance.componentId === "FocusCamMove"
+        ? (() => {
+            const box = camMoveGeom(
+              instance.props as Parameters<typeof camMoveGeom>[0],
+              canvasOrientation === "portrait" ? "portrait" : "landscape",
+            );
+            return Number(instance.props.cornerRadius) > 0
+              ? Number(instance.props.cornerRadius)
+              : box.r;
+          })()
+        : undefined;
     canvasDragState.current = {
       mode,
       instanceId: instance.id,
@@ -11064,6 +11104,9 @@ const App = () => {
       playerWidth: bounds.width,
       playerHeight: bounds.height,
       moved: false,
+      resizeHandle,
+      resizeStart,
+      radiusStart,
     };
   };
 
@@ -11076,6 +11119,57 @@ const App = () => {
       const deltaY = event.clientY - state.pointerY;
       if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
         state.moved = true;
+      }
+      if (state.mode === "resize" && state.resizeStart && state.resizeHandle) {
+        const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
+        const designDeltaY = (deltaY / state.playerHeight) * canvasHeight;
+        const minWidth = 300;
+        const minHeight = 300;
+        const maxWidth = Math.max(canvasWidth, minWidth);
+        const maxHeight = Math.max(canvasHeight, minHeight);
+        const start = state.resizeStart;
+        let nextX = start.x;
+        let nextY = start.y;
+        let nextW = start.w;
+        let nextH = start.h;
+        if (state.resizeHandle.includes("e")) {
+          nextW = clamp(start.w + designDeltaX, minWidth, maxWidth);
+        } else if (state.resizeHandle.includes("w")) {
+          nextW = clamp(start.w - designDeltaX, minWidth, maxWidth);
+          nextX = start.x + start.w - nextW;
+        }
+        if (state.resizeHandle.includes("s")) {
+          nextH = clamp(start.h + designDeltaY, minHeight, maxHeight);
+        } else if (state.resizeHandle.includes("n")) {
+          nextH = clamp(start.h - designDeltaY, minHeight, maxHeight);
+          nextY = start.y + start.h - nextH;
+        }
+        const baseX = start.x - start.camDX;
+        const baseY = start.y - start.camDY;
+        updateInstance(state.instanceId, (instance) => ({
+          ...instance,
+          props: {
+            ...instance.props,
+            camDX: Math.round(nextX - baseX),
+            camDY: Math.round(nextY - baseY),
+            camW: Math.round(nextW),
+            camH: Math.round(nextH),
+          },
+        }));
+        return;
+      }
+      if (state.mode === "radius" && state.radiusStart !== undefined) {
+        const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
+        updateInstance(state.instanceId, (instance) => ({
+          ...instance,
+          props: {
+            ...instance.props,
+            cornerRadius: Math.round(
+              clamp(state.radiusStart! + designDeltaX * 0.5, 0, 1000),
+            ),
+          },
+        }));
+        return;
       }
       if (state.mode === "move") {
         const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
@@ -11144,6 +11238,7 @@ const App = () => {
       window.removeEventListener("pointercancel", finishCanvasTransform);
     };
   }, [
+    canvasOrientation,
     canvasHeight,
     canvasWidth,
     selectOnlyInstance,
@@ -15660,7 +15755,7 @@ const App = () => {
                       }
                       title={
                         camBox
-                          ? "拖动移动落位框；右键复制或删除"
+                          ? "拖动移动落位框；四角手柄调整大小；上沿圆点调整圆角；右键复制或删除"
                           : anchored
                           ? EFFECT_REGISTRY_BY_ID.get(definition.id)
                               ?.placement === "full"
@@ -15700,6 +15795,31 @@ const App = () => {
                             beginCanvasTransform(event, "scale", instance)
                           }
                         />
+                      ) : null}
+                      {isPrimary &&
+                      selectedInstanceIds.length === 1 &&
+                      definition.id === "FocusCamMove" ? (
+                        <>
+                          <span
+                            className="focus-cam-radius-handle"
+                            role="button"
+                            aria-label="拖动上沿圆点调整口播框圆角"
+                            onPointerDown={(event) =>
+                              beginCanvasTransform(event, "radius", instance)
+                            }
+                          />
+                          {(["nw", "ne", "se", "sw"] as const).map((handle) => (
+                            <span
+                              key={handle}
+                              className={`focus-cam-resize-handle ${handle}`}
+                              role="button"
+                              aria-label={`拖动${handle}角调整口播窗口大小`}
+                              onPointerDown={(event) =>
+                                beginCanvasTransform(event, "resize", instance, handle)
+                              }
+                            />
+                          ))}
+                        </>
                       ) : null}
                     </div>
                   );
@@ -16730,7 +16850,9 @@ const App = () => {
                       lineHeight: 1.6,
                     }}
                   >
-                    该效果固定贴顶全宽（跟随画幅），不支持拖拽和独立大小/位置。
+                    {inspectorDefinition.id === "FocusCamMove"
+                      ? "该效果固定铺满画布；预览中可拖动落位框移动，四角手柄可调整窗口大小，上沿圆点可调整圆角，右侧参数可精确修改。"
+                      : "该效果固定贴顶全宽（跟随画幅），不支持拖拽和独立大小/位置。"}
                   </span>
                 </div>
               </section>
