@@ -1323,7 +1323,8 @@
 - `cardsJson` — 图片列表
 - `enterStaggerSeconds` — 入场间隔（秒）（0–1）
 - `floatAmplitude` — 悬浮幅度（0–30）
-- `wiggleAmplitude` — 摇摆幅度（度）（0–15）
+- `wiggleAmplitude` — Z 轴摇摆幅度（度）（0–15）
+- `wiggleAmplitudeY` — Y 轴摇摆幅度（度）（0–15）
 - `badgeText` — 招聘卡片角标
 - `ctaText` — 招聘卡片按钮
 

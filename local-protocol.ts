@@ -70,6 +70,7 @@ export type MotionInstance = {
   trackOrder: number;
   componentId: string;
   visible: boolean;
+  muted?: boolean;
   sourceStartFrame: number;
   startFrame: number;
   durationInFrames: number;
@@ -109,6 +110,7 @@ export type VideoTrack = {
   startFrame: number;
   durationInFrames: number;
   visible: boolean;
+  muted?: boolean;
 };
 
 export type ResourceTrackKind = "icon" | "material" | "sfx";
@@ -127,6 +129,7 @@ export type ResourceTrack = {
   startFrame: number;
   durationInFrames: number;
   visible: boolean;
+  muted?: boolean;
   position: {
     x: number;
     y: number;

@@ -748,6 +748,7 @@ type ShortcutAction =
   | "trimLeft"
   | "trimRight"
   | "toggleVideoTrack"
+  | "toggleMute"
   | "duplicate"
   | "delete"
   | "regionIn"
@@ -850,6 +851,7 @@ const DEFAULT_SHORTCUTS: ShortcutMap = {
   trimLeft: "Q",
   trimRight: "E",
   toggleVideoTrack: "V",
+  toggleMute: "M",
   duplicate: "Control+D",
   delete: "S",
   regionIn: "4",
@@ -872,6 +874,7 @@ const SHORTCUT_DEFINITIONS: Array<{
   { action: "trimLeft", label: "向左裁剪", description: "删除当前轨道中播放头左侧内容" },
   { action: "trimRight", label: "向右裁剪", description: "删除当前轨道中播放头右侧内容" },
   { action: "toggleVideoTrack", label: "显示 / 隐藏轨道", description: "切换当前选中视频或动效轨道的实时预览" },
+  { action: "toggleMute", label: "静音 / 取消静音", description: "切换当前选中轨道的音频静音状态" },
   { action: "duplicate", label: "复制所选卡片", description: "复制当前选中的轨道卡片" },
   { action: "delete", label: "删除所选片段", description: "删除当前选中的视频或动效片段" },
   { action: "regionIn", label: "区域入点", description: "在播放头位置设置导出区域的入点（键 4）" },
@@ -1693,6 +1696,7 @@ const createInstance = (
       : instanceSequence,
     componentId: definition.id,
     visible: overrides.visible !== false,
+    muted: overrides.muted === true,
     sourceStartFrame: Math.max(
       0,
       Math.round(Number(overrides.sourceStartFrame) || 0),
@@ -2095,8 +2099,8 @@ const StudioPreviewComposition = ({
             <StageCamMoveVideo
               src={track.url}
               trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
-              volume={soundEnabled ? 1 : 0}
-              muted={!soundEnabled}
+              volume={soundEnabled && !track.muted ? 1 : 0}
+              muted={!soundEnabled || track.muted === true}
               camTarget={layer.id === camStageTrackId ? camStageTarget : null}
               trackStartFrame={Math.max(0, Math.round(track.startFrame))}
             />
@@ -2106,7 +2110,8 @@ const StudioPreviewComposition = ({
         if (layer.kind === "resource") {
           const track = layer.track;
           const isAudio = track.kind === "sfx";
-          const effectiveVolume = soundEnabled
+          const trackMuted = track.muted === true;
+          const effectiveVolume = soundEnabled && !trackMuted
             ? track.volume * (1 - track.voiceDucking)
             : 0;
           if (isAudio) {
@@ -2120,7 +2125,7 @@ const StudioPreviewComposition = ({
                   src={track.url}
                   trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
                   volume={effectiveVolume}
-                  muted={!soundEnabled}
+                  muted={!soundEnabled || trackMuted}
                 />
               </Sequence>
             );
@@ -2213,9 +2218,9 @@ const StudioPreviewComposition = ({
                 instanceDurationInFrames={instance.durationInFrames}
                 videoSrc={activeVideoUrl}
                 hideVideo={sourceIncludesVideo}
-                muted={!soundEnabled}
-                muteVideo={!soundEnabled}
-                videoVolume={soundEnabled ? 1 : 0}
+                muted={!soundEnabled || instance.muted === true}
+                muteVideo={!soundEnabled || instance.muted === true}
+                videoVolume={soundEnabled && !instance.muted ? 1 : 0}
                 backgroundOpacity={
                   cardBackgroundOn ? instance.backgroundOpacity : 0
                 }
@@ -3821,6 +3826,7 @@ const App = () => {
     useState<MarqueeRect | null>(null);
   const [timelineHeight, setTimelineHeight] = useState(230);
   const [trackHeights, setTrackHeights] = useState<Record<string, number>>({});
+  const [trackHeaderWidth, setTrackHeaderWidth] = useState(88);
   const [activeWorkspace, setActiveWorkspace] =
     useState<
       | "editor"
@@ -6398,6 +6404,7 @@ const App = () => {
       startFrame: currentFrame,
       durationInFrames: clipDuration,
       visible: true,
+      muted: false,
       position: {
         x: Math.round((canvasWidth - iconSize) / 2),
         y: canvasOrientation === "portrait" ? 250 : 110,
@@ -6452,6 +6459,7 @@ const App = () => {
       startFrame: currentFrame,
       durationInFrames: sourceDurationInFrames,
       visible: true,
+      muted: false,
       position: {
         x: 0,
         y: 0,
@@ -7151,6 +7159,45 @@ const App = () => {
     });
   }, []);
 
+  const toggleVideoTrackMute = useCallback((trackId: string) => {
+    setVideoTracks((current) => {
+      const selected = current.find((track) => track.id === trackId);
+      if (!selected) return current;
+      const laneClips = current.filter((track) => track.laneId === selected.laneId);
+      const shouldMute = !laneClips.every((track) => track.muted === true);
+      return current.map((track) =>
+        track.laneId === selected.laneId ? { ...track, muted: shouldMute } : track,
+      );
+    });
+  }, []);
+
+  const toggleMotionTrackMute = useCallback((instanceIds: string[]) => {
+    if (instanceIds.length === 0) return;
+    const idSet = new Set(instanceIds);
+    setInstances((current) => {
+      const laneIds = new Set(
+        current.filter((instance) => idSet.has(instance.id)).map((instance) => instance.laneId),
+      );
+      const selectedTracks = current.filter((instance) => laneIds.has(instance.laneId));
+      const shouldMute = !selectedTracks.every((instance) => instance.muted === true);
+      return current.map((instance) =>
+        laneIds.has(instance.laneId) ? { ...instance, muted: shouldMute } : instance,
+      );
+    });
+  }, []);
+
+  const toggleResourceTrackMute = useCallback((trackId: string) => {
+    setResourceTracks((current) => {
+      const selected = current.find((track) => track.id === trackId);
+      if (!selected) return current;
+      const laneClips = current.filter((track) => track.laneId === selected.laneId);
+      const shouldMute = !laneClips.every((track) => track.muted === true);
+      return current.map((track) =>
+        track.laneId === selected.laneId ? { ...track, muted: shouldMute } : track,
+      );
+    });
+  }, []);
+
   const updateResourceTrack = useCallback(
     (
       trackId: string,
@@ -7562,6 +7609,7 @@ const App = () => {
       sourceDurationInFrames: Math.max(3, Math.round(duration * fps)),
       durationInFrames: Math.max(3, Math.round(duration * fps)),
       visible: true,
+      muted: false,
     };
     setVideoTracks((current) => [...current, track]);
     setSelectedVideoTrackId(track.id);
@@ -8939,6 +8987,7 @@ const App = () => {
             ? Math.min(sourceFrames, base.durationInFrames)
             : base.durationInFrames,
         visible: true,
+        muted: false,
         position:
           kind === "sfx"
             ? { x: 0, y: 0, width: 1, height: 1, scale: 1, zIndex: 0 }
@@ -10691,6 +10740,20 @@ const App = () => {
     height: number;
   } | null>(null);
 
+  const trackHeaderResizeState = useRef<{
+    pointerX: number;
+    width: number;
+  } | null>(null);
+
+  const beginTrackHeaderResize = (event: React.PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    trackHeaderResizeState.current = {
+      pointerX: event.clientX,
+      width: trackHeaderWidth,
+    };
+  };
+
   const beginTimelineResize = (event: React.PointerEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -10760,6 +10823,28 @@ const App = () => {
       window.removeEventListener("pointermove", resizeTrack);
       window.removeEventListener("pointerup", finishTrackResize);
       window.removeEventListener("pointercancel", finishTrackResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const resizeTrackHeader = (event: PointerEvent) => {
+      const state = trackHeaderResizeState.current;
+      if (!state) return;
+      event.preventDefault();
+      setTrackHeaderWidth(
+        clamp(state.width + event.clientX - state.pointerX, 56, 260),
+      );
+    };
+    const finishTrackHeaderResize = () => {
+      trackHeaderResizeState.current = null;
+    };
+    window.addEventListener("pointermove", resizeTrackHeader, { passive: false });
+    window.addEventListener("pointerup", finishTrackHeaderResize);
+    window.addEventListener("pointercancel", finishTrackHeaderResize);
+    return () => {
+      window.removeEventListener("pointermove", resizeTrackHeader);
+      window.removeEventListener("pointerup", finishTrackHeaderResize);
+      window.removeEventListener("pointercancel", finishTrackHeaderResize);
     };
   }, []);
 
@@ -12588,6 +12673,18 @@ const App = () => {
               shouldShow ? "显示" : "隐藏"
             }。`,
           });
+        }
+      }
+      if (action === "toggleMute") {
+        if (selectedVideoTrackId) {
+          toggleVideoTrackMute(selectedVideoTrackId);
+          setNotice({ tone: "ok", text: "视频轨道已切换静音。" });
+        } else if (selectedResourceTrackId) {
+          toggleResourceTrackMute(selectedResourceTrackId);
+          setNotice({ tone: "ok", text: "资源轨道已切换静音。" });
+        } else if (selectionIds.length > 0) {
+          toggleMotionTrackMute(selectionIds);
+          setNotice({ tone: "ok", text: "动效轨道已切换静音。" });
         }
       }
       if (action === "duplicate") duplicateInstances(selectionIds);
@@ -15618,7 +15715,8 @@ const App = () => {
             style={{
               height: timelineHeight,
               flexBasis: timelineHeight,
-            }}
+              ["--track-header-width" as string]: `${trackHeaderWidth}px`,
+            } as React.CSSProperties}
           >
             <button
               className="timeline-resize-handle"
@@ -15923,6 +16021,9 @@ const App = () => {
                 </div>
               </div>
             ) : null}
+            <div className="track-header-resizer" onPointerDown={beginTrackHeaderResize} title="拖动调节轨道头部宽度">
+              <span />
+            </div>
             <div
               className="ruler"
               onClick={(event) => seekTimelineFromClientX(event.clientX)}
@@ -15952,6 +16053,9 @@ const App = () => {
                 if (!firstClip) return null;
                 const laneHidden = lane.clips.every(
                   (clip) => clip.visible === false,
+                );
+                const laneMuted = lane.clips.every(
+                  (clip) => clip.muted === true,
                 );
                 const laneSelected =
                   lane.kind === "video"
@@ -16038,6 +16142,36 @@ const App = () => {
                         }}
                       >
                         {laneHidden ? <EyeSlash /> : <Eye />}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${
+                          lane.kind === "video"
+                            ? "video-track-toggle"
+                            : "motion-track-toggle"
+                        } track-mute-toggle`}
+                        aria-pressed={laneMuted}
+                        aria-label={`${laneMuted ? "取消静音" : "静音"}${
+                          lane.kind === "video"
+                            ? "视频"
+                            : lane.kind === "resource"
+                              ? "资源"
+                              : "动效"
+                        }轨道 ${laneName}`}
+                        title={`${laneMuted ? "取消静音" : "静音"}轨道（M）`}
+                        onClick={() => {
+                          if (lane.kind === "video") {
+                            toggleVideoTrackMute(firstClip.id);
+                          } else if (lane.kind === "resource") {
+                            toggleResourceTrackMute(firstClip.id);
+                          } else {
+                            toggleMotionTrackMute(
+                              lane.clips.map((clip) => clip.id),
+                            );
+                          }
+                        }}
+                      >
+                        {laneMuted ? <SpeakerSlash /> : <SpeakerHigh />}
                       </button>
                       <button
                         type="button"

@@ -4665,10 +4665,36 @@ aside {
   height: 11px;
 }
 
+.track-header-resizer {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: var(--track-header-width, 70px);
+  height: 34px;
+  z-index: 3;
+}
+
+.track-header-resizer span {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.track-header-resizer span:hover,
+.track-header-resizer span:active {
+  background: rgba(101, 223, 247, 0.3);
+}
+
 .ruler {
   position: relative;
   height: 34px;
-  margin: 5px 0 3px 78px;
+  margin: 5px 0 3px calc(var(--track-header-width, 70px) + 8px);
   border-bottom: 1px solid var(--line);
   background-image: linear-gradient(
     90deg,
@@ -4714,7 +4740,7 @@ aside {
 .timeline-track-row {
   position: relative;
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
+  grid-template-columns: var(--track-header-width, 70px) minmax(0, 1fr);
   gap: 8px;
   margin-bottom: 6px;
 }
@@ -4776,7 +4802,7 @@ aside {
 .video-track-controls {
   height: var(--track-height, 42px);
   display: grid;
-  grid-template-columns: 18px 25px minmax(0, 1fr);
+  grid-template-columns: 18px 18px 25px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid rgba(120, 220, 160, 0.4);
   border-radius: 8px;
@@ -4809,6 +4835,11 @@ aside {
 .video-track-select:hover {
   color: #e8fff1;
   background: rgba(120, 220, 160, 0.12);
+}
+
+.track-mute-toggle[aria-pressed="true"] {
+  color: #ff8a8a;
+  background: rgba(255, 100, 100, 0.12);
 }
 
 .video-track-select {
@@ -4886,7 +4917,7 @@ aside {
 .motion-track-controls {
   height: var(--track-height, 42px);
   display: grid;
-  grid-template-columns: 18px 25px minmax(0, 1fr);
+  grid-template-columns: 18px 18px 25px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4974,6 +5005,11 @@ aside {
 .motion-track-select:hover {
   color: #e8fbff;
   background: rgba(101, 223, 247, 0.1);
+}
+
+.motion-track-controls .track-mute-toggle[aria-pressed="true"] {
+  color: #ff8a8a;
+  background: rgba(255, 100, 100, 0.12);
 }
 
 /* 整条轨道行可上下拖拽换层（剪映式）：空区域 grab 光标提示 */

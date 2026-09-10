@@ -28,6 +28,7 @@ export type MediaSpotlightCardProps = {
   showEyebrow?: boolean;
   showAccentMarker?: boolean;
   animationSeconds?: number;
+  muted?: boolean;
 };
 
 const isVideoType = (url: string, mediaType?: string) => {
@@ -54,6 +55,7 @@ export const MediaSpotlightCard: React.FC<MediaSpotlightCardProps> = ({
   showEyebrow = true,
   showAccentMarker = true,
   animationSeconds = 0.8,
+  muted = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -171,7 +173,7 @@ export const MediaSpotlightCard: React.FC<MediaSpotlightCardProps> = ({
             videoMode ? (
               <OffthreadVideo
                 src={mediaUrl}
-                muted
+                muted={muted}
                 style={{
                   width: "100%",
                   height: "100%",

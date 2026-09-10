@@ -1,9 +1,17 @@
 import {spring} from "remotion";
+export type GigCardMediaType = "image" | "video";
 export type GigCardConfig = {
- id:string; visible:boolean; mode:"image"|"card"; imageUrl:string; title:string; desc:string; salary:string;
+ id:string; visible:boolean; mode:"image"|"card"; mediaType:GigCardMediaType; imageUrl:string; title:string; desc:string; salary:string;
  left:number; top:number; aspectRatio:number; width:number; scale:number; rotateX:number; rotateY:number; rotate:number; perspective:number; radius:number; shadow:boolean; zIndex:number; phase:number;
 };
-export const createGigCard = (id:string):GigCardConfig => ({id,visible:true,mode:"image",imageUrl:"",title:"兼职机会",desc:"",salary:"",left:785,top:406,aspectRatio:350/220,width:350,scale:1,rotateX:0,rotateY:0,rotate:0,perspective:1400,radius:18,shadow:true,zIndex:0,phase:0});
+export const createGigCard = (id:string):GigCardConfig => ({id,visible:true,mode:"image",mediaType:"image",imageUrl:"",title:"兼职机会",desc:"",salary:"",left:785,top:406,aspectRatio:350/220,width:350,scale:1,rotateX:0,rotateY:0,rotate:0,perspective:1400,radius:18,shadow:true,zIndex:0,phase:0});
+/** 兼容旧 cardsJson:mediaType 缺省时按 imageUrl 后缀推断(视频后缀 -> video,否则 image) */
+export const resolveGigMediaType = (value?:string,url?:string):GigCardMediaType => {
+ if(value==="image") return "image";
+ if(value==="video") return "video";
+ if(/\.(mp4|mov|webm|m4v|ogg)$/i.test(url??"")) return "video";
+ return "image";
+};
 export const readGigCards = (props:Record<string,any>):GigCardConfig[] => {
  let input:unknown;
  try {input=JSON.parse(props.cardsJson);} catch {}
@@ -12,6 +20,7 @@ export const readGigCards = (props:Record<string,any>):GigCardConfig[] => {
  for(const key of ["aspectRatio","left","top","width","scale","rotateX","rotateY","rotate","perspective","radius","zIndex","phase"] as const){if(!Number.isFinite(Number(card[key]))) card[key]=createGigCard("")[key]; else card[key]=Number(card[key]);}
  card.aspectRatio=Math.max(0.01,card.aspectRatio);
  card.width=Math.max(20,card.width);card.scale=Math.max(0.05,card.scale);card.perspective=Math.max(100,card.perspective);
+ card.mediaType=resolveGigMediaType(String(card.mediaType??""),String(card.imageUrl??""));
  return card;
  });
  const layouts=[[92,456,7,-2,0],[1352,84,-8,2.2,1.7],[1462,352,-6,-1.6,3.1],[1318,566,-7,1.8,4.4]];
@@ -23,6 +32,7 @@ export const gigCardMotion=(card:GigCardConfig,index:number,frame:number,fps:num
  const delay=Math.round(fps*(0.18+index*Math.max(0,Number(props.enterStaggerSeconds??0.14))));
  const enter=spring({frame:frame-delay,fps,config:{damping:17,stiffness:130,mass:0.9}});
  const bob=frame>delay?Math.sin(frame/fps*1.4+card.phase)*Number(props.floatAmplitude??9):0;
- const wiggle=frame>delay?Math.sin(frame/fps*1.1+card.phase)*Number(props.wiggleAmplitude??0.5):0;
- return {opacity:enter,transform:`perspective(${card.perspective*unit}px) translateY(${((1-enter)*140+bob)*unit}px) rotateX(${card.rotateX}deg) rotateY(${card.rotateY}deg) rotate(${card.rotate+wiggle}deg) scale(${card.scale*(0.92+enter*0.08)})`};
+ const wiggleZ=frame>delay?Math.sin(frame/fps*1.1+card.phase)*Number(props.wiggleAmplitude??0.5):0;
+ const wiggleY=frame>delay?Math.sin(frame/fps*1.1+card.phase+0.7)*Number(props.wiggleAmplitudeY??0):0;
+ return {opacity:enter,transform:`perspective(${card.perspective*unit}px) translateY(${((1-enter)*140+bob)*unit}px) rotateX(${card.rotateX}deg) rotateY(${card.rotateY+wiggleY}deg) rotate(${card.rotate+wiggleZ}deg) scale(${card.scale*(0.92+enter*0.08)})`};
 };

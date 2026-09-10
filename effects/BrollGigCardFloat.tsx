@@ -1,10 +1,11 @@
 import React from "react";
-import {AbsoluteFill, Img, spring, useCurrentFrame, useVideoConfig} from "remotion";
+import {AbsoluteFill, Img, OffthreadVideo, spring, useCurrentFrame, useVideoConfig} from "remotion";
 import type {EffectDef} from "../registry";
-import {readGigCards, gigCardMotion, type GigCardConfig} from "./gig-card-model";
+import {readGigCards, gigCardMotion, type GigCardConfig, type GigCardMediaType} from "./gig-card-model";
 const SANS = 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
 type CardConfig = GigCardConfig;
 const CARD_HEIGHT=268;
+const isVideoCard = (mediaType: GigCardMediaType) => mediaType === "video";
 const GigCard: React.FC<{
   card: CardConfig;
   index: number;
@@ -15,8 +16,10 @@ const GigCard: React.FC<{
   enterStaggerSeconds: number;
   floatAmplitude: number;
   wiggleAmplitude: number;
-}> = ({ card, index, frame, fps, badgeText, ctaText, enterStaggerSeconds, floatAmplitude, wiggleAmplitude }) => {
-  const motion=gigCardMotion(card,index,frame,fps,{enterStaggerSeconds,floatAmplitude,wiggleAmplitude});
+  wiggleAmplitudeY: number;
+  videoMuted: boolean;
+}> = ({ card, index, frame, fps, badgeText, ctaText, enterStaggerSeconds, floatAmplitude, wiggleAmplitude, wiggleAmplitudeY, videoMuted }) => {
+  const motion=gigCardMotion(card,index,frame,fps,{enterStaggerSeconds,floatAmplitude,wiggleAmplitude,wiggleAmplitudeY});
 
   return (
     <div
@@ -38,7 +41,7 @@ const GigCard: React.FC<{
         transformOrigin: "center center",
       }}
     >
-      {card.mode === "image" ? (card.imageUrl ? <Img src={card.imageUrl} style={{display:"block",width:"100%",height:"100%",objectFit:"contain",borderRadius:card.radius}} /> : <div style={{height:"100%",borderRadius:card.radius,background:"#26324b",color:"white",display:"grid",placeItems:"center"}}>添加图片</div>) : <>
+      {card.mode === "image" ? (card.imageUrl ? (isVideoCard(card.mediaType) ? <OffthreadVideo src={card.imageUrl} muted={videoMuted} style={{display:"block",width:"100%",height:"100%",objectFit:"contain",borderRadius:card.radius}} /> : <Img src={card.imageUrl} style={{display:"block",width:"100%",height:"100%",objectFit:"contain",borderRadius:card.radius}} />) : <div style={{height:"100%",borderRadius:card.radius,background:"#26324b",color:"white",display:"grid",placeItems:"center"}}>{isVideoCard(card.mediaType) ? "添加视频" : "添加图片"}</div>) : <>
       <div
         style={{
           position: "relative",
@@ -146,18 +149,19 @@ export const BrollGigCardFloat: React.FC<Record<string, any>> = (props) => {
  if(props.enabled===false) return null;
  const stageScale=Math.min(width/1920,height/1080);
  return <AbsoluteFill style={{pointerEvents:"none"}}><div style={{position:"absolute",left:"50%",top:"50%",width:1920,height:1080,transform:`translate(-50%,-50%) scale(${stageScale})`}}>
- {readGigCards(props).filter(c=>c.visible).map((card,index)=><GigCard key={card.id} card={card} index={index} frame={frame} fps={fps} badgeText={String(props.badgeText??"招募中")} ctaText={String(props.ctaText??"立即查看")} enterStaggerSeconds={Number(props.enterStaggerSeconds??0.14)} floatAmplitude={Number(props.floatAmplitude??9)} wiggleAmplitude={Number(props.wiggleAmplitude??0.5)} />)}
+ {readGigCards(props).filter(c=>c.visible).map((card,index)=><GigCard key={card.id} card={card} index={index} frame={frame} fps={fps} badgeText={String(props.badgeText??"招募中")} ctaText={String(props.ctaText??"立即查看")} enterStaggerSeconds={Number(props.enterStaggerSeconds??0.14)} floatAmplitude={Number(props.floatAmplitude??9)} wiggleAmplitude={Number(props.wiggleAmplitude??0.5)} wiggleAmplitudeY={Number(props.wiggleAmplitudeY??0)} videoMuted={props.muted===true || props.muteVideo===true} />)}
  </div></AbsoluteFill>;
 };
 export const BrollGigCardFloatEffectDef: EffectDef = {
  id:"BrollGigCardFloat",name:"悬浮兼职卡片群",description:"按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。",category:"media",catalogGroup:"媒体展示组件",glyph:"BROLL",placement:"full",component:BrollGigCardFloat,durationInFrames:150,bounds:{x:0,y:0,width:1920,height:1080},defaultPosition:{x:0,y:0,scale:1},
- defaultProps:{enabled:true,cardsJson:JSON.stringify(readGigCards({})),enterStaggerSeconds:0.14,floatAmplitude:9,wiggleAmplitude:0.5,badgeText:"招募中",ctaText:"立即查看"},
+ defaultProps:{enabled:true,cardsJson:JSON.stringify(readGigCards({})),enterStaggerSeconds:0.14,floatAmplitude:9,wiggleAmplitude:0.5,wiggleAmplitudeY:0,badgeText:"招募中",ctaText:"立即查看"},
  propsSchema:{
  enabled:{type:"boolean",label:"显示图片卡片",default:true},
  cardsJson:{type:"text",label:"图片列表"},
  enterStaggerSeconds:{type:"number",label:"入场间隔（秒）",min:0,max:1,step:0.02},
  floatAmplitude:{type:"number",label:"悬浮幅度",min:0,max:30,step:1},
- wiggleAmplitude:{type:"number",label:"摇摆幅度（度）",min:0,max:15,step:0.1},
+ wiggleAmplitude:{type:"number",label:"Z 轴摇摆幅度（度）",min:0,max:15,step:0.1},
+ wiggleAmplitudeY:{type:"number",label:"Y 轴摇摆幅度（度）",min:0,max:15,step:0.1},
  badgeText:{type:"text",label:"招聘卡片角标"},ctaText:{type:"text",label:"招聘卡片按钮"}
  }
 };

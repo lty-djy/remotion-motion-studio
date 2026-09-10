@@ -30,6 +30,7 @@ type Props = {
   videoVolume?: number;
   videoLoop?: boolean;
   animationSeconds?: number;
+  muted?: boolean;
 };
 
 const isVideo = (url: string, mediaType?: string) => {
@@ -58,6 +59,7 @@ export const PortraitMediaPosterReveal: React.FC<Props> = ({
   videoVolume = 0.55,
   videoLoop = true,
   animationSeconds = 3.9,
+  muted = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -138,7 +140,7 @@ export const PortraitMediaPosterReveal: React.FC<Props> = ({
           videoMode ? (
             <OffthreadVideo
               src={mediaUrl}
-              muted={videoMuted}
+              muted={muted || videoMuted}
               volume={Math.min(1, Math.max(0, videoVolume))}
               loop={videoLoop}
               style={{

@@ -9,6 +9,7 @@ type PhoneProps = {
     enterEndSeconds?: number;
     exitStartSeconds?: number;
     exitEndSeconds?: number;
+    muted?: boolean;
 };
 
 // Times are local to this effect. Keep every interpolation interval increasing.
@@ -330,7 +331,7 @@ const Device: React.FC<PhoneProps> = (props) => {
         }}>
           {props.mediaUrl ? (
             props.mediaType === "video" || (props.mediaType !== "image" && /\.(mp4|mov|webm|m4v|ogg)(?:[?#].*)?$/i.test(props.mediaUrl)) ? (
-              <OffthreadVideo src={props.mediaUrl} muted style={{ width: "100%", height: "100%", objectFit: props.mediaFit ?? "cover" }} />
+              <OffthreadVideo src={props.mediaUrl} muted={props.muted === true} style={{ width: "100%", height: "100%", objectFit: props.mediaFit ?? "cover" }} />
             ) : (
               <Img src={props.mediaUrl} style={{ width: "100%", height: "100%", objectFit: props.mediaFit ?? "cover" }} />
             )

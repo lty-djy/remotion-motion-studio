@@ -24,6 +24,7 @@ type Props = {
   titleEnterSeconds?: number;
   mediaEnterSeconds?: number;
   animationSeconds?: number;
+  muted?: boolean;
 };
 
 const isVideo = (url: string, mediaType?: string) => {
@@ -54,6 +55,7 @@ export const PortraitAgentBrowserMedia: React.FC<Props> = ({
   titleEnterSeconds = 0.55,
   mediaEnterSeconds = 0.95,
   animationSeconds = 3.52,
+  muted = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -76,7 +78,7 @@ export const PortraitAgentBrowserMedia: React.FC<Props> = ({
         <Interactive.Div name="上传的网页画面" style={{ position: "absolute", left: 0, right: 0, top: 48, bottom: 0, overflow: "hidden", backgroundColor: "#05060A" }}>
           {mediaUrl ? (
             videoMode ? (
-              <OffthreadVideo src={mediaUrl} muted style={{ width: "100%", height: "100%", objectFit: mediaFit, objectPosition: `${mediaPositionX}% ${mediaPositionY}%` }} />
+              <OffthreadVideo src={mediaUrl} muted={muted} style={{ width: "100%", height: "100%", objectFit: mediaFit, objectPosition: `${mediaPositionX}% ${mediaPositionY}%` }} />
             ) : (
               <Img src={mediaUrl} style={{ width: "100%", height: "100%", objectFit: mediaFit, objectPosition: `${mediaPositionX}% ${mediaPositionY}%` }} />
             )

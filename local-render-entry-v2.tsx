@@ -226,8 +226,8 @@ const MultiComponentRender = ({
           <StageCamMoveVideo
             src={track.url}
             trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
-            volume={soundEnabled ? 1 : 0}
-            muted={!soundEnabled}
+            volume={soundEnabled && !track.muted ? 1 : 0}
+            muted={!soundEnabled || track.muted === true}
             camTarget={layer.id === camStageTrackId ? camStageTarget : null}
             trackStartFrame={Math.max(0, Math.round(track.startFrame))}
           />
@@ -237,7 +237,8 @@ const MultiComponentRender = ({
       if (layer.kind === "resource") {
         const track = layer.track;
         const isAudio = track.kind === "sfx";
-        const effectiveVolume = soundEnabled
+        const trackMuted = track.muted === true;
+        const effectiveVolume = soundEnabled && !trackMuted
           ? track.volume * (1 - track.voiceDucking)
           : 0;
         if (isAudio) {
@@ -251,7 +252,7 @@ const MultiComponentRender = ({
                 src={track.url}
                 trimBefore={Math.max(0, Math.round(track.sourceStartFrame))}
                 volume={effectiveVolume}
-                muted={!soundEnabled}
+                muted={!soundEnabled || trackMuted}
               />
             </Sequence>
           );
@@ -343,9 +344,9 @@ const MultiComponentRender = ({
               instanceDurationInFrames={instance.durationInFrames}
               videoSrc={transparent ? "" : activeVideoSrc}
               hideVideo={sourceIncludesVideo}
-              muted={!soundEnabled}
-              muteVideo={!soundEnabled}
-              videoVolume={soundEnabled ? 1 : 0}
+              muted={!soundEnabled || instance.muted === true}
+              muteVideo={!soundEnabled || instance.muted === true}
+              videoVolume={soundEnabled && !instance.muted ? 1 : 0}
               backgroundOpacity={
                 cardBackgroundOn ? instance.backgroundOpacity : 0
               }
