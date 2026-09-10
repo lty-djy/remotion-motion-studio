@@ -6,6 +6,7 @@ local-components/
 local-projects/
 local-secrets/
 local-state.json
+local-deletion-backups/
 .codex-qa/
 outputs/
 design-qa.md

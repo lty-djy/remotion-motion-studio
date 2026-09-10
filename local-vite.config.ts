@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import { planEffectDeletion, commitEffectDeletion, effectDeletionImpact, withEffectMutation } from "./effect-deletion.mjs";
 import { readLibrary, saveLibrary } from './effect-library-store.mjs';
 import { bundle } from "@remotion/bundler";
 import {
@@ -359,166 +360,7 @@ type RenderJob = {
 const renderJobs = new Map<string, RenderJob>();
 let renderJobSequence = 0;
 
-const removeEffectInstances = (instances: unknown[], componentId: string) =>
-  instances.filter(
-    (instance) =>
-      !(
-        instance &&
-        typeof instance === "object" &&
-        "componentId" in instance &&
-        (instance as { componentId?: unknown }).componentId === componentId
-      ),
-  );
 
-const removeEffectFromSavedTimelines = async (componentId: string) => {
-  const state = await readState();
-  const workspaceDraft = state.workspaceDraft
-    ? {
-        ...state.workspaceDraft,
-        instances: removeEffectInstances(
-          state.workspaceDraft.instances ?? [],
-          componentId,
-        ),
-        updatedAt: new Date().toISOString(),
-      }
-    : undefined;
-  const projectHistory = await Promise.all(
-    (state.projectHistory ?? []).map(async (project) => {
-      const projectPath = join(projectDir, basename(project.storedFile));
-      try {
-        const snapshot = JSON.parse(
-          await readFile(projectPath, "utf8"),
-        ) as ProjectSnapshot;
-        const instances = removeEffectInstances(
-          snapshot.instances ?? [],
-          componentId,
-        );
-        if (instances.length !== snapshot.instances.length) {
-          await writeFile(
-            projectPath,
-            JSON.stringify(
-              { ...snapshot, instances, updatedAt: new Date().toISOString() },
-              null,
-              2,
-            ),
-            "utf8",
-          );
-        }
-        return {
-          ...project,
-          instanceCount:
-            instances.length +
-            (Array.isArray(snapshot.resourceTracks)
-              ? snapshot.resourceTracks.length
-              : 0),
-        };
-      } catch {
-        return project;
-      }
-    }),
-  );
-  await saveState({ workspaceDraft, projectHistory });
-};
-
-const deleteRegisteredEffectSource = async (componentId: string) => {
-  const registrySource = await readFile(effectRegistryPath, "utf8");
-  // 所有独立 effects/*.tsx 都由 registry.ts 的导入和导出项控制。
-  // 不再依赖少数效果的硬编码表，新增的注册效果也能直接删除。
-  const registryImports = [
-    ...registrySource.matchAll(
-      /^import\s+\{\s*(\w+)\s*\}\s+from\s+["'](\.\/effects\/[^"']+)["'];?\s*$/gm,
-    ),
-  ];
-  for (const imported of registryImports) {
-    const [, exportName, modulePath] = imported;
-    const sourcePath = resolve(rootDir, `${modulePath}.tsx`);
-    if (!sourcePath.startsWith(join(rootDir, "effects"))) continue;
-    let effectSource = "";
-    try {
-      effectSource = await readFile(sourcePath, "utf8");
-    } catch {
-      continue;
-    }
-    const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (!new RegExp(`id\\s*:\\s*["']${escapedId}["']`).test(effectSource)) {
-      continue;
-    }
-    const nextRegistry = registrySource
-      .replace(imported[0], "")
-      .replace(new RegExp(`^\\s*${exportName},\\s*$`, "m"), "");
-    if (nextRegistry === registrySource) {
-      throw new Error("注册表中没有找到该效果的可删除条目");
-    }
-    await writeFile(effectRegistryPath, nextRegistry, "utf8");
-    await unlink(sourcePath);
-    await removeEffectFromSavedTimelines(componentId);
-    return { source: `effects/${basename(sourcePath)}` };
-  }
-
-  const legacySource = await readFile(legacyEffectsPath, "utf8");
-  const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const legacySpec = new RegExp(
-    `\\["${escapedId}"\\s*,[^\\]]*\\]\\s*,?`,
-    "g",
-  );
-  const nextLegacySource = legacySource
-    .replace(legacySpec, "")
-    .replace(/,\\s*\\]\\]/g, "]] ");
-  if (
-    nextLegacySource === legacySource ||
-    !registrySource.includes("...LEGACY_EFFECT_DEFS")
-  ) {
-    throw new Error("只能删除当前注册表中的内置效果");
-  }
-  await writeFile(legacyEffectsPath, nextLegacySource, "utf8");
-  await removeEffectFromSavedTimelines(componentId);
-  return { source: "legacy-effects.tsx" };
-};
-
-const deleteImportedEffectSource = async (componentId: string) => {
-  const source = await readFile(activeComponentPath, "utf8");
-  const escapedId = componentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const isFallbackComponent =
-    componentId === "LegacyComponent" &&
-    !source.includes("MOTION_COMPONENTS");
-  const isManifestComponent = new RegExp(
-    `id\\s*:\\s*["']${escapedId}["']`,
-  ).test(source);
-  if (!isFallbackComponent && !isManifestComponent) {
-    throw new Error("没有找到该导入效果的本地源码");
-  }
-
-  const state = await readState();
-  const activeHistoryItem = (state.componentHistory ?? []).find(
-    (item) => item.id === state.activeComponentId,
-  );
-  await writeFile(
-    activeComponentPath,
-    "export const MOTION_COMPONENTS = [];\nexport const MOTION_TIMELINE = [];\n",
-    "utf8",
-  );
-  if (activeHistoryItem) {
-    try {
-      await unlink(join(componentStoreDir, basename(activeHistoryItem.storedFile)));
-    } catch {
-      // The active pointer is already cleared even if its archived copy is gone.
-    }
-  }
-  await removeEffectFromSavedTimelines(componentId);
-  await saveState({
-    activeComponentId: "",
-    componentName: "",
-    sourceIncludesVideo: false,
-    componentHistory: (state.componentHistory ?? []).filter(
-      (item) => item.id !== state.activeComponentId,
-    ),
-  });
-  return {
-    source: activeHistoryItem
-      ? `local-components/${basename(activeHistoryItem.storedFile)}`
-      : "local-imported/active.tsx",
-  };
-};
 
 const updateRenderJob = (
   job: RenderJob,
@@ -1874,6 +1716,7 @@ const localApi = (): Plugin => {
     const normalizedFile = normalizeWatchPath(file);
     return (
       normalizedFile === normalizedEffectRegistryPath ||
+      normalizedFile === normalizeWatchPath(join(rootDir, "effect-semantic-capabilities.ts")) ||
       normalizedFile === normalizedLegacyEffectsPath ||
       normalizedFile === normalizedActiveComponentPath ||
       effectSourcePathPrefixes.some((prefix) => normalizedFile.startsWith(prefix))
@@ -1911,8 +1754,9 @@ const localApi = (): Plugin => {
     mkdirSync(renderDir, { recursive: true });
     mkdirSync(componentStoreDir, { recursive: true });
     const withoutEffectSourceHotReload = async <T>(operation: () => Promise<T>) => {
-      suppressEffectSourceHmrUntil = Date.now() + 2_000;
-      return operation();
+      suppressEffectSourceHmrUntil = Number.POSITIVE_INFINITY;
+      try { return await operation(); }
+      finally { suppressEffectSourceHmrUntil = Date.now() + 2_000; }
     };
     server.middlewares.use(async (req, res, next) => {
       try {
@@ -1961,18 +1805,19 @@ const localApi = (): Plugin => {
           return;
         }
 
+        if (url.pathname === "/api/delete-effect-impact" && req.method === "GET") {
+          const componentId = url.searchParams.get("componentId") ?? "";
+          const imported = url.searchParams.get("imported") === "true";
+          await planEffectDeletion(rootDir, componentId, imported);
+          sendJson(res, 200, await effectDeletionImpact(rootDir, componentId));
+          return;
+        }
         if (url.pathname === "/api/delete-effect" && req.method === "POST") {
-          const body = JSON.parse(
-            (await getBody(req, 64 * 1024)).toString("utf8"),
-          ) as { componentId?: string; imported?: boolean };
-          if (!body.componentId || !/^[A-Za-z0-9_-]+$/.test(body.componentId)) {
-            throw new Error("效果标识无效");
-          }
-          const deleted = await withoutEffectSourceHotReload(() =>
-            body.imported
-              ? deleteImportedEffectSource(body.componentId)
-              : deleteRegisteredEffectSource(body.componentId),
-          );
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString("utf8"));
+          const deleted = await withEffectMutation(() => withoutEffectSourceHotReload(async () => {
+            const changes = await planEffectDeletion(rootDir, body.componentId, body.imported === true);
+            return commitEffectDeletion(rootDir, body.componentId, changes);
+          }));
           sendJson(res, 200, { ok: true, componentId: body.componentId, ...deleted });
           return;
         }
@@ -1983,10 +1828,13 @@ const localApi = (): Plugin => {
         }
         if (url.pathname === '/api/effect-library' && req.method === 'POST') {
           const body = JSON.parse((await getBody(req, 1024 * 1024)).toString('utf8'));
-          const library = await saveLibrary(rootDir, body.library, body.initialize === true);
-          await new Promise<void>((resolveSync, reject) => execFile(process.execPath,
-            [join(rootDir, 'overlay-fx-generator/scripts/generate-component-catalog.mjs')],
-            { cwd: rootDir }, (error) => error ? reject(error) : resolveSync()));
+          const library = await withEffectMutation(async () => {
+            const library = await saveLibrary(rootDir, body.library, body.initialize === true);
+            await new Promise<void>((resolveSync, reject) => execFile(process.execPath,
+              [join(rootDir, 'overlay-fx-generator/scripts/generate-component-catalog.mjs')],
+              { cwd: rootDir }, (error) => error ? reject(error) : resolveSync()));
+            return library;
+          });
           sendJson(res, 200, { library });
           return;
         }

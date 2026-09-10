@@ -5101,7 +5101,9 @@ const App = () => {
           const definition = nextDefinitions.find(
             (candidate) => candidate.id === savedInstance.componentId,
           );
-          if (!definition) return [];
+          // Missing effects remain editable placeholders instead of silently
+          // disappearing when a historical project or saved draft is opened.
+          if (!definition) return [{ ...savedInstance, props: { ...savedInstance.props } }];
           const restored = createInstance(
             definition,
             savedInstance.startFrame,
@@ -12242,8 +12244,17 @@ const App = () => {
 
   const permanentlyDeleteEffect = async (componentId: string) => {
     setContextMenu(null);
-    setNotice({ tone: "info", text: "正在彻底删除效果源码与时间轴实例…" });
     try {
+      await librarySaveQueue.current;
+      const imported = !EFFECT_REGISTRY_BY_ID.has(componentId);
+      const impactResponse = await fetch('/api/delete-effect-impact?componentId=' + encodeURIComponent(componentId) + '&imported=' + imported);
+      const impact = await impactResponse.json();
+      if (!impactResponse.ok) throw new Error(impact.error ?? '无法检查删除影响');
+      const currentCount = instances.filter(item => item.componentId === componentId).length;
+      const history = impact.projects.map((project: { name: string; instances: number }) => project.name + '（' + project.instances + ' 处）').join('、') || '无';
+      if (!window.confirm('删除“' + (definitionMap.get(componentId)?.name ?? componentId) + '”？\n当前时间线：' + currentCount + ' 处；已保存草稿：' + impact.draftInstances + ' 处。\n历史项目：' + history + '。\n将删除组件及其语义和 AI 目录条目。所有时间线保留原始参数与时间，并显示缺失占位，可替换或移除。')) return;
+      if (!await saveWorkspaceDraft()) throw new Error('工作区未保存，已取消删除');
+      setNotice({ tone: "info", text: "正在删除组件并同步语义与 AI 目录…" });
       const response = await fetch("/api/delete-effect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -12254,9 +12265,6 @@ const App = () => {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "删除效果失败");
-      setInstances((current) =>
-        current.filter((instance) => instance.componentId !== componentId),
-      );
       setDefinitions((current) =>
         current.filter((definition) => definition.id !== componentId),
       );
@@ -12271,7 +12279,13 @@ const App = () => {
         window.localStorage.setItem(EFFECT_NAME_STORAGE_KEY, JSON.stringify(next));
         return next;
       });
-      setNotice({ tone: "ok", text: "已删除效果源码及全部时间轴实例。" });
+      setEffectSemanticTypeOverrides((current) => {
+        const next = { ...current };
+        delete next[componentId];
+        window.localStorage.setItem(EFFECT_SEMANTIC_TYPE_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setNotice({ tone: "ok", text: "组件、语义和 AI 目录已同步删除；时间线与历史项目已保留。" });
     } catch (error) {
       setNotice({
         tone: "error",
@@ -16021,6 +16035,20 @@ const App = () => {
                 </div>
               </div>
             ) : null}
+            {instances.filter(item => !definitionMap.has(item.componentId)).map(item => (
+              <div className="motion-track-missing" key={item.id} style={{ padding: '8px 12px', color: '#ffb86b', display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span>组件已删除：{item.componentId} · {formatTime(item.startFrame / fps)} · 参数已保留</span>
+                <select aria-label="替换缺失组件" value="" onChange={(event) => {
+                  const replacement = definitionMap.get(event.target.value);
+                  if (!replacement) return;
+                  setInstances(current => current.map(clip => clip.id === item.id ? { ...clip, componentId: replacement.id, props: { ...replacement.defaultProps } } : clip));
+                }}>
+                  <option value="">选择替换组件</option>
+                  {definitions.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                </select>
+                <button onClick={() => setInstances(current => current.filter(clip => clip.id !== item.id))}>移除缺失片段</button>
+              </div>
+            ))}
             <div className="track-header-resizer" onPointerDown={beginTrackHeaderResize} title="拖动调节轨道头部宽度">
               <span />
             </div>
