@@ -57,7 +57,6 @@
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `PhoneRecordingFrameNeutral`：手机与竖屏录屏 — 中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`mediaType`、`mediaFit`、`enterEndSeconds`、`exitStartSeconds`、`exitEndSeconds`）
 - `BrollGigCardFloat`：悬浮兼职卡片群 — 按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`cardsJson`、`enterStaggerSeconds`、`floatAmplitude`、`wiggleAmplitude`、`wiggleAmplitudeY`、`badgeText`、`ctaText`）
-- `GigHourlyTitle`：金色时薪标题 — 独立的金色时薪大字、中英文标签与说明，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`eyebrowEn`、`eyebrowZh`、`priceText`、`priceUnit`、`priceNote`、`accentColor`）
 - `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：背景压暗，两张竖版海报带 3D 倾斜先后升入并悬浮，随后金色播放量徽章弹出，适合回顾往期内容或展示成绩。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`dimOpacity`、`poster1Url`、`poster2Url`、`posterWidth`、`tiltDeg`、`badgeKicker`、`badgePrefix`、`badgeNumber`、`accentColor`、`floatAmplitude`）
 
 ## 风险提醒
@@ -66,14 +65,15 @@
 - `LegacyEliminationPanel`：淘汰警告·旧方案面板 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
 - `MarketEliminationStamp`：淘汰警告·市场印章 — 独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`stampText`、`warningColor`、`panelColor`、`textColor`、`fontSize`、`fixedRotationDegrees`、`rotationDegrees`、`delaySeconds`、`animationSeconds`）
 
+## 数字
+
+- `GigHourlyTitle`：金色时薪标题 — 独立的金色时薪大字、中英文标签与说明，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`eyebrowEn`、`eyebrowZh`、`pricePrefix`、`priceFrom`、`priceTo`、`priceText`、`priceUnit`、`priceNote`、`accentColor`、`eyebrowEnFontSize`、`eyebrowZhFontSize`、`priceFontSize`、`priceUnitFontSize`、`priceNoteFontSize`）
+- `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
+- `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`enterAnimation`、`exitAnimation`、`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
+
 ## 图表与比较
 
 - `ComparisonProgressBars`：对比进度条·持续扶持 — 上下两张状态卡对比旧方案与持续方案，用灰色低进度和青色满进度表达差异。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`baselineLabel`、`baselineStatus`、`improvedLabel`、`improvedStatus`、`baselineProgress`、`improvedProgress`、`accentColor`、`mutedColor`、`panelColor`、`textColor`、`labelFontSize`、`statusFontSize`、`animationSeconds`）
-
-## 数字与指标
-
-- `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
-- `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`enterAnimation`、`exitAnimation`、`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 
 ## 品牌与标识
 

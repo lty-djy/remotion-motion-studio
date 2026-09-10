@@ -52,17 +52,17 @@
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `BrollGigCardFloat` | 悬浮兼职卡片群 | 媒体展示组件 | 案例与素材 | landscape |  |
-| `GigHourlyTitle` | 金色时薪标题 | 媒体展示组件 | 数字展示 | landscape |  |
+| `GigHourlyTitle` | 金色时薪标题 | 数字 | 数字展示 | landscape |  |
 | `BrollEpisodePosterDuo` | 往期海报回顾 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
-| `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字与指标 | 数字展示 | portrait |  |
+| `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字 | 数字展示 | portrait |  |
 | `CaseStudySidebar` | 案例商业数据侧栏 | 品牌与标识 | 案例与素材 | portrait |  |
 | `BrandLogo` | 品牌 Logo | 品牌与标识 | 案例与素材 | portrait |  |
 | `TeamAttributionCard` | Logo徽章名片 | 品牌与标识 | 案例与素材 | portrait |  |
 | `PinBoard` | 要点钉板 | 口播HUD常驻卡 | 列举要点 | any | 常驻 |
 | `StepTimeline` | 步骤时间线卡 | 口播HUD常驻卡 | 流程说明 | any |  |
 | `TermCard` | 术语解释卡 | 口播HUD常驻卡 | 概念解释 | any |  |
-| `SegmentedMeter` | 分段能量条 | 数字与指标 | 数字展示 | any |  |
+| `SegmentedMeter` | 分段能量条 | 数字 | 数字展示 | any |  |
 
 ## 核心语义图例
 
@@ -1328,26 +1328,6 @@
 - `badgeText` — 招聘卡片角标
 - `ctaText` — 招聘卡片按钮
 
-### `GigHourlyTitle` · 金色时薪标题
-
-- 用途：独立的金色时薪大字、中英文标签与说明，透明背景。
-- 主要语义：数字展示；次要：重点强调
-- 何时使用（检索词）：时薪、薪资、收入、金色大字、价格区间
-- 画布方向：landscape；密度：light；建议驻留：2–15 秒
-- 默认落位：x=92，y=104，scale=1（占位 850×230，placement=left）
-- 默认时长：150 帧（约 5 秒）
-- 分组：媒体展示组件
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `eyebrowEn` — 左上角英文标签
-- `eyebrowZh` — 左上角中文标签
-- `priceText` — 时薪大字
-- `priceUnit` — 大字右侧单位
-- `priceNote` — 大字下方说明
-- `accentColor` — 金色强调色（color）
-
 ### `BrollEpisodePosterDuo` · 往期海报回顾
 
 - 用途：横屏口播 b-roll：背景压暗，两张竖版海报带 3D 倾斜先后升入并悬浮，随后金色播放量徽章弹出，适合回顾往期内容或展示成绩。
@@ -1462,6 +1442,85 @@
 - `delaySeconds` — 入场延迟(秒)（0–8）
 - `animationSeconds` — 入场时长(秒)（0.15–1.5）
 
+## 数字
+
+### `GigHourlyTitle` · 金色时薪标题
+
+- 用途：独立的金色时薪大字、中英文标签与说明，透明背景。
+- 主要语义：数字展示；次要：重点强调
+- 何时使用（检索词）：时薪、薪资、收入、金色大字、价格区间
+- 画布方向：landscape；密度：light；建议驻留：2–15 秒
+- 默认落位：x=92，y=104，scale=1（占位 850×230，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：数字
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `eyebrowEn` — 左上角英文标签
+- `eyebrowZh` — 左上角中文标签
+- `pricePrefix` — 数字前符号（¥ / $ / € 等）
+- `priceFrom` — 起始时薪（数字滚动）
+- `priceTo` — 结束时薪（数字滚动）
+- `priceText` — 手动时薪文本（不填则用上方数字滚动）
+- `priceUnit` — 大字右侧单位
+- `priceNote` — 大字下方说明
+- `accentColor` — 金色强调色（color）
+- `eyebrowEnFontSize` — 英文标签字号(px)（10–64）
+- `eyebrowZhFontSize` — 中文标签字号(px)（10–64）
+- `priceFontSize` — 时薪大字字号(px)（40–240）
+- `priceUnitFontSize` — 单位字号(px)（10–80）
+- `priceNoteFontSize` — 说明字号(px)（10–48）
+
+### `MilestoneFollowerProgress` · 里程碑增长·粉丝进度
+
+- 用途：用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。
+- 主要语义：数字展示；次要：对比差异、重点强调、章节转场
+- 何时使用（检索词）：粉丝、涨粉、目标、年底、里程碑、增长、达到、完成度、进度、突破、累计
+- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
+- 默认落位：x=72，y=250，scale=1（占位 570×390，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：数字
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示里程碑指标
+- `eyebrow` — 顶部英文标签
+- `title` — 中文标题
+- `value` — 核心数值
+- `unit` — 数值单位
+- `currentLabel` — 当前值标签
+- `goalLabel` — 目标值标签
+- `progress` — 完成比例（0–1）
+- `accentColor` — 当前值颜色（color）
+- `goalColor` — 目标值颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.2–2）
+
+### `SegmentedMeter` · 分段能量条
+
+- 用途：分段式容量、性能和能量指示 · 工作台内置模板
+- 主要语义：数字展示；次要：流程说明、列举要点、重点强调
+- 何时使用（检索词）：容量、阶段、进度、性能、分段
+- 画布方向：any；密度：medium；建议驻留：1.5–6 秒
+- 默认落位：x=70，y=380，scale=1（占位 700×340，placement=left）
+- 默认时长：120 帧（约 4 秒）
+- 分组：数字
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `title` — 主标题
+- `subtitle` — 副标题
+- `value` — 核心数值
+- `item1` — 内容一
+- `item2` — 内容二
+- `item3` — 内容三
+- `animationSeconds` — 动画时长(秒)（0.2–8）
+- `accentColor` — 强调色（color）
+- `secondaryColor` — 辅助色（color）
+
 ## 图表与比较
 
 ### `ComparisonProgressBars` · 对比进度条·持续扶持
@@ -1491,57 +1550,6 @@
 - `labelFontSize` — 标题字号(px)（10–64）
 - `statusFontSize` — 状态字号(px)（10–64）
 - `animationSeconds` — 入场时长(秒)（0.2–2）
-
-## 数字与指标
-
-### `MilestoneFollowerProgress` · 里程碑增长·粉丝进度
-
-- 用途：用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。
-- 主要语义：数字展示；次要：对比差异、重点强调、章节转场
-- 何时使用（检索词）：粉丝、涨粉、目标、年底、里程碑、增长、达到、完成度、进度、突破、累计
-- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=72，y=250，scale=1（占位 570×390，placement=left）
-- 默认时长：150 帧（约 5 秒）
-- 分组：数字与指标
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示里程碑指标
-- `eyebrow` — 顶部英文标签
-- `title` — 中文标题
-- `value` — 核心数值
-- `unit` — 数值单位
-- `currentLabel` — 当前值标签
-- `goalLabel` — 目标值标签
-- `progress` — 完成比例（0–1）
-- `accentColor` — 当前值颜色（color）
-- `goalColor` — 目标值颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.2–2）
-
-### `SegmentedMeter` · 分段能量条
-
-- 用途：分段式容量、性能和能量指示 · 工作台内置模板
-- 主要语义：数字展示；次要：流程说明、列举要点、重点强调
-- 何时使用（检索词）：容量、阶段、进度、性能、分段
-- 画布方向：any；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=70，y=380，scale=1（占位 700×340，placement=left）
-- 默认时长：120 帧（约 4 秒）
-- 分组：数字与指标
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `title` — 主标题
-- `subtitle` — 副标题
-- `value` — 核心数值
-- `item1` — 内容一
-- `item2` — 内容二
-- `item3` — 内容三
-- `animationSeconds` — 动画时长(秒)（0.2–8）
-- `accentColor` — 强调色（color）
-- `secondaryColor` — 辅助色（color）
 
 ## 品牌与标识
 

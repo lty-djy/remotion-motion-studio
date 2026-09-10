@@ -4038,6 +4038,49 @@ main.is-resizing-sidebar * {
   appearance: none;
 }
 
+/* 通用数字步进器：用于无 min/max 限制的 number 属性 */
+.dynamic-prop-fields .generic-number-stepper {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.dynamic-prop-fields .generic-number-stepper button {
+  width: 34px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid #303238;
+  border-radius: 4px;
+  color: #e1e1e3;
+  background: #1a1b1f;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.dynamic-prop-fields .generic-number-stepper button:hover {
+  border-color: #ff4b25;
+  color: #fff;
+}
+
+.dynamic-prop-fields .generic-number-stepper button:active {
+  background: #23252b;
+}
+
+.dynamic-prop-fields .generic-number-stepper input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.dynamic-prop-fields .generic-number-stepper input::-webkit-inner-spin-button,
+.dynamic-prop-fields .generic-number-stepper input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
 .dynamic-prop-fields .step-count-stepper {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 34px;

@@ -254,12 +254,6 @@
   - 内容：metric、list、media
   - 方向：landscape；密度：heavy；建议时长：3–10 秒
   - 检索词：兼职、时薪、收入、薪资、招聘、招募、机会、价格区间、副业、悬浮卡片、卡片群、b-roll
-- **金色时薪标题**（`GigHourlyTitle`）
-  - 主要：数字展示
-  - 次要：重点强调
-  - 内容：metric、short-text
-  - 方向：landscape；密度：light；建议时长：2–15 秒
-  - 检索词：时薪、薪资、收入、金色大字、价格区间
 - **往期海报回顾**（`BrollEpisodePosterDuo`）
   - 主要：案例与素材
   - 次要：数字展示、章节转场
@@ -288,17 +282,14 @@
   - 方向：portrait；密度：light；建议时长：0.3–4 秒
   - 检索词：市场淘汰、淘汰、出局、取代
 
-## 图表与比较
+## 数字
 
-- **对比进度条·持续扶持**（`ComparisonProgressBars`）
-  - 主要：对比差异
-  - 次要：数字展示、流程说明、重点强调
-  - 内容：comparison、metric、process、short-text
-  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：对比、过去、现在、旧方案、新方案、短平快、深度内容、中长视频、持续、扶持、进度、差异
-
-## 数字与指标
-
+- **金色时薪标题**（`GigHourlyTitle`）
+  - 主要：数字展示
+  - 次要：重点强调
+  - 内容：metric、short-text
+  - 方向：landscape；密度：light；建议时长：2–15 秒
+  - 检索词：时薪、薪资、收入、金色大字、价格区间
 - **里程碑增长·粉丝进度**（`MilestoneFollowerProgress`）
   - 主要：数字展示
   - 次要：对比差异、重点强调、章节转场
@@ -311,6 +302,15 @@
   - 内容：metric、process
   - 方向：any；密度：medium；建议时长：1.5–6 秒
   - 检索词：容量、阶段、进度、性能、分段
+
+## 图表与比较
+
+- **对比进度条·持续扶持**（`ComparisonProgressBars`）
+  - 主要：对比差异
+  - 次要：数字展示、流程说明、重点强调
+  - 内容：comparison、metric、process、short-text
+  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
+  - 检索词：对比、过去、现在、旧方案、新方案、短平快、深度内容、中长视频、持续、扶持、进度、差异
 
 ## 品牌与标识
 

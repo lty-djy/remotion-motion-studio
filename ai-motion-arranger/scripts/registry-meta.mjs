@@ -7,7 +7,7 @@ export const REGISTERED_CARDS = [
     "name": "分段能量条",
     "description": "分段式容量、性能和能量指示 · 工作台内置模板",
     "category": "metric",
-    "catalogGroup": "数字与指标",
+    "catalogGroup": "数字",
     "glyph": "▮▮▮",
     "placement": "left",
     "durationInFrames": 120,

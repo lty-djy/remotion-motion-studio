@@ -2826,6 +2826,71 @@ type FontSizeStepperProps = {
   onChange: (value: number) => void;
 };
 
+type HoldStepButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "onClick" | "onPointerDown" | "onPointerUp" | "onPointerCancel"
+> & {
+  onStep: () => void;
+};
+
+/** 数值步进按钮：短按一步，长按后连续调整。 */
+const HoldStepButton = ({ onStep, children, ...buttonProps }: HoldStepButtonProps) => {
+  const holdTimerRef = useRef<number | null>(null);
+  const repeatTimerRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
+  const onStepRef = useRef(onStep);
+  onStepRef.current = onStep;
+
+  const clearHold = () => {
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (repeatTimerRef.current !== null) {
+      window.clearInterval(repeatTimerRef.current);
+      repeatTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => clearHold, []);
+
+  return (
+    <button
+      {...buttonProps}
+      onPointerDown={(event) => {
+        if (buttonProps.disabled) return;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        suppressClickRef.current = false;
+        holdTimerRef.current = window.setTimeout(() => {
+          suppressClickRef.current = true;
+          onStepRef.current();
+          repeatTimerRef.current = window.setInterval(() => {
+            onStepRef.current();
+          }, 80);
+        }, 350);
+      }}
+      onPointerUp={(event) => {
+        if (suppressClickRef.current) event.preventDefault();
+        clearHold();
+      }}
+      onPointerCancel={() => {
+        suppressClickRef.current = false;
+        clearHold();
+      }}
+      onClick={(event) => {
+        if (suppressClickRef.current) {
+          event.preventDefault();
+          suppressClickRef.current = false;
+          return;
+        }
+        onStep();
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
 const FontSizeStepper = ({
   label,
   value,
@@ -2862,13 +2927,12 @@ const FontSizeStepper = ({
     <label className="font-size-field">
       <span>{label}</span>
       <div className="font-size-stepper">
-        <button
-          type="button"
+        <HoldStepButton
           aria-label={`${label}减小`}
-          onClick={() => adjust(-1)}
+          onStep={() => adjust(-1)}
         >
           −
-        </button>
+        </HoldStepButton>
         <div className="font-size-input-wrap">
           <input
             type="number"
@@ -2889,13 +2953,12 @@ const FontSizeStepper = ({
           />
           <span aria-hidden="true">px</span>
         </div>
-        <button
-          type="button"
+        <HoldStepButton
           aria-label={`${label}增大`}
-          onClick={() => adjust(1)}
+          onStep={() => adjust(1)}
         >
           +
-        </button>
+        </HoldStepButton>
       </div>
     </label>
   );
@@ -2930,23 +2993,21 @@ const StepCountStepper = ({
   <label className="step-count-field">
     <span>{label}</span>
     <div className="step-count-stepper">
-      <button
-        type="button"
+      <HoldStepButton
         aria-label={`减少一个${itemNoun}`}
         disabled={value <= min}
-        onClick={() => onChange(clamp(value - 1, min, max))}
+        onStep={() => onChange(clamp(value - 1, min, max))}
       >
         −
-      </button>
+      </HoldStepButton>
       <output aria-live="polite">{value} 个{itemNoun}</output>
-      <button
-        type="button"
+      <HoldStepButton
         aria-label={`增加一个${itemNoun}`}
         disabled={value >= max}
-        onClick={() => onChange(clamp(value + 1, min, max))}
+        onStep={() => onChange(clamp(value + 1, min, max))}
       >
         +
-      </button>
+      </HoldStepButton>
     </div>
   </label>
 );
@@ -2991,13 +3052,12 @@ const TimingStepper = ({
     <label className="timing-stepper-field">
       <span>{label}</span>
       <div className="timing-stepper">
-        <button
-          type="button"
+        <HoldStepButton
           aria-label={`${label}减小`}
-          onClick={() => adjust(-1)}
+          onStep={() => adjust(-1)}
         >
           −
-        </button>
+        </HoldStepButton>
         <input
           type="number"
           min={min}
@@ -3015,13 +3075,85 @@ const TimingStepper = ({
             }
           }}
         />
-        <button
-          type="button"
+        <HoldStepButton
           aria-label={`${label}增大`}
-          onClick={() => adjust(1)}
+          onStep={() => adjust(1)}
         >
           +
-        </button>
+        </HoldStepButton>
+      </div>
+    </label>
+  );
+};
+
+type GenericNumberStepperProps = {
+  label: string;
+  value: number;
+  step: number;
+  onChange: (value: number) => void;
+};
+
+/** 通用数字步进器：无 min/max 限制、无单位后缀，用于属性面板 type:number 的 fallback。 */
+const GenericNumberStepper = ({
+  label,
+  value,
+  step,
+  onChange,
+}: GenericNumberStepperProps) => {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  const commit = (candidate = draft) => {
+    const parsed = Number(candidate);
+    if (candidate.trim() === "" || !Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
+    }
+    setDraft(String(parsed));
+    onChange(parsed);
+  };
+
+  const adjust = (direction: -1 | 1) => {
+    const parsed = Number(draft);
+    const baseValue =
+      draft.trim() !== "" && Number.isFinite(parsed) ? parsed : value;
+    commit(String(baseValue + direction * step));
+  };
+
+  return (
+    <label className="generic-number-field">
+      <span>{label}</span>
+      <div className="generic-number-stepper">
+        <HoldStepButton
+          aria-label={`${label}减小`}
+          onStep={() => adjust(-1)}
+        >
+          −
+        </HoldStepButton>
+        <input
+          type="number"
+          step={step}
+          value={draft}
+          aria-label={label}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => commit()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              setDraft(String(value));
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <HoldStepButton
+          aria-label={`${label}增大`}
+          onStep={() => adjust(1)}
+        >
+          +
+        </HoldStepButton>
       </div>
     </label>
   );
@@ -13573,20 +13705,26 @@ const App = () => {
         </label>
       );
     }
+    // 通用数字输入（无 min/max）：使用带 +/- 按钮的步进器，比原生 number input 美观
+    if (schema.type === "number") {
+      const numericValue = Number(value ?? schema.default ?? 0);
+      return (
+        <GenericNumberStepper
+          key={key}
+          label={label}
+          value={numericValue}
+          step={schema.step ?? 1}
+          onChange={(nextValue) => updateSelectedProp(key, nextValue)}
+        />
+      );
+    }
     return (
       <label key={key}>
         <span>{label}</span>
         <input
-          type={schema.type === "number" ? "number" : "text"}
+          type="text"
           value={String(value ?? "")}
-          onChange={(event) =>
-            updateSelectedProp(
-              key,
-              schema.type === "number"
-                ? Number(event.target.value)
-                : event.target.value,
-            )
-          }
+          onChange={(event) => updateSelectedProp(key, event.target.value)}
         />
       </label>
     );

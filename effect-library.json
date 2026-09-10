@@ -38,7 +38,7 @@
     },
     {
       "id": "group:数字与指标",
-      "name": "数字与指标",
+      "name": "数字",
       "color": "#4f9dff"
     },
     {
@@ -96,6 +96,6 @@
     "CaseStudySidebar": "group:品牌与标识",
     "BrandLogo": "group:品牌与标识",
     "TeamAttributionCard": "group:品牌与标识",
-    "GigHourlyTitle": "group:媒体展示组件"
+    "GigHourlyTitle": "group:数字与指标"
   }
 }
