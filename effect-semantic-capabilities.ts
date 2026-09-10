@@ -369,13 +369,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["市场淘汰", "淘汰", "出局", "取代"],
     { orientation: "portrait", density: "light", durationSeconds: { min: 0.3, max: 4 } },
   ),
-  MediaSpotlightCard: capability(
-    "evidence",
-    ["explanation", "emphasis"],
-    ["media", "short-text"],
-    ["图片", "视频", "案例", "截图", "作品", "证据"],
-    { density: "heavy", durationSeconds: { min: 2, max: 12 } },
-  ),
   MaterialCard: capability(
     "evidence",
     ["explanation"],

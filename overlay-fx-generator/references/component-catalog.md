@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（51 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（50 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -48,7 +48,6 @@
 | `QuickSetupProof` | 快速上手证明条 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `LegacyEliminationPanel` | 淘汰警告·旧方案面板 | 风险提醒 | 风险提醒 | portrait |  |
 | `MarketEliminationStamp` | 淘汰警告·市场印章 | 风险提醒 | 风险提醒 | portrait |  |
-| `MediaSpotlightCard` | 媒体聚焦卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `BrollGigCardFloat` | 悬浮兼职卡片群 | 媒体展示组件 | 案例与素材 | landscape |  |
@@ -1235,33 +1234,6 @@
 - `cps` — 打字速度（8–60）
 - `offsetX` — 水平微调（-900–900）
 - `offsetY` — 垂直微调（-600–600）
-
-### `MediaSpotlightCard` · 媒体聚焦卡
-
-- 用途：可上传图片或视频的展示卡片，带缩放滑入出场动画、字幕条和强调角标。
-- 主要语义：案例与素材；次要：概念解释、重点强调
-- 何时使用（检索词）：图片、视频、案例、截图、作品、证据
-- 画布方向：any；密度：heavy；建议驻留：2–12 秒
-- 默认落位：x=100，y=240，scale=1（占位 480×480，placement=left）
-- 默认时长：180 帧（约 6 秒）
-- 分组：媒体展示组件
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示卡片
-- `mediaUrl` — 素材地址
-- `mediaType` — 素材类型
-- `caption` — 字幕文字
-- `eyebrow` — 引导词
-- `accentColor` — 强调色（color）
-- `panelColor` — 底板色（color）
-- `textColor` — 文字颜色（color）
-- `cornerRadius` — 圆角(px)（0–48）
-- `fit` — 填充方式
-- `mediaPositionX` — 裁剪水平位置(%)（0–100）
-- `mediaPositionY` — 裁剪垂直位置(%)（0–100）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
 
 ### `MaterialCard` · 素材卡
 

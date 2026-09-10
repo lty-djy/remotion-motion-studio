@@ -912,6 +912,13 @@ type PendingGroupDelete = {
   groupName: string;
   componentIds: string[];
 };
+type PendingEffectDelete = {
+  componentId: string;
+  effectName: string;
+  currentInstances: number;
+  draftInstances: number;
+  projects: { name: string; instances: number }[];
+};
 type EffectMoveTarget = {
   componentId: string;
   effectName: string;
@@ -4086,6 +4093,9 @@ const App = () => {
 
   const [pendingGroupDelete, setPendingGroupDelete] =
     useState<PendingGroupDelete | null>(null);
+  const [pendingEffectDelete, setPendingEffectDelete] =
+    useState<PendingEffectDelete | null>(null);
+  const [effectDeleteBusy, setEffectDeleteBusy] = useState(false);
   const [materialDeleteTarget, setMaterialDeleteTarget] =
     useState<ArrangementResourceEntry | null>(null);
   const [subtitleClearConfirmOpen, setSubtitleClearConfirmOpen] = useState(false);
@@ -12477,9 +12487,31 @@ const App = () => {
       const impactResponse = await fetch('/api/delete-effect-impact?componentId=' + encodeURIComponent(componentId) + '&imported=' + imported);
       const impact = await impactResponse.json();
       if (!impactResponse.ok) throw new Error(impact.error ?? '无法检查删除影响');
-      const currentCount = instances.filter(item => item.componentId === componentId).length;
-      const history = impact.projects.map((project: { name: string; instances: number }) => project.name + '（' + project.instances + ' 处）').join('、') || '无';
-      if (!window.confirm('删除“' + (definitionMap.get(componentId)?.name ?? componentId) + '”？\n当前时间线：' + currentCount + ' 处；已保存草稿：' + impact.draftInstances + ' 处。\n历史项目：' + history + '。\n将删除组件及其语义和 AI 目录条目。所有时间线保留原始参数与时间，并显示缺失占位，可替换或移除。')) return;
+      setPendingEffectDelete({
+        componentId,
+        effectName: definitionMap.get(componentId)?.name ?? componentId,
+        currentInstances: instances.filter(item => item.componentId === componentId).length,
+        draftInstances: Number(impact.draftInstances) || 0,
+        projects: Array.isArray(impact.projects)
+          ? impact.projects.filter(
+              (project: { name?: unknown; instances?: unknown }) =>
+                typeof project?.name === "string" && Number.isFinite(Number(project.instances)),
+            )
+          : [],
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "删除效果失败",
+      });
+    }
+  };
+
+  const confirmPermanentDeleteEffect = async () => {
+    if (!pendingEffectDelete || effectDeleteBusy) return;
+    const { componentId } = pendingEffectDelete;
+    setEffectDeleteBusy(true);
+    try {
       if (!await saveWorkspaceDraft()) throw new Error('工作区未保存，已取消删除');
       setNotice({ tone: "info", text: "正在删除组件并同步语义与 AI 目录…" });
       const response = await fetch("/api/delete-effect", {
@@ -12512,12 +12544,15 @@ const App = () => {
         window.localStorage.setItem(EFFECT_SEMANTIC_TYPE_STORAGE_KEY, JSON.stringify(next));
         return next;
       });
+      setPendingEffectDelete(null);
       setNotice({ tone: "ok", text: "组件、语义和 AI 目录已同步删除；时间线与历史项目已保留。" });
     } catch (error) {
       setNotice({
         tone: "error",
         text: error instanceof Error ? error.message : "删除效果失败",
       });
+    } finally {
+      setEffectDeleteBusy(false);
     }
   };
 
@@ -16294,17 +16329,28 @@ const App = () => {
               </div>
             ) : null}
             {instances.filter(item => !definitionMap.has(item.componentId)).map(item => (
-              <div className="motion-track-missing" key={item.id} style={{ padding: '8px 12px', color: '#ffb86b', display: 'flex', gap: 12, alignItems: 'center' }}>
-                <span>组件已删除：{item.componentId} · {formatTime(item.startFrame / fps)} · 参数已保留</span>
-                <select aria-label="替换缺失组件" value="" onChange={(event) => {
-                  const replacement = definitionMap.get(event.target.value);
-                  if (!replacement) return;
-                  setInstances(current => current.map(clip => clip.id === item.id ? { ...clip, componentId: replacement.id, props: { ...replacement.defaultProps } } : clip));
-                }}>
-                  <option value="">选择替换组件</option>
-                  {definitions.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
-                </select>
-                <button onClick={() => setInstances(current => current.filter(clip => clip.id !== item.id))}>移除缺失片段</button>
+              <div className="motion-track-missing" key={item.id}>
+                <div className="motion-track-missing-copy">
+                  <small>缺失组件</small>
+                  <strong>{item.componentId}</strong>
+                  <span>{formatTime(item.startFrame / fps)} · 参数已保留</span>
+                </div>
+                <div className="motion-track-missing-actions">
+                  <select aria-label="替换缺失组件" value="" onChange={(event) => {
+                    const replacement = definitionMap.get(event.target.value);
+                    if (!replacement) return;
+                    setInstances(current => current.map(clip => clip.id === item.id ? { ...clip, componentId: replacement.id, props: { ...replacement.defaultProps } } : clip));
+                  }}>
+                    <option value="">选择替换组件</option>
+                    {definitions.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                  </select>
+                  <button
+                    className="motion-track-missing-remove"
+                    onClick={() => setInstances(current => current.filter(clip => clip.id !== item.id))}
+                  >
+                    移除片段
+                  </button>
+                </div>
               </div>
             ))}
             <div className="track-header-resizer" onPointerDown={beginTrackHeaderResize} title="拖动调节轨道头部宽度">
@@ -17981,6 +18027,83 @@ const App = () => {
               >
                 <Trash />
                 确认清空
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingEffectDelete ? (
+        <div
+          className="shortcut-dialog-backdrop delete-confirm-backdrop"
+          onPointerDown={() => {
+            if (!effectDeleteBusy) setPendingEffectDelete(null);
+          }}
+        >
+          <section
+            className="delete-confirm-dialog effect-delete-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-effect-title"
+            onPointerDown={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !effectDeleteBusy) {
+                setPendingEffectDelete(null);
+              }
+            }}
+          >
+            <div className="delete-confirm-icon">
+              <Trash />
+            </div>
+            <div className="delete-confirm-copy">
+              <small>DELETE EFFECT</small>
+              <h2 id="delete-effect-title">删除“{pendingEffectDelete.effectName}”？</h2>
+              <p>组件会从效果库、语义能力和 AI 目录中移除。</p>
+              <div className="effect-delete-impact" aria-label="删除影响">
+                <div>
+                  <span>当前时间线</span>
+                  <strong>{pendingEffectDelete.currentInstances}<em>处</em></strong>
+                </div>
+                <div>
+                  <span>已保存草稿</span>
+                  <strong>{pendingEffectDelete.draftInstances}<em>处</em></strong>
+                </div>
+                <div>
+                  <span>历史项目</span>
+                  <strong>{pendingEffectDelete.projects.length}<em>个</em></strong>
+                </div>
+              </div>
+              <div className="effect-delete-projects">
+                <span>历史项目</span>
+                {pendingEffectDelete.projects.length > 0
+                  ? pendingEffectDelete.projects.map((project, index) => (
+                      <em key={`${project.name}-${index}`}>
+                        {project.name} · {project.instances} 处
+                      </em>
+                    ))
+                  : <em>暂无引用</em>}
+              </div>
+              <div className="delete-confirm-warning">
+                已有时间线会保留为“组件已删除”占位，参数和时间不丢，可替换或移除；本次删除会自动生成本地备份。
+              </div>
+            </div>
+            <footer>
+              <button
+                className="delete-confirm-cancel"
+                disabled={effectDeleteBusy}
+                onClick={() => setPendingEffectDelete(null)}
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirm-submit"
+                autoFocus
+                disabled={effectDeleteBusy}
+                aria-busy={effectDeleteBusy}
+                onClick={() => void confirmPermanentDeleteEffect()}
+              >
+                <Trash />
+                {effectDeleteBusy ? "正在删除…" : "确认删除"}
               </button>
             </footer>
           </section>

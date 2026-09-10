@@ -51,7 +51,6 @@ import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
 
 import { LegacyEliminationPanelEffectDef } from "./effects/LegacyEliminationPanel";
 import { MarketEliminationStampEffectDef } from "./effects/MarketEliminationStamp";
-import { MediaSpotlightCardEffectDef } from "./effects/MediaSpotlightCard";
 import { MaterialCardEffectDef } from "./effects/MaterialCard";
 import { PhoneRecordingFrameNeutralEffectDef } from "./effects/PhoneRecordingFrameNeutral";
 import { GigHourlyTitleEffectDef } from "./effects/GigHourlyTitle";
@@ -162,8 +161,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   LegacyEliminationPanelEffectDef,
   MarketEliminationStampEffectDef,
-
-  MediaSpotlightCardEffectDef,
 
   MaterialCardEffectDef,
   PhoneRecordingFrameNeutralEffectDef,

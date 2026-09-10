@@ -5701,6 +5701,260 @@ aside {
   height: 14px;
 }
 
+.effect-delete-confirm-dialog {
+  width: min(620px, calc(100vw - 48px));
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 20px;
+  padding: 28px;
+  border-color: rgba(255, 91, 103, .28);
+  background: #121417;
+}
+
+.effect-delete-confirm-dialog .delete-confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.effect-delete-confirm-dialog .delete-confirm-copy > small {
+  font-size: 14px;
+}
+
+.effect-delete-confirm-dialog .delete-confirm-copy h2 {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  font-size: 23px;
+  letter-spacing: -.01em;
+}
+
+.effect-delete-confirm-dialog .delete-confirm-copy > p {
+  color: #b4b7bf;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.effect-delete-impact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.effect-delete-impact > div {
+  min-width: 0;
+  padding: 14px 13px 12px;
+  border: 1px solid #2e3239;
+  border-radius: 9px;
+  background: #191c21;
+}
+
+.effect-delete-impact span {
+  display: block;
+  overflow: hidden;
+  color: #81858e;
+  font-size: 14px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.effect-delete-impact strong {
+  display: block;
+  margin-top: 6px;
+  color: #f2f3f5;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+
+.effect-delete-impact em {
+  margin-left: 3px;
+  color: #8e929b;
+  font-family: inherit;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.effect-delete-projects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 11px;
+  margin-top: 13px;
+  color: #7f838c;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.effect-delete-projects > span {
+  color: #a6a9b1;
+}
+
+.effect-delete-projects > em {
+  color: #8b8f98;
+  font-style: normal;
+}
+
+.effect-delete-confirm-dialog .delete-confirm-warning {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-left-color: #d04b55;
+  color: #9b9ea6;
+  background: rgba(255, 78, 104, .055);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.effect-delete-confirm-dialog > footer {
+  padding-top: 9px;
+}
+
+.effect-delete-confirm-dialog > footer button {
+  min-width: 112px;
+  height: 44px;
+  border-radius: 7px;
+  font-size: 16px;
+}
+
+.effect-delete-confirm-dialog > footer button.delete-confirm-submit {
+  min-width: 136px;
+}
+
+.effect-delete-confirm-dialog > footer button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.effect-delete-confirm-dialog > footer button:disabled {
+  cursor: wait;
+  opacity: .58;
+}
+
+.effect-delete-confirm-dialog > footer .delete-confirm-cancel:disabled {
+  cursor: default;
+}
+
+.motion-track-missing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 12px 10px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 126, 111, .28);
+  border-radius: 8px;
+  color: #d9dbe0;
+  background: #1d1719;
+  box-shadow: inset 3px 0 0 #d64f58;
+}
+
+.motion-track-missing-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.motion-track-missing-copy small {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 121, 113, .36);
+  border-radius: 4px;
+  color: #ff9b8e;
+  background: rgba(255, 93, 89, .1);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  line-height: 1.2;
+}
+
+.motion-track-missing-copy strong {
+  overflow: hidden;
+  color: #f1c1b7;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motion-track-missing-copy > span {
+  color: #a59a9d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.motion-track-missing-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.motion-track-missing-actions select,
+.motion-track-missing-actions button {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #3a3d45;
+  border-radius: 6px;
+  color: #d4d6db;
+  background: #171a1f;
+  font-size: 11px;
+}
+
+.motion-track-missing-actions select {
+  width: 174px;
+  padding: 0 8px;
+  outline: none;
+}
+
+.motion-track-missing-actions select:hover,
+.motion-track-missing-actions select:focus {
+  border-color: #6e737d;
+}
+
+.motion-track-missing-actions button {
+  min-width: 86px;
+  padding: 0 11px;
+  cursor: pointer;
+}
+
+.motion-track-missing-actions button:hover {
+  border-color: rgba(255, 116, 107, .64);
+  color: #fff;
+}
+
+.motion-track-missing-actions .motion-track-missing-remove {
+  border-color: rgba(255, 91, 103, .42);
+  color: #ff9c9c;
+  background: rgba(255, 78, 104, .1);
+}
+
+.motion-track-missing-actions .motion-track-missing-remove:hover {
+  border-color: #e05d64;
+  background: rgba(255, 78, 104, .18);
+}
+
+@media (max-width: 720px) {
+  .motion-track-missing {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .motion-track-missing-actions {
+    width: 100%;
+  }
+
+  .motion-track-missing-actions select {
+    width: auto;
+    flex: 1 1 auto;
+  }
+}
+
 .effect-move-backdrop {
   z-index: 220;
   background: rgba(2, 3, 5, .78);
