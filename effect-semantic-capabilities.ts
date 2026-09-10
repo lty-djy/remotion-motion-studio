@@ -264,13 +264,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["具体怎么用", "想要什么讲清楚", "第一句", "摄影工作室", "想换方向", "数据后台深色", "产品落地页", "只管说要什么"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 10, max: 24 } },
   ),
-  PortraitGsapSkillShowcase: capability(
-    "process",
-    ["explanation", "list", "comparison"],
-    ["list", "process", "short-text"],
-    ["第二个skill", "GSAP", "高级动画", "滚动触发", "时间轴编排", "错峰入场", "什么时候出现", "快慢怎么给", "一起用", "动得好不好看"],
-    { orientation: "portrait", density: "heavy", durationSeconds: { min: 10, max: 24 } },
-  ),
   PortraitSkillIdentityHeaderBar: capability(
     "explanation",
     ["emphasis", "list", "process"],
@@ -318,13 +311,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["comparison", "explanation", "transition"],
     ["short-text", "comparison"],
     ["真正拉开差距", "不是模型", "差距不在模型", "最后说一句", "工作流"],
-    { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 8 } },
-  ),
-  PortraitAiOutputGapQuote: capability(
-    "comparison",
-    ["explanation", "emphasis", "evidence"],
-    ["comparison", "short-text"],
-    ["同样一个AI", "同样一个 AI", "做出来", "差了一整个档次", "一眼就是AI糊的", "直接上线"],
     { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 8 } },
   ),
   PortraitAiOutputGapComparison: capability(

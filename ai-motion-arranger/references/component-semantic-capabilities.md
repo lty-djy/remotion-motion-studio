@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **50** 个注册组件。
+当前覆盖 **48** 个注册组件。
 
 ## 核心语义
 
@@ -125,12 +125,6 @@
   - 内容：process、media、short-text
   - 方向：portrait；密度：heavy；建议时长：10–24 秒
   - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
-- **GSAP 高级动画**（`PortraitGsapSkillShowcase`）
-  - 主要：流程说明
-  - 次要：概念解释、列举要点、对比差异
-  - 内容：list、process、short-text
-  - 方向：portrait；密度：heavy；建议时长：10–24 秒
-  - 检索词：第二个skill、GSAP、高级动画、滚动触发、时间轴编排、错峰入场、什么时候出现、快慢怎么给、一起用、动得好不好看
 - **Skill 身份条**（`PortraitSkillIdentityHeaderBar`）
   - 主要：概念解释
   - 次要：重点强调、列举要点、流程说明
@@ -149,18 +143,6 @@
   - 内容：process、list、short-text
   - 方向：portrait；密度：heavy；建议时长：6–16 秒
   - 检索词：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
-- **Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
-  - 主要：案例与素材
-  - 次要：流程说明、概念解释、重点强调
-  - 内容：media、short-text
-  - 方向：portrait；密度：heavy；建议时长：3–12 秒
-  - 检索词：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
-- **右滑媒体海报**（`PortraitMediaPosterReveal`）
-  - 主要：案例与素材
-  - 次要：重点强调、概念解释、章节转场
-  - 内容：media、short-text
-  - 方向：portrait；密度：medium；建议时长：2–12 秒
-  - 检索词：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
 - **Skill 四步卡片**（`PortraitSkillStepGrid`）
   - 主要：流程说明
   - 次要：列举要点、概念解释、章节转场
@@ -173,12 +155,6 @@
   - 内容：short-text、comparison
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：真正拉开差距、不是模型、差距不在模型、最后说一句、工作流
-- **同样 AI 输出差距引用**（`PortraitAiOutputGapQuote`）
-  - 主要：对比差异
-  - 次要：概念解释、重点强调、案例与素材
-  - 内容：comparison、short-text
-  - 方向：portrait；密度：light；建议时长：2–8 秒
-  - 检索词：同样一个AI、同样一个 AI、做出来、差了一整个档次、一眼就是AI糊的、直接上线
 - **AI 输出差距对比**（`PortraitAiOutputGapComparison`）
   - 主要：对比差异
   - 次要：重点强调、概念解释、案例与素材
@@ -230,6 +206,18 @@
   - 内容：process、list、long-text
   - 方向：any；密度：heavy；建议时长：3–20 秒
   - 检索词：代码、终端、命令、命令行、参数、打字机、开发、工具、执行结果
+- **Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
+  - 主要：案例与素材
+  - 次要：流程说明、概念解释、重点强调
+  - 内容：media、short-text
+  - 方向：portrait；密度：heavy；建议时长：3–12 秒
+  - 检索词：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
+- **右滑媒体海报**（`PortraitMediaPosterReveal`）
+  - 主要：案例与素材
+  - 次要：重点强调、概念解释、章节转场
+  - 内容：media、short-text
+  - 方向：portrait；密度：medium；建议时长：2–12 秒
+  - 检索词：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
 - **素材卡**（`MaterialCard`）
   - 主要：案例与素材
   - 次要：概念解释

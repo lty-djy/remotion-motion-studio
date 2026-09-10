@@ -17,8 +17,7 @@
         "PortraitStepChecklist": 12,
         "PortraitNextEpisodeCta": 12,
         "ChapterBar": 12,
-        "PortraitGapHeadline": 12,
-        "PortraitAiOutputGapQuote": 12
+        "PortraitGapHeadline": 12
       },
       "semanticTags": {
         "emphasis": {

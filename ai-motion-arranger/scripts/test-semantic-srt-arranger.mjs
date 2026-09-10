@@ -202,14 +202,11 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
     "PortraitDesignRuleChecklist",
     "PortraitSkillResultComparison",
     "PortraitPromptIterationShowcase",
-    "PortraitGsapSkillShowcase",
-    "PortraitSkillIdentityHeaderBar",
     "PortraitCodeDecisionChecklist",
     "PortraitBrowserRepairLoop",
     "PortraitAgentBrowserMedia",
     "PortraitSkillStepGrid",
     "PortraitGapHeadline",
-    "PortraitAiOutputGapQuote",
     "PortraitAiOutputGapComparison",
     "LegacyEliminationPanel",
     "ComparisonProgressBars",
@@ -543,56 +540,6 @@ const expectedPromptIterationFrames = Math.round(((76800 - 57933) / 1000) * 30);
 if (Math.abs(promptIterationMotion.durationInFrames - expectedPromptIterationFrames) > 1) {
   throw new Error("一句话连续改版组件没有覆盖 57.933–76.800 秒完整 SRT 语义段。");
 }
-const gsapSkillResult = buildSemanticSrtArrangement({
-  ...portraitInput,
-  durationInFrames: 3000,
-  availableComponentIds: ["PortraitGsapSkillShowcase", "PortraitSkillIdentityHeaderBar"],
-  componentCapabilities: runtimeRegistry
-    .filter((card) => ["PortraitGsapSkillShowcase", "PortraitSkillIdentityHeaderBar"].includes(card.id))
-    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
-  entries: [
-    { index: 57, startMs: 77000, endMs: 78883, text: "第二个skill GSAP" },
-    { index: 58, startMs: 78933, endMs: 80533, text: "负责网页的高级动画" },
-    { index: 59, startMs: 80600, endMs: 82166, text: "很多AI做的网页会动" },
-    { index: 60, startMs: 82166, endMs: 83333, text: "但动的不好看" },
-    { index: 61, startMs: 83450, endMs: 84283, text: "滚动触发" },
-    { index: 62, startMs: 84283, endMs: 85483, text: "时间轴编排" },
-    { index: 63, startMs: 85600, endMs: 86450, text: "错峰入场" },
-    { index: 64, startMs: 86450, endMs: 87366, text: "什么时候出现" },
-    { index: 65, startMs: 87366, endMs: 88366, text: "什么时候结束" },
-    { index: 66, startMs: 88450, endMs: 90533, text: "快慢怎么给它全管" },
-    { index: 67, startMs: 90566, endMs: 91600, text: "它是配着第一个" },
-    { index: 68, startMs: 91600, endMs: 92566, text: "skill一起用的" },
-    { index: 69, startMs: 92566, endMs: 94083, text: "一个管页面好不好看" },
-    { index: 70, startMs: 94083, endMs: 95733, text: "一个管它动的好不好看" },
-  ],
-});
-const gsapSkillMotion = gsapSkillResult.motionTimeline.find(
-  (item) => item.componentId === "PortraitGsapSkillShowcase",
-);
-if (!gsapSkillMotion) {
-  throw new Error("GSAP 高级动画语义没有生成 Skill 能力组件。");
-}
-const gsapHeaderMotion = gsapSkillResult.motionTimeline.find(
-  (item) => item.componentId === "PortraitSkillIdentityHeaderBar",
-);
-if (!gsapHeaderMotion || gsapHeaderMotion.props.title !== "GSAP Skills") {
-  throw new Error("GSAP 高级动画语义没有把独立 Skill 身份条作为第二条动效轨道生成。");
-}
-if (
-  gsapSkillMotion.props.capabilityCount !== 3 ||
-  gsapSkillMotion.props.capability1Title !== "ScrollTrigger" ||
-  gsapSkillMotion.props.capability2Title !== "Timeline" ||
-  gsapSkillMotion.props.capability3Title !== "Stagger" ||
-  Math.abs(gsapSkillMotion.props.pairRevealSeconds - 13.57) > 0.01 ||
-  Math.abs(gsapSkillMotion.props.conclusionRevealSeconds - 15.57) > 0.01
-) {
-  throw new Error("GSAP 高级动画组件没有绑定三项能力或按 SRT 计算双 Skill 联动时序。");
-}
-const expectedGsapSkillFrames = Math.round(((95733 - 77000) / 1000) * 30);
-if (Math.abs(gsapSkillMotion.durationInFrames - expectedGsapSkillFrames) > 1) {
-  throw new Error("GSAP 高级动画组件没有覆盖 77.000–95.733 秒完整 SRT 语义段。");
-}
 const codeDecisionResult = buildSemanticSrtArrangement({
   ...portraitInput,
   durationInFrames: 3600,
@@ -755,35 +702,6 @@ if (
 const expectedGapHeadlineFrames = Math.round(((168966 - 165000) / 1000) * 30);
 if (Math.abs(gapHeadlineMotion.durationInFrames - expectedGapHeadlineFrames) > 1) {
   throw new Error("差距结论标题没有覆盖 165.000–168.966 秒完整 SRT 语义段。");
-}
-const aiOutputGapQuoteResult = buildSemanticSrtArrangement({
-  ...portraitInput,
-  durationInFrames: 5400,
-  availableComponentIds: ["PortraitAiOutputGapQuote"],
-  componentCapabilities: runtimeRegistry
-    .filter((card) => card.id === "PortraitAiOutputGapQuote")
-    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
-  entries: [
-    { index: 121, startMs: 169083, endMs: 170000, text: "同样一个AI" },
-    { index: 122, startMs: 170000, endMs: 172166, text: "有人做出来一眼就是AI糊的" },
-    { index: 123, startMs: 172200, endMs: 173883, text: "有人做出来能直接上线" },
-  ],
-});
-const aiOutputGapQuoteMotion = aiOutputGapQuoteResult.motionTimeline.find(
-  (item) => item.componentId === "PortraitAiOutputGapQuote",
-);
-if (!aiOutputGapQuoteMotion) {
-  throw new Error("同样 AI 输出差距语义没有生成双行引用组件。");
-}
-if (
-  aiOutputGapQuoteMotion.props.leadText !== "同样一个 AI，" ||
-  aiOutputGapQuoteMotion.props.bodyText !== "做出来的东西却差了一整个档次。"
-) {
-  throw new Error("同样 AI 输出差距引用没有绑定两行压缩文案。");
-}
-const expectedAiOutputGapQuoteFrames = Math.round(((173883 - 169083) / 1000) * 30);
-if (Math.abs(aiOutputGapQuoteMotion.durationInFrames - expectedAiOutputGapQuoteFrames) > 1) {
-  throw new Error("同样 AI 输出差距引用没有覆盖 169.083–173.883 秒完整 SRT 语义段。");
 }
 const aiOutputGapComparisonResult = buildSemanticSrtArrangement({
   ...portraitInput,

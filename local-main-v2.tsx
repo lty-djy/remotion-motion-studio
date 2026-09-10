@@ -13177,8 +13177,6 @@ const App = () => {
           key === "materialCount") ||
         (inspectorDefinition?.id === "PortraitPromptIterationShowcase" &&
           key === "iterationCount") ||
-        (inspectorDefinition?.id === "PortraitGsapSkillShowcase" &&
-          key === "capabilityCount") ||
         (inspectorDefinition?.id === "PortraitCodeDecisionChecklist" &&
           key === "questionCount") ||
         (inspectorDefinition?.id === "PortraitDecisionTagStack" &&
@@ -13590,14 +13588,6 @@ const App = () => {
             "wipeDurationSeconds",
             "animationSeconds",
           ].includes(key)) ||
-        (selectedDefinition?.id === "PortraitGsapSkillShowcase" &&
-          [
-            "capabilityStartSeconds",
-            "capabilityIntervalSeconds",
-            "pairRevealSeconds",
-            "conclusionRevealSeconds",
-            "animationSeconds",
-          ].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillIdentityHeaderBar" &&
           key === "enterDurationSeconds") ||
         (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
@@ -13612,8 +13602,6 @@ const App = () => {
           ["headerEnterSeconds", "cardEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitGapHeadline" &&
           ["badgeEnterSeconds", "titleEnterSeconds", "animationSeconds"].includes(key)) ||
-        (selectedDefinition?.id === "PortraitAiOutputGapQuote" &&
-          ["leadEnterSeconds", "bodyEnterSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitAiOutputGapComparison" &&
           ["labelEnterSeconds", "firstRowEnterSeconds", "nextRowEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitAgentBrowserMedia" &&
@@ -17466,21 +17454,6 @@ const App = () => {
                             8,
                           );
                           if (match && Number(match[1]) > activeIterationCount) {
-                            return null;
-                          }
-                        }
-                        if (
-                          inspectorDefinition.id === "PortraitGsapSkillShowcase"
-                        ) {
-                          const match = key.match(/^capability(\d+)(?:Title|Detail)$/);
-                          const activeCapabilityCount = clamp(
-                            Math.round(
-                              Number(inspectorInstance.props.capabilityCount ?? 3),
-                            ),
-                            1,
-                            8,
-                          );
-                          if (match && Number(match[1]) > activeCapabilityCount) {
                             return null;
                           }
                         }

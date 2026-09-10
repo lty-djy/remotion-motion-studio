@@ -34,14 +34,11 @@ const expectedComponentIds = [
   "PortraitDesignRuleChecklist",
   "PortraitSkillResultComparison",
   "PortraitPromptIterationShowcase",
-  "PortraitGsapSkillShowcase",
-  "PortraitSkillIdentityHeaderBar",
   "PortraitCodeDecisionChecklist",
   "PortraitBrowserRepairLoop",
   "PortraitAgentBrowserMedia",
   "PortraitSkillStepGrid",
   "PortraitGapHeadline",
-  "PortraitAiOutputGapQuote",
   "PortraitAiOutputGapComparison",
   "PortraitRiskWarning",
   "LegacyEliminationPanel",
@@ -57,17 +54,17 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 26) {
-  throw new Error("竖屏语义路由必须覆盖 26 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 24) {
+  throw new Error("竖屏语义路由必须覆盖 24 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 26) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 24) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
   JSON.stringify([...PORTRAIT_ROUTE_COMPONENT_IDS].sort()) !==
   JSON.stringify([...expectedComponentIds].sort())
 ) {
-  throw new Error("竖屏语义路由没有完整覆盖 21 个参考组件。");
+  throw new Error("竖屏语义路由没有完整覆盖 24 个参考组件。");
 }
 
 for (const route of PORTRAIT_SEMANTIC_ROUTES) {
@@ -153,13 +150,11 @@ const representativeCues = new Map([
   ["design-rule-checklist", "它负责整个网页的设计审美，怎么排版怎么留白。"],
   ["skill-result-comparison", "这是没装它的时候，AI 随手做出来的默认效果。"],
   ["prompt-iteration-showcase", "那具体怎么用，第一句做一个摄影工作室的品牌官网。"],
-  ["gsap-skill-showcase", "第二个skill GSAP负责网页的高级动画和时间轴编排。"],
   ["code-decision-checklist", "让AI先想这个功能真的需要吗。"],
   ["browser-repair-loop", "让agent自己打开浏览器并循环检查。"],
   ["browser-self-check-media", "你现在看到的这一整页就是逐屏自查结果。"],
   ["skill-step-grid", "就是这4个skill，今天我一个一个讲清楚。"],
   ["gap-headline", "其实现在真正拉开差距的，早就不是模型，是工作流。"],
-  ["ai-output-gap-quote", "同样一个 AI，有人做出来一眼就是 AI 糊的。"],
   ["ai-output-gap-comparison", "有人做出来一眼就是 AI 糊的，有人能直接上线。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],

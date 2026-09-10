@@ -958,51 +958,6 @@ const portraitDocumentContextFor = (entries) => {
       ? Number(((thirdResultSeconds - firstResultSeconds) / 2).toFixed(2))
       : 5.2,
   };
-  const gsapStartIndex = entries.findIndex((entry) =>
-    /第二个.{0,6}(?:skill|技能).{0,6}GSAP/iu.test(String(entry?.text ?? "")),
-  );
-  const gsapEntries = gsapStartIndex >= 0 ? entries.slice(gsapStartIndex).slice(0, 14) : [];
-  const gsapEndEntry = gsapEntries.find((entry) =>
-    /动的?好不好看/u.test(String(entry?.text ?? "")),
-  ) ?? gsapEntries.at(-1);
-  const pairEntry = gsapEntries.find((entry) =>
-    /配着第一个|一起用/u.test(String(entry?.text ?? "")),
-  );
-  const conclusionEntry = gsapEntries.find((entry) =>
-    /一个管页面/u.test(String(entry?.text ?? "")),
-  );
-  const gsapStartMs = gsapEntries[0]?.startMs;
-  const secondsFromGsapStart = (entry, fallback) =>
-    Number.isFinite(Number(entry?.startMs)) && Number.isFinite(Number(gsapStartMs))
-      ? Number(((Number(entry.startMs) - Number(gsapStartMs)) / 1000).toFixed(2))
-      : fallback;
-  const gsapSkill = {
-    startMs: gsapStartMs,
-    endMs: gsapEndEntry?.endMs,
-    sequenceText: "02",
-    title: "GSAP Skills",
-    subtitle: "动效引擎 · 高级动画",
-    badge: "★ 26K",
-    capabilityCount: 3,
-    capability1Title: "ScrollTrigger",
-    capability1Detail: "滚动进度驱动动画",
-    capability2Title: "Timeline",
-    capability2Detail: "时间轴精确编排",
-    capability3Title: "Stagger",
-    capability3Detail: "多元素错峰入场",
-    controlLead: "什么时候出现、什么时候结束、快慢怎么给——",
-    controlEmphasis: "它全管。",
-    firstSkillTitle: "我自己做的 Skill",
-    firstSkillDetail: "管页面好不好看",
-    secondSkillTitle: "GSAP Skills",
-    secondSkillDetail: "管它动得好不好看",
-    conclusionLead: "一个定住美感，",
-    conclusionEmphasis: "一个让它动起来",
-    capabilityStartSeconds: 2.8,
-    capabilityIntervalSeconds: 1.15,
-    pairRevealSeconds: secondsFromGsapStart(pairEntry, 11.2),
-    conclusionRevealSeconds: secondsFromGsapStart(conclusionEntry, 14.1),
-  };
   const codeDecisionStartIndex = entries.findIndex((entry) =>
     /让\s*AI\s*先想/iu.test(String(entry?.text ?? "")),
   );
@@ -1110,21 +1065,6 @@ const portraitDocumentContextFor = (entries) => {
     titlePrefix: "差距不在",
     titleEmphasis: "模型",
   };
-  const aiOutputGapStartIndex = entries.findIndex((entry) =>
-    /同样一个\s*AI/iu.test(String(entry?.text ?? "")),
-  );
-  const aiOutputGapEntries = aiOutputGapStartIndex >= 0
-    ? entries.slice(aiOutputGapStartIndex).slice(0, 3)
-    : [];
-  const aiOutputGapEndEntry = aiOutputGapEntries.find((entry) =>
-    /能直接上线/u.test(String(entry?.text ?? "")),
-  ) ?? aiOutputGapEntries.at(-1);
-  const aiOutputGapQuote = {
-    startMs: aiOutputGapEntries[0]?.startMs,
-    endMs: aiOutputGapEndEntry?.endMs,
-    leadText: "同样一个 AI，",
-    bodyText: "做出来的东西却差了一整个档次。",
-  };
   const aiOutputGapComparisonStartIndex = entries.findIndex((entry) =>
     /一眼就是\s*AI\s*糊/iu.test(String(entry?.text ?? "")),
   );
@@ -1153,13 +1093,11 @@ const portraitDocumentContextFor = (entries) => {
     designRules,
     skillResultComparison,
     promptIterations,
-    gsapSkill,
     codeDecisionChecklist,
     browserRepairLoop,
     browserSelfCheckMedia,
     skillStepGrid,
     gapHeadline,
-    aiOutputGapQuote,
     aiOutputGapComparison,
   };
 };
@@ -1179,12 +1117,10 @@ const portraitStyleForRoute = (routeId) => {
     "comparison-progress-bars": "#22F3EE",
     "milestone-follower-progress": "#20F2E9",
     "prompt-iteration-showcase": "#17D9E8",
-    "gsap-skill-showcase": "#17D9E8",
     "code-decision-checklist": "#9A73FF",
     "browser-repair-loop": "#4E85FF",
     "browser-self-check-media": "#638CFF",
     "gap-headline": "#1FD9E8",
-    "ai-output-gap-quote": "#1FD9E8",
     "ai-output-gap-comparison": "#1FD9E8",
     "process-steps": "#168CFF",
     "risk-boundary": "#FF493D",
@@ -1330,31 +1266,6 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     firstResultSeconds: 3.1,
     iterationIntervalSeconds: 5.2,
   };
-  const gsapSkill = documentContext?.gsapSkill ?? {
-    sequenceText: "02",
-    title: "GSAP Skills",
-    subtitle: "动效引擎 · 高级动画",
-    badge: "★ 26K",
-    capabilityCount: 3,
-    capability1Title: "ScrollTrigger",
-    capability1Detail: "滚动进度驱动动画",
-    capability2Title: "Timeline",
-    capability2Detail: "时间轴精确编排",
-    capability3Title: "Stagger",
-    capability3Detail: "多元素错峰入场",
-    controlLead: "什么时候出现、什么时候结束、快慢怎么给——",
-    controlEmphasis: "它全管。",
-    firstSkillTitle: "我自己做的 Skill",
-    firstSkillDetail: "管页面好不好看",
-    secondSkillTitle: "GSAP Skills",
-    secondSkillDetail: "管它动得好不好看",
-    conclusionLead: "一个定住美感，",
-    conclusionEmphasis: "一个让它动起来",
-    capabilityStartSeconds: 2.8,
-    capabilityIntervalSeconds: 1.15,
-    pairRevealSeconds: 11.2,
-    conclusionRevealSeconds: 14.1,
-  };
   const codeDecisionChecklist = documentContext?.codeDecisionChecklist ?? {
     questionCount: 6,
     question1: "这个功能真的需要吗",
@@ -1397,10 +1308,6 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
     badgeText: "最后说一句",
     titlePrefix: "差距不在",
     titleEmphasis: "模型",
-  };
-  const aiOutputGapQuote = documentContext?.aiOutputGapQuote ?? {
-    leadText: "同样一个 AI，",
-    bodyText: "做出来的东西却差了一整个档次。",
   };
   const aiOutputGapComparison = documentContext?.aiOutputGapComparison ?? {
     gapLabel: "THE GAP",
@@ -1478,8 +1385,6 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
         ? Math.max(6, Math.min(14, Number(segmentSeconds.toFixed(2))))
       : route.id === "prompt-iteration-showcase"
         ? Math.max(10, Math.min(24, Number(segmentSeconds.toFixed(2))))
-      : route.id === "gsap-skill-showcase"
-        ? Math.max(10, Math.min(24, Number(segmentSeconds.toFixed(2))))
       : route.id === "code-decision-checklist"
         ? Math.max(4, Math.min(12, Number(segmentSeconds.toFixed(2))))
       : route.id === "browser-repair-loop"
@@ -1489,8 +1394,6 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
       : route.id === "skill-step-grid"
         ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
       : route.id === "gap-headline"
-        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
-      : route.id === "ai-output-gap-quote"
         ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
       : route.id === "ai-output-gap-comparison"
         ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
@@ -1556,13 +1459,11 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
       designRules,
       skillResultComparison,
       promptIterations,
-      gsapSkill,
       codeDecisionChecklist,
       browserRepairLoop,
       browserSelfCheckMedia,
       skillStepGrid,
       gapHeadline,
-      aiOutputGapQuote,
       aiOutputGapComparison,
       steps: { 1: steps[0] ?? "", 2: steps[1] ?? "", 3: steps[2] ?? "" },
       risks: { 1: risks[0] ?? "", 2: risks[1] ?? "", 3: risks[2] ?? "" },
@@ -1620,9 +1521,6 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "gap-headline": [
     { componentId: "PortraitGapHeadline", reason: "用徽标与超大标题强调差距不在模型这一核心结论" },
-  ],
-  "ai-output-gap-quote": [
-    { componentId: "PortraitAiOutputGapQuote", reason: "用双行引用强调相同 AI 产生不同输出档次" },
   ],
   "ai-output-gap-comparison": [
     { componentId: "PortraitAiOutputGapComparison", reason: "用红色叉号与青色勾号对比 AI 糊感和可直接上线的结果" },
@@ -1683,12 +1581,6 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitPromptIterationShowcase", reason: "用提示词输入条和发光擦除转场连续展示多次改版结果" },
     { componentId: "PortraitSkillResultComparison", reason: "当重点是结果差异而不是操作过程时可改用素材对比" },
     { componentId: "MediaSpotlightCard", reason: "当只展示最终页面时可压缩为单个媒体聚焦卡" },
-  ],
-  "gsap-skill-showcase": [
-    { componentId: "PortraitGsapSkillShowcase", reason: "用能力卡、时间控制说明和双 Skill 配合关系呈现 GSAP 高级动画能力" },
-    { componentId: "PortraitSkillIdentityHeaderBar", reason: "用独立身份条呈现编号、Skill 名称、副标题和徽标" },
-    { componentId: "PortraitStepChecklist", reason: "当重点是滚动触发、时间轴和错峰入场的执行顺序时可改用步骤清单" },
-    { componentId: "PortraitInfoCallout", reason: "当只需介绍 GSAP 定位时可压缩为说明卡" },
   ],
   "metric-decision": [
     { componentId: "PortraitMetricDecision", reason: "突出核心数字和推荐结论" },
@@ -1867,11 +1759,6 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     preferredScale: 1,
   },
   PortraitPromptIterationShowcase: {
-    anchor: "left-top",
-    fallbackAnchors: ["center-top", "right-top"],
-    preferredScale: 1,
-  },
-  PortraitGsapSkillShowcase: {
     anchor: "left-top",
     fallbackAnchors: ["center-top", "right-top"],
     preferredScale: 1,
@@ -2134,10 +2021,6 @@ const buildPortraitSemanticSrtArrangement = ({
         Number.isFinite(Number(resolvedDocumentContext.promptIterations?.endMs))
         ? Math.round((Number(resolvedDocumentContext.promptIterations.endMs) / 1000) * fps)
         : endFrame;
-      const gsapSkillEndFrame = route.id === "gsap-skill-showcase" &&
-        Number.isFinite(Number(resolvedDocumentContext.gsapSkill?.endMs))
-        ? Math.round((Number(resolvedDocumentContext.gsapSkill.endMs) / 1000) * fps)
-        : endFrame;
       const codeDecisionEndFrame = route.id === "code-decision-checklist" &&
         Number.isFinite(Number(resolvedDocumentContext.codeDecisionChecklist?.endMs))
         ? Math.round((Number(resolvedDocumentContext.codeDecisionChecklist.endMs) / 1000) * fps)
@@ -2158,17 +2041,13 @@ const buildPortraitSemanticSrtArrangement = ({
         Number.isFinite(Number(resolvedDocumentContext.gapHeadline?.endMs))
         ? Math.round((Number(resolvedDocumentContext.gapHeadline.endMs) / 1000) * fps)
         : endFrame;
-      const aiOutputGapEndFrame = route.id === "ai-output-gap-quote" &&
-        Number.isFinite(Number(resolvedDocumentContext.aiOutputGapQuote?.endMs))
-        ? Math.round((Number(resolvedDocumentContext.aiOutputGapQuote.endMs) / 1000) * fps)
-        : endFrame;
       const aiOutputGapComparisonEndFrame = route.id === "ai-output-gap-comparison" &&
         Number.isFinite(Number(resolvedDocumentContext.aiOutputGapComparison?.endMs))
         ? Math.round((Number(resolvedDocumentContext.aiOutputGapComparison.endMs) / 1000) * fps)
         : endFrame;
       const timing = spanForPortraitIntent(
         startFrame,
-        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, gsapSkillEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapEndFrame, aiOutputGapComparisonEndFrame),
+        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapComparisonEndFrame),
         routeIndex,
         selectedRoutes.length,
       );

@@ -35,7 +35,6 @@ import { PortraitSkillSourceFusionEffectDef } from "./effects/PortraitSkillSourc
 import { PortraitDesignRuleChecklistEffectDef } from "./effects/PortraitDesignRuleChecklist";
 import { PortraitSkillResultComparisonEffectDef } from "./effects/PortraitSkillResultComparison";
 import { PortraitPromptIterationShowcaseEffectDef } from "./effects/PortraitPromptIterationShowcase";
-import { PortraitGsapSkillShowcaseEffectDef } from "./effects/PortraitGsapSkillShowcase";
 import { PortraitSkillIdentityHeaderBarEffectDef } from "./effects/PortraitSkillIdentityHeaderBar";
 import { PortraitCodeDecisionChecklistEffectDef } from "./effects/PortraitCodeDecisionChecklist";
 import { PortraitBrowserRepairLoopEffectDef } from "./effects/PortraitBrowserRepairLoop";
@@ -43,7 +42,6 @@ import { PortraitAgentBrowserMediaEffectDef } from "./effects/PortraitAgentBrows
 import { PortraitMediaPosterRevealEffectDef } from "./effects/PortraitMediaPosterReveal";
 import { PortraitSkillStepGridEffectDef } from "./effects/PortraitSkillStepGrid";
 import { PortraitGapHeadlineEffectDef } from "./effects/PortraitGapHeadline";
-import { PortraitAiOutputGapQuoteEffectDef } from "./effects/PortraitAiOutputGapQuote";
 import { PortraitAiOutputGapComparisonEffectDef } from "./effects/PortraitAiOutputGapComparison";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
@@ -140,8 +138,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   PortraitPromptIterationShowcaseEffectDef,
 
-  PortraitGsapSkillShowcaseEffectDef,
-
   PortraitSkillIdentityHeaderBarEffectDef,
 
   PortraitCodeDecisionChecklistEffectDef,
@@ -150,7 +146,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitMediaPosterRevealEffectDef,
   PortraitSkillStepGridEffectDef,
   PortraitGapHeadlineEffectDef,
-  PortraitAiOutputGapQuoteEffectDef,
   PortraitAiOutputGapComparisonEffectDef,
 
   PortraitRiskWarningEffectDef,

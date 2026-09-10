@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（50 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（48 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -33,15 +33,13 @@
 | `PortraitDesignRuleChecklist` | 网页设计规则清单 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitSkillResultComparison` | Skill 效果前后对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitPromptIterationShowcase` | 一句话连续改版 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitGsapSkillShowcase` | GSAP 高级动画 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitSkillIdentityHeaderBar` | Skill 身份条 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitCodeDecisionChecklist` | 代码决策检查清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitBrowserRepairLoop` | 浏览器自动修复闭环 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitAgentBrowserMedia` | Agent 浏览器逐屏自查 | 竖屏口播信息层 | 案例与素材 | portrait |  |
-| `PortraitMediaPosterReveal` | 右滑媒体海报 | 竖屏口播信息层 | 案例与素材 | portrait |  |
+| `PortraitAgentBrowserMedia` | Agent 浏览器逐屏自查 | 媒体展示组件 | 案例与素材 | portrait |  |
+| `PortraitMediaPosterReveal` | 右滑媒体海报 | 媒体展示组件 | 案例与素材 | portrait |  |
 | `PortraitSkillStepGrid` | Skill 四步卡片 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitGapHeadline` | 差距不在模型标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
-| `PortraitAiOutputGapQuote` | 同样 AI 输出差距引用 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitAiOutputGapComparison` | AI 输出差距对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitRiskWarning` | 风险提醒卡 | 风险提醒 | 风险提醒 | portrait |  |
 | `PortraitNextEpisodeCta` | 下集预告卡 | 竖屏口播信息层 | 行动引导 | portrait |  |
@@ -728,62 +726,6 @@
 - `mediaPositionY` — 素材垂直位置(%)（0–100）
 - `animationSeconds` — 完整动画时长(秒)（6–60）
 
-### `PortraitGsapSkillShowcase` · GSAP 高级动画
-
-- 用途：复刻参考视频 77.000–95.733 秒：动态能力卡、时间控制说明及双 Skill 协同关系；身份条已拆为独立组件。
-- 主要语义：流程说明；次要：概念解释、列举要点、对比差异
-- 何时使用（检索词）：第二个skill、GSAP、高级动画、滚动触发、时间轴编排、错峰入场、什么时候出现、快慢怎么给、一起用、动得好不好看
-- 画布方向：portrait；密度：heavy；建议驻留：10–24 秒
-- 默认落位：x=90，y=270，scale=1（占位 900×760，placement=top）
-- 默认时长：562 帧（约 18.7 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 GSAP 高级动画
-- `capabilityCount` — 能力数量（1–8）
-- `capability1Title` — 能力一标题
-- `capability1Detail` — 能力一说明
-- `capability2Title` — 能力二标题
-- `capability2Detail` — 能力二说明
-- `capability3Title` — 能力三标题
-- `capability3Detail` — 能力三说明
-- `capability4Title` — 能力四标题
-- `capability4Detail` — 能力四说明
-- `capability5Title` — 能力五标题
-- `capability5Detail` — 能力五说明
-- `capability6Title` — 能力六标题
-- `capability6Detail` — 能力六说明
-- `capability7Title` — 能力七标题
-- `capability7Detail` — 能力七说明
-- `capability8Title` — 能力八标题
-- `capability8Detail` — 能力八说明
-- `controlLead` — 控制说明前段
-- `controlEmphasis` — 控制说明重点
-- `firstSkillTitle` — 左侧 Skill 标题
-- `firstSkillDetail` — 左侧 Skill 说明
-- `secondSkillTitle` — 右侧 Skill 标题
-- `secondSkillDetail` — 右侧 Skill 说明
-- `conclusionLead` — 协同结论前段
-- `conclusionEmphasis` — 协同结论重点
-- `capabilityTitleFontSize` — 能力标题字号(px)（10–96）
-- `capabilityDetailFontSize` — 能力说明字号(px)（8–96）
-- `controlFontSize` — 控制说明字号(px)（10–96）
-- `pairTitleFontSize` — 配合卡标题字号(px)（10–96）
-- `pairDetailFontSize` — 配合卡说明字号(px)（8–96）
-- `conclusionFontSize` — 协同结论字号(px)（14–120）
-- `capabilityStartSeconds` — 第一项能力入场时间(秒)
-- `capabilityIntervalSeconds` — 下一项能力入场间隔(秒)
-- `pairRevealSeconds` — 双 Skill 配合入场时间(秒)
-- `conclusionRevealSeconds` — 协同结论入场时间(秒)
-- `accentColor` — GSAP 强调色（color）
-- `firstSkillColor` — 第一 Skill 强调色（color）
-- `plusColor` — 连接加号颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 完整动画时长(秒)（6–60）
-
 ### `PortraitSkillIdentityHeaderBar` · Skill 身份条
 
 - 用途：从 GSAP 参考画面拆出的独立身份条：编号、Skill 标题、副标题与徽标。
@@ -886,74 +828,6 @@
 - `ringColor` — 环线颜色（color）
 - `animationSeconds` — 完整动画时长(秒)（2–120）
 
-### `PortraitAgentBrowserMedia` · Agent 浏览器逐屏自查
-
-- 用途：顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。
-- 主要语义：案例与素材；次要：流程说明、概念解释、重点强调
-- 何时使用（检索词）：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
-- 画布方向：portrait；密度：heavy；建议驻留：3–12 秒
-- 默认落位：x=115，y=230，scale=1（占位 850×800，placement=top）
-- 默认时长：106 帧（约 3.5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示浏览器逐屏自查
-- `titlePrefix` — 标题前半句
-- `titleHighlight` — 标题强调词
-- `browserLabel` — 浏览器栏文字
-- `mediaUrl` — 网页图片或视频
-- `mediaType` — 素材类型
-- `mediaFit` — 素材填充方式
-- `mediaPositionX` — 素材水平位置(%)（0–100）
-- `mediaPositionY` — 素材垂直位置(%)（0–100）
-- `titlePrefixFontSize` — 标题前半句字号(px)（10–120）
-- `titleHighlightFontSize` — 标题强调词字号(px)（10–120）
-- `browserLabelFontSize` — 浏览器栏字号(px)（8–72）
-- `titleColor` — 标题颜色（color）
-- `highlightColor` — 强调词颜色（color）
-- `frameColor` — 浏览器边框颜色（color）
-- `browserBarColor` — 浏览器栏底色（color）
-- `browserLabelColor` — 浏览器栏文字颜色（color）
-- `cornerRadius` — 浏览器圆角(px)（0–80）
-- `titleEnterSeconds` — 标题入场时间(秒)
-- `mediaEnterSeconds` — 媒体窗口入场时间(秒)
-- `animationSeconds` — 完整动画时长(秒)（1–120）
-
-### `PortraitMediaPosterReveal` · 右滑媒体海报
-
-- 用途：参考右侧竖版海报效果：图片或视频从左侧快速滑入并归正，底部带强调竖线标题。
-- 主要语义：案例与素材；次要：重点强调、概念解释、章节转场
-- 何时使用（检索词）：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
-- 画布方向：portrait；密度：medium；建议驻留：2–12 秒
-- 默认落位：x=455，y=360，scale=1（占位 560×790，placement=right）
-- 默认时长：117 帧（约 3.9 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示右滑媒体海报
-- `mediaUrl` — 海报图片或视频
-- `mediaType` — 素材类型
-- `mediaFit` — 素材填充方式
-- `mediaPositionX` — 裁剪水平位置(%)（0–100）
-- `mediaPositionY` — 裁剪垂直位置(%)（0–100）
-- `title` — 底部标题
-- `accentColor` — 标题竖线颜色（color）
-- `titleColor` — 标题颜色（color）
-- `placeholderColor` — 素材底色（color）
-- `cornerRadius` — 海报圆角(px)（0–80）
-- `titleFontSize` — 标题字号(px)（12–72）
-- `enterDelaySeconds` — 入场延迟(秒)（0–10）
-- `enterDurationSeconds` — 滑入时长(秒)（0.12–3）
-- `slideDistance` — 滑入距离(px)（40–800）
-- `videoMuted` — 视频静音
-- `videoVolume` — 视频音量（0–1）
-- `videoLoop` — 视频循环播放
-- `animationSeconds` — 建议完整时长(秒)（1–120）
-
 ### `PortraitSkillStepGrid` · Skill 四步卡片
 
 - 用途：按参考图展示 STEP 1 → 4 与四张 Skill 卡片，支持按需增减步骤。
@@ -1024,33 +898,6 @@
 - `panelColor` — 底板颜色（color）
 - `badgeEnterSeconds` — 徽标入场时间(秒)
 - `titleEnterSeconds` — 主标题入场时间(秒)
-- `animationSeconds` — 完整动画时长(秒)（1–120）
-
-### `PortraitAiOutputGapQuote` · 同样 AI 输出差距引用
-
-- 用途：三段拆分中的第 2 个组件：同样一个 AI，却产生不同输出档次的双行引用。
-- 主要语义：对比差异；次要：概念解释、重点强调、案例与素材
-- 何时使用（检索词）：同样一个AI、同样一个 AI、做出来、差了一整个档次、一眼就是AI糊的、直接上线
-- 画布方向：portrait；密度：light；建议驻留：2–8 秒
-- 默认落位：x=80，y=610，scale=1（占位 700×190，placement=left）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 AI 输出差距引用
-- `showAccentLine` — 显示引用竖线
-- `leadText` — 第一行文字
-- `bodyText` — 第二行文字
-- `leadFontSize` — 第一行字号(px)（8–120）
-- `bodyFontSize` — 第二行字号(px)（8–120）
-- `leadColor` — 第一行颜色（color）
-- `bodyColor` — 第二行颜色（color）
-- `accentColor` — 引用竖线颜色（color）
-- `panelColor` — 底板颜色（color）
-- `leadEnterSeconds` — 第一行入场时间(秒)（0.1–120）
-- `bodyEnterSeconds` — 第二行入场时间(秒)（0.1–120）
 - `animationSeconds` — 完整动画时长(秒)（1–120）
 
 ### `PortraitAiOutputGapComparison` · AI 输出差距对比
@@ -1234,6 +1081,74 @@
 - `cps` — 打字速度（8–60）
 - `offsetX` — 水平微调（-900–900）
 - `offsetY` — 垂直微调（-600–600）
+
+### `PortraitAgentBrowserMedia` · Agent 浏览器逐屏自查
+
+- 用途：顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。
+- 主要语义：案例与素材；次要：流程说明、概念解释、重点强调
+- 何时使用（检索词）：你现在看到的这一整页、一遍遍自查、打开浏览器、逐屏自查、页面截图、网页画面
+- 画布方向：portrait；密度：heavy；建议驻留：3–12 秒
+- 默认落位：x=115，y=230，scale=1（占位 850×800，placement=top）
+- 默认时长：106 帧（约 3.5 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示浏览器逐屏自查
+- `titlePrefix` — 标题前半句
+- `titleHighlight` — 标题强调词
+- `browserLabel` — 浏览器栏文字
+- `mediaUrl` — 网页图片或视频
+- `mediaType` — 素材类型
+- `mediaFit` — 素材填充方式
+- `mediaPositionX` — 素材水平位置(%)（0–100）
+- `mediaPositionY` — 素材垂直位置(%)（0–100）
+- `titlePrefixFontSize` — 标题前半句字号(px)（10–120）
+- `titleHighlightFontSize` — 标题强调词字号(px)（10–120）
+- `browserLabelFontSize` — 浏览器栏字号(px)（8–72）
+- `titleColor` — 标题颜色（color）
+- `highlightColor` — 强调词颜色（color）
+- `frameColor` — 浏览器边框颜色（color）
+- `browserBarColor` — 浏览器栏底色（color）
+- `browserLabelColor` — 浏览器栏文字颜色（color）
+- `cornerRadius` — 浏览器圆角(px)（0–80）
+- `titleEnterSeconds` — 标题入场时间(秒)
+- `mediaEnterSeconds` — 媒体窗口入场时间(秒)
+- `animationSeconds` — 完整动画时长(秒)（1–120）
+
+### `PortraitMediaPosterReveal` · 右滑媒体海报
+
+- 用途：参考右侧竖版海报效果：图片或视频从左侧快速滑入并归正，底部带强调竖线标题。
+- 主要语义：案例与素材；次要：重点强调、概念解释、章节转场
+- 何时使用（检索词）：展示素材、看这个案例、视频素材、图片素材、海报、作品展示、页面预览
+- 画布方向：portrait；密度：medium；建议驻留：2–12 秒
+- 默认落位：x=455，y=360，scale=1（占位 560×790，placement=right）
+- 默认时长：117 帧（约 3.9 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示右滑媒体海报
+- `mediaUrl` — 海报图片或视频
+- `mediaType` — 素材类型
+- `mediaFit` — 素材填充方式
+- `mediaPositionX` — 裁剪水平位置(%)（0–100）
+- `mediaPositionY` — 裁剪垂直位置(%)（0–100）
+- `title` — 底部标题
+- `accentColor` — 标题竖线颜色（color）
+- `titleColor` — 标题颜色（color）
+- `placeholderColor` — 素材底色（color）
+- `cornerRadius` — 海报圆角(px)（0–80）
+- `titleFontSize` — 标题字号(px)（12–72）
+- `enterDelaySeconds` — 入场延迟(秒)（0–10）
+- `enterDurationSeconds` — 滑入时长(秒)（0.12–3）
+- `slideDistance` — 滑入距离(px)（40–800）
+- `videoMuted` — 视频静音
+- `videoVolume` — 视频音量（0–1）
+- `videoLoop` — 视频循环播放
+- `animationSeconds` — 建议完整时长(秒)（1–120）
 
 ### `MaterialCard` · 素材卡
 
