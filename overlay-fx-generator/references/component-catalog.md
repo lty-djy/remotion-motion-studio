@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（48 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（51 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -33,7 +33,9 @@
 | `PortraitDesignRuleChecklist` | 网页设计规则清单 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitSkillResultComparison` | Skill 效果前后对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitPromptIterationShowcase` | 一句话连续改版 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitSkillIdentityHeaderBar` | Skill 身份条 | 竖屏口播信息层 | 概念解释 | portrait |  |
+| `PortraitSkillIdentityHeaderBar` | 编号标题条 | 竖屏口播信息层 | 概念解释 | portrait |  |
+| `PortraitHeatBadge` | 热度徽标 | 竖屏口播信息层 | 重点强调 | portrait |  |
+| `PortraitPillText` | 药丸文字 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitCodeDecisionChecklist` | 代码决策检查清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitBrowserRepairLoop` | 浏览器自动修复闭环 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitAgentBrowserMedia` | Agent 浏览器逐屏自查 | 媒体展示组件 | 案例与素材 | portrait |  |
@@ -42,7 +44,8 @@
 | `PortraitGapHeadline` | 差距不在模型标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitAiOutputGapComparison` | AI 输出差距对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitRiskWarning` | 风险提醒卡 | 风险提醒 | 风险提醒 | portrait |  |
-| `PortraitNextEpisodeCta` | 下集预告卡 | 竖屏口播信息层 | 行动引导 | portrait |  |
+| `PortraitNextEpisodeTitle` | 下集预告标题 | 竖屏口播信息层 | 行动引导 | portrait |  |
+| `PortraitFollowCta` | 图标文字 | 竖屏口播信息层 | 行动引导 | portrait |  |
 | `QuickSetupProof` | 快速上手证明条 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `LegacyEliminationPanel` | 淘汰警告·旧方案面板 | 风险提醒 | 风险提醒 | portrait |  |
 | `MarketEliminationStamp` | 淘汰警告·市场印章 | 风险提醒 | 风险提醒 | portrait |  |
@@ -726,32 +729,70 @@
 - `mediaPositionY` — 素材垂直位置(%)（0–100）
 - `animationSeconds` — 完整动画时长(秒)（6–60）
 
-### `PortraitSkillIdentityHeaderBar` · Skill 身份条
+### `PortraitSkillIdentityHeaderBar` · 编号标题条
 
-- 用途：从 GSAP 参考画面拆出的独立身份条：编号、Skill 标题、副标题与徽标。
-- 主要语义：概念解释；次要：重点强调、列举要点、流程说明
-- 何时使用（检索词）：skill、技能、GSAP、动效引擎、高级动画、编号、徽标
+- 用途：编号圆圈 + 主标题 + 副标题的横向标题条，用于介绍一个带序号的技能、章节或条目；热度徽标已拆分为独立的 PortraitHeatBadge 组件。
+- 主要语义：概念解释；次要：重点强调、列举要点、流程说明、章节转场
+- 何时使用（检索词）：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
 - 画布方向：portrait；密度：light；建议驻留：2–24 秒
-- 默认落位：x=90，y=90，scale=1（占位 900×150，placement=top）
+- 默认落位：x=90，y=90，scale=1（占位 620×150，placement=top）
 - 默认时长：120 帧（约 4 秒）
 - 分组：竖屏口播信息层
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
-- `enabled` — 显示 Skill 身份条
-- `sequenceText` — Skill 编号
-- `title` — Skill 标题
-- `subtitle` — Skill 副标题
-- `badge` — Skill 徽标
-- `sequenceFontSize` — Skill 编号字号(px)（8–120）
-- `titleFontSize` — Skill 标题字号(px)（12–120）
-- `subtitleFontSize` — Skill 副标题字号(px)（10–96）
-- `badgeFontSize` — Skill 徽标字号(px)（8–96）
-- `accentColor` — 身份条强调色（color）
-- `panelColor` — 身份条底色（color）
-- `textColor` — 身份条文字颜色（color）
-- `enterDurationSeconds` — 身份条入场时长(秒)
+- `enabled` — 显示编号标题条
+- `sequenceText` — 编号
+- `title` — 主标题
+- `subtitle` — 副标题
+- `sequenceFontSize` — 编号字号(px)（8–120）
+- `titleFontSize` — 主标题字号(px)（12–120）
+- `subtitleFontSize` — 副标题字号(px)（10–96）
+- `accentColor` — 标题条强调色（color）
+- `panelColor` — 标题条底色（color）
+- `textColor` — 标题条文字颜色（color）
+- `enterDurationSeconds` — 标题条入场时长(秒)
+
+### `PortraitHeatBadge` · 热度徽标
+
+- 用途：胶囊形热度/数据徽标：展示 star 数、点赞数、人气或评分等热度信息，常与编号标题条搭配出现在标题右侧。
+- 主要语义：重点强调；次要：数字展示、概念解释
+- 何时使用（检索词）：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
+- 画布方向：portrait；密度：light；建议驻留：2–24 秒
+- 默认落位：x=790，y=135，scale=1（占位 200×60，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示热度徽标
+- `badgeText` — 徽标文字
+- `fontSize` — 徽标字号(px)（8–96）
+- `accentColor` — 徽标强调色（color）
+- `enterDurationSeconds` — 徽标入场时长(秒)
+
+### `PortraitPillText` · 药丸文字
+
+- 用途：带发光圆点和实心底色的胶囊状态条：用于展示持续更新、新规则迭代、小提示等补充说明文字，底色参考终端教学面板的稳定深色卡片底。
+- 主要语义：概念解释；次要：重点强调、流程说明
+- 何时使用（检索词）：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
+- 画布方向：portrait；密度：light；建议驻留：2–24 秒
+- 默认落位：x=90，y=620，scale=1（占位 300×44，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示药丸文字
+- `text` — 药丸文字内容
+- `fontSize` — 文字字号(px)（8–48）
+- `accentColor` — 药丸强调色（color）
+- `panelColor` — 药丸底色（color）
+- `textColor` — 药丸文字颜色（color）
+- `enterDurationSeconds` — 药丸入场时长(秒)
 
 ### `PortraitCodeDecisionChecklist` · 代码决策检查清单
 
@@ -933,27 +974,48 @@
 - `nextRowEnterIntervalSeconds` — 下一条入场间隔(秒)（0–120）
 - `animationSeconds` — 完整动画时长(秒)（1–120）
 
-### `PortraitNextEpisodeCta` · 下集预告卡
+### `PortraitNextEpisodeTitle` · 下集预告标题
 
-- 用途：参考竖屏口播结尾：右上展示下期主题、醒目关键词和关注按钮，适合预告下一集与引导关注。
+- 用途：竖屏口播结尾的下集预告标题：发光竖线搭配预告引导语、醒目关键词与下集主题，可与「图标文字」自由组合。
 - 主要语义：行动引导；次要：章节转场、重点强调
-- 何时使用（检索词）：关注、点赞、收藏、下期、下一步
+- 何时使用（检索词）：下期、下一期、下次、预告、下集
 - 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=640，y=285，scale=1（占位 390×270，placement=right）
+- 默认落位：x=89，y=261，scale=1.52（占位 390×170，placement=right）
 - 默认时长：150 帧（约 5 秒）
 - 分组：竖屏口播信息层
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
-- `enabled` — 显示下集预告
+- `enabled` — 显示预告标题
 - `eyebrow` — 预告引导语
 - `title` — 核心关键词
 - `subtitle` — 下集主题
+- `eyebrowFontSize` — 引导语字号(px)（10–96）
+- `titleFontSize` — 关键词字号(px)（12–140）
+- `subtitleFontSize` — 主题字号(px)（10–120）
+- `accentColor` — 主题色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitFollowCta` · 图标文字
+
+- 用途：竖屏口播结尾的图标文字：强调色发光图标搭配行动文案，可与「下集预告标题」自由组合，也可单独用于点赞、收藏等引导。
+- 主要语义：行动引导；次要：重点强调
+- 何时使用（检索词）：关注、点赞、收藏、评论、点个关注
+- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
+- 默认落位：x=6，y=492，scale=1.69（占位 280×64，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示关注按钮
 - `cta` — 行动按钮
 - `icon` — 按钮图标
-- `accentColor` — 主题色（color）
-- `secondaryColor` — 按钮强调色（color）
+- `backgroundOpacity` — 背景不透明度（0–1）
+- `secondaryColor` — 图标强调色（color）
 - `panelColor` — 按钮底色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 入场时长(秒)（0.4–2）
@@ -1196,7 +1258,7 @@
 ### `BrollGigCardFloat` · 悬浮兼职卡片群
 
 - 用途：按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。
-- 主要语义：案例与素材；次要：列举要点、案例与素材、重点强调
+- 主要语义：案例与素材；次要：列举要点、重点强调
 - 何时使用（检索词）：兼职、时薪、收入、薪资、招聘、招募、机会、价格区间、副业、悬浮卡片、卡片群、b-roll
 - 画布方向：landscape；密度：heavy；建议驻留：3–10 秒
 - 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
@@ -1474,7 +1536,7 @@
 ### `BrandLogo` · 品牌 Logo
 
 - 用途：独立品牌标识组件：可选内置图标，或使用图标库/手动添加的图片 URL。
-- 主要语义：案例与素材；次要：重点强调、案例与素材、章节转场
+- 主要语义：案例与素材；次要：重点强调、章节转场
 - 何时使用（检索词）：品牌、logo、标识、抖音、平台、账号、官方图标
 - 画布方向：portrait；密度：light；建议驻留：0.5–12 秒
 - 默认落位：x=72，y=120，scale=1（占位 300×100，placement=left）

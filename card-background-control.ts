@@ -69,6 +69,7 @@ export const CARD_BACKGROUND_SUPPORTED_COMPONENT_IDS = new Set([
   "TerminalPanel",
   "ChapterBar",
   "TeamAttributionCard",
+  "PortraitPillText",
 ]);
 
 export const supportsCardBackground = (componentId: unknown): boolean =>

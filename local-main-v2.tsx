@@ -1,3 +1,4 @@
+import { buildComponentReplacement, subtitleTextForInstance, isReplacementContentField } from "./component-replacement";
 import {GigCardsEditor} from "./effects/GigCardsEditor";
 import { assignArrangementLanes } from "./arrangement-lanes";
 import {readGigCards} from "./effects/gig-card-model";
@@ -235,9 +236,18 @@ const SRT_DIALOG_GEOMETRY_STORAGE_KEY =
   "motion-studio-srt-dialog-geometry-v1";
 const SRT_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
   "motion-studio-srt-dialog-default-size-v1";
+const REPLACEMENT_DIALOG_GEOMETRY_STORAGE_KEY =
+  "motion-studio-replacement-dialog-geometry-v1";
+const REPLACEMENT_DIALOG_DEFAULT_SIZE_STORAGE_KEY =
+  "motion-studio-replacement-dialog-default-size-v1";
+const REPLACEMENT_PREVIEW_HEIGHT_STORAGE_KEY =
+  "motion-studio-replacement-preview-height-v1";
 const ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP = 16;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH = 720;
 const ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT = 480;
+const REPLACEMENT_PREVIEW_MIN_HEIGHT = 160;
+const REPLACEMENT_PREVIEW_DEFAULT_HEIGHT = 300;
+const REPLACEMENT_PREVIEW_MAX_HEIGHT = 640;
 const ARRANGEMENT_PREVIEW_MINIMIZED_WIDTH = 300;
 const ARRANGEMENT_PREVIEW_MINIMIZED_HEIGHT = 56;
 const ARRANGEMENT_PREVIEW_MINIMIZED_EDGE_GAP = 24;
@@ -407,6 +417,71 @@ const loadSrtDialogGeometry = (): ArrangementPreviewDialogGeometry => {
     });
   } catch {
     return defaultArrangementPreviewDialogGeometry();
+  }
+};
+
+const defaultReplacementDialogGeometry = (): ArrangementPreviewDialogGeometry => {
+  const maxWidth = Math.max(320, window.innerWidth - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2);
+  const maxHeight = Math.max(320, window.innerHeight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2);
+  const width = Math.min(1180, maxWidth);
+  const height = Math.min(820, maxHeight);
+  return {
+    x: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerWidth - width) / 2),
+    y: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerHeight - height) / 2),
+    width,
+    height,
+  };
+};
+
+const replacementDialogGeometryFromDefaultSize = (): ArrangementPreviewDialogGeometry => {
+  const fallback = defaultReplacementDialogGeometry();
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(REPLACEMENT_DIALOG_DEFAULT_SIZE_STORAGE_KEY) ?? "null",
+    ) as Partial<ArrangementPreviewDialogGeometry> | null;
+    if (!saved) return fallback;
+    const constrained = constrainArrangementPreviewDialogGeometry({
+      ...fallback,
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+    return {
+      ...constrained,
+      x: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerWidth - constrained.width) / 2),
+      y: Math.max(ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP, (window.innerHeight - constrained.height) / 2),
+    };
+  } catch {
+    return fallback;
+  }
+};
+
+const loadReplacementDialogGeometry = (): ArrangementPreviewDialogGeometry => {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(REPLACEMENT_DIALOG_GEOMETRY_STORAGE_KEY) ?? "null",
+    ) as Partial<ArrangementPreviewDialogGeometry> | null;
+    if (!saved) return replacementDialogGeometryFromDefaultSize();
+    return constrainArrangementPreviewDialogGeometry({
+      x: Number(saved.x),
+      y: Number(saved.y),
+      width: Number(saved.width),
+      height: Number(saved.height),
+    });
+  } catch {
+    return defaultReplacementDialogGeometry();
+  }
+};
+
+const loadReplacementPreviewHeight = (): number => {
+  try {
+    const saved = Number(
+      window.localStorage.getItem(REPLACEMENT_PREVIEW_HEIGHT_STORAGE_KEY),
+    );
+    return Number.isFinite(saved)
+      ? Math.min(REPLACEMENT_PREVIEW_MAX_HEIGHT, Math.max(REPLACEMENT_PREVIEW_MIN_HEIGHT, saved))
+      : REPLACEMENT_PREVIEW_DEFAULT_HEIGHT;
+  } catch {
+    return REPLACEMENT_PREVIEW_DEFAULT_HEIGHT;
   }
 };
 
@@ -1761,7 +1836,8 @@ const PORTRAIT_DEFAULT_POSITION_IDS = new Set([
   "PortraitDecisionTagStack",
   "PortraitStepChecklist",
   "PortraitRiskWarning",
-  "PortraitNextEpisodeCta",
+  "PortraitNextEpisodeTitle",
+  "PortraitFollowCta",
   "PortraitMediaPosterReveal",
   "PortraitIndexedChapterTitle",
   "TitleReveal",
@@ -3385,6 +3461,24 @@ const App = () => {
     geometry: ArrangementPreviewDialogGeometry;
     direction: ArrangementPreviewResizeDirection;
   } | null>(null);
+  const replacementDialogDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+  } | null>(null);
+  const replacementDialogResizeRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    geometry: ArrangementPreviewDialogGeometry;
+    direction: ArrangementPreviewResizeDirection;
+  } | null>(null);
+  const replacementPreviewResizeRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startHeight: number;
+  } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const playheadDragCleanupRef = useRef<(() => void) | null>(null);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
@@ -3436,6 +3530,11 @@ const App = () => {
     );
   const [srtDialogGeometry, setSrtDialogGeometry] = useState<ArrangementPreviewDialogGeometry>(
     loadSrtDialogGeometry,
+  );
+  const [replacementDialogGeometry, setReplacementDialogGeometry] =
+    useState<ArrangementPreviewDialogGeometry>(loadReplacementDialogGeometry);
+  const [replacementPreviewHeight, setReplacementPreviewHeight] = useState(
+    loadReplacementPreviewHeight,
   );
   const [arrangementPreferences, setArrangementPreferences] =
     useState<ArrangementPreferences>(loadActiveArrangementPreferences);
@@ -3698,8 +3797,25 @@ const App = () => {
   }, [arrangementPreviewDialogGeometry]);
 
   useEffect(() => {
+    window.localStorage.setItem(
+      REPLACEMENT_DIALOG_GEOMETRY_STORAGE_KEY,
+      JSON.stringify(replacementDialogGeometry),
+    );
+  }, [replacementDialogGeometry]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      REPLACEMENT_PREVIEW_HEIGHT_STORAGE_KEY,
+      String(replacementPreviewHeight),
+    );
+  }, [replacementPreviewHeight]);
+
+  useEffect(() => {
     const constrainDialogToViewport = () => {
       setArrangementPreviewDialogGeometry((current) =>
+        constrainArrangementPreviewDialogGeometry(current),
+      );
+      setReplacementDialogGeometry((current) =>
         constrainArrangementPreviewDialogGeometry(current),
       );
       setArrangementPreviewMinimizedPosition((current) =>
@@ -3851,6 +3967,178 @@ const App = () => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+  };
+
+  const beginReplacementDialogDrag = (
+    event: React.PointerEvent<HTMLElement>,
+  ) => {
+    if (
+      event.button !== 0 ||
+      (event.target as HTMLElement).closest("button, input, select, textarea")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    replacementDialogDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      geometry: replacementDialogGeometry,
+    };
+  };
+
+  const moveReplacementDialog = (event: React.PointerEvent<HTMLElement>) => {
+    const drag = replacementDialogDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setReplacementDialogGeometry(
+      constrainArrangementPreviewDialogGeometry({
+        ...drag.geometry,
+        x: drag.geometry.x + event.clientX - drag.startX,
+        y: drag.geometry.y + event.clientY - drag.startY,
+      }),
+    );
+  };
+
+  const endReplacementDialogDrag = (event: React.PointerEvent<HTMLElement>) => {
+    if (replacementDialogDragRef.current?.pointerId !== event.pointerId) return;
+    replacementDialogDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const beginReplacementPreviewResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    replacementPreviewResizeRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight: replacementPreviewHeight,
+    };
+  };
+
+  const resizeReplacementPreview = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    const resize = replacementPreviewResizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+    const maxHeight = Math.max(
+      REPLACEMENT_PREVIEW_MIN_HEIGHT,
+      Math.min(REPLACEMENT_PREVIEW_MAX_HEIGHT, window.innerHeight - 220),
+    );
+    setReplacementPreviewHeight(
+      clamp(
+        resize.startHeight + event.clientY - resize.startY,
+        REPLACEMENT_PREVIEW_MIN_HEIGHT,
+        maxHeight,
+      ),
+    );
+  };
+
+  const endReplacementPreviewResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (replacementPreviewResizeRef.current?.pointerId !== event.pointerId) return;
+    replacementPreviewResizeRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const beginReplacementDialogResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    direction: ArrangementPreviewResizeDirection,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    replacementDialogResizeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      geometry: replacementDialogGeometry,
+      direction,
+    };
+  };
+
+  const resizeReplacementDialog = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const resize = replacementDialogResizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - resize.startX;
+    const deltaY = event.clientY - resize.startY;
+    const next = { ...resize.geometry };
+    const minimumWidth = Math.min(
+      ARRANGEMENT_PREVIEW_DIALOG_MIN_WIDTH,
+      Math.max(320, window.innerWidth - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2),
+    );
+    const minimumHeight = Math.min(
+      ARRANGEMENT_PREVIEW_DIALOG_MIN_HEIGHT,
+      Math.max(320, window.innerHeight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP * 2),
+    );
+    const fixedRight = resize.geometry.x + resize.geometry.width;
+    const fixedBottom = resize.geometry.y + resize.geometry.height;
+    if (resize.direction.includes("e")) {
+      next.width = clamp(
+        resize.geometry.width + deltaX,
+        minimumWidth,
+        window.innerWidth - resize.geometry.x - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+    }
+    if (resize.direction.includes("s")) {
+      next.height = clamp(
+        resize.geometry.height + deltaY,
+        minimumHeight,
+        window.innerHeight - resize.geometry.y - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+    }
+    if (resize.direction.includes("w")) {
+      next.width = clamp(
+        resize.geometry.width - deltaX,
+        minimumWidth,
+        fixedRight - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+      next.x = fixedRight - next.width;
+    }
+    if (resize.direction.includes("n")) {
+      next.height = clamp(
+        resize.geometry.height - deltaY,
+        minimumHeight,
+        fixedBottom - ARRANGEMENT_PREVIEW_DIALOG_EDGE_GAP,
+      );
+      next.y = fixedBottom - next.height;
+    }
+    setReplacementDialogGeometry(
+      constrainArrangementPreviewDialogGeometry(next),
+    );
+  };
+
+  const endReplacementDialogResize = (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (replacementDialogResizeRef.current?.pointerId !== event.pointerId) return;
+    replacementDialogResizeRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const resetReplacementDialogGeometry = () => {
+    setReplacementDialogGeometry(replacementDialogGeometryFromDefaultSize());
+  };
+
+  const saveReplacementDialogDefaultSize = () => {
+    const { width, height } = replacementDialogGeometry;
+    window.localStorage.setItem(
+      REPLACEMENT_DIALOG_DEFAULT_SIZE_STORAGE_KEY,
+      JSON.stringify({ width, height }),
+    );
+    setNotice({ tone: "ok", text: "已将替换窗口大小设为默认大小。" });
   };
   const [globalCardScale, setGlobalCardScale] = useState(() => {
     const saved = localStorage.getItem("motion-studio-global-card-scale");
@@ -4207,6 +4495,14 @@ const App = () => {
   const [effectRenameTarget, setEffectRenameTarget] =
     useState<EffectRenameTarget | null>(null);
   const [effectNameDraft, setEffectNameDraft] = useState("");
+  const [replaceComponentTarget, setReplaceComponentTarget] = useState<
+    string[] | null
+  >(null);
+  const [replaceComponentSearch, setReplaceComponentSearch] = useState("");
+  const [replacementScope, setReplacementScope] = useState<"timeline" | "pending">("timeline");
+  const [replacementDraft, setReplacementDraft] = useState<MotionInstance | null>(null);
+  const [replacementGroup, setReplacementGroup] = useState("");
+
   const [effectMoveTarget, setEffectMoveTarget] =
     useState<EffectMoveTarget | null>(null);
   const [openCatalogCategories, setOpenCatalogCategories] = useState<string[]>([
@@ -8344,6 +8640,7 @@ const App = () => {
       fileName: file.name,
       batchId: arrangementBatch.batchId,
       batchName: arrangementBatch.batchName,
+      semanticSummary: {cueCount: importedSubtitleEntries.length, intentCount: 0, skippedCueCount: 0},
       motionInstances: arrangementMotionItems,
       resourceTracks: arrangementBatch.resourceItems,
       captionInstance,
@@ -9175,7 +9472,7 @@ const App = () => {
     const selectedKeys = new Set(pendingArrangement.selectedKeys);
     const selectedMotionInstances = pendingArrangement.motionInstances.filter(
       (instance) => selectedKeys.has(`motion:${instance.id}`),
-    );
+    ).map(instance => ({...instance, props: {...instance.props, __sourceSubtitleText: replacementSource(instance, "pending")}}));
     const selectedCaptionInstance =
       pendingArrangement.captionInstance &&
       selectedKeys.has(`caption:${pendingArrangement.captionInstance.id}`)
@@ -12663,6 +12960,44 @@ const App = () => {
     setContextMenu(null);
   };
 
+  const replacementSource = (instance: MotionInstance, scope: "timeline" | "pending") => {
+    const semanticText = scope === "pending"
+      ? pendingArrangement?.semanticSourcesBySegment?.[getArrangementSegmentId(instance)]?.text
+      : "";
+    return semanticText || subtitleTextForInstance(instance,
+      scope === "pending" ? [...(pendingArrangement?.motionInstances ?? []), ...(pendingArrangement?.captionInstance ? [pendingArrangement.captionInstance] : [])] : instances, fps);
+  };
+
+  const openComponentReplacement = (ids: string[], scope: "timeline" | "pending" = "timeline") => {
+    setReplacementScope(scope);
+    setReplaceComponentTarget(ids);
+    setReplaceComponentSearch("");
+    setReplacementGroup("");
+    setReplacementDraft(null);
+    setContextMenu(null);
+    setArrangementComponentPicker(null);
+  };
+
+  const confirmComponentReplacement = () => {
+    if (!replacementDraft || !replaceComponentTarget) return;
+    const definition = definitionMap.get(replacementDraft.componentId);
+    if (!definition) return;
+    const ids = new Set(replaceComponentTarget);
+    const replace = (instance: MotionInstance) => {
+      if (!ids.has(instance.id)) return instance;
+      if (instance.id === replacementDraft.id) return replacementDraft;
+      return buildComponentReplacement(instance, definitionMap.get(instance.componentId), definition, replacementSource(instance, replacementScope));
+    };
+    if (replacementScope === "pending") {
+      setPendingArrangement(current => current ? markPendingArrangementQualityChecksStale({
+        ...current, motionInstances: current.motionInstances.map(instance => current.lockedSegmentIds.includes(getArrangementSegmentId(instance)) ? instance : replace(instance)),
+      }) : current);
+    } else { commitPendingHistory(); setInstances(current => current.map(replace)); }
+    setReplaceComponentTarget(null);
+    setReplacementDraft(null);
+    setNotice({tone: "ok", text: `已替换为「${definition.name}」，保留原时间、轨道与位置。`});
+  };
+
   const openRenameEffectDialog = (componentId: string) => {
     const definition =
       catalogDefinitionMap.get(componentId) ?? definitionMap.get(componentId);
@@ -13589,6 +13924,10 @@ const App = () => {
             "animationSeconds",
           ].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillIdentityHeaderBar" &&
+          key === "enterDurationSeconds") ||
+        (selectedDefinition?.id === "PortraitHeatBadge" &&
+          key === "enterDurationSeconds") ||
+        (selectedDefinition?.id === "PortraitPillText" &&
           key === "enterDurationSeconds") ||
         (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
           ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
@@ -15568,14 +15907,14 @@ const App = () => {
               onClick={() => timelineJsonInput.current?.click()}
               title="手动导入编排 JSON（如 AI 会话生成的 timeline JSON），预览并确认后才会插入时间线"
             >
-              <UploadSimple />
+              <DownloadSimple />
               导入编排JSON
             </button>
             <button
               onClick={() => void exportArrangementForReview()}
               title="把当前时间线（你的微调终稿）连同 AI 初稿导出给 overlay-fx-generator 学习；导出后对 AI 说「学一下」"
             >
-              <DownloadSimple />
+              <UploadSimple />
               导出编排给AI
             </button>
           </div>
@@ -16324,14 +16663,7 @@ const App = () => {
                   <span>{formatTime(item.startFrame / fps)} · 参数已保留</span>
                 </div>
                 <div className="motion-track-missing-actions">
-                  <select aria-label="替换缺失组件" value="" onChange={(event) => {
-                    const replacement = definitionMap.get(event.target.value);
-                    if (!replacement) return;
-                    setInstances(current => current.map(clip => clip.id === item.id ? { ...clip, componentId: replacement.id, props: { ...replacement.defaultProps } } : clip));
-                  }}>
-                    <option value="">选择替换组件</option>
-                    {definitions.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
-                  </select>
+                  <button onClick={() => openComponentReplacement([item.id])}>替换缺失组件</button>
                   <button
                     className="motion-track-missing-remove"
                     onClick={() => setInstances(current => current.filter(clip => clip.id !== item.id))}
@@ -16771,16 +17103,18 @@ const App = () => {
 
         <aside className="right-panel reference-right-panel">
           <header className="reference-inspector-head">
-            <div>
-              <SlidersHorizontal weight="fill" />
-              <strong>
-                {selectedResourceTrack?.name ?? inspectorDefinition?.name ?? "未选择效果"}
-              </strong>
-              <span>
-                {selectedResourceTrack
+            <div className="reference-inspector-title-row">
+              <span className="reference-inspector-title-icon" aria-hidden="true"><SlidersHorizontal weight="fill" /></span>
+              <div className="reference-inspector-title-copy">
+                <div className="reference-inspector-title-line">
+                  <strong>{selectedResourceTrack?.name ?? inspectorDefinition?.name ?? "未选择效果"}</strong>
+                  {inspectorInstance && !selectedResourceTrack ? <span className="reference-inspector-kind">动效组件</span> : null}
+                </div>
+                <p>{selectedResourceTrack
                   ? `${selectedResourceTrack.kind.toUpperCase()} · ${selectedResourceTrack.resourceId}`
-                  : inspectorDefinition?.description ?? "从时间轴或效果库选择一个组件"}
-              </span>
+                  : inspectorDefinition?.description ?? "从时间轴或效果库选择一个组件"}</p>
+              </div>
+              {inspectorInstance && !selectedResourceTrack ? <button className="inspector-replace-button" onClick={() => openComponentReplacement([inspectorInstance.id], pendingPreviewInspectorInstance ? "pending" : "timeline")}><ArrowsInLineHorizontal weight="bold" />替换组件</button> : null}
             </div>
           </header>
 
@@ -17042,9 +17376,9 @@ const App = () => {
                     <input
                       type="range"
                       min={0.1}
-                      max={3}
+                      max={5}
                       step={0.01}
-                      value={clamp(inspectorInstance.position.scale, 0.1, 3)}
+                      value={clamp(inspectorInstance.position.scale, 0.1, 5)}
                       title="只缩放当前选中组件，与全局整体大小相乘"
                       onChange={(event) => {
                         const nextScale = Number(event.target.value);
@@ -18226,6 +18560,69 @@ const App = () => {
         </div>
       ) : null}
 
+      {replaceComponentTarget ? (() => {
+        const pool = replacementScope === "pending" ? pendingArrangement?.motionInstances ?? [] : instances;
+        const original = pool.find(item => item.id === replaceComponentTarget[0]);
+        const source = original ? replacementSource(original, replacementScope) : "";
+        const draftDefinition = replacementDraft ? definitionMap.get(replacementDraft.componentId) : null;
+        const query = replaceComponentSearch.trim().toLowerCase();
+        const candidates = definitions.filter(d => (!replacementGroup || d.category === replacementGroup) && (!query || `${d.name} ${d.id} ${d.description}`.toLowerCase().includes(query)));
+        const close = () => {setReplaceComponentTarget(null); setReplacementDraft(null);};
+        return <div className="shortcut-dialog-backdrop replacement-backdrop" onPointerDown={close}>
+          <section className="shortcut-dialog replace-component-dialog" role="dialog" aria-modal="true" aria-labelledby="replace-component-title" onPointerDown={e => e.stopPropagation()} onKeyDown={e => {if(e.key === "Escape") {e.stopPropagation(); close();}}} style={{left: `${replacementDialogGeometry.x}px`, top: `${replacementDialogGeometry.y}px`, width: `${replacementDialogGeometry.width}px`, height: `${replacementDialogGeometry.height}px`}}>
+            <header className="replacement-dialog-titlebar" onPointerDown={beginReplacementDialogDrag} onPointerMove={moveReplacementDialog} onPointerUp={endReplacementDialogDrag} onPointerCancel={endReplacementDialogDrag}>
+              <div><strong id="replace-component-title">替换「{original ? definitionMap.get(original.componentId)?.name : "组件"}」</strong><small>点击缩略图试播，确认后应用 · 保留时间、轨道与位置</small></div>
+              <div className="replacement-dialog-titlebar-actions">
+                <button type="button" className="replacement-dialog-reset" onPointerDown={event => event.stopPropagation()} onClick={resetReplacementDialogGeometry} title="恢复窗口默认位置和大小"><ArrowCounterClockwise />恢复窗口</button>
+                <button type="button" className="replacement-dialog-default" onPointerDown={event => event.stopPropagation()} onClick={saveReplacementDialogDefaultSize} title="保存当前窗口大小为默认大小"><FloppyDisk />设为默认大小</button>
+                <button type="button" aria-label="关闭替换" onPointerDown={event => event.stopPropagation()} onClick={close}><X /></button>
+              </div>
+            </header>
+            <div className="replacement-source"><b>本段字幕</b><p>{source || "未关联原始 SRT，请在下方补充新组件文案。"}</p>{original && <small>{formatTime(original.startFrame / fps)} — {formatTime((original.startFrame + original.durationInFrames) / fps)}</small>}{replaceComponentTarget.length > 1 && <p>批量替换 {replaceComponentTarget.length} 项：此处预览和编辑第一项，其余项分别绑定自己的字幕。</p>}</div>
+            <div className="replacement-body"><div className="replacement-library">
+              <div className="replacement-filters"><input autoFocus aria-label="搜索替换组件" value={replaceComponentSearch} onChange={e => setReplaceComponentSearch(e.target.value)} placeholder="搜索组件名称…" /><select aria-label="筛选组件分组" value={replacementGroup} onChange={e => setReplacementGroup(e.target.value)}><option value="">全部分组</option>{[...new Set(definitions.map(d => d.category))].map(group => <option key={group} value={group}>{group}</option>)}</select></div>
+              <div className="replace-component-list">{candidates.map(candidate => <button type="button" key={candidate.id} className={`replace-component-item${replacementDraft?.componentId === candidate.id ? " selected" : ""}`} onClick={() => {if(original) setReplacementDraft(buildComponentReplacement(original, definitionMap.get(original.componentId), candidate, source));}}><ArrangementCandidatePreviewPlayer definition={candidate} candidate={{componentId:candidate.id, rank:0, reason:"", props:{}}} fps={fps}/><strong>{candidate.name}</strong><small>{candidate.id === original?.componentId ? "当前组件" : "点击试播"}</small></button>)}{!candidates.length && <p>没有匹配的组件</p>}</div>
+            </div><div className="replacement-detail">
+              {replacementDraft && draftDefinition ? <>
+                <strong>{draftDefinition.name} · 实际内容试播</strong>
+                <div className="replacement-player-shell"><div className="replacement-player" style={{height: `${replacementPreviewHeight}px`}}><Player key={replacementDraft.componentId} component={StudioPreviewComposition} inputProps={{...previewPlayerInputProps, instances:[{...replacementDraft, startFrame:0, sourceStartFrame:0, visible:true}], videoTracks:[], resourceTracks:[], includeVideo:false, soundEnabled:false, safetyGuideVisible:false, personSafetyGuideVisible:false}} durationInFrames={Math.max(3,replacementDraft.durationInFrames)} fps={fps} compositionWidth={canvasWidth} compositionHeight={canvasHeight} controls autoPlay loop acknowledgeRemotionLicense style={{width:"100%",height:"100%"}} /></div><button type="button" className="replacement-player-resize-handle" aria-label="调整预览窗口高度" title="上下拖动调整预览窗口高度" onPointerDown={beginReplacementPreviewResize} onPointerMove={resizeReplacementPreview} onPointerUp={endReplacementPreviewResize} onPointerCancel={endReplacementPreviewResize}><span aria-hidden="true" /></button></div>
+                <small>请核对文案与数值；无法自动匹配的内容需手动补充。</small>
+                <div className="replacement-fields">{Object.entries(draftDefinition.propsSchema).filter(([key,schema]) => (schema.type === "text" && isReplacementContentField(key)) || schema.type === "number").map(([key,schema]) => {
+                  const isNumber = schema.type === "number";
+                  const currentValue = Number(replacementDraft.props[key]);
+                  const step = Number(schema.step) || 1;
+                  const inputUnit = schema.unit ?? schema.label?.match(/\(([^)]+)\)/u)?.[1] ?? "";
+                  const changeNumber = (direction: 1 | -1) => {
+                    const fallback = Number(schema.default);
+                    const base = Number.isFinite(currentValue) ? currentValue : Number.isFinite(fallback) ? fallback : 0;
+                    const next = base + direction * step;
+                    const bounded = Math.min(schema.max ?? Infinity, Math.max(schema.min ?? -Infinity, next));
+                    setReplacementDraft(current => current ? {...current, props:{...current.props,[key]: bounded}} : current);
+                  };
+                  return <label key={key}><span>{schema.label ?? key}</span>{isNumber ? <span className="replacement-number-control"><HoldStepButton type="button" className="replacement-number-button" aria-label={`减少${schema.label ?? key}`} onStep={() => changeNumber(-1)}><Minus weight="bold" /></HoldStepButton><span className="replacement-number-input-shell"><input type="number" min={schema.min} max={schema.max} step={schema.step} placeholder="0" value={String(replacementDraft.props[key] ?? "")} onChange={e => {const value = Number(e.target.value); setReplacementDraft(current => current ? {...current, props:{...current.props,[key]:value}} : current);}} />{inputUnit ? <span className="replacement-number-unit" aria-hidden="true">{inputUnit}</span> : null}</span><HoldStepButton type="button" className="replacement-number-button" aria-label={`增加${schema.label ?? key}`} onStep={() => changeNumber(1)}><Plus weight="bold" /></HoldStepButton></span> : <span className="replacement-text-control"><input type="text" placeholder="需要补充内容" value={String(replacementDraft.props[key] ?? "")} onChange={e => setReplacementDraft(current => current ? {...current, props:{...current.props,[key]:e.target.value}} : current)} /></span>}</label>;
+                })}</div>
+              </> : <div className="replacement-empty">选择左侧组件，查看本段实际效果</div>}
+            </div></div>
+            <footer><span>取消不会改变原组件</span><div><button onClick={close}>取消</button><button className="shortcut-save" disabled={!replacementDraft} onClick={confirmComponentReplacement}>确认替换</button></div></footer>
+            {ARRANGEMENT_PREVIEW_RESIZE_DIRECTIONS.map(({ direction, label }) => (
+              <button
+                type="button"
+                className={`arrangement-preview-resize-handle replacement-dialog-resize-handle ${direction}`}
+                aria-label={label}
+                title={label}
+                key={direction}
+                onPointerDown={event => beginReplacementDialogResize(event, direction)}
+                onPointerMove={resizeReplacementDialog}
+                onPointerUp={endReplacementDialogResize}
+                onPointerCancel={endReplacementDialogResize}
+              >
+                {direction === "se" ? <ArrowsOutLineVertical /> : null}
+              </button>
+            ))}
+          </section>
+        </div>;
+      })() : null}
+
       {effectSemanticTypeTarget ? (
         <div
           className="shortcut-dialog-backdrop"
@@ -18918,7 +19315,7 @@ const App = () => {
                         </button>
                         <button
                           type="button"
-                          disabled={locked || semanticCandidates.length === 0}
+                          disabled={locked}
                           onClick={() => {
                             stopArrangementAudioPreview();
                             setArrangementResourcePicker(null);
@@ -19310,18 +19707,9 @@ const App = () => {
                             <div className="arrangement-item-actions">
                               <button
                                 type="button"
-                                disabled={locked || semanticCandidates.length === 0}
+                                disabled={locked}
                                 onClick={() => {
-                                  previewPendingArrangementMotion(
-                                    segment.id,
-                                    instance.id,
-                                    false,
-                                  );
-                                  setArrangementComponentPicker({
-                                    mode: "replace",
-                                    segmentId: segment.id,
-                                    instanceId: instance.id,
-                                  });
+                                  openComponentReplacement([instance.id], "pending");
                                 }}
                               >
                                 替换
@@ -20558,6 +20946,15 @@ const App = () => {
                   onClick={() => duplicateInstances(contextMenu.instanceIds)}
                 >
                   复制组件
+                </button>
+                <button
+                  className="replace-action"
+                  onClick={() => {
+                    openComponentReplacement([...contextMenu.instanceIds]);
+                    setContextMenu(null);
+                  }}
+                >
+                  替换组件
                 </button>
                 <button
                   className="delete-action"

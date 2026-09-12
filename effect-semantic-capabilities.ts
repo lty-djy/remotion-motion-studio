@@ -266,9 +266,23 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
   ),
   PortraitSkillIdentityHeaderBar: capability(
     "explanation",
-    ["emphasis", "list", "process"],
+    ["emphasis", "list", "process", "transition"],
     ["short-text"],
-    ["skill", "技能", "GSAP", "动效引擎", "高级动画", "编号", "徽标"],
+    ["编号", "第几章", "章节标题", "标题条", "skill", "技能", "GSAP", "动效引擎", "高级动画"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 24 } },
+  ),
+  PortraitHeatBadge: capability(
+    "emphasis",
+    ["metric", "explanation"],
+    ["short-text", "metric"],
+    ["热度", "点赞", "star", "Star", "人气", "评分", "26K", "多少K", "播放量", "收藏"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 24 } },
+  ),
+  PortraitPillText: capability(
+    "explanation",
+    ["emphasis", "process"],
+    ["short-text"],
+    ["持续更新", "更新", "迭代", "新规则", "状态", "补充说明", "小提示", "备注", "药丸"],
     { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 24 } },
   ),
   PortraitCodeDecisionChecklist: capability(
@@ -327,12 +341,19 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["风险", "注意", "限制", "错误", "异常", "避免"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 2, max: 8 } },
   ),
-  PortraitNextEpisodeCta: capability(
+  PortraitNextEpisodeTitle: capability(
     "call-to-action",
     ["transition", "emphasis"],
     ["short-text"],
-    ["关注", "点赞", "收藏", "下期", "下一步"],
+    ["下期", "下一期", "下次", "预告", "下集"],
     { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  PortraitFollowCta: capability(
+    "call-to-action",
+    ["emphasis"],
+    ["short-text"],
+    ["关注", "点赞", "收藏", "评论", "点个关注"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 1.5, max: 6 } },
   ),
   QuickSetupProof: capability(
     "evidence",
@@ -371,7 +392,7 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
   ),
   BrandLogo: capability(
     "evidence",
-    ["emphasis", "evidence", "transition"],
+    ["emphasis", "transition"],
     ["media", "short-text"],
     ["品牌", "logo", "标识", "抖音", "平台", "账号", "官方图标"],
     { orientation: "portrait", density: "light", durationSeconds: { min: 0.5, max: 12 } },
@@ -428,7 +449,7 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
   GigHourlyTitle: capability("metric", ["emphasis"], ["metric", "short-text"], ["时薪", "薪资", "收入", "金色大字", "价格区间"], {orientation:"landscape",density:"light",durationSeconds:{min:2,max:15}}),
   BrollGigCardFloat: capability(
     "evidence",
-    ["list", "evidence", "emphasis"],
+    ["list", "emphasis"],
     ["metric", "list", "media"],
     ["兼职", "时薪", "收入", "薪资", "招聘", "招募", "机会", "价格区间", "副业", "悬浮卡片", "卡片群", "b-roll"],
     { orientation: "landscape", density: "heavy", durationSeconds: { min: 3, max: 10 } },

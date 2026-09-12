@@ -173,7 +173,7 @@
       "sourceIntentId": "intent-callout-week"
     },
     {
-      "componentId": "PortraitNextEpisodeCta",
+      "componentId": "PortraitNextEpisodeTitle",
       "startFrame": 1560,
       "durationInFrames": 180,
       "laneId": "cta",
@@ -181,7 +181,18 @@
         "enabled": true,
         "eyebrow": "下期",
         "title": "系统搭建实况",
-        "subtitle": "从零到跑通",
+        "subtitle": "从零到跑通"
+      },
+      "sourceExpressionId": "intent-cta-next",
+      "sourceIntentId": "intent-cta-next"
+    },
+    {
+      "componentId": "PortraitFollowCta",
+      "startFrame": 1560,
+      "durationInFrames": 180,
+      "laneId": "cta",
+      "props": {
+        "enabled": true,
         "cta": "关注不迷路",
         "icon": "▶"
       },
@@ -441,9 +452,15 @@
             ],
             "componentCandidates": [
               {
-                "componentId": "PortraitNextEpisodeCta",
+                "componentId": "PortraitNextEpisodeTitle",
                 "rank": 1,
-                "reason": "下集预告卡收尾",
+                "reason": "下集预告标题收尾",
+                "props": {}
+              },
+              {
+                "componentId": "PortraitFollowCta",
+                "rank": 2,
+                "reason": "图标文字收尾",
                 "props": {}
               }
             ]

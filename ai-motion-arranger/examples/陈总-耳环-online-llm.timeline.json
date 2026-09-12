@@ -122,7 +122,7 @@
       "sourceIntentId": "intent-action-checklist"
     },
     {
-      "componentId": "PortraitNextEpisodeCta",
+      "componentId": "PortraitNextEpisodeTitle",
       "startFrame": 1110,
       "durationInFrames": 219,
       "laneId": "outro",
@@ -133,6 +133,20 @@
         "eyebrow": "记住这句话",
         "title": "守护健康",
         "subtitle": "就是守护咱们的未来",
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-outro-future",
+      "sourceIntentId": "intent-conclusion-health"
+    },
+    {
+      "componentId": "PortraitFollowCta",
+      "startFrame": 1110,
+      "durationInFrames": 219,
+      "laneId": "outro",
+      "trackOrder": -13,
+      "position": { "x": 628, "y": 625, "scale": 1 },
+      "props": {
+        "enabled": true,
         "cta": "转发提醒身边人",
         "icon": "✦",
         "animationSeconds": 0.9

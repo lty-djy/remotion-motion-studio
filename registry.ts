@@ -36,6 +36,8 @@ import { PortraitDesignRuleChecklistEffectDef } from "./effects/PortraitDesignRu
 import { PortraitSkillResultComparisonEffectDef } from "./effects/PortraitSkillResultComparison";
 import { PortraitPromptIterationShowcaseEffectDef } from "./effects/PortraitPromptIterationShowcase";
 import { PortraitSkillIdentityHeaderBarEffectDef } from "./effects/PortraitSkillIdentityHeaderBar";
+import { PortraitHeatBadgeEffectDef } from "./effects/PortraitHeatBadge";
+import { PortraitPillTextEffectDef } from "./effects/PortraitPillText";
 import { PortraitCodeDecisionChecklistEffectDef } from "./effects/PortraitCodeDecisionChecklist";
 import { PortraitBrowserRepairLoopEffectDef } from "./effects/PortraitBrowserRepairLoop";
 import { PortraitAgentBrowserMediaEffectDef } from "./effects/PortraitAgentBrowserMedia";
@@ -44,7 +46,8 @@ import { PortraitSkillStepGridEffectDef } from "./effects/PortraitSkillStepGrid"
 import { PortraitGapHeadlineEffectDef } from "./effects/PortraitGapHeadline";
 import { PortraitAiOutputGapComparisonEffectDef } from "./effects/PortraitAiOutputGapComparison";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
-import { PortraitNextEpisodeCtaEffectDef } from "./effects/PortraitNextEpisodeCta";
+import { PortraitNextEpisodeTitleEffectDef } from "./effects/PortraitNextEpisodeTitle";
+import { PortraitFollowCtaEffectDef } from "./effects/PortraitFollowCta";
 import { QuickSetupProofEffectDef } from "./effects/QuickSetupProof";
 
 import { LegacyEliminationPanelEffectDef } from "./effects/LegacyEliminationPanel";
@@ -139,6 +142,8 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitPromptIterationShowcaseEffectDef,
 
   PortraitSkillIdentityHeaderBarEffectDef,
+  PortraitHeatBadgeEffectDef,
+  PortraitPillTextEffectDef,
 
   PortraitCodeDecisionChecklistEffectDef,
   PortraitBrowserRepairLoopEffectDef,
@@ -150,7 +155,9 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   PortraitRiskWarningEffectDef,
 
-  PortraitNextEpisodeCtaEffectDef,
+  PortraitNextEpisodeTitleEffectDef,
+
+  PortraitFollowCtaEffectDef,
 
   QuickSetupProofEffectDef,
 

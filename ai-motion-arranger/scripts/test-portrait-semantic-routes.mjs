@@ -42,7 +42,8 @@ const expectedComponentIds = [
   "PortraitAiOutputGapComparison",
   "PortraitRiskWarning",
   "LegacyEliminationPanel",
-  "PortraitNextEpisodeCta",
+  "PortraitNextEpisodeTitle",
+  "PortraitFollowCta",
   "ComparisonProgressBars",
   "MilestoneFollowerProgress",
 ];

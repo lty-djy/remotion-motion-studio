@@ -140,7 +140,7 @@
       "sourceIntentId": "intent-campaign-steps"
     },
     {
-      "componentId": "PortraitNextEpisodeCta",
+      "componentId": "PortraitNextEpisodeTitle",
       "startFrame": 886,
       "durationInFrames": 142,
       "laneId": "outro",
@@ -151,6 +151,20 @@
         "eyebrow": "周末约饭",
         "title": "日料 + 萌宠",
         "subtitle": "地址链接放左下角",
+        "animationSeconds": 0.9
+      },
+      "sourceExpressionId": "expr-address-cta",
+      "sourceIntentId": "intent-address-cta"
+    },
+    {
+      "componentId": "PortraitFollowCta",
+      "startFrame": 886,
+      "durationInFrames": 142,
+      "laneId": "outro",
+      "trackOrder": -11,
+      "position": { "x": 628, "y": 625, "scale": 1 },
+      "props": {
+        "enabled": true,
         "cta": "约朋友一起去",
         "icon": "✦",
         "animationSeconds": 0.9

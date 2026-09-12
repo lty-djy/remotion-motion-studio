@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **48** 个注册组件。
+当前覆盖 **51** 个注册组件。
 
 ## 核心语义
 
@@ -125,12 +125,24 @@
   - 内容：process、media、short-text
   - 方向：portrait；密度：heavy；建议时长：10–24 秒
   - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
-- **Skill 身份条**（`PortraitSkillIdentityHeaderBar`）
+- **编号标题条**（`PortraitSkillIdentityHeaderBar`）
   - 主要：概念解释
-  - 次要：重点强调、列举要点、流程说明
+  - 次要：重点强调、列举要点、流程说明、章节转场
   - 内容：short-text
   - 方向：portrait；密度：light；建议时长：2–24 秒
-  - 检索词：skill、技能、GSAP、动效引擎、高级动画、编号、徽标
+  - 检索词：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
+- **热度徽标**（`PortraitHeatBadge`）
+  - 主要：重点强调
+  - 次要：数字展示、概念解释
+  - 内容：short-text、metric
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
+- **药丸文字**（`PortraitPillText`）
+  - 主要：概念解释
+  - 次要：重点强调、流程说明
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
 - **代码决策检查清单**（`PortraitCodeDecisionChecklist`）
   - 主要：流程说明
   - 次要：列举要点、概念解释、风险提醒
@@ -161,12 +173,18 @@
   - 内容：comparison、short-text
   - 方向：portrait；密度：light；建议时长：2–8 秒
   - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
-- **下集预告卡**（`PortraitNextEpisodeCta`）
+- **下集预告标题**（`PortraitNextEpisodeTitle`）
   - 主要：行动引导
   - 次要：章节转场、重点强调
   - 内容：short-text
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：关注、点赞、收藏、下期、下一步
+  - 检索词：下期、下一期、下次、预告、下集
+- **图标文字**（`PortraitFollowCta`）
+  - 主要：行动引导
+  - 次要：重点强调
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–6 秒
+  - 检索词：关注、点赞、收藏、评论、点个关注
 - **快速上手证明条**（`QuickSetupProof`）
   - 主要：案例与素材
   - 次要：重点强调、对比差异、列举要点
@@ -232,7 +250,7 @@
   - 检索词：手机、录屏、竖屏、屏幕、界面、产品演示、设备、录制
 - **悬浮兼职卡片群**（`BrollGigCardFloat`）
   - 主要：案例与素材
-  - 次要：列举要点、案例与素材、重点强调
+  - 次要：列举要点、重点强调
   - 内容：metric、list、media
   - 方向：landscape；密度：heavy；建议时长：3–10 秒
   - 检索词：兼职、时薪、收入、薪资、招聘、招募、机会、价格区间、副业、悬浮卡片、卡片群、b-roll
@@ -304,7 +322,7 @@
   - 检索词：账号、案例、商业价值、变现、报价、收入、倍数、专业团队、AI 工具
 - **品牌 Logo**（`BrandLogo`）
   - 主要：案例与素材
-  - 次要：重点强调、案例与素材、章节转场
+  - 次要：重点强调、章节转场
   - 内容：media、short-text
   - 方向：portrait；密度：light；建议时长：0.5–12 秒
   - 检索词：品牌、logo、标识、抖音、平台、账号、官方图标

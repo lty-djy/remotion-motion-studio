@@ -1602,7 +1602,8 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitInfoCallout", reason: "用较克制的说明方式提示限制" },
   ],
   "next-episode-cta": [
-    { componentId: "PortraitNextEpisodeCta", reason: "突出关注动作和下集内容" },
+    { componentId: "PortraitNextEpisodeTitle", reason: "突出下集主题和下期内容预告" },
+    { componentId: "PortraitFollowCta", reason: "突出关注、点赞等行动引导" },
     { componentId: "PortraitChapterRail", reason: "用章节式结尾预告下一部分" },
     { componentId: "PortraitInfoCallout", reason: "以轻量卡片收束口播" },
   ],
@@ -1768,6 +1769,16 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["center-top", "right-top"],
     preferredScale: 1,
   },
+  PortraitHeatBadge: {
+    anchor: "right-top",
+    fallbackAnchors: ["center-top", "left-top"],
+    preferredScale: 0.9,
+  },
+  PortraitPillText: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 0.9,
+  },
   ComparisonProgressBars: {
     anchor: "left-center",
     fallbackAnchors: ["center-top", "right-center"],
@@ -1788,9 +1799,14 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["right-top", "left-center", "right-center"],
     preferredScale: 0.64,
   },
-  PortraitNextEpisodeCta: {
-    anchor: "right-top",
-    fallbackAnchors: ["left-top", "right-center"],
+  PortraitNextEpisodeTitle: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
+    preferredScale: 0.78,
+  },
+  PortraitFollowCta: {
+    anchor: "left-top",
+    fallbackAnchors: ["center-top", "right-top"],
     preferredScale: 0.78,
   },
 });

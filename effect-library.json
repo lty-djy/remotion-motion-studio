@@ -74,7 +74,8 @@
     "PortraitGapHeadline": "group:竖屏口播信息层",
     "PortraitAiOutputGapComparison": "group:竖屏口播信息层",
     "PortraitRiskWarning": "group:风险提醒",
-    "PortraitNextEpisodeCta": "group:竖屏口播信息层",
+    "PortraitNextEpisodeTitle": "group:竖屏口播信息层",
+    "PortraitFollowCta": "group:竖屏口播信息层",
     "QuickSetupProof": "group:竖屏口播信息层",
     "PinBoard": "group:口播HUD常驻卡",
     "StepTimeline": "group:口播HUD常驻卡",
@@ -93,6 +94,8 @@
     "CaseStudySidebar": "group:品牌与标识",
     "BrandLogo": "group:品牌与标识",
     "TeamAttributionCard": "group:品牌与标识",
-    "GigHourlyTitle": "group:数字与指标"
+    "GigHourlyTitle": "group:数字与指标",
+    "PortraitHeatBadge": "group:竖屏口播信息层",
+    "PortraitPillText": "group:竖屏口播信息层"
   }
 }

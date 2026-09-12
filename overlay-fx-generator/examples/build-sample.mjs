@@ -145,10 +145,12 @@ const doc = {
       note: "改流程之前先攒记录",
       iconText: "!",
     }, "intent-callout-week"),
-    item("PortraitNextEpisodeCta", 52.0, 58.0, {
+    item("PortraitNextEpisodeTitle", 52.0, 58.0, {
       eyebrow: "下期",
       title: "系统搭建实况",
       subtitle: "从零到跑通",
+    }, "intent-cta-next", { laneId: "cta" }),
+    item("PortraitFollowCta", 52.0, 58.0, {
       cta: "关注不迷路",
       icon: "▶",
     }, "intent-cta-next", { laneId: "cta" }),
@@ -293,7 +295,8 @@ const doc = {
             type: "call-to-action",
             signals: [{ type: "keyword", label: "关注" }],
             componentCandidates: [
-              { componentId: "PortraitNextEpisodeCta", rank: 1, reason: "下集预告卡收尾", props: {} },
+              { componentId: "PortraitNextEpisodeTitle", rank: 1, reason: "下集预告标题收尾", props: {} },
+              { componentId: "PortraitFollowCta", rank: 2, reason: "图标文字收尾", props: {} },
             ],
           },
         ],
