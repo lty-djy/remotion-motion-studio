@@ -3705,8 +3705,109 @@ main.is-resizing-sidebar * {
 .reference-section-title small {
   color: #65676d;
   font-family: Consolas, monospace;
-  font-size: 7px;
+  font-size: 12px;
   letter-spacing: 0.28em;
+}
+
+.reference-inspector-semantic-table {
+  padding-bottom: 18px;
+}
+
+.reference-semantic-title {
+  cursor: pointer;
+}
+
+.reference-semantic-table {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #2e323a;
+  border-radius: 5px;
+  background: #191c22;
+}
+
+.reference-semantic-table-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  border-top: 1px solid #2e323a;
+}
+
+.reference-semantic-table-row:first-child {
+  border-top: 0;
+}
+
+.reference-semantic-table-row > dt,
+.reference-semantic-table-row > dd {
+  min-width: 0;
+  margin: 0;
+  padding: 9px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.reference-semantic-table-row > dt {
+  background: #1d2026;
+  color: #a2a6af;
+}
+
+.reference-semantic-table-row > dd {
+  color: #bac0c9;
+  overflow-wrap: anywhere;
+}
+
+.reference-semantic-table-row code {
+  color: #e6eef2;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+}
+
+.reference-semantic-inline-value {
+  display: inline;
+}
+
+.reference-semantic-inline-value + .reference-semantic-inline-value {
+  margin-left: 10px;
+}
+
+.reference-semantic-muted {
+  color: #727b85;
+}
+
+.reference-semantic-keyword-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.reference-semantic-keyword-cell > span:not(.reference-semantic-muted) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid #31505c;
+  border-radius: 999px;
+  background: #14242b;
+  color: #93cbd2;
+  font-size: 11px;
+  line-height: 1.2;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.reference-semantic-keyword-cell > span:not(.reference-semantic-muted)::before {
+  content: "#";
+  margin-right: 2px;
+  color: #5ca9b5;
+}
+
+.reference-semantic-keyword-cell > span.matched {
+  border-color: #38c8d8;
+  background: #17343d;
+  color: #d8fbff;
+  box-shadow: 0 0 0 1px rgba(56, 200, 216, 0.12);
+}
+
+.reference-semantic-keyword-cell > span.matched::before {
+  color: #61e3ef;
 }
 
 .reference-range-field {
@@ -9652,6 +9753,10 @@ body.arrangement-preview-popout-body {
 .reference-inspector-title-line strong { display: block; min-width: 0; overflow: hidden; color: #f3f6f8; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
 .reference-inspector-title-line .reference-inspector-kind { flex: 0 0 auto; padding: 3px 6px; border: 1px solid #2f5260; border-radius: 4px; color: #78c9d6; font-size: 9px; letter-spacing: .08em; }
 .reference-inspector-title-copy p { margin: 5px 0 0; overflow: hidden; color: #758894; font-size: 11px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.reference-inspector-semantic { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-width: 0; }
+.reference-inspector-semantic > span { color: #718995; font-size: 10px; letter-spacing: .05em; white-space: nowrap; }
+.reference-inspector-semantic > strong { min-width: 0; max-width: 100%; overflow: hidden; padding: 3px 7px; border: 1px solid #2f6874; border-radius: 999px; color: #8de6ef; background: #143039; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.reference-inspector-semantic > small { color: #708894; font-size: 10px; white-space: nowrap; }
 .inspector-replace-button { position: static; display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 34px; padding: 0 11px; border: 1px solid #347888; border-radius: 7px; background: #14313a; color: #9beaf2; font-size: 12px; font-weight: 650; }
 .inspector-replace-button:hover { border-color: #6de0ed; background: #1a424b; color: #e0fbff; }
 .inspector-replace-button svg { width: 15px; height: 15px; }

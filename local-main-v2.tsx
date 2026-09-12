@@ -153,6 +153,30 @@ const SEMANTIC_INTENT_LABELS: Record<string, string> = Object.fromEntries(
   SEMANTIC_INTENT_DEFINITIONS.map((definition) => [definition.id, definition.label]),
 );
 
+const SEMANTIC_CONTENT_KIND_LABELS: Record<string, string> = {
+  "short-text": "短文本",
+  "long-text": "长文本",
+  metric: "数字",
+  comparison: "对比",
+  list: "清单",
+  process: "流程",
+  media: "图片/视频",
+  caption: "字幕",
+  spatial: "空间位置",
+};
+
+const SEMANTIC_ORIENTATION_LABELS: Record<string, string> = {
+  any: "不限画幅",
+  portrait: "竖屏",
+  landscape: "横屏",
+};
+
+const SEMANTIC_DENSITY_LABELS: Record<string, string> = {
+  light: "轻",
+  medium: "中",
+  heavy: "重",
+};
+
 type EffectSemanticBadge = {
   label: string;
   description: string;
@@ -615,6 +639,8 @@ type TimelineJsonItem = {
   props?: Record<string, unknown>;
   sourceExpressionId?: string;
   sourceIntentId?: string;
+  semanticLabel?: string;
+  semanticType?: string;
 };
 
 type PendingArrangement = {
@@ -1814,6 +1840,12 @@ const createInstance = (
       : {}),
     ...(typeof overrides.sourceIntentId === "string" && overrides.sourceIntentId
       ? { sourceIntentId: overrides.sourceIntentId }
+      : {}),
+    ...(typeof overrides.semanticLabel === "string" && overrides.semanticLabel
+      ? { semanticLabel: overrides.semanticLabel }
+      : {}),
+    ...(typeof overrides.semanticType === "string" && overrides.semanticType
+      ? { semanticType: overrides.semanticType }
       : {}),
     ...(typeof overrides.arrangementBatchId === "string" &&
     overrides.arrangementBatchId
@@ -5564,6 +5596,8 @@ const App = () => {
               props: savedInstance.props,
               sourceExpressionId: savedInstance.sourceExpressionId,
               sourceIntentId: savedInstance.sourceIntentId,
+              semanticLabel: savedInstance.semanticLabel,
+              semanticType: savedInstance.semanticType,
               arrangementBatchId: savedInstance.arrangementBatchId,
               arrangementBatchName: savedInstance.arrangementBatchName,
             },
@@ -6696,6 +6730,54 @@ const App = () => {
   const inspectorDefinition = inspectorInstance
     ? definitionMap.get(inspectorInstance.componentId) ?? null
     : null;
+  const inspectorSemanticSource = inspectorInstance
+    ? pendingArrangement?.semanticSourcesBySegment?.[
+        getArrangementSegmentId(inspectorInstance)
+      ]
+    : undefined;
+  const inspectorSemanticBadge = inspectorDefinition
+    ? effectSemanticBadge(
+        inspectorDefinition.id,
+        arrangementPreferences.customPills,
+        effectSemanticTypeOverrides,
+      )
+    : null;
+  const inspectorSemanticLabel =
+    inspectorSemanticSource?.semanticLabel ||
+    inspectorInstance?.semanticLabel ||
+    inspectorSemanticBadge?.label ||
+    "未关联语义";
+  const inspectorSemanticType =
+    inspectorSemanticSource?.semanticType || inspectorInstance?.semanticType || "";
+  const inspectorSemanticTypeLabel = inspectorSemanticType
+    ? SEMANTIC_INTENT_LABELS[inspectorSemanticType] ?? inspectorSemanticType
+    : "";
+  const inspectorSemanticCapabilities = inspectorDefinition
+    ? EFFECT_SEMANTIC_CAPABILITIES[inspectorDefinition.id]
+    : undefined;
+  const inspectorSemanticPrimaryId =
+    inspectorSemanticCapabilities?.primaryIntent ?? inspectorSemanticType;
+  const inspectorSemanticSecondaryIntents =
+    inspectorSemanticCapabilities?.secondaryIntents ?? [];
+  const inspectorSemanticContentKinds =
+    inspectorSemanticCapabilities?.contentKinds ?? [];
+  const inspectorSemanticKeywords = inspectorDefinition
+    ? EFFECT_SEMANTIC_CAPABILITIES[inspectorDefinition.id]?.keywords ?? []
+    : [];
+  const inspectorSemanticSourceText = inspectorSemanticSource?.text ?? "";
+  const inspectorMatchedSemanticKeywords = inspectorSemanticKeywords.filter(
+    (keyword) => inspectorSemanticSourceText.includes(keyword),
+  );
+  const inspectorSemanticKeywordSummary = inspectorSemanticKeywords.length
+    ? inspectorSemanticSourceText
+      ? `命中 ${inspectorMatchedSemanticKeywords.length}/${inspectorSemanticKeywords.length}`
+      : `${inspectorSemanticKeywords.length} 个关键词`
+    : "KEYWORDS";
+  const formatSemanticSeconds = (value: number) =>
+    Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+  const inspectorSemanticLayoutValue = inspectorSemanticCapabilities
+    ? `${SEMANTIC_ORIENTATION_LABELS[inspectorSemanticCapabilities.orientation] ?? "不限画幅"} · ${inspectorSemanticCapabilities.density}（${SEMANTIC_DENSITY_LABELS[inspectorSemanticCapabilities.density] ?? "中"}）`
+    : "未登记";
   const getUnboundedPositionSliderRange = (
     position: number,
     canvasAxis: number,
@@ -6728,6 +6810,7 @@ const App = () => {
     singleExport: false,
     properties: false,
     timing: false,
+    semantic: true,
   });
   const toggleInspectorSection = (section: string) => {
     setInspectorSectionsExpanded((current) => ({
@@ -8299,6 +8382,32 @@ const App = () => {
     const semanticAnalysis = isRecord(parsedRecord?.semanticAnalysis)
       ? parsedRecord.semanticAnalysis
       : null;
+    const semanticIntentMetadata = new Map<
+      string,
+      { text: string; sourceCueIndices: number[]; semanticLabel: string; semanticType: string }
+    >();
+    if (semanticAnalysis && Array.isArray(semanticAnalysis.cueAnalyses)) {
+      semanticAnalysis.cueAnalyses.forEach((rawCue) => {
+        if (!isRecord(rawCue) || !Array.isArray(rawCue.intents)) return;
+        const text = typeof rawCue.text === "string" ? rawCue.text : "";
+        const sourceCueIndices = Array.isArray(rawCue.sourceCueIndices)
+          ? rawCue.sourceCueIndices
+              .map((value) => Number(value))
+              .filter((value) => Number.isFinite(value))
+          : Number.isFinite(Number(rawCue.cueIndex))
+            ? [Number(rawCue.cueIndex)]
+            : [];
+        rawCue.intents.forEach((rawIntent) => {
+          if (!isRecord(rawIntent) || typeof rawIntent.id !== "string") return;
+          semanticIntentMetadata.set(rawIntent.id, {
+            text,
+            sourceCueIndices,
+            semanticLabel: typeof rawIntent.label === "string" ? rawIntent.label : "",
+            semanticType: typeof rawIntent.type === "string" ? rawIntent.type : "",
+          });
+        });
+      });
+    }
     const componentCandidatesBySegment = Object.fromEntries(
       (Array.isArray(semanticAnalysis?.cueAnalyses)
         ? semanticAnalysis.cueAnalyses
@@ -8406,6 +8515,13 @@ const App = () => {
           `第 ${index + 1} 项的 componentId “${componentId || "未填写"}”不在当前效果库中。`,
         );
       }
+      const sourceIntentId =
+        typeof rawItem.sourceIntentId === "string"
+          ? rawItem.sourceIntentId
+          : undefined;
+      const semanticMetadata = sourceIntentId
+        ? semanticIntentMetadata.get(sourceIntentId)
+        : undefined;
       if (
         rawItem.durationInFrames !== undefined &&
         (!Number.isFinite(rawItem.durationInFrames) ||
@@ -8474,9 +8590,9 @@ const App = () => {
             ? rawItem.sourceExpressionId
             : undefined,
         sourceIntentId:
-          typeof rawItem.sourceIntentId === "string"
-            ? rawItem.sourceIntentId
-            : undefined,
+          sourceIntentId,
+        semanticLabel: semanticMetadata?.semanticLabel || undefined,
+        semanticType: semanticMetadata?.semanticType || undefined,
       };
     });
     let indexedResources = new Set<string>();
@@ -8578,6 +8694,8 @@ const App = () => {
               },
           sourceExpressionId: item.sourceExpressionId,
           sourceIntentId: item.sourceIntentId,
+          semanticLabel: item.semanticLabel,
+          semanticType: item.semanticType,
         },
       ),
     );
@@ -8641,6 +8759,7 @@ const App = () => {
       fileName: file.name,
       batchId: arrangementBatch.batchId,
       batchName: arrangementBatch.batchName,
+      semanticSourcesBySegment: Object.fromEntries(semanticIntentMetadata),
       semanticSummary: {cueCount: importedSubtitleEntries.length, intentCount: 0, skippedCueCount: 0},
       motionInstances: arrangementMotionItems,
       resourceTracks: arrangementBatch.resourceItems,
@@ -8699,6 +8818,8 @@ const App = () => {
         props: instance.props,
         sourceExpressionId: instance.sourceExpressionId,
         sourceIntentId: instance.sourceIntentId,
+        semanticLabel: instance.semanticLabel,
+        semanticType: instance.semanticType,
       })),
       resourceTracks: resourceTracks.map((track) => ({
         kind: track.kind,
@@ -17164,6 +17285,18 @@ const App = () => {
                 <p>{selectedResourceTrack
                   ? `${selectedResourceTrack.kind.toUpperCase()} · ${selectedResourceTrack.resourceId}`
                   : inspectorDefinition?.description ?? "从时间轴或效果库选择一个组件"}</p>
+                {inspectorInstance && !selectedResourceTrack ? (
+                  <div
+                    className="reference-inspector-semantic"
+                    title={inspectorSemanticBadge?.description ?? "当前组件对应的 AI 编排语义"}
+                  >
+                    <span>AI 编排语义</span>
+                    <strong>{inspectorSemanticLabel}</strong>
+                    {inspectorSemanticTypeLabel ? (
+                      <small>{inspectorSemanticTypeLabel}</small>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {inspectorInstance && !selectedResourceTrack ? <button className="inspector-replace-button" onClick={() => openComponentReplacement([inspectorInstance.id], pendingPreviewInspectorInstance ? "pending" : "timeline")}><ArrowsInLineHorizontal weight="bold" />替换组件</button> : null}
             </div>
@@ -17985,6 +18118,101 @@ const App = () => {
                     />
                   </div>
                 </section>
+                {inspectorDefinition ? (
+                  <section className={`reference-inspector-section reference-inspector-semantic-table${inspectorSectionsExpanded.semantic ? "" : " collapsed"}`}>
+                    <div
+                      className="reference-section-title reference-semantic-title"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={inspectorSectionsExpanded.semantic}
+                      onClick={() => toggleInspectorSection("semantic")}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          toggleInspectorSection("semantic");
+                        }
+                      }}
+                    >
+                      <strong>AI 编排语义</strong>
+                      <small>{inspectorSemanticKeywordSummary}</small>
+                    </div>
+                    <dl className="reference-semantic-table">
+                      <div className="reference-semantic-table-row">
+                        <dt>主意图</dt>
+                        <dd>
+                          {inspectorSemanticPrimaryId ? (
+                            <>
+                              <code>{inspectorSemanticPrimaryId}</code>
+                              <span>（{inspectorSemanticLabel}）</span>
+                            </>
+                          ) : (
+                            <span className="reference-semantic-muted">未登记</span>
+                          )}
+                        </dd>
+                      </div>
+                      <div className="reference-semantic-table-row">
+                        <dt>次要意图</dt>
+                        <dd>
+                          {inspectorSemanticSecondaryIntents.length > 0
+                            ? inspectorSemanticSecondaryIntents.map((intentId) => (
+                                <span className="reference-semantic-inline-value" key={intentId}>
+                                  <code>{intentId}</code>
+                                  <span>（{SEMANTIC_INTENT_LABELS[intentId] ?? intentId}）</span>
+                                </span>
+                              ))
+                            : <span className="reference-semantic-muted">无</span>}
+                        </dd>
+                      </div>
+                      <div className="reference-semantic-table-row">
+                        <dt>适合内容</dt>
+                        <dd>
+                          {inspectorSemanticContentKinds.length > 0
+                            ? inspectorSemanticContentKinds.map((kind) => (
+                                <span className="reference-semantic-inline-value" key={kind}>
+                                  <code>{kind}</code>
+                                  <span>（{SEMANTIC_CONTENT_KIND_LABELS[kind] ?? kind}）</span>
+                                </span>
+                              ))
+                            : <span className="reference-semantic-muted">不限</span>}
+                        </dd>
+                      </div>
+                      <div className="reference-semantic-table-row">
+                        <dt>检索词</dt>
+                        <dd className="reference-semantic-keyword-cell">
+                          {inspectorSemanticKeywords.length > 0 ? (
+                            inspectorSemanticKeywords.map((keyword) => (
+                              <span
+                                key={keyword}
+                                className={inspectorSemanticSourceText.includes(keyword) ? "matched" : ""}
+                                title={
+                                  inspectorSemanticSourceText.includes(keyword)
+                                    ? "当前语义文本已命中"
+                                    : "组件语义能力表关键词"
+                                }
+                              >
+                                {keyword}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="reference-semantic-muted">暂无登记关键词</span>
+                          )}
+                        </dd>
+                      </div>
+                      <div className="reference-semantic-table-row">
+                        <dt>画幅/密度</dt>
+                        <dd>{inspectorSemanticLayoutValue}</dd>
+                      </div>
+                      <div className="reference-semantic-table-row">
+                        <dt>适合时长</dt>
+                        <dd>
+                          {inspectorSemanticCapabilities
+                            ? `${formatSemanticSeconds(inspectorSemanticCapabilities.durationSeconds.min)}–${formatSemanticSeconds(inspectorSemanticCapabilities.durationSeconds.max)} 秒`
+                            : "未登记"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+                ) : null}
               </>
             )}
           </div>

@@ -83,6 +83,9 @@ export type MotionInstance = {
   props: Record<string, unknown>;
   sourceExpressionId?: string;
   sourceIntentId?: string;
+  /** AI 编排识别到的当前语义，保留在实例上供右侧检查器显示。 */
+  semanticLabel?: string;
+  semanticType?: string;
   arrangementBatchId?: string;
   arrangementBatchName?: string;
 };
