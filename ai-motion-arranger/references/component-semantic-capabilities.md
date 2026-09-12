@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **52** 个注册组件。
+当前覆盖 **53** 个注册组件。
 
 ## 核心语义
 
@@ -89,6 +89,12 @@
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：3–9 秒
   - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
+- **工具徽标列表**（`PortraitToolBadgeList`）
+  - 主要：重点强调
+  - 次要：列举要点
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：3–9 秒
+  - 检索词：徽标、标签、热度、C位、星级、工具排名
 - **工具列表标题**（`PortraitToolListTitle`）
   - 主要：重点强调
   - 次要：概念解释、章节转场
@@ -119,18 +125,6 @@
   - 内容：list、short-text
   - 方向：portrait；密度：medium；建议时长：4–12 秒
   - 检索词：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
-- **Skill 效果前后对比**（`PortraitSkillResultComparison`）
-  - 主要：对比差异
-  - 次要：案例与素材、概念解释、重点强调
-  - 内容：comparison、media、short-text
-  - 方向：portrait；密度：heavy；建议时长：6–14 秒
-  - 检索词：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
-- **一句话连续改版**（`PortraitPromptIterationShowcase`）
-  - 主要：流程说明
-  - 次要：案例与素材、概念解释、对比差异
-  - 内容：process、media、short-text
-  - 方向：portrait；密度：heavy；建议时长：10–24 秒
-  - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
 - **编号标题条**（`PortraitSkillIdentityHeaderBar`）
   - 主要：概念解释
   - 次要：重点强调、列举要点、流程说明、章节转场
@@ -230,6 +224,18 @@
   - 内容：process、list、long-text
   - 方向：any；密度：heavy；建议时长：3–20 秒
   - 检索词：代码、终端、命令、命令行、参数、打字机、开发、工具、执行结果
+- **Skill 效果前后对比**（`PortraitSkillResultComparison`）
+  - 主要：对比差异
+  - 次要：案例与素材、概念解释、重点强调
+  - 内容：comparison、media、short-text
+  - 方向：portrait；密度：heavy；建议时长：6–14 秒
+  - 检索词：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
+- **一句话连续改版**（`PortraitPromptIterationShowcase`）
+  - 主要：流程说明
+  - 次要：案例与素材、概念解释、对比差异
+  - 内容：process、media、short-text
+  - 方向：portrait；密度：heavy；建议时长：10–24 秒
+  - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
 - **Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
   - 主要：案例与素材
   - 次要：流程说明、概念解释、重点强调

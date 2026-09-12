@@ -29,6 +29,7 @@ import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTag
 import { PortraitStepStageTitleEffectDef } from "./effects/PortraitStepStageTitle";
 import { PortraitStepNumberListEffectDef } from "./effects/PortraitStepNumberList";
 import { PortraitStaggeredToolListEffectDef } from "./effects/PortraitStaggeredToolList";
+import { PortraitToolBadgeListEffectDef } from "./effects/PortraitToolBadgeList";
 import { PortraitToolListTitleEffectDef } from "./effects/PortraitToolListTitle";
 import { PortraitPromptMistakeDiagnosisEffectDef } from "./effects/PortraitPromptMistakeDiagnosis";
 import { PortraitWorkflowPrerequisiteEffectDef } from "./effects/PortraitWorkflowPrerequisite";
@@ -129,6 +130,8 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitStepNumberListEffectDef,
 
   PortraitStaggeredToolListEffectDef,
+
+  PortraitToolBadgeListEffectDef,
 
   PortraitToolListTitleEffectDef,
 

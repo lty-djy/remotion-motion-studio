@@ -222,6 +222,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["多个工具", "多个技能", "几个方法", "清单", "逐项讲解", "skill"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 3, max: 9 } },
   ),
+  PortraitToolBadgeList: capability(
+    "emphasis",
+    ["list"],
+    ["short-text"],
+    ["徽标", "标签", "热度", "C位", "星级", "工具排名"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 3, max: 9 } },
+  ),
   PortraitToolListTitle: capability(
     "emphasis",
     ["explanation", "transition"],

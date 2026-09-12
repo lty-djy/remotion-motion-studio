@@ -28,6 +28,7 @@ const expectedComponentIds = [
   "PortraitStepStageTitle",
   "PortraitStepNumberList",
   "PortraitStaggeredToolList",
+  "PortraitToolBadgeList",
   "PortraitToolListTitle",
   "PortraitPromptMistakeDiagnosis",
   "PortraitWorkflowPrerequisite",
@@ -66,7 +67,7 @@ if (
   JSON.stringify([...PORTRAIT_ROUTE_COMPONENT_IDS].sort()) !==
   JSON.stringify([...expectedComponentIds].sort())
 ) {
-  throw new Error("竖屏语义路由没有完整覆盖 26 个参考组件。");
+  throw new Error("竖屏语义路由没有完整覆盖 27 个参考组件。");
 }
 
 for (const route of PORTRAIT_SEMANTIC_ROUTES) {

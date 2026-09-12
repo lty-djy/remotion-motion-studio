@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（52 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（53 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -27,13 +27,14 @@
 | `PortraitStepStageTitle` | 步骤阶段标题 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitStepNumberList` | 编号步骤清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitStaggeredToolList` | 多工具错峰列表 | 竖屏口播信息层 | 列举要点 | portrait |  |
+| `PortraitToolBadgeList` | 工具徽标列表 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitToolListTitle` | 工具列表标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitPromptMistakeDiagnosis` | 错误提问诊断 | 竖屏口播信息层 | 风险提醒 | portrait |  |
 | `PortraitWorkflowPrerequisite` | 先装工作流 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitSkillSourceFusion` | Skill 来源合成 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `PortraitDesignRuleChecklist` | 网页设计规则清单 | 竖屏口播信息层 | 概念解释 | portrait |  |
-| `PortraitSkillResultComparison` | Skill 效果前后对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
-| `PortraitPromptIterationShowcase` | 一句话连续改版 | 竖屏口播信息层 | 流程说明 | portrait |  |
+| `PortraitSkillResultComparison` | Skill 效果前后对比 | 媒体展示组件 | 对比差异 | portrait |  |
+| `PortraitPromptIterationShowcase` | 一句话连续改版 | 媒体展示组件 | 流程说明 | portrait |  |
 | `PortraitSkillIdentityHeaderBar` | 编号标题条 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitHeatBadge` | 热度徽标 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitPillText` | 药丸文字 | 竖屏口播信息层 | 概念解释 | portrait |  |
@@ -364,11 +365,11 @@
 
 ### `PortraitStaggeredToolList` · 多工具错峰列表
 
-- 用途：四项工具以彩色竖线、说明与徽标依次错峰滑入；标题部分已拆分为独立的 PortraitToolListTitle 组件。
+- 用途：工具以彩色竖线与说明依次错峰滑入，步骤数量 1–8 可调；右侧徽标已拆分为独立的 PortraitToolBadgeList 组件，标题为独立的 PortraitToolListTitle 组件。
 - 主要语义：列举要点；次要：概念解释、重点强调、流程说明
 - 何时使用（检索词）：多个工具、多个技能、几个方法、清单、逐项讲解、skill
 - 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
-- 默认落位：x=90，y=470，scale=1（占位 900×390，placement=top）
+- 默认落位：x=90，y=470，scale=1（占位 900×780，placement=top）
 - 默认时长：150 帧（约 5 秒）
 - 分组：竖屏口播信息层
 
@@ -376,21 +377,25 @@
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
 - `enabled` — 显示工具列表
+- `stepCount` — 步骤数量（1–8）
 - `item1` — 工具一
 - `item2` — 工具二
 - `item3` — 工具三
 - `item4` — 工具四
+- `item5` — 工具五
+- `item6` — 工具六
+- `item7` — 工具七
+- `item8` — 工具八
 - `detail1` — 工具一说明
 - `detail2` — 工具二说明
 - `detail3` — 工具三说明
 - `detail4` — 工具四说明
-- `badge1` — 工具一徽标
-- `badge2` — 工具二徽标
-- `badge3` — 工具三徽标
-- `badge4` — 工具四徽标
+- `detail5` — 工具五说明
+- `detail6` — 工具六说明
+- `detail7` — 工具七说明
+- `detail8` — 工具八说明
 - `itemFontSize` — 工具字号(px)（14–64）
 - `detailFontSize` — 工具说明字号(px)（10–40）
-- `badgeFontSize` — 工具徽标字号(px)（10–36）
 - `color1` — 工具一颜色（color）
 - `color2` — 工具二颜色（color）
 - `color3` — 工具三颜色（color）
@@ -398,6 +403,38 @@
 - `panelColor` — 底板颜色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 四项入场总时长(秒)（1.8–5）
+
+### `PortraitToolBadgeList` · 工具徽标列表
+
+- 用途：与多工具错峰列表逐行对齐的胶囊徽标（如 C 位、热度），数量随步骤数量 1–8 可调，按相同节奏错峰滑入；可独立拖动、编辑与删除。
+- 主要语义：重点强调；次要：列举要点
+- 何时使用（检索词）：徽标、标签、热度、C位、星级、工具排名
+- 画布方向：portrait；密度：light；建议驻留：3–9 秒
+- 默认落位：x=772，y=488，scale=1（占位 180×713，placement=top）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示徽标列表
+- `stepCount` — 步骤数量（1–8）
+- `badge1` — 徽标一
+- `badge2` — 徽标二
+- `badge3` — 徽标三
+- `badge4` — 徽标四
+- `badge5` — 徽标五
+- `badge6` — 徽标六
+- `badge7` — 徽标七
+- `badge8` — 徽标八
+- `badgeFontSize` — 徽标字号(px)（10–36）
+- `badgeGap` — 徽标上下间隙(px)（-60–80）
+- `color1` — 徽标一颜色（color）
+- `color2` — 徽标二颜色（color）
+- `color3` — 徽标三颜色（color）
+- `color4` — 徽标四颜色（color）
+- `badgesAlign` — 徽标对齐
+- `animationSeconds` — 入场总时长(秒)（1.8–5）
 
 ### `PortraitToolListTitle` · 工具列表标题
 
@@ -598,144 +635,6 @@
 - `panelColor` — 底板颜色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 完整动画时长(秒)（4–20）
-
-### `PortraitSkillResultComparison` · Skill 效果前后对比
-
-- 用途：复刻参考视频 47.733–56.800 秒：默认效果擦除到 Skill 优化效果，再切换另一行业案例。
-- 主要语义：对比差异；次要：案例与素材、概念解释、重点强调
-- 何时使用（检索词）：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
-- 画布方向：portrait；密度：heavy；建议驻留：6–14 秒
-- 默认落位：x=90，y=120，scale=1（占位 900×650，placement=top）
-- 默认时长：272 帧（约 9.1 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示效果前后对比
-- `materialCount` — 素材数量（1–8）
-- `material1Url` — 素材一
-- `material1Eyebrow` — 素材一英文标题
-- `material1Title` — 素材一主标题
-- `material1Detail` — 素材一说明
-- `material1Color` — 素材一强调色（color）
-- `material2Url` — 素材二
-- `material2Eyebrow` — 素材二英文标题
-- `material2Title` — 素材二主标题
-- `material2Detail` — 素材二说明
-- `material2Color` — 素材二强调色（color）
-- `material3Url` — 素材三
-- `material3Eyebrow` — 素材三英文标题
-- `material3Title` — 素材三主标题
-- `material3Detail` — 素材三说明
-- `material3Color` — 素材三强调色（color）
-- `material4Url` — 素材四
-- `material4Eyebrow` — 素材四英文标题
-- `material4Title` — 素材四主标题
-- `material4Detail` — 素材四说明
-- `material4Color` — 素材四强调色（color）
-- `material5Url` — 素材五
-- `material5Eyebrow` — 素材五英文标题
-- `material5Title` — 素材五主标题
-- `material5Detail` — 素材五说明
-- `material5Color` — 素材五强调色（color）
-- `material6Url` — 素材六
-- `material6Eyebrow` — 素材六英文标题
-- `material6Title` — 素材六主标题
-- `material6Detail` — 素材六说明
-- `material6Color` — 素材六强调色（color）
-- `material7Url` — 素材七
-- `material7Eyebrow` — 素材七英文标题
-- `material7Title` — 素材七主标题
-- `material7Detail` — 素材七说明
-- `material7Color` — 素材七强调色（color）
-- `material8Url` — 素材八
-- `material8Eyebrow` — 素材八英文标题
-- `material8Title` — 素材八主标题
-- `material8Detail` — 素材八说明
-- `material8Color` — 素材八强调色（color）
-- `eyebrowFontSize` — 英文标题字号(px)（8–96）
-- `titleFontSize` — 主标题字号(px)（16–120）
-- `detailFontSize` — 说明字号(px)（10–96）
-- `browserLabelFontSize` — 案例徽标字号(px)（8–96）
-- `firstSwitchSeconds` — 第二张素材切换时间(秒)
-- `materialIntervalSeconds` — 下一张素材切换间隔(秒)
-- `wipeDurationSeconds` — 擦除动画时长(秒)
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `mediaFit` — 素材填充方式
-- `mediaPositionX` — 素材水平位置(%)（0–100）
-- `mediaPositionY` — 素材垂直位置(%)（0–100）
-- `animationSeconds` — 完整动画时长(秒)（4–30）
-
-### `PortraitPromptIterationShowcase` · 一句话连续改版
-
-- 用途：复刻参考视频 57.933–76.800 秒：提示词输入条联动页面结果，连续切换摄影官网、深色后台和产品落地页。
-- 主要语义：流程说明；次要：案例与素材、概念解释、对比差异
-- 何时使用（检索词）：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
-- 画布方向：portrait；密度：heavy；建议驻留：10–24 秒
-- 默认落位：x=90，y=100，scale=1（占位 900×760，placement=top）
-- 默认时长：566 帧（约 18.9 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示一句话连续改版
-- `iterationCount` — 改版数量（1–8）
-- `iteration1Url` — 改版一素材
-- `iteration1Prompt` — 改版一提示词
-- `iteration1Badge` — 改版一徽标
-- `iteration1Color` — 改版一强调色（color）
-- `iteration2Url` — 改版二素材
-- `iteration2Prompt` — 改版二提示词
-- `iteration2Badge` — 改版二徽标
-- `iteration2Color` — 改版二强调色（color）
-- `iteration3Url` — 改版三素材
-- `iteration3Prompt` — 改版三提示词
-- `iteration3Badge` — 改版三徽标
-- `iteration3Color` — 改版三强调色（color）
-- `iteration4Url` — 改版四素材
-- `iteration4Prompt` — 改版四提示词
-- `iteration4Badge` — 改版四徽标
-- `iteration4Color` — 改版四强调色（color）
-- `iteration5Url` — 改版五素材
-- `iteration5Prompt` — 改版五提示词
-- `iteration5Badge` — 改版五徽标
-- `iteration5Color` — 改版五强调色（color）
-- `iteration6Url` — 改版六素材
-- `iteration6Prompt` — 改版六提示词
-- `iteration6Badge` — 改版六徽标
-- `iteration6Color` — 改版六强调色（color）
-- `iteration7Url` — 改版七素材
-- `iteration7Prompt` — 改版七提示词
-- `iteration7Badge` — 改版七徽标
-- `iteration7Color` — 改版七强调色（color）
-- `iteration8Url` — 改版八素材
-- `iteration8Prompt` — 改版八提示词
-- `iteration8Badge` — 改版八徽标
-- `iteration8Color` — 改版八强调色（color）
-- `eyebrow` — 顶部英文标题
-- `title` — 顶部主标题
-- `emphasis` — 顶部强调标题
-- `ghostNumber` — 背景编号
-- `waitingText` — 等待提示
-- `eyebrowFontSize` — 英文标题字号(px)（8–96）
-- `titleFontSize` — 主标题字号(px)（16–120）
-- `emphasisFontSize` — 强调标题字号(px)（16–120）
-- `promptFontSize` — 提示词字号(px)（10–96）
-- `badgeFontSize` — 改版徽标字号(px)（8–96）
-- `firstResultSeconds` — 第一版出现时间(秒)
-- `iterationIntervalSeconds` — 下一版切换间隔(秒)
-- `wipeDurationSeconds` — 擦除动画时长(秒)
-- `accentColor` — 标题强调色（color）
-- `emphasisColor` — 重点文字颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `mediaFit` — 素材填充方式
-- `mediaPositionX` — 素材水平位置(%)（0–100）
-- `mediaPositionY` — 素材垂直位置(%)（0–100）
-- `animationSeconds` — 完整动画时长(秒)（6–60）
 
 ### `PortraitSkillIdentityHeaderBar` · 编号标题条
 
@@ -1151,6 +1050,144 @@
 - `cps` — 打字速度（8–60）
 - `offsetX` — 水平微调（-900–900）
 - `offsetY` — 垂直微调（-600–600）
+
+### `PortraitSkillResultComparison` · Skill 效果前后对比
+
+- 用途：复刻参考视频 47.733–56.800 秒：默认效果擦除到 Skill 优化效果，再切换另一行业案例。
+- 主要语义：对比差异；次要：案例与素材、概念解释、重点强调
+- 何时使用（检索词）：没装的时候、默认效果、装了之后、同一个AI、同一句话、换个行业、一样稳
+- 画布方向：portrait；密度：heavy；建议驻留：6–14 秒
+- 默认落位：x=90，y=120，scale=1（占位 900×650，placement=top）
+- 默认时长：272 帧（约 9.1 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示效果前后对比
+- `materialCount` — 素材数量（1–8）
+- `material1Url` — 素材一
+- `material1Eyebrow` — 素材一英文标题
+- `material1Title` — 素材一主标题
+- `material1Detail` — 素材一说明
+- `material1Color` — 素材一强调色（color）
+- `material2Url` — 素材二
+- `material2Eyebrow` — 素材二英文标题
+- `material2Title` — 素材二主标题
+- `material2Detail` — 素材二说明
+- `material2Color` — 素材二强调色（color）
+- `material3Url` — 素材三
+- `material3Eyebrow` — 素材三英文标题
+- `material3Title` — 素材三主标题
+- `material3Detail` — 素材三说明
+- `material3Color` — 素材三强调色（color）
+- `material4Url` — 素材四
+- `material4Eyebrow` — 素材四英文标题
+- `material4Title` — 素材四主标题
+- `material4Detail` — 素材四说明
+- `material4Color` — 素材四强调色（color）
+- `material5Url` — 素材五
+- `material5Eyebrow` — 素材五英文标题
+- `material5Title` — 素材五主标题
+- `material5Detail` — 素材五说明
+- `material5Color` — 素材五强调色（color）
+- `material6Url` — 素材六
+- `material6Eyebrow` — 素材六英文标题
+- `material6Title` — 素材六主标题
+- `material6Detail` — 素材六说明
+- `material6Color` — 素材六强调色（color）
+- `material7Url` — 素材七
+- `material7Eyebrow` — 素材七英文标题
+- `material7Title` — 素材七主标题
+- `material7Detail` — 素材七说明
+- `material7Color` — 素材七强调色（color）
+- `material8Url` — 素材八
+- `material8Eyebrow` — 素材八英文标题
+- `material8Title` — 素材八主标题
+- `material8Detail` — 素材八说明
+- `material8Color` — 素材八强调色（color）
+- `eyebrowFontSize` — 英文标题字号(px)（8–96）
+- `titleFontSize` — 主标题字号(px)（16–120）
+- `detailFontSize` — 说明字号(px)（10–96）
+- `browserLabelFontSize` — 案例徽标字号(px)（8–96）
+- `firstSwitchSeconds` — 第二张素材切换时间(秒)
+- `materialIntervalSeconds` — 下一张素材切换间隔(秒)
+- `wipeDurationSeconds` — 擦除动画时长(秒)
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `mediaFit` — 素材填充方式
+- `mediaPositionX` — 素材水平位置(%)（0–100）
+- `mediaPositionY` — 素材垂直位置(%)（0–100）
+- `animationSeconds` — 完整动画时长(秒)（4–30）
+
+### `PortraitPromptIterationShowcase` · 一句话连续改版
+
+- 用途：复刻参考视频 57.933–76.800 秒：提示词输入条联动页面结果，连续切换摄影官网、深色后台和产品落地页。
+- 主要语义：流程说明；次要：案例与素材、概念解释、对比差异
+- 何时使用（检索词）：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
+- 画布方向：portrait；密度：heavy；建议驻留：10–24 秒
+- 默认落位：x=90，y=100，scale=1（占位 900×760，placement=top）
+- 默认时长：566 帧（约 18.9 秒）
+- 分组：媒体展示组件
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示一句话连续改版
+- `iterationCount` — 改版数量（1–8）
+- `iteration1Url` — 改版一素材
+- `iteration1Prompt` — 改版一提示词
+- `iteration1Badge` — 改版一徽标
+- `iteration1Color` — 改版一强调色（color）
+- `iteration2Url` — 改版二素材
+- `iteration2Prompt` — 改版二提示词
+- `iteration2Badge` — 改版二徽标
+- `iteration2Color` — 改版二强调色（color）
+- `iteration3Url` — 改版三素材
+- `iteration3Prompt` — 改版三提示词
+- `iteration3Badge` — 改版三徽标
+- `iteration3Color` — 改版三强调色（color）
+- `iteration4Url` — 改版四素材
+- `iteration4Prompt` — 改版四提示词
+- `iteration4Badge` — 改版四徽标
+- `iteration4Color` — 改版四强调色（color）
+- `iteration5Url` — 改版五素材
+- `iteration5Prompt` — 改版五提示词
+- `iteration5Badge` — 改版五徽标
+- `iteration5Color` — 改版五强调色（color）
+- `iteration6Url` — 改版六素材
+- `iteration6Prompt` — 改版六提示词
+- `iteration6Badge` — 改版六徽标
+- `iteration6Color` — 改版六强调色（color）
+- `iteration7Url` — 改版七素材
+- `iteration7Prompt` — 改版七提示词
+- `iteration7Badge` — 改版七徽标
+- `iteration7Color` — 改版七强调色（color）
+- `iteration8Url` — 改版八素材
+- `iteration8Prompt` — 改版八提示词
+- `iteration8Badge` — 改版八徽标
+- `iteration8Color` — 改版八强调色（color）
+- `eyebrow` — 顶部英文标题
+- `title` — 顶部主标题
+- `emphasis` — 顶部强调标题
+- `ghostNumber` — 背景编号
+- `waitingText` — 等待提示
+- `eyebrowFontSize` — 英文标题字号(px)（8–96）
+- `titleFontSize` — 主标题字号(px)（16–120）
+- `emphasisFontSize` — 强调标题字号(px)（16–120）
+- `promptFontSize` — 提示词字号(px)（10–96）
+- `badgeFontSize` — 改版徽标字号(px)（8–96）
+- `firstResultSeconds` — 第一版出现时间(秒)
+- `iterationIntervalSeconds` — 下一版切换间隔(秒)
+- `wipeDurationSeconds` — 擦除动画时长(秒)
+- `accentColor` — 标题强调色（color）
+- `emphasisColor` — 重点文字颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `mediaFit` — 素材填充方式
+- `mediaPositionX` — 素材水平位置(%)（0–100）
+- `mediaPositionY` — 素材垂直位置(%)（0–100）
+- `animationSeconds` — 完整动画时长(秒)（6–60）
 
 ### `PortraitAgentBrowserMedia` · Agent 浏览器逐屏自查
 

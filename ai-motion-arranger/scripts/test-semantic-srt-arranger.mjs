@@ -195,6 +195,7 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
   (id) => ![
     "PortraitDecisionTagStack",
     "PortraitStaggeredToolList",
+    "PortraitToolBadgeList",
     "PortraitToolListTitle",
     "PortraitPromptMistakeDiagnosis",
     "PortraitWorkflowPrerequisite",

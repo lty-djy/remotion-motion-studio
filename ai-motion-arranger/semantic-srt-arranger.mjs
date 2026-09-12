@@ -1537,6 +1537,7 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "enumerated-tool-list": [
     { componentId: "PortraitStaggeredToolList", reason: "按口播节奏错峰列出多个工具、技能或方法" },
+    { componentId: "PortraitToolBadgeList", reason: "在每行右侧同步展示 C 位、热度等徽标" },
     { componentId: "PortraitToolListTitle", reason: "用引导词和大标题为列表建立语境" },
     { componentId: "PortraitStepNumberList", reason: "当条目强调先后顺序时可改用编号步骤清单" },
     { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
@@ -1608,6 +1609,9 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
 
 const portraitCandidateAllowed = (componentId, context) => {
   if (componentId === "PortraitStaggeredToolList") {
+    return context.evidence.listItemCount >= 2;
+  }
+  if (componentId === "PortraitToolBadgeList") {
     return context.evidence.listItemCount >= 2;
   }
   if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
@@ -1756,6 +1760,11 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
   PortraitStaggeredToolList: {
     anchor: "center-top",
     fallbackAnchors: ["left-top", "right-top"],
+    preferredScale: 0.92,
+  },
+  PortraitToolBadgeList: {
+    anchor: "right-top",
+    fallbackAnchors: ["center-top", "left-top"],
     preferredScale: 0.92,
   },
   PortraitToolListTitle: {

@@ -13503,6 +13503,10 @@ const App = () => {
           key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitStepNumberList" &&
           key === "stepCount") ||
+        (inspectorDefinition?.id === "PortraitStaggeredToolList" &&
+          key === "stepCount") ||
+        (inspectorDefinition?.id === "PortraitToolBadgeList" &&
+          key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitSkillSourceFusion" &&
           key === "sourceCount") ||
         (inspectorDefinition?.id === "PortraitDesignRuleChecklist" &&
@@ -13534,7 +13538,7 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : key === "tagCount" ? "标签" : key === "stepCount" && inspectorDefinition?.id === "PortraitStepNumberList" ? "步骤" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : key === "tagCount" ? "标签" : key === "stepCount" && ["PortraitStepNumberList", "PortraitStaggeredToolList"].includes(inspectorDefinition?.id ?? "") ? "步骤" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
             if (key === "stepCount" && selectedDefinition?.id === "TerminalPanel" && selectedInstance) {
               const interval = Math.max(0, Number(selectedInstance.props.itemIntervalSeconds ?? 0.55));
@@ -13586,6 +13590,52 @@ const App = () => {
               const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
               updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, stepCount: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
+              return;
+            }
+            if (key === "stepCount" && selectedDefinition?.id === "PortraitStaggeredToolList" && selectedInstance) {
+              const animationSeconds = Math.max(
+                Number(selectedInstance.props.animationSeconds ?? 2.8),
+                1.2 + Math.max(0, nextValue - 1) * 0.48,
+              );
+              const nextDuration = Math.max(
+                selectedInstance.durationInFrames,
+                Math.ceil(animationSeconds * fps),
+              );
+              updateInstance(selectedInstance.id, (instance) => ({
+                ...instance,
+                durationInFrames: nextDuration,
+                props: {
+                  ...instance.props,
+                  stepCount: nextValue,
+                  animationSeconds: Number(animationSeconds.toFixed(2)),
+                },
+              }));
+              setManualTimelineEndFrame((current) =>
+                Math.max(current, selectedInstance.startFrame + nextDuration),
+              );
+              return;
+            }
+            if (key === "stepCount" && selectedDefinition?.id === "PortraitToolBadgeList" && selectedInstance) {
+              const animationSeconds = Math.max(
+                Number(selectedInstance.props.animationSeconds ?? 2.8),
+                1.2 + Math.max(0, nextValue - 1) * 0.48,
+              );
+              const nextDuration = Math.max(
+                selectedInstance.durationInFrames,
+                Math.ceil(animationSeconds * fps),
+              );
+              updateInstance(selectedInstance.id, (instance) => ({
+                ...instance,
+                durationInFrames: nextDuration,
+                props: {
+                  ...instance.props,
+                  stepCount: nextValue,
+                  animationSeconds: Number(animationSeconds.toFixed(2)),
+                },
+              }));
+              setManualTimelineEndFrame((current) =>
+                Math.max(current, selectedInstance.startFrame + nextDuration),
+              );
               return;
             }
             if (key === "capabilityCount") {
@@ -17714,6 +17764,32 @@ const App = () => {
                           const match = key.match(/^(?:step|icon)(\d+)$/);
                           const activeStepCount = clamp(
                             Math.round(Number(inspectorInstance.props.stepCount ?? 3)),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          inspectorDefinition.id === "PortraitStaggeredToolList"
+                        ) {
+                          const match = key.match(/^(?:item|detail|badge|color)(\d+)$/);
+                          const activeStepCount = clamp(
+                            Math.round(Number(inspectorInstance.props.stepCount ?? 4)),
+                            1,
+                            8,
+                          );
+                          if (match && Number(match[1]) > activeStepCount) {
+                            return null;
+                          }
+                        }
+                        if (
+                          inspectorDefinition.id === "PortraitToolBadgeList"
+                        ) {
+                          const match = key.match(/^(?:badge|color)(\d+)$/);
+                          const activeStepCount = clamp(
+                            Math.round(Number(inspectorInstance.props.stepCount ?? 4)),
                             1,
                             8,
                           );
