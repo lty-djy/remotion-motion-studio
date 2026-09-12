@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（51 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（52 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -24,11 +24,12 @@
 | `PortraitInfoCallout` | 图标信息卡 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitMetricDecision` | 数据决策卡 | 竖屏口播信息层 | 数字展示 | portrait |  |
 | `PortraitDecisionTagStack` | 优缺点标签组 | 竖屏口播信息层 | 对比差异 | portrait |  |
-| `PortraitStepChecklist` | 步骤清单卡 | 竖屏口播信息层 | 流程说明 | portrait |  |
+| `PortraitStepStageTitle` | 步骤阶段标题 | 竖屏口播信息层 | 概念解释 | portrait |  |
+| `PortraitStepNumberList` | 编号步骤清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitStaggeredToolList` | 多工具错峰列表 | 竖屏口播信息层 | 列举要点 | portrait |  |
+| `PortraitToolListTitle` | 工具列表标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitPromptMistakeDiagnosis` | 错误提问诊断 | 竖屏口播信息层 | 风险提醒 | portrait |  |
 | `PortraitWorkflowPrerequisite` | 先装工作流 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitSkillIdentityCard` | Skill 身份卡 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitSkillSourceFusion` | Skill 来源合成 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `PortraitDesignRuleChecklist` | 网页设计规则清单 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitSkillResultComparison` | Skill 效果前后对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
@@ -211,6 +212,7 @@
 - `eyebrowFontSize` — 眉题字号(px)（10–64）
 - `titleFontSize` — 主标题字号(px)（24–120）
 - `subtitleFontSize` — 副标题字号(px)（14–72）
+- `titleOffsetX` — 标题区水平位置(px)（-160–300）
 - `revealDelaySeconds` — 入场等待(秒)（0–4）
 - `animationSeconds` — 分段入场时长(秒)（0.6–6）
 
@@ -302,23 +304,44 @@
 - `tagEnterIntervalSeconds` — 下一标签入场间隔(秒)（0–8）
 - `animationSeconds` — 入场时长(秒)（0.4–2）
 
-### `PortraitStepChecklist` · 步骤清单卡
+### `PortraitStepStageTitle` · 步骤阶段标题
 
-- 用途：可按需增减的步骤清单卡，顶部给出阶段结论，步骤卡依次滑入。
+- 用途：阶段引导词 + 阶段标题 + 阶段说明的组合标题块，用于步骤清单或流程段落开头的结论提示；编号步骤清单已拆分为独立的 PortraitStepNumberList 组件。
+- 主要语义：概念解释；次要：重点强调、流程说明、章节转场
+- 何时使用（检索词）：阶段标题、阶段引导、小结、结论标题、步骤标题
+- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
+- 默认落位：x=545，y=252，scale=1（占位 470×118，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示步骤阶段标题
+- `eyebrow` — 阶段引导词
+- `title` — 阶段标题
+- `subtitle` — 阶段说明
+- `accentColor` — 引导词颜色（color）
+- `textColor` — 文字颜色（color）
+- `eyebrowFontSize` — 引导词字号(px)（10–64）
+- `titleFontSize` — 标题字号(px)（16–96）
+- `subtitleFontSize` — 说明字号(px)（10–64）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitStepNumberList` · 编号步骤清单
+
+- 用途：编号圆圈 + 竖向连接线的步骤清单，步骤卡依次滑入；阶段标题已拆分为独立的 PortraitStepStageTitle 组件。
 - 主要语义：流程说明；次要：列举要点、概念解释
 - 何时使用（检索词）：步骤、流程、首先、然后、最后
 - 画布方向：portrait；密度：heavy；建议驻留：2.5–9 秒
-- 默认落位：x=500，y=252，scale=1（占位 520×860，placement=right）
+- 默认落位：x=500，y=400，scale=1（占位 520×260，placement=right）
 - 默认时长：150 帧（约 5 秒）
 - 分组：竖屏口播信息层
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
-- `enabled` — 显示步骤卡
-- `eyebrow` — 阶段引导词
-- `title` — 阶段标题
-- `subtitle` — 阶段说明
+- `enabled` — 显示编号步骤清单
 - `stepCount` — 步骤数量（1–8）
 - `step1` — 步骤一
 - `step2` — 步骤二
@@ -332,9 +355,6 @@
 - `successColor` — 完成强调色（color）
 - `panelColor` — 底板颜色（color）
 - `textColor` — 文字颜色（color）
-- `eyebrowFontSize` — 阶段引导词字号(px)（10–64）
-- `titleFontSize` — 阶段标题字号(px)（16–96）
-- `subtitleFontSize` — 阶段说明字号(px)（10–64）
 - `cardWidth` — 卡片宽度(px)（300–520）
 - `cardsOffsetX` — 卡片水平位置(px)（-240–240）
 - `textOffsetX` — 步骤文字水平位置(px)（-120–120）
@@ -344,11 +364,11 @@
 
 ### `PortraitStaggeredToolList` · 多工具错峰列表
 
-- 用途：复刻参考视频 7.5–12.25 秒：标题先建立语境，四项工具以彩色竖线、说明与徽标依次滑入。
+- 用途：四项工具以彩色竖线、说明与徽标依次错峰滑入；标题部分已拆分为独立的 PortraitToolListTitle 组件。
 - 主要语义：列举要点；次要：概念解释、重点强调、流程说明
 - 何时使用（检索词）：多个工具、多个技能、几个方法、清单、逐项讲解、skill
 - 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
-- 默认落位：x=90，y=250，scale=1（占位 900×650，placement=top）
+- 默认落位：x=90，y=470，scale=1（占位 900×390，placement=top）
 - 默认时长：150 帧（约 5 秒）
 - 分组：竖屏口播信息层
 
@@ -356,16 +376,6 @@
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
 - `enabled` — 显示工具列表
-- `eyebrow` — 顶部引导词
-- `titlePrefix` — 标题第一行
-- `titleMain` — 标题第二行
-- `titleEmphasis` — 标题强调词
-- `titleSuffix` — 标题强调后缀
-- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
-- `titlePrefixFontSize` — 标题第一行字号(px)（24–96）
-- `titleMainFontSize` — 标题第二行字号(px)（24–96）
-- `titleEmphasisFontSize` — 标题强调词字号(px)（24–96）
-- `titleSuffixFontSize` — 标题强调后缀字号(px)（24–96）
 - `item1` — 工具一
 - `item2` — 工具二
 - `item3` — 工具三
@@ -385,10 +395,37 @@
 - `color2` — 工具二颜色（color）
 - `color3` — 工具三颜色（color）
 - `color4` — 工具四颜色（color）
-- `highlightColor` — 标题强调色（color）
 - `panelColor` — 底板颜色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 四项入场总时长(秒)（1.8–5）
+
+### `PortraitToolListTitle` · 工具列表标题
+
+- 用途：顶部引导词 + 三行大标题（含强调词）+ 生长下划线，用于工具列表或列举段落的开篇；错峰工具列表已拆分为独立的 PortraitStaggeredToolList 组件。
+- 主要语义：重点强调；次要：概念解释、章节转场
+- 何时使用（检索词）：很多人问我、怎么用、新手、引导词、列表标题
+- 画布方向：portrait；密度：light；建议驻留：1.5–5 秒
+- 默认落位：x=90，y=250，scale=1（占位 650×280，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示工具列表标题
+- `eyebrow` — 顶部引导词
+- `titlePrefix` — 标题第一行
+- `titleMain` — 标题第二行
+- `titleEmphasis` — 标题强调词
+- `titleSuffix` — 标题强调后缀
+- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
+- `titlePrefixFontSize` — 标题第一行字号(px)（24–96）
+- `titleMainFontSize` — 标题第二行字号(px)（24–96）
+- `titleEmphasisFontSize` — 标题强调词字号(px)（24–96）
+- `titleSuffixFontSize` — 标题强调后缀字号(px)（24–96）
+- `highlightColor` — 标题强调色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.8–5）
 
 ### `PortraitPromptMistakeDiagnosis` · 错误提问诊断
 
@@ -474,35 +511,6 @@
 - `panelColor` — 底板颜色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 完整入场时长(秒)（3.5–8）
-
-### `PortraitSkillIdentityCard` · Skill 身份卡
-
-- 用途：复刻参考视频 26.966–30.650 秒：用自动编号、身份标题、C 位徽标和持续更新胶囊介绍第一个 Skill。
-- 主要语义：概念解释；次要：重点强调、案例与素材
-- 何时使用（检索词）：第一个skill、我自己做的UI skill、持续更新、身份介绍
-- 画布方向：portrait；密度：light；建议驻留：2.5–6 秒
-- 默认落位：x=90，y=150，scale=1（占位 900×260，placement=top）
-- 默认时长：111 帧（约 3.7 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 Skill 身份卡
-- `sequenceText` — Skill 编号
-- `title` — Skill 主标题
-- `subtitle` — Skill 副标题
-- `badge` — Skill 徽标
-- `updateText` — 持续更新说明
-- `sequenceFontSize` — Skill 编号字号(px)（10–56）
-- `titleFontSize` — Skill 主标题字号(px)（16–72）
-- `subtitleFontSize` — Skill 副标题字号(px)（10–46）
-- `badgeFontSize` — Skill 徽标字号(px)（8–96）
-- `updateFontSize` — 持续更新说明字号(px)（8–36）
-- `accentColor` — 身份卡强调色（color）
-- `panelColor` — 身份卡底板颜色（color）
-- `textColor` — 身份卡文字颜色（color）
-- `animationSeconds` — 完整入场时长(秒)（2.4–6）
 
 ### `PortraitSkillSourceFusion` · Skill 来源合成
 
@@ -1527,8 +1535,6 @@
 - `reviewLabel` — 审核说明
 - `reviewTime` — 审核时长
 - `reviewSuffix` — 审核英文说明
-- `attribution` — 团队说明
-- `attributionSubtitle` — 团队英文副标题
 - `accentColor` — 强调色（color）
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 入场时长(秒)（0.2–2）

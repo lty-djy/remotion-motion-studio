@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **51** 个注册组件。
+当前覆盖 **52** 个注册组件。
 
 ## 核心语义
 
@@ -71,7 +71,13 @@
   - 内容：comparison、list、short-text
   - 方向：portrait；密度：medium；建议时长：1.5–6 秒
   - 检索词：标签、优缺点、选择、判断、并列
-- **步骤清单卡**（`PortraitStepChecklist`）
+- **步骤阶段标题**（`PortraitStepStageTitle`）
+  - 主要：概念解释
+  - 次要：重点强调、流程说明、章节转场
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–6 秒
+  - 检索词：阶段标题、阶段引导、小结、结论标题、步骤标题
+- **编号步骤清单**（`PortraitStepNumberList`）
   - 主要：流程说明
   - 次要：列举要点、概念解释
   - 内容：process、list、short-text
@@ -83,6 +89,12 @@
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：3–9 秒
   - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
+- **工具列表标题**（`PortraitToolListTitle`）
+  - 主要：重点强调
+  - 次要：概念解释、章节转场
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–5 秒
+  - 检索词：很多人问我、怎么用、新手、引导词、列表标题
 - **错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
   - 主要：风险提醒
   - 次要：概念解释、重点强调
@@ -95,12 +107,6 @@
   - 内容：process、list、short-text
   - 方向：portrait；密度：heavy；建议时长：4–8 秒
   - 检索词：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
-- **Skill 身份卡**（`PortraitSkillIdentityCard`）
-  - 主要：概念解释
-  - 次要：重点强调、案例与素材
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：2.5–6 秒
-  - 检索词：第一个skill、我自己做的UI skill、持续更新、身份介绍
 - **Skill 来源合成**（`PortraitSkillSourceFusion`）
   - 主要：案例与素材
   - 次要：概念解释、列举要点、重点强调

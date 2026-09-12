@@ -46,7 +46,7 @@
       "sourceIntentId": "intent-meal-overview"
     },
     {
-      "componentId": "PortraitStepChecklist",
+      "componentId": "PortraitStepNumberList",
       "startFrame": 114,
       "durationInFrames": 301,
       "laneId": "menu",
@@ -113,7 +113,7 @@
       "sourceIntentId": "intent-anniversary-benefit"
     },
     {
-      "componentId": "PortraitStepChecklist",
+      "componentId": "PortraitStepNumberList",
       "startFrame": 740,
       "durationInFrames": 144,
       "laneId": "campaign-steps",

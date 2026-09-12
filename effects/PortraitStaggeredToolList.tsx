@@ -11,16 +11,6 @@ import type { EffectDef } from "../registry";
 type Props = {
   enabled?: boolean;
   backgroundOpacity?: number;
-  eyebrow?: string;
-  titlePrefix?: string;
-  titleMain?: string;
-  titleEmphasis?: string;
-  titleSuffix?: string;
-  eyebrowFontSize?: number;
-  titlePrefixFontSize?: number;
-  titleMainFontSize?: number;
-  titleEmphasisFontSize?: number;
-  titleSuffixFontSize?: number;
   item1?: string;
   item2?: string;
   item3?: string;
@@ -40,7 +30,6 @@ type Props = {
   color2?: string;
   color3?: string;
   color4?: string;
-  highlightColor?: string;
   panelColor?: string;
   textColor?: string;
   animationSeconds?: number;
@@ -49,16 +38,6 @@ type Props = {
 export const PortraitStaggeredToolList: React.FC<Props> = ({
   enabled = true,
   backgroundOpacity = 0,
-  eyebrow = "很多人问我",
-  titlePrefix = "新手，",
-  titleMain = "怎么用 Codex 做出",
-  titleEmphasis = "这种审美",
-  titleSuffix = "的网页？",
-  eyebrowFontSize = 22,
-  titlePrefixFontSize = 56,
-  titleMainFontSize = 56,
-  titleEmphasisFontSize = 56,
-  titleSuffixFontSize = 56,
   item1 = "我自己做的 Skill",
   item2 = "GSAP Skills",
   item3 = "Ponytail",
@@ -78,7 +57,6 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
   color2 = "#20E878",
   color3 = "#9B6CFF",
   color4 = "#397BFF",
-  highlightColor = "#F2D51B",
   panelColor = "#071017",
   textColor = "#F5F7FA",
   animationSeconds = 2.8,
@@ -105,7 +83,7 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
       style={{
         position: "relative",
         width: 900,
-        height: 650,
+        height: 390,
         boxSizing: "border-box",
         overflow: "hidden",
         border:
@@ -124,80 +102,6 @@ export const PortraitStaggeredToolList: React.FC<Props> = ({
         pointerEvents: "none",
       }}
     >
-      <Interactive.Div
-        name="列表主题标题"
-        style={{
-          position: "absolute",
-          top: 22,
-          left: 20,
-          width: 650,
-          opacity: interpolate(frame, [0, enterFrames * 0.22], [0, 1], {
-            easing: Easing.bezier(0.16, 1, 0.3, 1),
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          }),
-          translate: interpolate(
-            frame,
-            [0, enterFrames * 0.22],
-            ["0px 28px", "0px 0px"],
-            {
-              easing: Easing.bezier(0.16, 1, 0.3, 1),
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            },
-          ),
-        }}
-      >
-        <div
-          style={{
-            color: highlightColor,
-            fontSize: eyebrowFontSize,
-            fontWeight: 900,
-            letterSpacing: 4.2,
-            lineHeight: 1,
-          }}
-        >
-          {eyebrow}
-        </div>
-        <div
-          style={{
-            marginTop: 18,
-            color: textColor,
-            fontFamily: '"Songti SC", "SimSun", serif',
-            fontWeight: 900,
-            lineHeight: 1.13,
-            letterSpacing: -1.8,
-            textShadow: "0 8px 26px rgba(0, 0, 0, 0.72)",
-          }}
-        >
-          <div style={{ fontSize: titlePrefixFontSize }}>{titlePrefix}</div>
-          <div style={{ fontSize: titleMainFontSize }}>{titleMain}</div>
-          <div>
-            <span style={{ color: highlightColor, fontSize: titleEmphasisFontSize }}>{titleEmphasis}</span>
-            <span style={{ fontSize: titleSuffixFontSize }}>{titleSuffix}</span>
-          </div>
-        </div>
-        <div
-          style={{
-            width: interpolate(
-              frame,
-              [enterFrames * 0.12, enterFrames * 0.34],
-              [0, 82],
-              {
-                easing: Easing.bezier(0.16, 1, 0.3, 1),
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              },
-            ),
-            height: 4,
-            marginTop: 17,
-            borderRadius: 999,
-            backgroundColor: highlightColor,
-            boxShadow: `0 0 18px color-mix(in srgb, ${highlightColor} 42%, transparent)`,
-          }}
-        />
-      </Interactive.Div>
-
       <Interactive.Div
         name="四项工具列表"
         style={{
@@ -334,7 +238,7 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
   id: "PortraitStaggeredToolList",
   name: "多工具错峰列表",
   description:
-    "复刻参考视频 7.5–12.25 秒：标题先建立语境，四项工具以彩色竖线、说明与徽标依次滑入。",
+    "四项工具以彩色竖线、说明与徽标依次错峰滑入；标题部分已拆分为独立的 PortraitToolListTitle 组件。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
   glyph: "4X",
@@ -342,20 +246,10 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
   component:
     PortraitStaggeredToolList as React.ComponentType<Record<string, unknown>>,
   durationInFrames: 150,
-  bounds: { x: 0, y: 0, width: 900, height: 650 },
-  defaultPosition: { x: 90, y: 250, scale: 1 },
+  bounds: { x: 0, y: 0, width: 900, height: 390 },
+  defaultPosition: { x: 90, y: 470, scale: 1 },
   defaultProps: {
     enabled: true,
-    eyebrow: "很多人问我",
-    titlePrefix: "新手，",
-    titleMain: "怎么用 Codex 做出",
-    titleEmphasis: "这种审美",
-    titleSuffix: "的网页？",
-    eyebrowFontSize: 22,
-    titlePrefixFontSize: 56,
-    titleMainFontSize: 56,
-    titleEmphasisFontSize: 56,
-    titleSuffixFontSize: 56,
     item1: "我自己做的 Skill",
     item2: "GSAP Skills",
     item3: "Ponytail",
@@ -375,23 +269,12 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     color2: "#20E878",
     color3: "#9B6CFF",
     color4: "#397BFF",
-    highlightColor: "#F2D51B",
     panelColor: "#071017",
     textColor: "#F5F7FA",
     animationSeconds: 2.8,
   },
   propsSchema: {
     enabled: { type: "boolean", label: "显示工具列表", default: true },
-    eyebrow: { type: "text", label: "顶部引导词" },
-    titlePrefix: { type: "text", label: "标题第一行" },
-    titleMain: { type: "text", label: "标题第二行" },
-    titleEmphasis: { type: "text", label: "标题强调词" },
-    titleSuffix: { type: "text", label: "标题强调后缀" },
-    eyebrowFontSize: { type: "number", label: "顶部引导词字号(px)", default: 22, min: 10, max: 72, step: 1 },
-    titlePrefixFontSize: { type: "number", label: "标题第一行字号(px)", default: 56, min: 24, max: 96, step: 1 },
-    titleMainFontSize: { type: "number", label: "标题第二行字号(px)", default: 56, min: 24, max: 96, step: 1 },
-    titleEmphasisFontSize: { type: "number", label: "标题强调词字号(px)", default: 56, min: 24, max: 96, step: 1 },
-    titleSuffixFontSize: { type: "number", label: "标题强调后缀字号(px)", default: 56, min: 24, max: 96, step: 1 },
     item1: { type: "text", label: "工具一" },
     item2: { type: "text", label: "工具二" },
     item3: { type: "text", label: "工具三" },
@@ -411,11 +294,6 @@ export const PortraitStaggeredToolListEffectDef: EffectDef = {
     color2: { type: "color", label: "工具二颜色", default: "#20E878" },
     color3: { type: "color", label: "工具三颜色", default: "#9B6CFF" },
     color4: { type: "color", label: "工具四颜色", default: "#397BFF" },
-    highlightColor: {
-      type: "color",
-      label: "标题强调色",
-      default: "#F2D51B",
-    },
     panelColor: { type: "color", label: "底板颜色", default: "#071017" },
     textColor: { type: "color", label: "文字颜色", default: "#F5F7FA" },
     animationSeconds: {

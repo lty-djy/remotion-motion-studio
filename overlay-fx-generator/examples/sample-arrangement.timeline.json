@@ -136,7 +136,7 @@
       "sourceIntentId": "intent-chapter-build"
     },
     {
-      "componentId": "PortraitStepChecklist",
+      "componentId": "PortraitStepNumberList",
       "startFrame": 1104,
       "durationInFrames": 300,
       "laneId": "semantic",
@@ -396,9 +396,9 @@
             ],
             "componentCandidates": [
               {
-                "componentId": "PortraitStepChecklist",
+                "componentId": "PortraitStepNumberList",
                 "rank": 1,
-                "reason": "四步逐条打勾，间隔卡点 2.5s",
+                "reason": "四步逐条打勾，间隔卡点 1.5s",
                 "props": {}
               }
             ]

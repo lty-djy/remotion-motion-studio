@@ -126,16 +126,19 @@ const doc = {
       title: "四步搭建",
       subtitle: "先跑通，再优化",
     }, "intent-chapter-build"),
-    item("PortraitStepChecklist", 36.8, 46.8, {
+    item("PortraitStepStageTitle", 36.8, 40.0, {
       eyebrow: "搭建方法",
       title: "最小可用系统",
       subtitle: "四步跑通",
+      animationSeconds: 1,
+    }, "intent-build-steps"),
+    item("PortraitStepNumberList", 40.0, 46.8, {
       stepCount: 4,
       step1: "选定唯一场景",
       step2: "定最小流程",
       step3: "固定使用时间",
       step4: "每周复盘",
-      stepEnterIntervalSeconds: 2.5,
+      stepEnterIntervalSeconds: 1.5,
       animationSeconds: 1,
     }, "intent-build-steps"),
     item("PortraitInfoCallout", 46.8, 52.0, {
@@ -263,7 +266,7 @@ const doc = {
             type: "process",
             signals: [{ type: "keyword", label: "第一步" }],
             componentCandidates: [
-              { componentId: "PortraitStepChecklist", rank: 1, reason: "四步逐条打勾，间隔卡点 2.5s", props: {} },
+              { componentId: "PortraitStepNumberList", rank: 1, reason: "四步逐条打勾，间隔卡点 1.5s", props: {} },
             ],
           },
         ],

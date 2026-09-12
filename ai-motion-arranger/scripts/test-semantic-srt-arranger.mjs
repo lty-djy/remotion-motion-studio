@@ -195,9 +195,9 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
   (id) => ![
     "PortraitDecisionTagStack",
     "PortraitStaggeredToolList",
+    "PortraitToolListTitle",
     "PortraitPromptMistakeDiagnosis",
     "PortraitWorkflowPrerequisite",
-    "PortraitSkillIdentityCard",
     "PortraitSkillSourceFusion",
     "PortraitDesignRuleChecklist",
     "PortraitSkillResultComparison",
@@ -211,6 +211,7 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
     "LegacyEliminationPanel",
     "ComparisonProgressBars",
     "MilestoneFollowerProgress",
+    "PortraitStepStageTitle",
   ].includes(id),
 )) {
   if (!portraitComponentIds.has(componentId)) {
@@ -357,37 +358,6 @@ if (
   throw new Error("工作流前置组件没有作为该流程语义的主要候选。");
 }
 
-const skillIdentityResult = buildSemanticSrtArrangement({
-  ...portraitInput,
-  durationInFrames: 1200,
-  availableComponentIds: ["PortraitSkillIdentityCard"],
-  componentCapabilities: runtimeRegistry
-    .filter((card) => card.id === "PortraitSkillIdentityCard")
-    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
-  entries: [
-    { index: 20, startMs: 26966, endMs: 28000, text: "第一个skill是" },
-    { index: 21, startMs: 28000, endMs: 29366, text: "我自己做的UI skill" },
-    { index: 22, startMs: 29366, endMs: 30650, text: "一直在持续更新" },
-  ],
-});
-const skillIdentityMotion = skillIdentityResult.motionTimeline.find(
-  (item) => item.componentId === "PortraitSkillIdentityCard",
-);
-if (!skillIdentityMotion) {
-  throw new Error("Skill 身份语义没有生成身份卡组件。");
-}
-if (
-  skillIdentityMotion.props.sequenceText !== "01" ||
-  skillIdentityMotion.props.title !== "我自己做的 Skill" ||
-  skillIdentityMotion.props.badge !== "C 位" ||
-  !String(skillIdentityMotion.props.updateText).includes("持续更新")
-) {
-  throw new Error("Skill 身份卡没有绑定编号、身份标题、徽标与更新说明。");
-}
-const expectedSkillIdentityFrames = Math.round(((30650 - 26966) / 1000) * 30);
-if (Math.abs(skillIdentityMotion.durationInFrames - expectedSkillIdentityFrames) > 1) {
-  throw new Error("Skill 身份卡没有覆盖 26.966–30.650 秒完整 SRT 语义段。");
-}
 const skillSourceFusionResult = buildSemanticSrtArrangement({
   ...portraitInput,
   durationInFrames: 1500,

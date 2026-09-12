@@ -201,7 +201,14 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["标签", "优缺点", "选择", "判断", "并列"],
     { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
   ),
-  PortraitStepChecklist: capability(
+  PortraitStepStageTitle: capability(
+    "explanation",
+    ["emphasis", "process", "transition"],
+    ["short-text"],
+    ["阶段标题", "阶段引导", "小结", "结论标题", "步骤标题"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 1.5, max: 6 } },
+  ),
+  PortraitStepNumberList: capability(
     "process",
     ["list", "explanation"],
     ["process", "list", "short-text"],
@@ -214,6 +221,13 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["list", "short-text"],
     ["多个工具", "多个技能", "几个方法", "清单", "逐项讲解", "skill"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 3, max: 9 } },
+  ),
+  PortraitToolListTitle: capability(
+    "emphasis",
+    ["explanation", "transition"],
+    ["short-text"],
+    ["很多人问我", "怎么用", "新手", "引导词", "列表标题"],
+    { orientation: "portrait", density: "light", durationSeconds: { min: 1.5, max: 5 } },
   ),
   PortraitPromptMistakeDiagnosis: capability(
     "warning",
@@ -228,13 +242,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["process", "list", "short-text"],
     ["动手之前", "先装工作流", "工作流装好", "审美动效工程自测", "顺序"],
     { orientation: "portrait", density: "heavy", durationSeconds: { min: 4, max: 8 } },
-  ),
-  PortraitSkillIdentityCard: capability(
-    "explanation",
-    ["emphasis", "evidence"],
-    ["short-text"],
-    ["第一个skill", "我自己做的UI skill", "持续更新", "身份介绍"],
-    { orientation: "portrait", density: "light", durationSeconds: { min: 2.5, max: 6 } },
   ),
   PortraitSkillSourceFusion: capability(
     "evidence",

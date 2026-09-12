@@ -26,11 +26,12 @@ import { PortraitIndexedChapterTitleEffectDef } from "./effects/PortraitIndexedC
 import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
 import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
-import { PortraitStepChecklistEffectDef } from "./effects/PortraitStepChecklist";
+import { PortraitStepStageTitleEffectDef } from "./effects/PortraitStepStageTitle";
+import { PortraitStepNumberListEffectDef } from "./effects/PortraitStepNumberList";
 import { PortraitStaggeredToolListEffectDef } from "./effects/PortraitStaggeredToolList";
+import { PortraitToolListTitleEffectDef } from "./effects/PortraitToolListTitle";
 import { PortraitPromptMistakeDiagnosisEffectDef } from "./effects/PortraitPromptMistakeDiagnosis";
 import { PortraitWorkflowPrerequisiteEffectDef } from "./effects/PortraitWorkflowPrerequisite";
-import { PortraitSkillIdentityCardEffectDef } from "./effects/PortraitSkillIdentityCard";
 import { PortraitSkillSourceFusionEffectDef } from "./effects/PortraitSkillSourceFusion";
 import { PortraitDesignRuleChecklistEffectDef } from "./effects/PortraitDesignRuleChecklist";
 import { PortraitSkillResultComparisonEffectDef } from "./effects/PortraitSkillResultComparison";
@@ -123,15 +124,17 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
 
   PortraitDecisionTagStackEffectDef,
 
-  PortraitStepChecklistEffectDef,
+  PortraitStepStageTitleEffectDef,
+
+  PortraitStepNumberListEffectDef,
 
   PortraitStaggeredToolListEffectDef,
+
+  PortraitToolListTitleEffectDef,
 
   PortraitPromptMistakeDiagnosisEffectDef,
 
   PortraitWorkflowPrerequisiteEffectDef,
-
-  PortraitSkillIdentityCardEffectDef,
 
   PortraitSkillSourceFusionEffectDef,
 

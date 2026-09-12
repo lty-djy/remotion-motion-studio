@@ -22,6 +22,7 @@ type Props = {
   eyebrowFontSize?: number;
   titleFontSize?: number;
   subtitleFontSize?: number;
+  titleOffsetX?: number;
   revealDelaySeconds?: number;
   animationSeconds?: number;
 };
@@ -40,6 +41,7 @@ export const PortraitIndexedChapterTitle: React.FC<Props> = ({
   eyebrowFontSize = 22,
   titleFontSize = 56,
   subtitleFontSize = 29,
+  titleOffsetX = 0,
   revealDelaySeconds = 0.65,
   animationSeconds = 2.2,
 }) => {
@@ -125,7 +127,7 @@ export const PortraitIndexedChapterTitle: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 44,
-          left: 242,
+          left: 242 + titleOffsetX,
           display: "flex",
           alignItems: "center",
           maxWidth: 510,
@@ -198,7 +200,7 @@ export const PortraitIndexedChapterTitle: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 86,
-          left: 242,
+          left: 242 + titleOffsetX,
           maxWidth: 520,
           overflow: "hidden",
           color: titleColor,
@@ -248,7 +250,7 @@ export const PortraitIndexedChapterTitle: React.FC<Props> = ({
         style={{
           position: "absolute",
           top: 172,
-          left: 242,
+          left: 242 + titleOffsetX,
           maxWidth: 520,
           overflow: "hidden",
           color: subtitleColor,
@@ -322,6 +324,7 @@ export const PortraitIndexedChapterTitleEffectDef: EffectDef = {
     eyebrowFontSize: 22,
     titleFontSize: 56,
     subtitleFontSize: 29,
+    titleOffsetX: 0,
     revealDelaySeconds: 0.65,
     animationSeconds: 2.2,
   },
@@ -364,6 +367,14 @@ export const PortraitIndexedChapterTitleEffectDef: EffectDef = {
       default: 29,
       min: 14,
       max: 72,
+      step: 1,
+    },
+    titleOffsetX: {
+      type: "number",
+      label: "标题区水平位置(px)",
+      default: 0,
+      min: -160,
+      max: 300,
       step: 1,
     },
     revealDelaySeconds: {

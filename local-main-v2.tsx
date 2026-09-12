@@ -1834,7 +1834,8 @@ const PORTRAIT_DEFAULT_POSITION_IDS = new Set([
   "PortraitInfoCallout",
   "PortraitMetricDecision",
   "PortraitDecisionTagStack",
-  "PortraitStepChecklist",
+  "PortraitStepStageTitle",
+  "PortraitStepNumberList",
   "PortraitRiskWarning",
   "PortraitNextEpisodeTitle",
   "PortraitFollowCta",
@@ -13500,7 +13501,7 @@ const App = () => {
           key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitSkillStepGrid" &&
           key === "stepCount") ||
-        (inspectorDefinition?.id === "PortraitStepChecklist" &&
+        (inspectorDefinition?.id === "PortraitStepNumberList" &&
           key === "stepCount") ||
         (inspectorDefinition?.id === "PortraitSkillSourceFusion" &&
           key === "sourceCount") ||
@@ -13533,7 +13534,7 @@ const App = () => {
           value={numericValue}
           min={min}
           max={max}
-          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : key === "tagCount" ? "标签" : key === "stepCount" && inspectorDefinition?.id === "PortraitStepChecklist" ? "步骤" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
+          itemNoun={key === "sourceCount" ? "来源" : key === "ruleCount" ? "规则" : key === "riskCount" ? "风险" : key === "materialCount" ? "素材" : key === "iterationCount" ? "改版" : key === "capabilityCount" ? "能力" : key === "questionCount" ? "问题" : key === "tagCount" ? "标签" : key === "stepCount" && inspectorDefinition?.id === "PortraitStepNumberList" ? "步骤" : inspectorDefinition?.id === "PortraitBrowserRepairLoop" ? "节点" : inspectorDefinition?.id === "PortraitSkillStepGrid" ? "卡片" : "步骤"}
           onChange={(nextValue) => {
             if (key === "stepCount" && selectedDefinition?.id === "TerminalPanel" && selectedInstance) {
               const interval = Math.max(0, Number(selectedInstance.props.itemIntervalSeconds ?? 0.55));
@@ -13577,7 +13578,7 @@ const App = () => {
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
-            if (key === "stepCount" && selectedDefinition?.id === "PortraitStepChecklist") {
+            if (key === "stepCount" && selectedDefinition?.id === "PortraitStepNumberList") {
               const interval = Math.max(0, Number(selectedInstance.props.stepEnterIntervalSeconds ?? 0.2));
               const animationSeconds = Math.max(0.4, Number(selectedInstance.props.animationSeconds ?? 1));
               const requiredSeconds = Math.max(1, Math.max(0, nextValue - 1) * interval + animationSeconds * 0.62 + 0.6);
@@ -13880,7 +13881,7 @@ const App = () => {
     }
     if (
       schema.type === "number" &&
-      ["PortraitDecisionTagStack", "PortraitStepChecklist"].includes(selectedDefinition?.id ?? "") &&
+      ["PortraitDecisionTagStack", "PortraitStepNumberList"].includes(selectedDefinition?.id ?? "") &&
       key === "iconSize"
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
@@ -13933,7 +13934,7 @@ const App = () => {
           ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitDecisionTagStack" &&
           ["tagEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
-        (selectedDefinition?.id === "PortraitStepChecklist" &&
+        (selectedDefinition?.id === "PortraitStepNumberList" &&
           ["stepEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
           ["nodeEnterIntervalSeconds", "firstNodeHighlightSeconds", "nextNodeHighlightIntervalSeconds", "loopIntervalSeconds", "animationSeconds"].includes(key)) ||
@@ -17708,7 +17709,7 @@ const App = () => {
                           }
                         }
                         if (
-                          inspectorDefinition.id === "PortraitStepChecklist"
+                          inspectorDefinition.id === "PortraitStepNumberList"
                         ) {
                           const match = key.match(/^(?:step|icon)(\d+)$/);
                           const activeStepCount = clamp(

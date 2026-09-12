@@ -1110,7 +1110,6 @@ const portraitStyleForRoute = (routeId) => {
     "enumerated-tool-list": "#F2D51B",
     "direct-prompt-mistake": "#F2D51B",
     "workflow-prerequisite": "#17D9E8",
-    "skill-identity": "#17D9E8",
     "skill-source-fusion": "#17D9E8",
     "design-rule-checklist": "#17D9E8",
     "skill-result-comparison": "#17D9E8",
@@ -1538,7 +1537,8 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "enumerated-tool-list": [
     { componentId: "PortraitStaggeredToolList", reason: "按口播节奏错峰列出多个工具、技能或方法" },
-    { componentId: "PortraitStepChecklist", reason: "当条目强调先后顺序时可改用步骤清单" },
+    { componentId: "PortraitToolListTitle", reason: "用引导词和大标题为列表建立语境" },
+    { componentId: "PortraitStepNumberList", reason: "当条目强调先后顺序时可改用编号步骤清单" },
     { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
   ],
   "direct-prompt-mistake": [
@@ -1548,12 +1548,8 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "workflow-prerequisite": [
     { componentId: "PortraitWorkflowPrerequisite", reason: "横向点亮审美、动效、工程、自测四步前置流程" },
-    { componentId: "PortraitStepChecklist", reason: "当流程更适合纵向阅读时可改用步骤清单" },
+    { componentId: "PortraitStepNumberList", reason: "当流程更适合纵向阅读时可改用编号步骤清单" },
     { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为工作流说明卡" },
-  ],
-  "skill-identity": [
-    { componentId: "PortraitSkillIdentityCard", reason: "用编号、身份标题、徽标和更新状态介绍首个 Skill" },
-    { componentId: "PortraitInfoCallout", reason: "当身份信息较短时可压缩为说明卡" },
   ],
   "skill-source-fusion": [
     { componentId: "PortraitSkillSourceFusion", reason: "依次展示 Taste、Impeccable 与个人经验，并收束为一个 Skill" },
@@ -1562,7 +1558,7 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "design-rule-checklist": [
     { componentId: "PortraitDesignRuleChecklist", reason: "按口播顺序逐项点亮排版、留白、配色和层级规则" },
-    { componentId: "PortraitStepChecklist", reason: "当规则需要强调执行先后时可改用步骤清单" },
+    { componentId: "PortraitStepNumberList", reason: "当规则需要强调执行先后时可改用编号步骤清单" },
     { componentId: "PortraitInfoCallout", reason: "当只需保留规则结论时可压缩为说明卡" },
   ],
   "skill-result-comparison": [
@@ -1588,13 +1584,14 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
     { componentId: "PortraitInfoCallout", reason: "弱化数据感，改用结论说明卡" },
   ],
   "process-steps": [
-    { componentId: "PortraitStepChecklist", reason: "逐步呈现操作流程" },
+    { componentId: "PortraitStepNumberList", reason: "用编号圆圈和连接线逐步呈现操作流程" },
+    { componentId: "PortraitStepStageTitle", reason: "用阶段标题概括流程结论" },
     { componentId: "PortraitInfoCallout", reason: "将流程压缩为简短说明" },
     { componentId: "PortraitChapterRail", reason: "作为流程章节的开场提示" },
   ],
   "action-advice": [
     { componentId: "PortraitInfoCallout", reason: "适合呈现单条购买建议和处理方法" },
-    { componentId: "PortraitStepChecklist", reason: "当建议包含多个步骤时可改用清单" },
+    { componentId: "PortraitStepNumberList", reason: "当建议包含多个步骤时可改用编号步骤清单" },
   ],
   "risk-boundary": [
     { componentId: "PortraitRiskWarning", reason: "适合一般风险和使用边界" },
@@ -1615,7 +1612,7 @@ const portraitCandidateAllowed = (componentId, context) => {
   }
   if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
   if (componentId === "PortraitDecisionTagStack") return context.evidence.labelCount >= 2;
-  if (componentId === "PortraitStepChecklist") return context.evidence.stepCount >= 2;
+  if (componentId === "PortraitStepNumberList") return context.evidence.stepCount >= 2;
   if (componentId === "LegacyEliminationPanel") {
     return context.evidence.eliminationWarning;
   }
@@ -1652,12 +1649,29 @@ const portraitCandidateProps = (componentId, route, context) => {
       iconText: context.resource.iconText,
     };
   }
-  if (componentId === "PortraitStepChecklist") {
+  if (componentId === "PortraitStepStageTitle") {
     return {
       ...shared,
       eyebrow: context.segment.label,
       title: context.segment.topic,
       subtitle: context.segment.detail,
+    };
+  }
+  if (componentId === "PortraitToolListTitle") {
+    const topic = context.segment.topic || "";
+    return {
+      ...shared,
+      eyebrow: context.segment.label,
+      titlePrefix: topic.slice(0, 6) || "新手，",
+      titleMain: topic.slice(6, 18) || context.segment.detail,
+      titleEmphasis: context.intent.conclusion?.slice(0, 8) || "这种审美",
+      titleSuffix: context.intent.conclusion?.slice(8) || "的网页？",
+      highlightColor: context.style.listHighlightColor || shared.accentColor,
+    };
+  }
+  if (componentId === "PortraitStepNumberList") {
+    return {
+      ...shared,
       step1: context.intent.steps[1],
       step2: context.intent.steps[2],
       step3: context.intent.steps[3],
@@ -1729,7 +1743,12 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["right-top", "left-center"],
     preferredScale: 0.82,
   },
-  PortraitStepChecklist: {
+  PortraitStepStageTitle: {
+    anchor: "right-top",
+    fallbackAnchors: ["left-top", "right-center"],
+    preferredScale: 0.7,
+  },
+  PortraitStepNumberList: {
     anchor: "right-top",
     fallbackAnchors: ["left-top", "right-center", "left-center"],
     preferredScale: 0.62,
@@ -1739,10 +1758,10 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["left-top", "right-top"],
     preferredScale: 0.92,
   },
-  PortraitSkillIdentityCard: {
+  PortraitToolListTitle: {
     anchor: "left-top",
     fallbackAnchors: ["center-top", "right-top"],
-    preferredScale: 1,
+    preferredScale: 0.9,
   },
   PortraitSkillSourceFusion: {
     anchor: "left-top",
@@ -2017,10 +2036,6 @@ const buildPortraitSemanticSrtArrangement = ({
         Number.isFinite(Number(resolvedDocumentContext.workflowPrerequisite?.endMs))
         ? Math.round((Number(resolvedDocumentContext.workflowPrerequisite.endMs) / 1000) * fps)
         : endFrame;
-      const skillIdentityEndFrame = route.id === "skill-identity" &&
-        Number.isFinite(Number(resolvedDocumentContext.skillIdentity?.endMs))
-        ? Math.round((Number(resolvedDocumentContext.skillIdentity.endMs) / 1000) * fps)
-        : endFrame;
       const skillSourceFusionEndFrame = route.id === "skill-source-fusion" &&
         Number.isFinite(Number(resolvedDocumentContext.skillSourceFusion?.endMs))
         ? Math.round((Number(resolvedDocumentContext.skillSourceFusion.endMs) / 1000) * fps)
@@ -2063,7 +2078,7 @@ const buildPortraitSemanticSrtArrangement = ({
         : endFrame;
       const timing = spanForPortraitIntent(
         startFrame,
-        Math.max(endFrame, workflowEndFrame, skillIdentityEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapComparisonEndFrame),
+        Math.max(endFrame, workflowEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapComparisonEndFrame),
         routeIndex,
         selectedRoutes.length,
       );

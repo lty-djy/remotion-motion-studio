@@ -82,7 +82,7 @@ lint 通过、组件多样的编排 JSON。**
 - **落位避人（硬约束）**：人物在画面中央。**位置省略 = 组件目录默认落位**（设计时已避让中央）；需要叠卡错开时只做整卡平移，禁止发明一堆新坐标；底部约 20% 是字幕安全区，字幕轨以外的东西不许压进来。竖屏组件别用到横屏画布（反之亦然），lint 会查。
 - **时长**：内容卡一律跟着讲述时长走，不套固定值；各组件有建议驻留区间（目录里），短于下限 lint 会提醒。
 - **节奏**：开头 0–5s 必须有一张钩子卡；每个"总结/反转/金句/数字"时刻都配卡。
-- **让在场的卡活着（卡内逐条）**：节奏感来自"卡内容在动"，不是狂加新卡。超过 8s 的卡一律选能逐条推进的：`PortraitRiskWarning` 逐条亮风险、`PortraitStepChecklist` 逐项打勾、`PortraitDecisionTagStack` 逐条入场、`PortraitStaggeredToolList` 错峰列表。别让一张卡一次全亮然后干等。
+- **让在场的卡活着（卡内逐条）**：节奏感来自"卡内容在动"，不是狂加新卡。超过 8s 的卡一律选能逐条推进的：`PortraitRiskWarning` 逐条亮风险、`PortraitStepNumberList` 逐项打勾、`PortraitDecisionTagStack` 逐条入场、`PortraitStaggeredToolList` 错峰列表。别让一张卡一次全亮然后干等。
 - **一个论点养一条线索，别撒一把卡**：一个论点占住整段，信息按讲述节奏依次进场——`ChapterBar` 推进到本段 → 主卡立论 → 逐条卡展开证据。厚度感来自累积，不来自卡数。
 
 ## 6. 图形优先（重要：防 PPT 化）
@@ -91,7 +91,7 @@ lint 通过、组件多样的编排 JSON。**
 
 1. **证据优先（最高）**：观点要用数字和真素材背书，不要用文字复述——数字结论 → `PortraitMetricDecision`；增长/里程碑 → `MilestoneFollowerProgress`；档位/容量 → `SegmentedMeter`；两项对比走势 → `ComparisonProgressBars`；要演示的界面让用户「导入素材」，用 `MaterialCard` / `MediaSpotlightCard` / `ui 标注类` 卡呈现。
 2. **数字可视化**：一出现数字就用数字卡——大数字 + 一行小注，不写整句。
-3. **图标/图形结构**：并列列举 → `PortraitStaggeredToolList` / `PortraitSkillStepGrid`；流程/步骤 → `PortraitStepChecklist` / `PortraitWorkflowPrerequisite`；二选一 → `PortraitAiOutputGapComparison` / `PortraitSkillResultComparison` / `PortraitDecisionTagStack`；文件/代码/和 AI 的拉扯对话 → `TerminalPanel` / `PortraitBrowserRepairLoop` / `PortraitPromptIterationShowcase`。
+3. **图标/图形结构**：并列列举 → `PortraitStaggeredToolList` / `PortraitSkillStepGrid`；流程/步骤 → `PortraitStepNumberList` / `PortraitWorkflowPrerequisite`；二选一 → `PortraitAiOutputGapComparison` / `PortraitSkillResultComparison` / `PortraitDecisionTagStack`；文件/代码/和 AI 的拉扯对话 → `TerminalPanel` / `PortraitBrowserRepairLoop` / `PortraitPromptIterationShowcase`。
 
    **品牌与团队背书**：字幕出现品牌标识、官方 Logo、团队介绍、专业团队、团队实力、品牌背书、归因说明、AI 工具放大或“名片/徽章”语义时，优先使用 `TeamAttributionCard`（显示名：Logo徽章名片）。这是独立内容卡，不要把它误选成 `BrandLogo`：`BrandLogo` 用于平台/账号 Logo，`TeamAttributionCard` 用于团队/品牌背书与归因结论。默认只填 `attribution` 与 `attributionSubtitle`，图标来源由工作台默认值或用户资源设置。
 4. **实物图/截图/录屏**：引用他人的话 → `PortraitInfoCallout` 圈注；讲界面某个区域 → `PortraitInfoCallout` 圈注；地图/路线类叙事 → `GlobalExpedition`。聊天记录、群消息这类长文字，让用户截图铺底，绝不要打成文字卡。
@@ -131,7 +131,7 @@ lint 通过、组件多样的编排 JSON。**
 用户可以**指定某段话用某个组件**，支持三种写法（可混用）：
 
 - **按原话**：「"收藏了不等于学习了"这句用 PortraitDecisionTagStack」→ 在 SRT 里全文检索（允许近似匹配），用它所在字幕条的真实起止时间。
-- **按时间**：「2:10-2:25 用 PortraitStepChecklist」→ 直接换算成秒。
+- **按时间**：「2:10-2:25 用 PortraitStepNumberList」→ 直接换算成秒。
 - **按内容描述**：「讲三个痛点那段用 PortraitRiskWarning」→ 先在 SRT 里定位语义段，再套卡。
 
 处理规则：

@@ -25,11 +25,12 @@ const expectedComponentIds = [
   "PortraitInfoCallout",
   "PortraitMetricDecision",
   "PortraitDecisionTagStack",
-  "PortraitStepChecklist",
+  "PortraitStepStageTitle",
+  "PortraitStepNumberList",
   "PortraitStaggeredToolList",
+  "PortraitToolListTitle",
   "PortraitPromptMistakeDiagnosis",
   "PortraitWorkflowPrerequisite",
-  "PortraitSkillIdentityCard",
   "PortraitSkillSourceFusion",
   "PortraitDesignRuleChecklist",
   "PortraitSkillResultComparison",
@@ -55,17 +56,17 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 24) {
-  throw new Error("竖屏语义路由必须覆盖 24 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 23) {
+  throw new Error("竖屏语义路由必须覆盖 23 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 24) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 23) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
   JSON.stringify([...PORTRAIT_ROUTE_COMPONENT_IDS].sort()) !==
   JSON.stringify([...expectedComponentIds].sort())
 ) {
-  throw new Error("竖屏语义路由没有完整覆盖 24 个参考组件。");
+  throw new Error("竖屏语义路由没有完整覆盖 26 个参考组件。");
 }
 
 for (const route of PORTRAIT_SEMANTIC_ROUTES) {
@@ -112,7 +113,7 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
     if (!definition) {
       throw new Error(`${route.id} 引用了不存在的组件 ${selection.componentId}。`);
     }
-    const allowedGroups = new Set(["竖屏口播信息层", "风险提醒", "图表与比较", "数字与指标"]);
+    const allowedGroups = new Set(["竖屏口播信息层", "风险提醒", "图表与比较", "数字与指标", "数字", "媒体展示组件"]);
     if (!allowedGroups.has(definition.catalogGroup)) {
       throw new Error(`${selection.componentId} 不属于允许的语义效果分组。`);
     }
@@ -146,7 +147,6 @@ const representativeCues = new Map([
   ["enumerated-tool-list", "就是这4个skill，今天我一个一个讲清楚。"],
   ["direct-prompt-mistake", "打开 Codex 就直接问帮我做一个官网。"],
   ["workflow-prerequisite", "动手之前先把这套工作流装好。"],
-  ["skill-identity", "第一个skill是我自己做的UI skill。"],
   ["skill-source-fusion", "它不是凭空来的，审美判断是跟 Taste 学的。"],
   ["design-rule-checklist", "它负责整个网页的设计审美，怎么排版怎么留白。"],
   ["skill-result-comparison", "这是没装它的时候，AI 随手做出来的默认效果。"],

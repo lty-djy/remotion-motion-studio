@@ -95,7 +95,7 @@
       "sourceIntentId": "intent-health-consequence"
     },
     {
-      "componentId": "PortraitStepChecklist",
+      "componentId": "PortraitStepNumberList",
       "startFrame": 659,
       "durationInFrames": 406,
       "laneId": "action",

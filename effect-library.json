@@ -56,11 +56,9 @@
     "PortraitInfoCallout": "group:竖屏口播信息层",
     "PortraitMetricDecision": "group:竖屏口播信息层",
     "PortraitDecisionTagStack": "group:竖屏口播信息层",
-    "PortraitStepChecklist": "group:竖屏口播信息层",
     "PortraitStaggeredToolList": "group:竖屏口播信息层",
     "PortraitPromptMistakeDiagnosis": "group:竖屏口播信息层",
     "PortraitWorkflowPrerequisite": "group:竖屏口播信息层",
-    "PortraitSkillIdentityCard": "group:竖屏口播信息层",
     "PortraitSkillSourceFusion": "group:竖屏口播信息层",
     "PortraitDesignRuleChecklist": "group:竖屏口播信息层",
     "PortraitSkillResultComparison": "group:竖屏口播信息层",
@@ -96,6 +94,9 @@
     "TeamAttributionCard": "group:品牌与标识",
     "GigHourlyTitle": "group:数字与指标",
     "PortraitHeatBadge": "group:竖屏口播信息层",
-    "PortraitPillText": "group:竖屏口播信息层"
+    "PortraitPillText": "group:竖屏口播信息层",
+    "PortraitStepStageTitle": "group:竖屏口播信息层",
+    "PortraitStepNumberList": "group:竖屏口播信息层",
+    "PortraitToolListTitle": "group:竖屏口播信息层"
   }
 }

@@ -1,8 +1,6 @@
 import React from "react";
-import { SHIELD_CHECK_SVG } from "./assets/phosphor-shield-check";
 import { Easing, Interactive, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { EffectDef } from "../registry";
-import { TeamAttributionCard } from "./TeamAttributionCard";
 
 type Props = {
   enabled?: boolean;
@@ -17,11 +15,6 @@ type Props = {
   reviewLabel?: string;
   reviewTime?: string;
   reviewSuffix?: string;
-  logoSource?: "builtin" | "custom";
-  builtinIcon?: string;
-  customLogoUrl?: string;
-  attribution?: string;
-  attributionSubtitle?: string;
   accentColor?: string;
   textColor?: string;
   animationSeconds?: number;
@@ -50,11 +43,6 @@ export const CaseStudySidebar: React.FC<Props> = ({
   reviewLabel = "每周人工审核",
   reviewTime = "20–30 分钟",
   reviewSuffix = "Brief · steady output",
-  logoSource = "builtin",
-  builtinIcon = "bank",
-  customLogoUrl = "",
-  attribution = "专业团队 + AI 工具放大",
-  attributionSubtitle = "ATTRIBUTION · BRIEF",
   accentColor = "#efb74d",
   textColor = "#ffffff",
   animationSeconds = 0.55,
@@ -102,9 +90,6 @@ export const CaseStudySidebar: React.FC<Props> = ({
         <span style={{ color: accentColor, fontWeight: 850 }}>{reviewTime}</span>
         <span style={{ opacity: 0.55, fontFamily: 'Arial, "Noto Sans SC", sans-serif', fontSize: 21, letterSpacing: 0.2 }}>{reviewSuffix}</span>
       </Interactive.Div>
-      <div style={{ position: "absolute", top: 312, left: 0 }}>
-        <TeamAttributionCard logoSource={logoSource} builtinIcon={builtinIcon} customLogoUrl={customLogoUrl} attribution={attribution} attributionSubtitle={attributionSubtitle} accentColor={accentColor} textColor={textColor} animationSeconds={animationSeconds} />
-      </div>
     </Interactive.Div>
   );
 };
@@ -122,11 +107,10 @@ export const CaseStudySidebarEffectDef: EffectDef = {
   bounds: { x: 0, y: 0, width: WIDTH, height: HEIGHT },
   defaultPosition: { x: 72, y: 185, scale: 1 },
   defaultProps: {
-    enabled: true, headline: "商业价值", headlineValue: "×4", logoSource: "builtin", builtinIcon: "bank", customLogoUrl: "",
+    enabled: true, headline: "商业价值", headlineValue: "×4",
     metric1Label: "单月变现", metric1Value: "100万+", metric1Progress: 100,
     metric2Label: "单条报价", metric2Value: "40万", metric2Progress: 40,
     reviewLabel: "每周人工审核", reviewTime: "20–30 分钟", reviewSuffix: "Brief · steady output",
-    attribution: "专业团队 + AI 工具放大", attributionSubtitle: "ATTRIBUTION · BRIEF",
     accentColor: "#efb74d", textColor: "#ffffff", animationSeconds: 0.55,
   },
   propsSchema: {
@@ -142,8 +126,6 @@ export const CaseStudySidebarEffectDef: EffectDef = {
     reviewLabel: { type: "text", label: "审核说明" },
     reviewTime: { type: "text", label: "审核时长" },
     reviewSuffix: { type: "text", label: "审核英文说明" },
-    attribution: { type: "text", label: "团队说明" },
-    attributionSubtitle: { type: "text", label: "团队英文副标题" },
     accentColor: { type: "color", label: "强调色", default: "#efb74d" },
     textColor: { type: "color", label: "文字颜色", default: "#ffffff" },
     animationSeconds: { type: "number", label: "入场时长(秒)", default: 0.55, min: 0.2, max: 2, step: 0.05 },
