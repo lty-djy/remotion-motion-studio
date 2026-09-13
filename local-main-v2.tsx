@@ -742,12 +742,67 @@ const formatSoundDuration = (durationSeconds?: number) => {
 };
 
 const BUILT_IN_SFX_SECTIONS: IconCategoryGroup[] = [
-  { id: "builtin-sfx", name: "内置音效", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-camera", name: "camera", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-counter", name: "counter", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-crowd", name: "crowd", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-data", name: "data", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-film", name: "film", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-fluid", name: "fluid", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-glass", name: "glass", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-impact", name: "impact", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-light", name: "light", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-mech", name: "mech", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-paper", name: "paper", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-riser", name: "riser", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-scifi", name: "scifi", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-text", name: "text", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-transition", name: "transition", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-ui", name: "ui", accent: "#2f8cff", builtin: true },
+  { id: "builtin-sfx-other", name: "其他", accent: "#2f8cff", builtin: true },
   { id: "manual-sfx", name: "自定义音效", accent: "#a776f7", builtin: true },
 ];
 
+const SOURCE_SFX_SECTION_NAMES = new Set(
+  BUILT_IN_SFX_SECTIONS
+    .filter((group) => group.name !== "其他" && group.name !== "自定义音效")
+    .map((group) => group.name),
+);
+
+const SFX_SECTION_MEANINGS: Record<string, string> = {
+  camera: "相机",
+  counter: "计数",
+  crowd: "人群",
+  data: "数据",
+  film: "电影",
+  fluid: "流体",
+  glass: "玻璃",
+  impact: "冲击",
+  light: "光效",
+  mech: "机械",
+  paper: "纸张",
+  riser: "上升",
+  scifi: "科幻",
+  text: "文字",
+  transition: "转场",
+  ui: "界面",
+};
+
+const sfxSectionDisplayName = (name: string) =>
+  SFX_SECTION_MEANINGS[name] ? `${SFX_SECTION_MEANINGS[name]} · ${name}` : name;
+
+const getDefaultSfxSectionName = (
+  sound: Pick<ArrangementResourceEntry, "id" | "source" | "tags">,
+) => {
+  const sourceCategory = sound.tags.find((tag) => SOURCE_SFX_SECTION_NAMES.has(tag));
+  if (sourceCategory) return sourceCategory;
+  if (sound.id === "impact") return "impact";
+  if (sound.id === "whoosh-soft") return "transition";
+  if (sound.id === "tick") return "ui";
+  return sound.source === "manual" ? "自定义音效" : "其他";
+};
+
 const sfxSectionName = (
-  sound: Pick<ArrangementResourceEntry, "category" | "source">,
+  sound: Pick<ArrangementResourceEntry, "category" | "id" | "source" | "tags">,
   customGroups: Array<Pick<IconCategoryGroup, "name">>,
 ) => {
   if (
@@ -756,7 +811,7 @@ const sfxSectionName = (
   ) {
     return sound.category;
   }
-  return sound.source === "manual" ? "自定义音效" : "内置音效";
+  return getDefaultSfxSectionName(sound);
 };
 
 type ArrangementResourcePicker = {
@@ -4385,10 +4440,7 @@ const App = () => {
     useState<IconCategoryGroup | null>(null);
   const [iconGroupNameDraft, setIconGroupNameDraft] = useState("");
   const [customSfxGroups, setCustomSfxGroups] = useState<IconCategoryGroup[]>([]);
-  const [openSfxGroups, setOpenSfxGroups] = useState<string[]>([
-    "内置音效",
-    "自定义音效",
-  ]);
+  const [openSfxGroups, setOpenSfxGroups] = useState<string[]>([]);
   const [sfxGroupRenameTarget, setSfxGroupRenameTarget] =
     useState<IconCategoryGroup | null>(null);
   const [sfxGroupNameDraft, setSfxGroupNameDraft] = useState("");
@@ -9498,7 +9550,7 @@ const App = () => {
             : track,
         ),
       });
-    });
+      });
     stopArrangementAudioPreview();
     setArrangementResourcePicker(null);
     setArrangementResourceSearch("");
@@ -12613,7 +12665,7 @@ const App = () => {
         ...current,
         sfx: current.sfx.map((sound) =>
           sound.category === group.name
-            ? { ...sound, category: sound.source === "manual" ? "自定义音效" : "音效" }
+            ? { ...sound, category: getDefaultSfxSectionName(sound) }
             : sound,
         ),
       }));
@@ -12682,9 +12734,7 @@ const App = () => {
       if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "移动音效失败");
       const nextCategory = groupName
         ? groupName
-        : sound.source === "manual"
-          ? "自定义音效"
-          : "音效";
+        : getDefaultSfxSectionName(sound);
       setArrangementResourceLibrary((current) => ({
         ...current,
         sfx: current.sfx.map((item) =>
@@ -15927,7 +15977,7 @@ const App = () => {
                           )
                         }
                       >
-                        <span>{section.name}</span>
+                        <span>{sfxSectionDisplayName(section.name)}</span>
                         <input
                           className="sfx-category-color-swatch"
                           type="color"
@@ -19698,7 +19748,11 @@ const App = () => {
                               ([groupName, groupResources]) => (
                                 <section key={groupName}>
                                   <header>
-                                    <strong>{groupName}</strong>
+                                    <strong>
+                                      {resourcePickerKind === "sfx"
+                                        ? sfxSectionDisplayName(groupName)
+                                        : groupName}
+                                    </strong>
                                     <small>{groupResources.length} 项</small>
                                   </header>
                                   <div
@@ -21167,6 +21221,7 @@ const App = () => {
                   {moveTargets.map((group) => (
                     <button
                       key={group.id}
+                      className="move-action"
                       onClick={() => {
                         if (sound) void moveSfxToGroup(sound, group.name);
                       }}
@@ -21175,9 +21230,16 @@ const App = () => {
                     </button>
                   ))}
                   {customSfxGroups.some((group) => group.name === currentSection) ? (
-                    <button onClick={() => sound && void moveSfxToGroup(sound, "")}>
+                    <button
+                      className="move-action"
+                      onClick={() => sound && void moveSfxToGroup(sound, "")}
+                    >
                       移回默认分组
                     </button>
+                  ) : null}
+                  {moveTargets.length === 0 &&
+                  !customSfxGroups.some((group) => group.name === currentSection) ? (
+                    <small className="context-menu-hint">当前已在默认分组</small>
                   ) : null}
                   {sound?.source === "manual" ? (
                     <>

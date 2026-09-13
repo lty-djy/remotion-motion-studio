@@ -6663,6 +6663,12 @@ aside {
   font-size: 12px;
 }
 
+.component-context-menu .context-menu-hint {
+  padding: 4px 6px 5px;
+  color: #667386;
+  font-size: 11px;
+}
+
 .component-context-menu button {
   width: 100%;
   padding: 9px 10px;

@@ -1,7 +1,7 @@
 {
   "indexVersion": "1",
   "root": "public/input",
-  "resourceCount": 53,
+  "resourceCount": 202,
   "libraries": {
     "icons": [
       {
@@ -993,6 +993,930 @@
     "materials": [],
     "sfx": [
       {
+        "id": "air-whoosh-powerful",
+        "label": "air-whoosh-powerful",
+        "file": "sfx/transition/air-whoosh-powerful.mp3",
+        "url": "/input/sfx/transition/air-whoosh-powerful.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 58983,
+        "sha256": "6e857524a69fcbeedd688960fa2a35702de1d2ed1927d9d9344785761e460a76",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "air-whoosh-powerful"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.839
+        }
+      },
+      {
+        "id": "air-woosh-deep",
+        "label": "air-woosh-deep",
+        "file": "sfx/transition/air-woosh-deep.mp3",
+        "url": "/input/sfx/transition/air-woosh-deep.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 92185,
+        "sha256": "121333b65bc1bcde3eaa5f155f136df258100f4d4b4d1c5e8cc67015d1e6387c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "air-woosh-deep"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.977
+        }
+      },
+      {
+        "id": "air-woosh-quick",
+        "label": "air-woosh-quick",
+        "file": "sfx/transition/air-woosh-quick.mp3",
+        "url": "/input/sfx/transition/air-woosh-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 48543,
+        "sha256": "faa42dd877dcdbbd0362e9623a22c847dffd5392d1389274a5607be47bfcdc26",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "air-woosh-quick"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.511
+        }
+      },
+      {
+        "id": "air-zoom-vacuum",
+        "label": "air-zoom-vacuum",
+        "file": "sfx/transition/air-zoom-vacuum.mp3",
+        "url": "/input/sfx/transition/air-zoom-vacuum.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 41082,
+        "sha256": "0e25921648c66e30924892ee17110ae621243de770b2944496526845a15a9998",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "air-zoom-vacuum"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.275
+        }
+      },
+      {
+        "id": "applause-rhythmic-loop",
+        "label": "applause-rhythmic-loop",
+        "file": "sfx/crowd/applause-rhythmic-loop.mp3",
+        "url": "/input/sfx/crowd/applause-rhythmic-loop.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 166404,
+        "sha256": "cfe601eaaf1f3dcb29e8d0a57ca0f5b1cf5ff812315172cb52d781a5cb4f96d6",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "crowd",
+          "applause-rhythmic-loop"
+        ],
+        "usage": "来自 5198 音效库（crowd）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.032
+        }
+      },
+      {
+        "id": "bass-hit-futuristic",
+        "label": "bass-hit-futuristic",
+        "file": "sfx/impact/bass-hit-futuristic.mp3",
+        "url": "/input/sfx/impact/bass-hit-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 73486,
+        "sha256": "c80e1e9c9e8c824fd2c00ff889f7a13091299fa52bb623be85b1037dabc636d9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "bass-hit-futuristic"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.75
+        }
+      },
+      {
+        "id": "bass-hit-short",
+        "label": "bass-hit-short",
+        "file": "sfx/impact/bass-hit-short.mp3",
+        "url": "/input/sfx/impact/bass-hit-short.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36222,
+        "sha256": "8bd0c7fd63fbb8a4442ffe1176aa41b260d1fafbcf728e3c63648eb5bcd4e16b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "bass-hit-short"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.1
+        }
+      },
+      {
+        "id": "break-glitch-digital",
+        "label": "break-glitch-digital",
+        "file": "sfx/data/break-glitch-digital.mp3",
+        "url": "/input/sfx/data/break-glitch-digital.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 38314,
+        "sha256": "05b2df6532ab7f968b939bd3a45158f44c8048438a1d30361fd6228a92f540ce",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "break-glitch-digital"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.07
+        }
+      },
+      {
+        "id": "camera-autofocus",
+        "label": "camera-autofocus",
+        "file": "sfx/camera/camera-autofocus.mp3",
+        "url": "/input/sfx/camera/camera-autofocus.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 313998,
+        "sha256": "ede8929f4e1d67d4803a86aa8215105c88d91285934dc00bc4d99a4e3d0817ab",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "camera-autofocus"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 9.594
+        }
+      },
+      {
+        "id": "camera-lens-shutter",
+        "label": "camera-lens-shutter",
+        "file": "sfx/camera/camera-lens-shutter.mp3",
+        "url": "/input/sfx/camera/camera-lens-shutter.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 47132,
+        "sha256": "fa11a2de7e3d0215bb21955e8d67f690dd9b219e46952aba7e2372c78ccf2ce4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "camera-lens-shutter"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.419
+        }
+      },
+      {
+        "id": "camera-shutter-hard",
+        "label": "camera-shutter-hard",
+        "file": "sfx/camera/camera-shutter-hard.mp3",
+        "url": "/input/sfx/camera/camera-shutter-hard.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 18370,
+        "sha256": "b33152521d12edd3d6d0bdcf7e29a0b1c6fc4c4c52d613486cd2fe2bdd200692",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "camera-shutter-hard"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.627
+        }
+      },
+      {
+        "id": "camera-shutter-vintage",
+        "label": "camera-shutter-vintage",
+        "file": "sfx/camera/camera-shutter-vintage.mp3",
+        "url": "/input/sfx/camera/camera-shutter-vintage.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 30533,
+        "sha256": "b8736115a13bd0f930d73854ba7f51ca6e4e3703a3843e6a899e70faf4a007e7",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "camera-shutter-vintage"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.159
+        }
+      },
+      {
+        "id": "cassette-stretch",
+        "label": "cassette-stretch",
+        "file": "sfx/film/cassette-stretch.mp3",
+        "url": "/input/sfx/film/cassette-stretch.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 71499,
+        "sha256": "a9ca01b3220115901952b3cb4943cd050c43fb95d7203a66f8e44a2e79894fb2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "cassette-stretch"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.688
+        }
+      },
+      {
+        "id": "cassette-working",
+        "label": "cassette-working",
+        "file": "sfx/film/cassette-working.mp3",
+        "url": "/input/sfx/film/cassette-working.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 65907,
+        "sha256": "2816f836edbc21a0c1943d3c033db91dddb6b90bbc03b5e14909af28101d4864",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "cassette-working"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.733
+        }
+      },
+      {
+        "id": "chalk-line",
+        "label": "chalk-line",
+        "file": "sfx/text/chalk-line.mp3",
+        "url": "/input/sfx/text/chalk-line.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36013,
+        "sha256": "de34663a1fa8d3691f58a85a79714b3eca8593f501d7a3098d7ada64a8b69919",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "chalk-line"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.075
+        }
+      },
+      {
+        "id": "chime-crystal",
+        "label": "chime-crystal",
+        "file": "sfx/ui/chime-crystal.mp3",
+        "url": "/input/sfx/ui/chime-crystal.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 52451,
+        "sha256": "f390dae75048c3962f6741cece2ae50dc578c7e38ca3c04853b4783ec062d06e",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "chime-crystal"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2
+        }
+      },
+      {
+        "id": "clap-single",
+        "label": "clap-single",
+        "file": "sfx/crowd/clap-single.mp3",
+        "url": "/input/sfx/crowd/clap-single.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 3546,
+        "sha256": "3a023e9157c6535b6659da117bbde58f471949497a6f2672de01617d4b293de2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "crowd",
+          "clap-single"
+        ],
+        "usage": "来自 5198 音效库（crowd）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.201
+        }
+      },
+      {
+        "id": "click-camera",
+        "label": "click-camera",
+        "file": "sfx/camera/click-camera.mp3",
+        "url": "/input/sfx/camera/click-camera.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 14406,
+        "sha256": "042d01db7a4a0c492c580c0d3d64460c0ceb8638f0c6419d0e4b7a9ba2ac8eed",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "click-camera"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.351
+        }
+      },
+      {
+        "id": "clock-knob-spin",
+        "label": "clock-knob-spin",
+        "file": "sfx/counter/clock-knob-spin.mp3",
+        "url": "/input/sfx/counter/clock-knob-spin.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 16437,
+        "sha256": "e674cb671a3ccda5d6565360e2153e7843b4a0782edcd4995be27279bda8a9c3",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "counter",
+          "clock-knob-spin"
+        ],
+        "usage": "来自 5198 音效库（counter）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.738
+        }
+      },
+      {
+        "id": "clock-mech-retract",
+        "label": "clock-mech-retract",
+        "file": "sfx/counter/clock-mech-retract.mp3",
+        "url": "/input/sfx/counter/clock-mech-retract.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 45670,
+        "sha256": "109f1553e1e122fe42d280f2ea1f77ef40545c6b29e02880183ba61726d51b56",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "counter",
+          "clock-mech-retract"
+        ],
+        "usage": "来自 5198 音效库（counter）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.372
+        }
+      },
+      {
+        "id": "clock-tick-single",
+        "label": "clock-tick-single",
+        "file": "sfx/counter/clock-tick-single.mp3",
+        "url": "/input/sfx/counter/clock-tick-single.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 20508,
+        "sha256": "70d0e0fe1d930949e1f86e24bfb9a6521ad4cb6c5e1a07190cc6d1f3e7603d37",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "counter",
+          "clock-tick-single"
+        ],
+        "usage": "来自 5198 音效库（counter）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.849
+        }
+      },
+      {
+        "id": "countdown-bleeps",
+        "label": "countdown-bleeps",
+        "file": "sfx/counter/countdown-bleeps.mp3",
+        "url": "/input/sfx/counter/countdown-bleeps.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 37984,
+        "sha256": "3de99db0b5648db4daaeae0bf6d8d730d8272f5496b63412b86c5fa3689c6ce8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "counter",
+          "countdown-bleeps"
+        ],
+        "usage": "来自 5198 音效库（counter）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5
+        }
+      },
+      {
+        "id": "data-compute",
+        "label": "data-compute",
+        "file": "sfx/data/data-compute.mp3",
+        "url": "/input/sfx/data/data-compute.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 111072,
+        "sha256": "70cc2c69e7a59396fbf330f7078656152c83220f4423db30aee12ac9cf8c56e5",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "data-compute"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4
+        }
+      },
+      {
+        "id": "data-load-os",
+        "label": "data-load-os",
+        "file": "sfx/data/data-load-os.mp3",
+        "url": "/input/sfx/data/data-load-os.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 87792,
+        "sha256": "a3fcb2c4b2577c8c5b9e6eaa024b95f36c6e735beef77117a45bd31f4589eeb6",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "data-load-os"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.629
+        }
+      },
+      {
+        "id": "data-scan",
+        "label": "data-scan",
+        "file": "sfx/data/data-scan.mp3",
+        "url": "/input/sfx/data/data-scan.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 71567,
+        "sha256": "a127f7121140b0e104ef57e096af2c8f0a1806b11f6ad52e97552ca30b959ce0",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "data-scan"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.03
+        }
+      },
+      {
+        "id": "door-open-futuristic",
+        "label": "door-open-futuristic",
+        "file": "sfx/mech/door-open-futuristic.mp3",
+        "url": "/input/sfx/mech/door-open-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 34927,
+        "sha256": "2fb8212513685727dd5abfb46d360f8ce4706a0c7c08ea68e748acaf00aeae70",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "door-open-futuristic"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.052
+        }
+      },
+      {
+        "id": "gear-lock-metallic",
+        "label": "gear-lock-metallic",
+        "file": "sfx/mech/gear-lock-metallic.mp3",
+        "url": "/input/sfx/mech/gear-lock-metallic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 35603,
+        "sha256": "b08cca1829109470fdb9030887cd5dc30313b24bcb3491a1b97296a46d9be2c7",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "gear-lock-metallic"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.099
+        }
+      },
+      {
+        "id": "glass-break-hammer",
+        "label": "glass-break-hammer",
+        "file": "sfx/glass/glass-break-hammer.mp3",
+        "url": "/input/sfx/glass/glass-break-hammer.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36584,
+        "sha256": "8e8132515edc5badfe5fb0a7b3d52e7b1ba67baad198e3ef8d14073d543f2e03",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "glass",
+          "glass-break-hammer"
+        ],
+        "usage": "来自 5198 音效库（glass）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.44
+        }
+      },
+      {
+        "id": "glass-debris-sweep",
+        "label": "glass-debris-sweep",
+        "file": "sfx/glass/glass-debris-sweep.mp3",
+        "url": "/input/sfx/glass/glass-debris-sweep.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 80791,
+        "sha256": "cb9ffe6e7dde4bba0d8dc175eddd10c9b426b9318a38b7e5fb9c932753d866d7",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "glass",
+          "glass-debris-sweep"
+        ],
+        "usage": "来自 5198 音效库（glass）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.125
+        }
+      },
+      {
+        "id": "glass-hit-cine",
+        "label": "glass-hit-cine",
+        "file": "sfx/glass/glass-hit-cine.mp3",
+        "url": "/input/sfx/glass/glass-hit-cine.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 145460,
+        "sha256": "2c5b1d4b9e8ce00077d3ed18dfc05f9f12f2cda45153c2db036f2d47af1119d5",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "glass",
+          "glass-hit-cine"
+        ],
+        "usage": "来自 5198 音效库（glass）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.719
+        }
+      },
+      {
+        "id": "glass-plate-slide",
+        "label": "glass-plate-slide",
+        "file": "sfx/glass/glass-plate-slide.mp3",
+        "url": "/input/sfx/glass/glass-plate-slide.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 29486,
+        "sha256": "9c81b3b84b70eb0d39bf56c8063fe5b1099e3a29e01052f68416c2366e1d48a2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "glass",
+          "glass-plate-slide"
+        ],
+        "usage": "来自 5198 音效库（glass）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.132
+        }
+      },
+      {
+        "id": "glitch-electric-small",
+        "label": "glitch-electric-small",
+        "file": "sfx/data/glitch-electric-small.mp3",
+        "url": "/input/sfx/data/glitch-electric-small.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36538,
+        "sha256": "8a649434e49485135236a8d5f337674a01cb3d32ea89fcb14bca113747b2c514",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "glitch-electric-small"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.023
+        }
+      },
+      {
+        "id": "glitch-static",
+        "label": "glitch-static",
+        "file": "sfx/data/glitch-static.mp3",
+        "url": "/input/sfx/data/glitch-static.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 48177,
+        "sha256": "58dc85a58c9d1399f70ead26740129149190a725fd4c61c678b8ee095362cff6",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "glitch-static"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.396
+        }
+      },
+      {
+        "id": "glitch-static-electric",
+        "label": "glitch-static-electric",
+        "file": "sfx/data/glitch-static-electric.mp3",
+        "url": "/input/sfx/data/glitch-static-electric.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 52196,
+        "sha256": "5476474f138eabb144203615ca0d8d2e46cf2bc16e15989e2acee2ca875772c0",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "glitch-static-electric"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.504
+        }
+      },
+      {
+        "id": "glitch-virtual-quick",
+        "label": "glitch-virtual-quick",
+        "file": "sfx/data/glitch-virtual-quick.mp3",
+        "url": "/input/sfx/data/glitch-virtual-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 66497,
+        "sha256": "de7564218e487f3a40ff1b0225b03cbaf92c7411bd54ddec48c4dbfacf62fe0a",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "glitch-virtual-quick"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.041
+        }
+      },
+      {
+        "id": "gravel-fall-hit",
+        "label": "gravel-fall-hit",
+        "file": "sfx/impact/gravel-fall-hit.mp3",
+        "url": "/input/sfx/impact/gravel-fall-hit.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 43846,
+        "sha256": "b29a46a7240121580a2244aaa545c349090427b518bd0fc8d67388d5081b163b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "gravel-fall-hit"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.226
+        }
+      },
+      {
+        "id": "heartbeat-single",
+        "label": "heartbeat-single",
+        "file": "sfx/crowd/heartbeat-single.mp3",
+        "url": "/input/sfx/crowd/heartbeat-single.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36640,
+        "sha256": "029a668c23066753624591ddf635380070585a63057c228d029e5ee70b9d3aae",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "crowd",
+          "heartbeat-single"
+        ],
+        "usage": "来自 5198 音效库（crowd）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.101
+        }
+      },
+      {
+        "id": "hit-blow",
+        "label": "hit-blow",
+        "file": "sfx/impact/hit-blow.mp3",
+        "url": "/input/sfx/impact/hit-blow.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 16962,
+        "sha256": "d6e2ff8efa35e4fd3cc8fc6290b8ec9dd94dec99f716fbd7f763ca23a66a072a",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "hit-blow"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.591
+        }
+      },
+      {
+        "id": "hit-fast-exciting",
+        "label": "hit-fast-exciting",
+        "file": "sfx/impact/hit-fast-exciting.mp3",
+        "url": "/input/sfx/impact/hit-fast-exciting.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 58464,
+        "sha256": "51138c1aa0f61a77bc4975691d81da287dd4075979d83e7f9b35c22c58e45bac",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "hit-fast-exciting"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2
+        }
+      },
+      {
+        "id": "hit-weak",
+        "label": "hit-weak",
+        "file": "sfx/impact/hit-weak.mp3",
+        "url": "/input/sfx/impact/hit-weak.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 12834,
+        "sha256": "42573541de8ab79d5d1fd6d3486fecfc41869f34fcec1fe9cbe6b88956f1e191",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "hit-weak"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.591
+        }
+      },
+      {
+        "id": "hitech-bleep",
+        "label": "hitech-bleep",
+        "file": "sfx/scifi/hitech-bleep.mp3",
+        "url": "/input/sfx/scifi/hitech-bleep.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 20876,
+        "sha256": "ba4d6e771e55decd6a3f96f6ee4834e9e25690f525a282a6adde903f48ed08ab",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "scifi",
+          "hitech-bleep"
+        ],
+        "usage": "来自 5198 音效库（scifi）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.69
+        }
+      },
+      {
+        "id": "hitech-touch-magnet",
+        "label": "hitech-touch-magnet",
+        "file": "sfx/ui/hitech-touch-magnet.mp3",
+        "url": "/input/sfx/ui/hitech-touch-magnet.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 55004,
+        "sha256": "645758cbf8b2c050feea28723ae2bd9709763d07401dd9c208a64165e7e5208e",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "hitech-touch-magnet"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.208
+        }
+      },
+      {
         "id": "impact",
         "label": "轻冲击",
         "file": "sfx/impact.wav",
@@ -1010,6 +1934,1458 @@
           "durationSeconds": 0.42,
           "sampleRate": 24000,
           "channels": 1
+        }
+      },
+      {
+        "id": "impact-cine-big",
+        "label": "impact-cine-big",
+        "file": "sfx/impact/impact-cine-big.mp3",
+        "url": "/input/sfx/impact/impact-cine-big.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 225505,
+        "sha256": "1d4fbce38a2a680eabc21a889d79afe87ac90be9274001c2b7c27c6ad327a680",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-cine-big"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 7.929
+        }
+      },
+      {
+        "id": "impact-deep-whoosh",
+        "label": "impact-deep-whoosh",
+        "file": "sfx/impact/impact-deep-whoosh.mp3",
+        "url": "/input/sfx/impact/impact-deep-whoosh.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 115904,
+        "sha256": "9854bff8a78fcebef95350ff0ec72a41ba449ab372bbd601b55d84de13bd626d",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-deep-whoosh"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.063
+        }
+      },
+      {
+        "id": "impact-epic-trailer",
+        "label": "impact-epic-trailer",
+        "file": "sfx/impact/impact-epic-trailer.mp3",
+        "url": "/input/sfx/impact/impact-epic-trailer.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 154441,
+        "sha256": "b38888dcdfb4d5c3b13988308b430a0172846dcaa0ccde2feedc8ed4d1d911c2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-epic-trailer"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.866
+        }
+      },
+      {
+        "id": "impact-movie-epic",
+        "label": "impact-movie-epic",
+        "file": "sfx/impact/impact-movie-epic.mp3",
+        "url": "/input/sfx/impact/impact-movie-epic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 161076,
+        "sha256": "0957e15be77baba1a6956173a41e855eb18686e79f844e08e60096aae62d92f4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-movie-epic"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.145
+        }
+      },
+      {
+        "id": "impact-transition",
+        "label": "impact-transition",
+        "file": "sfx/impact/impact-transition.mp3",
+        "url": "/input/sfx/impact/impact-transition.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 154441,
+        "sha256": "b38888dcdfb4d5c3b13988308b430a0172846dcaa0ccde2feedc8ed4d1d911c2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-transition"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.866
+        }
+      },
+      {
+        "id": "impact-zoom-quick",
+        "label": "impact-zoom-quick",
+        "file": "sfx/impact/impact-zoom-quick.mp3",
+        "url": "/input/sfx/impact/impact-zoom-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 39932,
+        "sha256": "c5eba091c94b5292d9a545576bbbee1c21dd5cbc2539822fb61ac2aec69836d0",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "impact-zoom-quick"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.222
+        }
+      },
+      {
+        "id": "keyboard",
+        "label": "keyboard",
+        "file": "sfx/text/keyboard.mp3",
+        "url": "/input/sfx/text/keyboard.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 513831,
+        "sha256": "152f78c3bff50cf018654a66e5de0260bdbad45d87af6051725fa479c517bdf9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "keyboard"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 19.633
+        }
+      },
+      {
+        "id": "light-aura",
+        "label": "light-aura",
+        "file": "sfx/light/light-aura.mp3",
+        "url": "/input/sfx/light/light-aura.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 174534,
+        "sha256": "34bde54e08fab265c1461a2fbffc67fec943f41d5669be367119de758b7b17de",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "light-aura"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.499
+        }
+      },
+      {
+        "id": "light-spell",
+        "label": "light-spell",
+        "file": "sfx/light/light-spell.mp3",
+        "url": "/input/sfx/light/light-spell.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 219196,
+        "sha256": "2762335f2b24dff9cc746ef9915f804fa463bbda94b2464fe06455f42fefa682",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "light-spell"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 8
+        }
+      },
+      {
+        "id": "light-sweep-magic",
+        "label": "light-sweep-magic",
+        "file": "sfx/light/light-sweep-magic.mp3",
+        "url": "/input/sfx/light/light-sweep-magic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 150006,
+        "sha256": "3207ac86e7aa6ba008d992197c550267f704e866d7c1edd8d109319f8ed71e2d",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "light-sweep-magic"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.751
+        }
+      },
+      {
+        "id": "light-transition-magic",
+        "label": "light-transition-magic",
+        "file": "sfx/light/light-transition-magic.mp3",
+        "url": "/input/sfx/light/light-transition-magic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 158830,
+        "sha256": "23a01b6fec642c7fcb2e000c3e88180ac96056773a088cfc3d70d5293114da06",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "light-transition-magic"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.063
+        }
+      },
+      {
+        "id": "liquid-bubble",
+        "label": "liquid-bubble",
+        "file": "sfx/fluid/liquid-bubble.mp3",
+        "url": "/input/sfx/fluid/liquid-bubble.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 36328,
+        "sha256": "7bb1e708558f4cb1c52d65436bf2030e94d6acfe646104863cf945e3e845d0e8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "fluid",
+          "liquid-bubble"
+        ],
+        "usage": "来自 5198 音效库（fluid）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.047
+        }
+      },
+      {
+        "id": "lock-digital",
+        "label": "lock-digital",
+        "file": "sfx/mech/lock-digital.mp3",
+        "url": "/input/sfx/mech/lock-digital.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 34035,
+        "sha256": "79887829cc9e2b1e2346a9f952607fb95ddb8f93305977959ebe4ab8b7c2c3f3",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "lock-digital"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.089
+        }
+      },
+      {
+        "id": "lock-quick",
+        "label": "lock-quick",
+        "file": "sfx/mech/lock-quick.mp3",
+        "url": "/input/sfx/mech/lock-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 37894,
+        "sha256": "f98e79cc54e56e48b24613197f8280204e666854c72de267a4ee6ef1972e439c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "lock-quick"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.127
+        }
+      },
+      {
+        "id": "machine-activate-short",
+        "label": "machine-activate-short",
+        "file": "sfx/mech/machine-activate-short.mp3",
+        "url": "/input/sfx/mech/machine-activate-short.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 77611,
+        "sha256": "089e85fa2dddc32da016c5af78afcac3a172e129f8c75e7b5e2c812208d66e09",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "machine-activate-short"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.708
+        }
+      },
+      {
+        "id": "marker-pen-line",
+        "label": "marker-pen-line",
+        "file": "sfx/text/marker-pen-line.mp3",
+        "url": "/input/sfx/text/marker-pen-line.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 39045,
+        "sha256": "ae15103bc9f247c52255ea424a7c1e19e642f2eb95d2dd4e7f398e0cb7967cf4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "marker-pen-line"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.24
+        }
+      },
+      {
+        "id": "mech-robotic-futuristic",
+        "label": "mech-robotic-futuristic",
+        "file": "sfx/mech/mech-robotic-futuristic.mp3",
+        "url": "/input/sfx/mech/mech-robotic-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 301687,
+        "sha256": "41a1f0cc0aa8f6d431a3d2a6f1ee6ba0e51d4b9d00e09c95607987b34a88b9f3",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "mech-robotic-futuristic"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 9.6
+        }
+      },
+      {
+        "id": "mech-tech-movement",
+        "label": "mech-tech-movement",
+        "file": "sfx/mech/mech-tech-movement.mp3",
+        "url": "/input/sfx/mech/mech-tech-movement.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 73906,
+        "sha256": "46bdcef45cb5992aacc899697661738531876301403808fa9d569cf0f4e22866",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "mech-tech-movement"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.5
+        }
+      },
+      {
+        "id": "metal-drop-scifi-small",
+        "label": "metal-drop-scifi-small",
+        "file": "sfx/mech/metal-drop-scifi-small.mp3",
+        "url": "/input/sfx/mech/metal-drop-scifi-small.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 45707,
+        "sha256": "e03b9c7664b61607f3a4f9d700038073746b70f0e678cea4039998efc43ce63c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "mech",
+          "metal-drop-scifi-small"
+        ],
+        "usage": "来自 5198 音效库（mech）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.5
+        }
+      },
+      {
+        "id": "metal-spring-hit",
+        "label": "metal-spring-hit",
+        "file": "sfx/impact/metal-spring-hit.mp3",
+        "url": "/input/sfx/impact/metal-spring-hit.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 62622,
+        "sha256": "dd41d3d59795422ddcd647678b6fe591df5d4d5c85d3c05f7e056b3518234c23",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "metal-spring-hit"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3
+        }
+      },
+      {
+        "id": "paper-book-browse-fast",
+        "label": "paper-book-browse-fast",
+        "file": "sfx/paper/paper-book-browse-fast.mp3",
+        "url": "/input/sfx/paper/paper-book-browse-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 306286,
+        "sha256": "0483d3705814d9ddeb72980808cc155308b5414f83d1f8e57740f3e53889e312",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-book-browse-fast"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 9.28
+        }
+      },
+      {
+        "id": "paper-crumple-quick",
+        "label": "paper-crumple-quick",
+        "file": "sfx/paper/paper-crumple-quick.mp3",
+        "url": "/input/sfx/paper/paper-crumple-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 42178,
+        "sha256": "0de6b4d8da0e46ca1bed1c5c3dde7a32db8ea36ae22ed2cdf380fa8127e57b3c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-crumple-quick"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.33
+        }
+      },
+      {
+        "id": "paper-move-quick",
+        "label": "paper-move-quick",
+        "file": "sfx/paper/paper-move-quick.mp3",
+        "url": "/input/sfx/paper/paper-move-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 31682,
+        "sha256": "22558bf3e8ee65ffd6f31f420caf4952334316f4d818bd6f6291b5ae7621a744",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-move-quick"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.902
+        }
+      },
+      {
+        "id": "paper-page-turn",
+        "label": "paper-page-turn",
+        "file": "sfx/paper/paper-page-turn.mp3",
+        "url": "/input/sfx/paper/paper-page-turn.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 18060,
+        "sha256": "3b2b05dd402127a6ee15f33c5c6690568f389848b1a8d11d6d70cab7d0268bd4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-page-turn"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.452
+        }
+      },
+      {
+        "id": "paper-page-turn-big",
+        "label": "paper-page-turn-big",
+        "file": "sfx/paper/paper-page-turn-big.mp3",
+        "url": "/input/sfx/paper/paper-page-turn-big.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 30379,
+        "sha256": "d3b034ccdc89c75c6091a048c3f487847fad14e9d7ad663d343dc8766a206433",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-page-turn-big"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.831
+        }
+      },
+      {
+        "id": "paper-scissors-cut",
+        "label": "paper-scissors-cut",
+        "file": "sfx/paper/paper-scissors-cut.mp3",
+        "url": "/input/sfx/paper/paper-scissors-cut.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 60324,
+        "sha256": "8a9dc5b73277d6ccf0f9cb19c48458ef9af0658fec9ca7083c2b094da1d39138",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-scissors-cut"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.939
+        }
+      },
+      {
+        "id": "paper-slice-quick",
+        "label": "paper-slice-quick",
+        "file": "sfx/paper/paper-slice-quick.mp3",
+        "url": "/input/sfx/paper/paper-slice-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 13962,
+        "sha256": "ed7434e6bca4db8f3129ab730e1fc509664388df7ce67450843a1e8c75303095",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-slice-quick"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.348
+        }
+      },
+      {
+        "id": "paper-slide",
+        "label": "paper-slide",
+        "file": "sfx/paper/paper-slide.mp3",
+        "url": "/input/sfx/paper/paper-slide.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 37161,
+        "sha256": "630ac68a95829c9b04cd981b8e8249efb2a03947a95f05ff4296b2e5169e1c82",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-slide"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.094
+        }
+      },
+      {
+        "id": "paper-staple",
+        "label": "paper-staple",
+        "file": "sfx/paper/paper-staple.mp3",
+        "url": "/input/sfx/paper/paper-staple.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 10006,
+        "sha256": "9544100adc1ef49fd5e54f9df3581d55ce6be2b9dacf98769750ba27ec670d31",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-staple"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.154
+        }
+      },
+      {
+        "id": "paper-wind-blow",
+        "label": "paper-wind-blow",
+        "file": "sfx/paper/paper-wind-blow.mp3",
+        "url": "/input/sfx/paper/paper-wind-blow.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 171205,
+        "sha256": "2569a67684f441c4b71f1052fd8ab916d2b5eaf716dafac57be1f96b0deeac20",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "paper",
+          "paper-wind-blow"
+        ],
+        "usage": "来自 5198 音效库（paper）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.503
+        }
+      },
+      {
+        "id": "pen-click-twice",
+        "label": "pen-click-twice",
+        "file": "sfx/text/pen-click-twice.mp3",
+        "url": "/input/sfx/text/pen-click-twice.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 20965,
+        "sha256": "8fd215b3e220f8ca4b655753316a395fe62d12cfbdf66f6c3aba6746ed148d37",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "pen-click-twice"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.58
+        }
+      },
+      {
+        "id": "pen-write-paper",
+        "label": "pen-write-paper",
+        "file": "sfx/text/pen-write-paper.mp3",
+        "url": "/input/sfx/text/pen-write-paper.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 46147,
+        "sha256": "97262cfbbe1e60f75e30316a174b88b4743edec44094bb8f13737f9aa9446df9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "pen-write-paper"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.467
+        }
+      },
+      {
+        "id": "pencil-write-short",
+        "label": "pencil-write-short",
+        "file": "sfx/text/pencil-write-short.mp3",
+        "url": "/input/sfx/text/pencil-write-short.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 25257,
+        "sha256": "815231851bb7f8adeaa513bda8a37331ca6e474c98b851232a475a04489b710f",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "pencil-write-short"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.915
+        }
+      },
+      {
+        "id": "pop",
+        "label": "pop",
+        "file": "sfx/ui/pop.mp3",
+        "url": "/input/sfx/ui/pop.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 15239,
+        "sha256": "14aad47518786ea2556b45f050fed2a301d521ff9dedd46b73701b3cc3d54a2e",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "pop"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.479
+        }
+      },
+      {
+        "id": "pop-electric",
+        "label": "pop-electric",
+        "file": "sfx/ui/pop-electric.mp3",
+        "url": "/input/sfx/ui/pop-electric.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 37423,
+        "sha256": "77e9ba9ef0ef8a9091d30ecec778461770d20eeed57521de50911c6651a43f24",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "pop-electric"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.107
+        }
+      },
+      {
+        "id": "power-up-electronic",
+        "label": "power-up-electronic",
+        "file": "sfx/data/power-up-electronic.mp3",
+        "url": "/input/sfx/data/power-up-electronic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 153553,
+        "sha256": "09ea7722e38fda1b1140424bafdac289a7406730ef96b2ae1a08fbbe4c6ca9bd",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "power-up-electronic"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.019
+        }
+      },
+      {
+        "id": "power-up-static",
+        "label": "power-up-static",
+        "file": "sfx/data/power-up-static.mp3",
+        "url": "/input/sfx/data/power-up-static.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 99854,
+        "sha256": "9ead62df293914a2408f80d9a0e3887eb6c52a1d30a01eb8d1eafd748aa826b4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "power-up-static"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.812
+        }
+      },
+      {
+        "id": "projector-spin-antique",
+        "label": "projector-spin-antique",
+        "file": "sfx/film/projector-spin-antique.mp3",
+        "url": "/input/sfx/film/projector-spin-antique.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 761771,
+        "sha256": "a5fa5e0e29d735632fc019553cf6fe14b4b53cb35e8e370fda272d9d4cce0005",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "projector-spin-antique"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 21.708
+        }
+      },
+      {
+        "id": "reel-rewind",
+        "label": "reel-rewind",
+        "file": "sfx/film/reel-rewind.mp3",
+        "url": "/input/sfx/film/reel-rewind.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 123593,
+        "sha256": "97a64b08533b3f3425138367461d4be629ecea016bf6b5092261bef3f21b88dc",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "reel-rewind"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.825
+        }
+      },
+      {
+        "id": "riser-cine",
+        "label": "riser-cine",
+        "file": "sfx/riser/riser-cine.mp3",
+        "url": "/input/sfx/riser/riser-cine.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 145112,
+        "sha256": "385340df21a87da878c23fa6ba1fdbe4059a4fd15d160bd45d20c9ecf7faecfc",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "riser",
+          "riser-cine"
+        ],
+        "usage": "来自 5198 音效库（riser）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.809
+        }
+      },
+      {
+        "id": "sand-swish",
+        "label": "sand-swish",
+        "file": "sfx/fluid/sand-swish.mp3",
+        "url": "/input/sfx/fluid/sand-swish.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 62840,
+        "sha256": "fa134db08d28f852af41b473efa26376f8f5e449c94f1dde61fcc085907d581a",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "fluid",
+          "sand-swish"
+        ],
+        "usage": "来自 5198 音效库（fluid）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.906
+        }
+      },
+      {
+        "id": "scifi-click",
+        "label": "scifi-click",
+        "file": "sfx/scifi/scifi-click.mp3",
+        "url": "/input/sfx/scifi/scifi-click.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 20354,
+        "sha256": "4a71ab99512b330e95f49699c9efb87b2f2d8f5c3a321e7ec70e87567ae5afed",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "scifi",
+          "scifi-click"
+        ],
+        "usage": "来自 5198 音效库（scifi）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.696
+        }
+      },
+      {
+        "id": "scifi-computer-ambience",
+        "label": "scifi-computer-ambience",
+        "file": "sfx/scifi/scifi-computer-ambience.mp3",
+        "url": "/input/sfx/scifi/scifi-computer-ambience.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 776699,
+        "sha256": "755f93f22cfe7c524b1202e5bead14533c4aafb8efd9643a18cb1b5b7f2ea1d4",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "scifi",
+          "scifi-computer-ambience"
+        ],
+        "usage": "来自 5198 音效库（scifi）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 23.5
+        }
+      },
+      {
+        "id": "shimmer-sparkle-sweep",
+        "label": "shimmer-sparkle-sweep",
+        "file": "sfx/light/shimmer-sparkle-sweep.mp3",
+        "url": "/input/sfx/light/shimmer-sparkle-sweep.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 94788,
+        "sha256": "8228e373de20a738b3ca74cd08bac181434f72ea0a6f9d75f499e58e7a7fabe3",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "shimmer-sparkle-sweep"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.998
+        }
+      },
+      {
+        "id": "space-intro-futuristic",
+        "label": "space-intro-futuristic",
+        "file": "sfx/scifi/space-intro-futuristic.mp3",
+        "url": "/input/sfx/scifi/space-intro-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 217447,
+        "sha256": "177f2128c575ec6e98581671107025d23cc789b9f95c213da4da3e6876698b52",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "scifi",
+          "space-intro-futuristic"
+        ],
+        "usage": "来自 5198 音效库（scifi）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 8.06
+        }
+      },
+      {
+        "id": "sparkle",
+        "label": "sparkle",
+        "file": "sfx/light/sparkle.mp3",
+        "url": "/input/sfx/light/sparkle.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 143743,
+        "sha256": "c4ee1a64554bd413082173cd2045aacd5a65189a43c9d8f309530744e86098ad",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "sparkle"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.549
+        }
+      },
+      {
+        "id": "sparkle-poof-hit",
+        "label": "sparkle-poof-hit",
+        "file": "sfx/light/sparkle-poof-hit.mp3",
+        "url": "/input/sfx/light/sparkle-poof-hit.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 83919,
+        "sha256": "8f62ca086e7c11239f34b5f6a8e63b88b2d5069811a1d11d535def23fd9fbd1f",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "sparkle-poof-hit"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.188
+        }
+      },
+      {
+        "id": "sparkle-touch",
+        "label": "sparkle-touch",
+        "file": "sfx/light/sparkle-touch.mp3",
+        "url": "/input/sfx/light/sparkle-touch.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 73387,
+        "sha256": "867e05a40226e0e024c0d7d3ff3f21dc5861c8a7797e82a4d1d2eb5ff1eed16a",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "sparkle-touch"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.333
+        }
+      },
+      {
+        "id": "sparkle-wand",
+        "label": "sparkle-wand",
+        "file": "sfx/light/sparkle-wand.mp3",
+        "url": "/input/sfx/light/sparkle-wand.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 77103,
+        "sha256": "1a534fecd427acf927a2dd796bc400578fd1a406053ff89a76a9305882bc4f46",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "sparkle-wand"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.5
+        }
+      },
+      {
+        "id": "stardust-swish",
+        "label": "stardust-swish",
+        "file": "sfx/light/stardust-swish.mp3",
+        "url": "/input/sfx/light/stardust-swish.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 150845,
+        "sha256": "5a91fbcaa6fac8e4b1019dcbd1b95deec5f266edebe3a05e9b1615ab518275c9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "light",
+          "stardust-swish"
+        ],
+        "usage": "来自 5198 音效库（light）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.804
+        }
+      },
+      {
+        "id": "static-electric-present",
+        "label": "static-electric-present",
+        "file": "sfx/data/static-electric-present.mp3",
+        "url": "/input/sfx/data/static-electric-present.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 128770,
+        "sha256": "18b2d8a3ab8f8a253df4405f78a4a44dffb06719fee118067d54423b632a2ed8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "static-electric-present"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.991
+        }
+      },
+      {
+        "id": "stomp-apocalyptic",
+        "label": "stomp-apocalyptic",
+        "file": "sfx/impact/stomp-apocalyptic.mp3",
+        "url": "/input/sfx/impact/stomp-apocalyptic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 91755,
+        "sha256": "c278de3e31d10b3d5e7bea277e3e1cda15bf5aaa744ee6fbd6296e913e66b245",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "impact",
+          "stomp-apocalyptic"
+        ],
+        "usage": "来自 5198 音效库（impact）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.85
+        }
+      },
+      {
+        "id": "sweep-digital",
+        "label": "sweep-digital",
+        "file": "sfx/data/sweep-digital.mp3",
+        "url": "/input/sfx/data/sweep-digital.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 38311,
+        "sha256": "024aab111e34f1909ef3513de915eda07faea9fef169e1d1cf6aaceae536eed9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "sweep-digital"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.133
+        }
+      },
+      {
+        "id": "sweep-fast",
+        "label": "sweep-fast",
+        "file": "sfx/transition/sweep-fast.mp3",
+        "url": "/input/sfx/transition/sweep-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 61800,
+        "sha256": "9d9efd7ce925ad362619db70cc214f5e590086d73aa0bb8ddfe12c91946d90d1",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "sweep-fast"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.917
+        }
+      },
+      {
+        "id": "sweep-fast-small",
+        "label": "sweep-fast-small",
+        "file": "sfx/transition/sweep-fast-small.mp3",
+        "url": "/input/sfx/transition/sweep-fast-small.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 27247,
+        "sha256": "5d8153579cfbd4ec23738494dff8dec95b3737981578222b793eff9e3fdd4ca8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "sweep-fast-small"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.781
+        }
+      },
+      {
+        "id": "sweep-metal-quick",
+        "label": "sweep-metal-quick",
+        "file": "sfx/transition/sweep-metal-quick.mp3",
+        "url": "/input/sfx/transition/sweep-metal-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 51881,
+        "sha256": "dd2d15f800a9d352488f249cf9a056ed1a65f5d0ae5c5ba556d073012088f51c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "sweep-metal-quick"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.722
+        }
+      },
+      {
+        "id": "sweep-scifi-fast",
+        "label": "sweep-scifi-fast",
+        "file": "sfx/transition/sweep-scifi-fast.mp3",
+        "url": "/input/sfx/transition/sweep-scifi-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 28596,
+        "sha256": "2fb670b72ebbc8ad90af889c3fefc8d3e4eb0554c4f5079d0b518299c50e9004",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "sweep-scifi-fast"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.208
+        }
+      },
+      {
+        "id": "sweep-short",
+        "label": "sweep-short",
+        "file": "sfx/transition/sweep-short.mp3",
+        "url": "/input/sfx/transition/sweep-short.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 18057,
+        "sha256": "49a2706fb3e7923db4228629865ccecf8e49e196b0dbcb65343a489e5406d4bc",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "sweep-short"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.606
+        }
+      },
+      {
+        "id": "switch-click-quick",
+        "label": "switch-click-quick",
+        "file": "sfx/ui/switch-click-quick.mp3",
+        "url": "/input/sfx/ui/switch-click-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 35439,
+        "sha256": "a3a7579e0a6c04acb6e8da3f87136a1f4addb8b0b3bf55099b9b0bb6fdcf57ca",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "switch-click-quick"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.036
+        }
+      },
+      {
+        "id": "switch-light",
+        "label": "switch-light",
+        "file": "sfx/ui/switch-light.mp3",
+        "url": "/input/sfx/ui/switch-light.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 6054,
+        "sha256": "0fecade047acf3a1742ef9c68802d4b2797478ffe76cd82e6b45f88b2cac772c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "switch-light"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.167
+        }
+      },
+      {
+        "id": "switch-tap",
+        "label": "switch-tap",
+        "file": "sfx/ui/switch-tap.mp3",
+        "url": "/input/sfx/ui/switch-tap.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 35811,
+        "sha256": "dda541a92e6e4be23637d4ee483a6fa67f037ff50427c410730ff4b998346559",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "switch-tap"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.106
+        }
+      },
+      {
+        "id": "swoosh-quick",
+        "label": "swoosh-quick",
+        "file": "sfx/transition/swoosh-quick.mp3",
+        "url": "/input/sfx/transition/swoosh-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 27247,
+        "sha256": "5d8153579cfbd4ec23738494dff8dec95b3737981578222b793eff9e3fdd4ca8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "swoosh-quick"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.781
+        }
+      },
+      {
+        "id": "swoosh-slow",
+        "label": "swoosh-slow",
+        "file": "sfx/transition/swoosh-slow.mp3",
+        "url": "/input/sfx/transition/swoosh-slow.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 168187,
+        "sha256": "11bac1b129c0c97cb3c8576c884567ac997f2e98b5208e9db6929095367622b1",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "swoosh-slow"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.5
+        }
+      },
+      {
+        "id": "tape-rewind-cine",
+        "label": "tape-rewind-cine",
+        "file": "sfx/film/tape-rewind-cine.mp3",
+        "url": "/input/sfx/film/tape-rewind-cine.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 135704,
+        "sha256": "668ec468c8da931a9dba6f9b59cf587f85e38e82ebc04f7605fbf98b528b3e09",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "tape-rewind-cine"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 4.389
+        }
+      },
+      {
+        "id": "tape-rewind-fast",
+        "label": "tape-rewind-fast",
+        "file": "sfx/film/tape-rewind-fast.mp3",
+        "url": "/input/sfx/film/tape-rewind-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 58975,
+        "sha256": "45e40d3502f0649ae2caf51a959f8dc1af026df657aa36cfb0329152193cb28a",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "tape-rewind-fast"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.917
+        }
+      },
+      {
+        "id": "tech-hum-futuristic",
+        "label": "tech-hum-futuristic",
+        "file": "sfx/scifi/tech-hum-futuristic.mp3",
+        "url": "/input/sfx/scifi/tech-hum-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 156614,
+        "sha256": "dd92899b5368e0f64366301adc38cd5a26467a4d272e002f2e1260934afe3982",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "scifi",
+          "tech-hum-futuristic"
+        ],
+        "usage": "来自 5198 音效库（scifi）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 6
         }
       },
       {
@@ -1056,6 +3432,688 @@
         }
       },
       {
+        "id": "transition-snap",
+        "label": "transition-snap",
+        "file": "sfx/transition/transition-snap.mp3",
+        "url": "/input/sfx/transition/transition-snap.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 19051,
+        "sha256": "9f7e4edb094569f9cb40e8dbb987a5fc20926b30326a1a9d827236960980f070",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "transition-snap"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.574
+        }
+      },
+      {
+        "id": "transition-soft",
+        "label": "transition-soft",
+        "file": "sfx/transition/transition-soft.mp3",
+        "url": "/input/sfx/transition/transition-soft.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 41082,
+        "sha256": "0e25921648c66e30924892ee17110ae621243de770b2944496526845a15a9998",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "transition-soft"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.275
+        }
+      },
+      {
+        "id": "transition-tech",
+        "label": "transition-tech",
+        "file": "sfx/transition/transition-tech.mp3",
+        "url": "/input/sfx/transition/transition-tech.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 94273,
+        "sha256": "ceb1ef89685d32be6b8e5adadaefd30be058dbbda17ce8225cef1617c4a7cf8b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "transition-tech"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.125
+        }
+      },
+      {
+        "id": "transition-tech-slide",
+        "label": "transition-tech-slide",
+        "file": "sfx/transition/transition-tech-slide.mp3",
+        "url": "/input/sfx/transition/transition-tech-slide.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 26239,
+        "sha256": "4f606d68e2853972035b982f4a82f6da8d0507e4143eec5b0033f99f2003c0b2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "transition-tech-slide"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.65
+        }
+      },
+      {
+        "id": "typewriter-digital",
+        "label": "typewriter-digital",
+        "file": "sfx/text/typewriter-digital.mp3",
+        "url": "/input/sfx/text/typewriter-digital.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 65353,
+        "sha256": "cf44d81084e6ba97985203406dc0cbb535c6b834e86989239cfedc1f5d06f039",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "typewriter-digital"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.851
+        }
+      },
+      {
+        "id": "typewriter-hit-hard",
+        "label": "typewriter-hit-hard",
+        "file": "sfx/text/typewriter-hit-hard.mp3",
+        "url": "/input/sfx/text/typewriter-hit-hard.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 34769,
+        "sha256": "edd3eef24ff55f2a2dd54f5f35872e7ed5c82669bf6c976032a7a5d87d188e8b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "typewriter-hit-hard"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.101
+        }
+      },
+      {
+        "id": "typewriter-hit-single",
+        "label": "typewriter-hit-single",
+        "file": "sfx/text/typewriter-hit-single.mp3",
+        "url": "/input/sfx/text/typewriter-hit-single.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 21398,
+        "sha256": "9ff9b0b9bb4c4a309f5e964b9d5338f74359eac6b87c26f8717cf1df4cce27bd",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "typewriter-hit-single"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.705
+        }
+      },
+      {
+        "id": "typewriter-hit-soft",
+        "label": "typewriter-hit-soft",
+        "file": "sfx/text/typewriter-hit-soft.mp3",
+        "url": "/input/sfx/text/typewriter-hit-soft.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 15396,
+        "sha256": "a56bd3dd301eecf1f2611caab0a8ed840441bc8fe5c3ff8065646102f27a7448",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "typewriter-hit-soft"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.534
+        }
+      },
+      {
+        "id": "typewriter-return-bell",
+        "label": "typewriter-return-bell",
+        "file": "sfx/text/typewriter-return-bell.mp3",
+        "url": "/input/sfx/text/typewriter-return-bell.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 56060,
+        "sha256": "e711dfcddee29ce28db8d8f0c15f3f824371b5a15ccd5595d1f2a77ee03bbd47",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "typewriter-return-bell"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.788
+        }
+      },
+      {
+        "id": "ui-click-tone",
+        "label": "ui-click-tone",
+        "file": "sfx/ui/ui-click-tone.mp3",
+        "url": "/input/sfx/ui/ui-click-tone.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 8455,
+        "sha256": "1b41ec99c2791eb1d292e0f1b09355a3cf0c184db42458d34cd041e249951e4b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-click-tone"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.199
+        }
+      },
+      {
+        "id": "ui-confirm-bleep",
+        "label": "ui-confirm-bleep",
+        "file": "sfx/ui/ui-confirm-bleep.mp3",
+        "url": "/input/sfx/ui/ui-confirm-bleep.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 17953,
+        "sha256": "7484e5e852c95bd6bb16b29023f3da1ae664f63485ca692479d9b579d1c8e0d8",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-confirm-bleep"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.609
+        }
+      },
+      {
+        "id": "ui-confirm-tone",
+        "label": "ui-confirm-tone",
+        "file": "sfx/ui/ui-confirm-tone.mp3",
+        "url": "/input/sfx/ui/ui-confirm-tone.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 43636,
+        "sha256": "6a60dff7933c536948499acadccb758f181d295e1921bf4b30e179e37e3f80dc",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-confirm-tone"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.304
+        }
+      },
+      {
+        "id": "ui-message-pop",
+        "label": "ui-message-pop",
+        "file": "sfx/ui/ui-message-pop.mp3",
+        "url": "/input/sfx/ui/ui-message-pop.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 13059,
+        "sha256": "58ecb2df40864551fd8aa7f770c13646187854df7fe4ca74497997b24f7669cd",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-message-pop"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.059
+        }
+      },
+      {
+        "id": "ui-notify-tech",
+        "label": "ui-notify-tech",
+        "file": "sfx/ui/ui-notify-tech.mp3",
+        "url": "/input/sfx/ui/ui-notify-tech.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 67229,
+        "sha256": "61f4b819c4286e9baccb924007e7873bdc04033ee60b0758a8f89715d4c575ac",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-notify-tech"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.083
+        }
+      },
+      {
+        "id": "ui-option-select",
+        "label": "ui-option-select",
+        "file": "sfx/ui/ui-option-select.mp3",
+        "url": "/input/sfx/ui/ui-option-select.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 51255,
+        "sha256": "a5118de16f2b7aef75b69a4698610e0a2d260e8724e5191b096adb87a107114d",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-option-select"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.553
+        }
+      },
+      {
+        "id": "ui-popup-dry",
+        "label": "ui-popup-dry",
+        "file": "sfx/ui/ui-popup-dry.mp3",
+        "url": "/input/sfx/ui/ui-popup-dry.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 9706,
+        "sha256": "e374bcd10352200c2f36b24bc508d11f99007b1ae34a08e9b4fc90313db58d21",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-popup-dry"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.305
+        }
+      },
+      {
+        "id": "ui-select-click",
+        "label": "ui-select-click",
+        "file": "sfx/ui/ui-select-click.mp3",
+        "url": "/input/sfx/ui/ui-select-click.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 35602,
+        "sha256": "4473ef3397b4a35bb75520e637b827e9984ae1d09bbf27c7f7c72cacc17885f7",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-select-click"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.104
+        }
+      },
+      {
+        "id": "ui-select-modern",
+        "label": "ui-select-modern",
+        "file": "sfx/ui/ui-select-modern.mp3",
+        "url": "/input/sfx/ui/ui-select-modern.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 4742,
+        "sha256": "1cd63275367d5434ae0ee384c6390d12f00b141ba7810522ef0ab4375178178f",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-select-modern"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.5
+        }
+      },
+      {
+        "id": "ui-success-soft",
+        "label": "ui-success-soft",
+        "file": "sfx/ui/ui-success-soft.mp3",
+        "url": "/input/sfx/ui/ui-success-soft.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 53759,
+        "sha256": "2baf3c94b6c94cd164d3ff5598a0f7808b85345df72205630551ae896006960f",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-success-soft"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.619
+        }
+      },
+      {
+        "id": "ui-tone-quick",
+        "label": "ui-tone-quick",
+        "file": "sfx/ui/ui-tone-quick.mp3",
+        "url": "/input/sfx/ui/ui-tone-quick.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 43375,
+        "sha256": "23d986590bf747c8e16226a49a48a1d81b1f315ef2b432836cc1c7a0013065c7",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "ui",
+          "ui-tone-quick"
+        ],
+        "usage": "来自 5198 音效库（ui）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.287
+        }
+      },
+      {
+        "id": "ui-zoom-in",
+        "label": "ui-zoom-in",
+        "file": "sfx/camera/ui-zoom-in.mp3",
+        "url": "/input/sfx/camera/ui-zoom-in.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 19624,
+        "sha256": "183a0ea75d9c090421aa01af144f617dd016d7dd20fb05c9477d63efe69e5314",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "ui-zoom-in"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.657
+        }
+      },
+      {
+        "id": "ui-zoom-out",
+        "label": "ui-zoom-out",
+        "file": "sfx/camera/ui-zoom-out.mp3",
+        "url": "/input/sfx/camera/ui-zoom-out.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 34864,
+        "sha256": "8b98f2c91a976b6a29b9b536380d216a7861ae8f81f6e5547489c51329e381b9",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "ui-zoom-out"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.149
+        }
+      },
+      {
+        "id": "vinyl-needle-drop",
+        "label": "vinyl-needle-drop",
+        "file": "sfx/film/vinyl-needle-drop.mp3",
+        "url": "/input/sfx/film/vinyl-needle-drop.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 12292,
+        "sha256": "97fd03fd096574b15f1ef6c4bed24390276cf0cff9b3ca3e85b83bd8ba1a8a5d",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "vinyl-needle-drop"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.327
+        }
+      },
+      {
+        "id": "vinyl-scratch-small",
+        "label": "vinyl-scratch-small",
+        "file": "sfx/film/vinyl-scratch-small.mp3",
+        "url": "/input/sfx/film/vinyl-scratch-small.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 37797,
+        "sha256": "91733c0e93f6d40c4a49e2e9f92082a391f70657167841d4b5477bba1c0de594",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "film",
+          "vinyl-scratch-small"
+        ],
+        "usage": "来自 5198 音效库（film）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.196
+        }
+      },
+      {
+        "id": "warp-slide",
+        "label": "warp-slide",
+        "file": "sfx/transition/warp-slide.mp3",
+        "url": "/input/sfx/transition/warp-slide.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 49839,
+        "sha256": "fc62d5e6bd5ef27b83b933ec1f407e7e95d17a2434da41a9041ba7d5576b4e86",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "warp-slide"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.125
+        }
+      },
+      {
+        "id": "water-bubble",
+        "label": "water-bubble",
+        "file": "sfx/fluid/water-bubble.mp3",
+        "url": "/input/sfx/fluid/water-bubble.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 12941,
+        "sha256": "351deb28cf45bd6670da31d845b9d0166a4edb2503454d74f302eaacf8e651e0",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "fluid",
+          "water-bubble"
+        ],
+        "usage": "来自 5198 音效库（fluid）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.424
+        }
+      },
+      {
+        "id": "water-drop-cave",
+        "label": "water-drop-cave",
+        "file": "sfx/fluid/water-drop-cave.mp3",
+        "url": "/input/sfx/fluid/water-drop-cave.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 62144,
+        "sha256": "5ba33c57f26ca1210133f2fd01c9666fa67b43175020ce2d115130c712e91d59",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "fluid",
+          "water-drop-cave"
+        ],
+        "usage": "来自 5198 音效库（fluid）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2
+        }
+      },
+      {
+        "id": "water-splash",
+        "label": "water-splash",
+        "file": "sfx/fluid/water-splash.mp3",
+        "url": "/input/sfx/fluid/water-splash.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 52302,
+        "sha256": "948623e86ac346b83e41e01e043b697113b82d31994b382ecb36ee7f113902b3",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "fluid",
+          "water-splash"
+        ],
+        "usage": "来自 5198 音效库（fluid）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.478
+        }
+      },
+      {
+        "id": "whoosh-big",
+        "label": "whoosh-big",
+        "file": "sfx/transition/whoosh-big.mp3",
+        "url": "/input/sfx/transition/whoosh-big.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 71724,
+        "sha256": "8af9843a636d3b4961f0c8b3545a21e674bd43d59f97d5c38d3f9a3f04674fd2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "whoosh-big"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.321
+        }
+      },
+      {
+        "id": "whoosh-electric",
+        "label": "whoosh-electric",
+        "file": "sfx/data/whoosh-electric.mp3",
+        "url": "/input/sfx/data/whoosh-electric.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 72010,
+        "sha256": "fceafcb7c5ca92a9a3844d58ada70d061863376a22a185816f13b72aaf3bf212",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "data",
+          "whoosh-electric"
+        ],
+        "usage": "来自 5198 音效库（data）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 3.111
+        }
+      },
+      {
+        "id": "whoosh-fast",
+        "label": "whoosh-fast",
+        "file": "sfx/transition/whoosh-fast.mp3",
+        "url": "/input/sfx/transition/whoosh-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 57624,
+        "sha256": "b88fd5d484251930efd6eca78c4340339908ea29d1e69bd24fb5191a10da4f78",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "whoosh-fast"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.757
+        }
+      },
+      {
         "id": "whoosh-soft",
         "label": "柔和掠过",
         "file": "sfx/whoosh-soft.wav",
@@ -1073,6 +4131,226 @@
           "durationSeconds": 0.55,
           "sampleRate": 24000,
           "channels": 1
+        }
+      },
+      {
+        "id": "whoosh-swirl",
+        "label": "whoosh-swirl",
+        "file": "sfx/transition/whoosh-swirl.mp3",
+        "url": "/input/sfx/transition/whoosh-swirl.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 79754,
+        "sha256": "6c79c8d1c60e17a155898f056c30cce728196efb66519df8a58e191671d8d496",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "whoosh-swirl"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.485
+        }
+      },
+      {
+        "id": "wind-pass-vibrate",
+        "label": "wind-pass-vibrate",
+        "file": "sfx/transition/wind-pass-vibrate.mp3",
+        "url": "/input/sfx/transition/wind-pass-vibrate.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 183320,
+        "sha256": "62fd8dabd8d88df9b77a1b6b23f8edc4a39fd14bba7fd9c0853d3c4354aaeef2",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "wind-pass-vibrate"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.018
+        }
+      },
+      {
+        "id": "wind-swoosh-short",
+        "label": "wind-swoosh-short",
+        "file": "sfx/transition/wind-swoosh-short.mp3",
+        "url": "/input/sfx/transition/wind-swoosh-short.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 44058,
+        "sha256": "e702dc99aac9ba1b9a12416068606e6c4c3fc4c7896555bed490745373df0d76",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "wind-swoosh-short"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.39
+        }
+      },
+      {
+        "id": "wind-woosh-throw",
+        "label": "wind-woosh-throw",
+        "file": "sfx/transition/wind-woosh-throw.mp3",
+        "url": "/input/sfx/transition/wind-woosh-throw.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 28497,
+        "sha256": "2cc86ce3de2c0f04068195426df68d43fbd751a6e7815a5550671a028ab6ea3c",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "wind-woosh-throw"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.963
+        }
+      },
+      {
+        "id": "wing-flutter",
+        "label": "wing-flutter",
+        "file": "sfx/transition/wing-flutter.mp3",
+        "url": "/input/sfx/transition/wing-flutter.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 133978,
+        "sha256": "6dec74f4949e1f1718bd0e9ee86134cab7922ca3d3420c5dcfbce45d197e55de",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "transition",
+          "wing-flutter"
+        ],
+        "usage": "来自 5198 音效库（transition）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 5.652
+        }
+      },
+      {
+        "id": "write-blackboard",
+        "label": "write-blackboard",
+        "file": "sfx/text/write-blackboard.mp3",
+        "url": "/input/sfx/text/write-blackboard.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 444912,
+        "sha256": "15287466b09a53dd87198cb6468ead2798c2c38967594049869bf3712eaa895b",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "write-blackboard"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 13.949
+        }
+      },
+      {
+        "id": "write-fast",
+        "label": "write-fast",
+        "file": "sfx/text/write-fast.mp3",
+        "url": "/input/sfx/text/write-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 21606,
+        "sha256": "bd95206772576c78f6316f05a559017350e1c6c2d5e6bd744e768bf3076da984",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "text",
+          "write-fast"
+        ],
+        "usage": "来自 5198 音效库（text）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 0.793
+        }
+      },
+      {
+        "id": "zoom-air-fast",
+        "label": "zoom-air-fast",
+        "file": "sfx/camera/zoom-air-fast.mp3",
+        "url": "/input/sfx/camera/zoom-air-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 42071,
+        "sha256": "2e5b2abe472be35746fd594e95525d6c74bacd1d9338af31d929f7327f73bbba",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "zoom-air-fast"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.282
+        }
+      },
+      {
+        "id": "zoom-futuristic",
+        "label": "zoom-futuristic",
+        "file": "sfx/camera/zoom-futuristic.mp3",
+        "url": "/input/sfx/camera/zoom-futuristic.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 69422,
+        "sha256": "5d13f21c676016c0b9d6f7f2bddde7a1adc3d0aa02416101ec94eb432b7694c1",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "zoom-futuristic"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 2.171
+        }
+      },
+      {
+        "id": "zoom-swipe-fast",
+        "label": "zoom-swipe-fast",
+        "file": "sfx/camera/zoom-swipe-fast.mp3",
+        "url": "/input/sfx/camera/zoom-swipe-fast.mp3",
+        "mimeType": "audio/mpeg",
+        "bytes": 35650,
+        "sha256": "d9158ed4d147b58a2575c3979d097dc36333f8d8c001af1f6fcbf3fc5c7461ef",
+        "tags": [
+          "音效",
+          "video-shotcraft",
+          "camera",
+          "zoom-swipe-fast"
+        ],
+        "usage": "来自 5198 音效库（camera）",
+        "category": "内置音效",
+        "accent": "#2f8cff",
+        "source": "video-shotcraft",
+        "media": {
+          "durationSeconds": 1.056
         }
       }
     ]
