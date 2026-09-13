@@ -6776,7 +6776,7 @@ const App = () => {
   const formatSemanticSeconds = (value: number) =>
     Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
   const inspectorSemanticLayoutValue = inspectorSemanticCapabilities
-    ? `${SEMANTIC_ORIENTATION_LABELS[inspectorSemanticCapabilities.orientation] ?? "不限画幅"} · ${inspectorSemanticCapabilities.density}（${SEMANTIC_DENSITY_LABELS[inspectorSemanticCapabilities.density] ?? "中"}）`
+    ? `${SEMANTIC_ORIENTATION_LABELS[inspectorSemanticCapabilities.orientation] ?? "不限画幅"} · ${SEMANTIC_DENSITY_LABELS[inspectorSemanticCapabilities.density] ?? "中"}（${inspectorSemanticCapabilities.density}）`
     : "未登记";
   const getUnboundedPositionSliderRange = (
     position: number,

@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（53 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（54 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -49,13 +49,14 @@
 | `PortraitNextEpisodeTitle` | 下集预告标题 | 竖屏口播信息层 | 行动引导 | portrait |  |
 | `PortraitFollowCta` | 图标文字 | 竖屏口播信息层 | 行动引导 | portrait |  |
 | `QuickSetupProof` | 快速上手证明条 | 竖屏口播信息层 | 案例与素材 | portrait |  |
-| `LegacyEliminationPanel` | 淘汰警告·旧方案面板 | 风险提醒 | 风险提醒 | portrait |  |
+| `LegacyEliminationPanel` | 红线淘汰 | 风险提醒 | 风险提醒 | any |  |
 | `MarketEliminationStamp` | 淘汰警告·市场印章 | 风险提醒 | 风险提醒 | portrait |  |
 | `MaterialCard` | 素材卡 | 媒体展示组件 | 案例与素材 | any |  |
 | `PhoneRecordingFrameNeutral` | 手机与竖屏录屏 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `BrollGigCardFloat` | 悬浮兼职卡片群 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `GigHourlyTitle` | 金色时薪标题 | 数字 | 数字展示 | landscape |  |
 | `BrollEpisodePosterDuo` | 往期海报回顾 | 媒体展示组件 | 案例与素材 | landscape |  |
+| `BrollPlayMilestoneBadge` | 播放量里程碑卡 | 数字 | 数字展示 | any |  |
 | `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字 | 数字展示 | portrait |  |
 | `CaseStudySidebar` | 案例商业数据侧栏 | 品牌与标识 | 案例与素材 | portrait |  |
@@ -1324,9 +1325,9 @@
 
 ### `BrollEpisodePosterDuo` · 往期海报回顾
 
-- 用途：横屏口播 b-roll：背景压暗，两张竖版海报带 3D 倾斜先后升入并悬浮，随后金色播放量徽章弹出，适合回顾往期内容或展示成绩。
-- 主要语义：案例与素材；次要：数字展示、章节转场
-- 何时使用（检索词）：往期、回顾、上一期、海报、封面、播放量、成绩、数据、两期、合集、b-roll
+- 用途：横屏口播 b-roll：两张竖版海报带 3D 倾斜先后升入并悬浮，适合回顾往期内容。
+- 主要语义：案例与素材；次要：章节转场
+- 何时使用（检索词）：往期、回顾、上一期、海报、封面、两期、合集、b-roll
 - 画布方向：landscape；密度：medium；建议驻留：3–10 秒
 - 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
 - 默认时长：180 帧（约 6 秒）
@@ -1336,15 +1337,10 @@
 - `enterAnimation` — 入场动画
 - `exitAnimation` — 出场动画
 - `enabled` — 显示往期海报回顾
-- `dimOpacity` — 背景压暗强度（0–0.9）
 - `poster1Url` — 左海报图片
 - `poster2Url` — 右海报图片
 - `posterWidth` — 海报宽度(px)（220–560）
 - `tiltDeg` — 3D 倾斜角度(度)（0–30）
-- `badgeKicker` — 徽章小字
-- `badgePrefix` — 徽章前缀
-- `badgeNumber` — 徽章数字
-- `accentColor` — 金色强调色（color）
 - `floatAmplitude` — 悬浮幅度(px)（0–30）
 
 ## 风险提醒
@@ -1389,12 +1385,12 @@
 - `textColor` — 文字颜色（color）
 - `animationSeconds` — 入场时长(秒)（0.4–2）
 
-### `LegacyEliminationPanel` · 淘汰警告·旧方案面板
+### `LegacyEliminationPanel` · 红线淘汰
 
 - 用途：独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。
 - 主要语义：风险提醒；次要：对比差异、重点强调
 - 何时使用（检索词）：淘汰、过时、落后、失效、旧方案
-- 画布方向：portrait；密度：medium；建议驻留：1–7 秒
+- 画布方向：any；密度：medium；建议驻留：1–7 秒
 - 默认落位：x=58，y=300，scale=1（占位 560×190，placement=left）
 - 默认时长：96 帧（约 3.2 秒）
 - 分组：风险提醒
@@ -1410,6 +1406,8 @@
 - `accentColor` — 边框强调色（color）
 - `panelColor` — 面板颜色（color）
 - `textColor` — 标题颜色（color）
+- `cardWidth` — 卡片宽度(px)（320–548）
+- `cardHeight` — 卡片高度(px)（130–181）
 - `animationSeconds` — 划线完成时间(秒)（0.6–2.2）
 
 ### `MarketEliminationStamp` · 淘汰警告·市场印章
@@ -1465,6 +1463,29 @@
 - `priceFontSize` — 时薪大字字号(px)（40–240）
 - `priceUnitFontSize` — 单位字号(px)（10–80）
 - `priceNoteFontSize` — 说明字号(px)（10–48）
+
+### `BrollPlayMilestoneBadge` · 播放量里程碑卡
+
+- 用途：横屏/竖屏口播 b-roll：以金色边框徽章突出两期内容、播放量或阶段成绩，适合展示数据成果与里程碑。
+- 主要语义：数字展示；次要：案例与素材、重点强调
+- 何时使用（检索词）：往期、回顾、播放量、成绩、数据、两期、合集、里程碑、突破、破、b-roll
+- 画布方向：any；密度：light；建议驻留：2–8 秒
+- 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
+- 默认时长：180 帧（约 6 秒）
+- 分组：数字
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `badgeTop` — 徽章位置Y(px)（300–960）
+- `badgeWidth` — 徽章宽度(px)（320–900）
+- `rotationDegrees` — 旋转角度(°)（-180–180）
+- `badgeEnterSeconds` — 入场动画时长(秒)（0.1–3）
+- `badgeKicker` — 徽章小字
+- `badgePrefix` — 徽章前缀
+- `badgeNumber` — 徽章数字
+- `accentColor` — 强调色（color）
+- `floatAmplitude` — 悬浮幅度(px)（0–30）
 
 ### `MilestoneFollowerProgress` · 里程碑增长·粉丝进度
 

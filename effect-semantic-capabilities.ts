@@ -381,7 +381,7 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["comparison", "emphasis"],
     ["comparison", "short-text"],
     ["淘汰", "过时", "落后", "失效", "旧方案"],
-    { orientation: "portrait", density: "medium", durationSeconds: { min: 1, max: 7 } },
+    { orientation: "any", density: "medium", durationSeconds: { min: 1, max: 7 } },
   ),
   MarketEliminationStamp: capability(
     "warning",
@@ -470,10 +470,17 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
   ),
   BrollEpisodePosterDuo: capability(
     "evidence",
-    ["metric", "transition"],
-    ["media", "metric"],
-    ["往期", "回顾", "上一期", "海报", "封面", "播放量", "成绩", "数据", "两期", "合集", "b-roll"],
+    ["transition"],
+    ["media"],
+    ["往期", "回顾", "上一期", "海报", "封面", "两期", "合集", "b-roll"],
     { orientation: "landscape", density: "medium", durationSeconds: { min: 3, max: 10 } },
+  ),
+  BrollPlayMilestoneBadge: capability(
+    "metric",
+    ["evidence", "emphasis"],
+    ["metric", "short-text"],
+    ["往期", "回顾", "播放量", "成绩", "数据", "两期", "合集", "里程碑", "突破", "破", "b-roll"],
+    { orientation: "any", density: "light", durationSeconds: { min: 2, max: 8 } },
   ),
 });
 

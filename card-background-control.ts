@@ -64,12 +64,14 @@ export const CARD_BACKGROUND_CONTROL_CSS = `
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-// 复用终端教学面板的卡片底色控制；团队归因卡片默认关闭，打开后使用同一套透明度和模糊效果。
+// 复用终端教学面板的卡片底色控制；支持的卡片统一使用同一套透明度和模糊效果。
 export const CARD_BACKGROUND_SUPPORTED_COMPONENT_IDS = new Set([
   "TerminalPanel",
   "ChapterBar",
   "TeamAttributionCard",
   "PortraitPillText",
+  "MarketEliminationStamp",
+  "LegacyEliminationPanel",
 ]);
 
 export const supportsCardBackground = (componentId: unknown): boolean =>
@@ -110,5 +112,3 @@ export const getCardBackgroundControlVariables = ({
       : {}),
   };
 };
-
-

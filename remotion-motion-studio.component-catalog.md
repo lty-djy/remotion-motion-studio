@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从运行时 `registry.ts` 生成。
 > 不要手改本文件；新增、删除或修改组件后重新运行同步命令。
 
-工作台当前实际注册 **53** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
+工作台当前实际注册 **54** 个组件，其中 **1** 个已接入当前 AI manifest 编译器。
 未标记为 AI 可编排的组件仍可在工作台中手动使用，后续应在组件经过确认并补齐编译支持后再开放给 AI。
 
 ## 其他
@@ -59,17 +59,18 @@
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `PhoneRecordingFrameNeutral`：手机与竖屏录屏 — 中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`mediaType`、`mediaFit`、`enterEndSeconds`、`exitStartSeconds`、`exitEndSeconds`）
 - `BrollGigCardFloat`：悬浮兼职卡片群 — 按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`cardsJson`、`enterStaggerSeconds`、`floatAmplitude`、`wiggleAmplitude`、`wiggleAmplitudeY`、`badgeText`、`ctaText`）
-- `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：背景压暗，两张竖版海报带 3D 倾斜先后升入并悬浮，随后金色播放量徽章弹出，适合回顾往期内容或展示成绩。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`dimOpacity`、`poster1Url`、`poster2Url`、`posterWidth`、`tiltDeg`、`badgeKicker`、`badgePrefix`、`badgeNumber`、`accentColor`、`floatAmplitude`）
+- `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：两张竖版海报带 3D 倾斜先后升入并悬浮，适合回顾往期内容。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`poster1Url`、`poster2Url`、`posterWidth`、`tiltDeg`、`floatAmplitude`）
 
 ## 风险提醒
 
 - `PortraitRiskWarning`：风险提醒卡 — 参考竖屏口播的使用边界段：红色结论标题配合三条等宽风险提醒，依次滑入强调限制条件。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`riskCount`、`eyebrow`、`title`、`emphasis`、`risk1`、`risk2`、`risk3`、`risk4`、`risk5`、`risk6`、`risk7`、`risk8`、`icon1`、`icon2`、`icon3`、`icon4`、`icon5`、`icon6`、`icon7`、`icon8`、`riskIntervalSeconds`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
-- `LegacyEliminationPanel`：淘汰警告·旧方案面板 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`animationSeconds`）
+- `LegacyEliminationPanel`：红线淘汰 — 独立的深色旧方案警告面板：标题、英文标签和红色删除线可单独编排。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`kicker`、`title`、`subtitle`、`warningColor`、`accentColor`、`panelColor`、`textColor`、`cardWidth`、`cardHeight`、`animationSeconds`）
 - `MarketEliminationStamp`：淘汰警告·市场印章 — 独立的红色倾斜淘汰印章，支持字号、入场旋转角度和固定角度调整，并根据文字长度自动适配卡片尺寸。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`stampText`、`warningColor`、`panelColor`、`textColor`、`fontSize`、`fixedRotationDegrees`、`rotationDegrees`、`delaySeconds`、`animationSeconds`）
 
 ## 数字
 
 - `GigHourlyTitle`：金色时薪标题 — 独立的金色时薪大字、中英文标签与说明，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`eyebrowEn`、`eyebrowZh`、`pricePrefix`、`priceFrom`、`priceTo`、`priceText`、`priceUnit`、`priceNote`、`accentColor`、`eyebrowEnFontSize`、`eyebrowZhFontSize`、`priceFontSize`、`priceUnitFontSize`、`priceNoteFontSize`）
+- `BrollPlayMilestoneBadge`：播放量里程碑卡 — 横屏/竖屏口播 b-roll：以金色边框徽章突出两期内容、播放量或阶段成绩，适合展示数据成果与里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`badgeTop`、`badgeWidth`、`rotationDegrees`、`badgeEnterSeconds`、`badgeKicker`、`badgePrefix`、`badgeNumber`、`accentColor`、`floatAmplitude`）
 - `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`enterAnimation`、`exitAnimation`、`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）
 

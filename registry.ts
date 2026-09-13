@@ -59,6 +59,7 @@ import { PhoneRecordingFrameNeutralEffectDef } from "./effects/PhoneRecordingFra
 import { GigHourlyTitleEffectDef } from "./effects/GigHourlyTitle";
 import { BrollGigCardFloatEffectDef } from "./effects/BrollGigCardFloat";
 import { BrollEpisodePosterDuoEffectDef } from "./effects/BrollEpisodePosterDuo";
+import { BrollPlayMilestoneBadgeEffectDef } from "./effects/BrollPlayMilestoneBadge";
 import { ComparisonProgressBarsEffectDef } from "./effects/ComparisonProgressBars";
 import { MilestoneFollowerProgressEffectDef } from "./effects/MilestoneFollowerProgress";
 import { CaseStudySidebarEffectDef } from "./effects/CaseStudySidebar";
@@ -175,6 +176,7 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   BrollGigCardFloatEffectDef,
   GigHourlyTitleEffectDef,
   BrollEpisodePosterDuoEffectDef,
+  BrollPlayMilestoneBadgeEffectDef,
   ComparisonProgressBarsEffectDef,
   MilestoneFollowerProgressEffectDef,
   CaseStudySidebarEffectDef,

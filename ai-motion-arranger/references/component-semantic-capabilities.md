@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **53** 个注册组件。
+当前覆盖 **54** 个注册组件。
 
 ## 核心语义
 
@@ -268,10 +268,10 @@
   - 检索词：兼职、时薪、收入、薪资、招聘、招募、机会、价格区间、副业、悬浮卡片、卡片群、b-roll
 - **往期海报回顾**（`BrollEpisodePosterDuo`）
   - 主要：案例与素材
-  - 次要：数字展示、章节转场
-  - 内容：media、metric
+  - 次要：章节转场
+  - 内容：media
   - 方向：landscape；密度：medium；建议时长：3–10 秒
-  - 检索词：往期、回顾、上一期、海报、封面、播放量、成绩、数据、两期、合集、b-roll
+  - 检索词：往期、回顾、上一期、海报、封面、两期、合集、b-roll
 
 ## 风险提醒
 
@@ -281,11 +281,11 @@
   - 内容：list、short-text
   - 方向：portrait；密度：heavy；建议时长：2–8 秒
   - 检索词：风险、注意、限制、错误、异常、避免
-- **淘汰警告·旧方案面板**（`LegacyEliminationPanel`）
+- **红线淘汰**（`LegacyEliminationPanel`）
   - 主要：风险提醒
   - 次要：对比差异、重点强调
   - 内容：comparison、short-text
-  - 方向：portrait；密度：medium；建议时长：1–7 秒
+  - 方向：any；密度：medium；建议时长：1–7 秒
   - 检索词：淘汰、过时、落后、失效、旧方案
 - **淘汰警告·市场印章**（`MarketEliminationStamp`）
   - 主要：风险提醒
@@ -302,6 +302,12 @@
   - 内容：metric、short-text
   - 方向：landscape；密度：light；建议时长：2–15 秒
   - 检索词：时薪、薪资、收入、金色大字、价格区间
+- **播放量里程碑卡**（`BrollPlayMilestoneBadge`）
+  - 主要：数字展示
+  - 次要：案例与素材、重点强调
+  - 内容：metric、short-text
+  - 方向：any；密度：light；建议时长：2–8 秒
+  - 检索词：往期、回顾、播放量、成绩、数据、两期、合集、里程碑、突破、破、b-roll
 - **里程碑增长·粉丝进度**（`MilestoneFollowerProgress`）
   - 主要：数字展示
   - 次要：对比差异、重点强调、章节转场
