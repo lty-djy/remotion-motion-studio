@@ -1,0 +1,172 @@
+{
+  "generatedBy": "overlay-fx-generator/1",
+  "sourceSrt": "",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "fps": 30,
+  "durationInFrames": 2160,
+  "motionTimeline": [
+    {
+      "componentId": "ChapterBar",
+      "startFrame": 0,
+      "durationInFrames": 240,
+      "laneId": "测试1-常驻章节导航条",
+      "sourceIntentId": "rename-test-1",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "chapters": "导航测试 0 | 章节切换 4",
+        "lastChapterSeconds": 4
+      }
+    },
+    {
+      "componentId": "FocusCamMove",
+      "startFrame": 240,
+      "durationInFrames": 240,
+      "laneId": "测试2-人物聚焦运镜",
+      "sourceIntentId": "rename-test-2",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "mediaUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjgwMCI+PHJlY3Qgd2lkdGg9IjEyODAiIGhlaWdodD0iODAwIiBmaWxsPSIjMTQyMDM1Ii8+PHJlY3QgeD0iODAiIHk9IjgwIiB3aWR0aD0iMTEyMCIgaGVpZ2h0PSI2NDAiIHJ4PSIzMiIgZmlsbD0iIzIwMzc1NCIgc3Ryb2tlPSIjNjdkY2ZmIiBzdHJva2Utd2lkdGg9IjUiLz48dGV4dCB4PSIxNDAiIHk9IjIwMCIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjU0Ij5NRURJQSBURVNUPC90ZXh0Pjx0ZXh0IHg9IjE0MCIgeT0iMjcwIiBmaWxsPSIjNjdkY2ZmIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCI+RW1iZWRkZWQgaW1hZ2UgLSBubyBleHRlcm5hbCBmaWxlIHJlcXVpcmVkPC90ZXh0PjxyZWN0IHg9IjE0MCIgeT0iMzQwIiB3aWR0aD0iNDQwIiBoZWlnaHQ9IjI2MCIgcng9IjIwIiBmaWxsPSIjNDY3ZWFhIi8+PGNpcmNsZSBjeD0iODkwIiBjeT0iNDY1IiByPSIxMzAiIGZpbGw9IiM2N2RjZmYiLz48cGF0aCBkPSJNODUwIDQwMCBMOTUwIDQ2NSBMODUwIDUzMCBaIiBmaWxsPSIjMTQyMDM1Ii8+PC9zdmc+",
+        "mediaType": "image",
+        "mediaFit": "contain",
+        "showRing": true
+      }
+    },
+    {
+      "componentId": "PortraitSkillStepGrid",
+      "startFrame": 480,
+      "durationInFrames": 240,
+      "laneId": "测试3-多步骤卡片组",
+      "sourceIntentId": "rename-test-3",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "stepCount": 3,
+        "headerText": "三步导入检查",
+        "step1Title": "载入文件",
+        "step1Subtitle": "选择测试JSON",
+        "step2Title": "预览效果",
+        "step2Subtitle": "检查名称与内容",
+        "step3Title": "手动微调",
+        "step3Subtitle": "调整后再应用",
+        "cardEnterIntervalSeconds": 1.5
+      }
+    },
+    {
+      "componentId": "PortraitWorkflowPrerequisite",
+      "startFrame": 960,
+      "durationInFrames": 240,
+      "laneId": "测试5-前置准备流程",
+      "sourceIntentId": "rename-test-5",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "kicker": "05 · 流程测试",
+        "titleEmphasis": "先做准备，",
+        "titleSuffix": "再开始",
+        "subtitleLine1": "检查素材和章节安排",
+        "subtitleLine2": "准备完成后进入制作",
+        "workflowLabel": "PREPARATION",
+        "stepCount": 3,
+        "step1": "检查素材",
+        "step2": "确认章节",
+        "step3": "开始制作",
+        "footerEmphasis": "按顺序执行",
+        "footerText": "前置准备流程测试",
+        "animationSeconds": 5
+      }
+    },
+    {
+      "componentId": "PortraitSkillSourceFusion",
+      "startFrame": 1200,
+      "durationInFrames": 240,
+      "laneId": "测试6-多来源汇总卡",
+      "sourceIntentId": "rename-test-6",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "sequenceText": "06",
+        "title": "多来源汇总测试",
+        "subtitle": "三类输入 · 汇总展示",
+        "badge": "汇总",
+        "sourceCount": 3,
+        "source1": "字幕输入",
+        "source1Detail": "提供内容和时间",
+        "source2": "效果目录",
+        "source2Detail": "提供真实组件",
+        "source3": "用户选择",
+        "source3Detail": "确定最终结果",
+        "animationSeconds": 6
+      }
+    },
+    {
+      "componentId": "PortraitPillText",
+      "startFrame": 1440,
+      "durationInFrames": 240,
+      "laneId": "测试7-胶囊状态条",
+      "sourceIntentId": "rename-test-7",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "text": "07 · 胶囊状态条测试"
+      }
+    },
+    {
+      "componentId": "ComparisonProgressBars",
+      "startFrame": 1680,
+      "durationInFrames": 240,
+      "laneId": "测试8-双项进度对比",
+      "sourceIntentId": "rename-test-8",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "baselineLabel": "任务A · 共10项",
+        "baselineStatus": "已完成3项 · 30%",
+        "improvedLabel": "任务B · 共10项",
+        "improvedStatus": "已完成8项 · 80%",
+        "baselineProgress": 0.3,
+        "improvedProgress": 0.8
+      }
+    },
+    {
+      "componentId": "PortraitAgentBrowserMedia",
+      "startFrame": 1920,
+      "durationInFrames": 240,
+      "laneId": "测试9-浏览器媒体展示卡",
+      "sourceIntentId": "rename-test-9",
+      "props": {
+        "enterAnimation": "auto",
+        "exitAnimation": "auto",
+        "titlePrefix": "09 · 浏览器",
+        "titleHighlight": "媒体展示",
+        "browserLabel": "内嵌测试图片",
+        "mediaUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjgwMCI+PHJlY3Qgd2lkdGg9IjEyODAiIGhlaWdodD0iODAwIiBmaWxsPSIjMTQyMDM1Ii8+PHJlY3QgeD0iODAiIHk9IjgwIiB3aWR0aD0iMTEyMCIgaGVpZ2h0PSI2NDAiIHJ4PSIzMiIgZmlsbD0iIzIwMzc1NCIgc3Ryb2tlPSIjNjdkY2ZmIiBzdHJva2Utd2lkdGg9IjUiLz48dGV4dCB4PSIxNDAiIHk9IjIwMCIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjU0Ij5NRURJQSBURVNUPC90ZXh0Pjx0ZXh0IHg9IjE0MCIgeT0iMjcwIiBmaWxsPSIjNjdkY2ZmIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCI+RW1iZWRkZWQgaW1hZ2UgLSBubyBleHRlcm5hbCBmaWxlIHJlcXVpcmVkPC90ZXh0PjxyZWN0IHg9IjE0MCIgeT0iMzQwIiB3aWR0aD0iNDQwIiBoZWlnaHQ9IjI2MCIgcng9IjIwIiBmaWxsPSIjNDY3ZWFhIi8+PGNpcmNsZSBjeD0iODkwIiBjeT0iNDY1IiByPSIxMzAiIGZpbGw9IiM2N2RjZmYiLz48cGF0aCBkPSJNODUwIDQwMCBMOTUwIDQ2NSBMODUwIDUzMCBaIiBmaWxsPSIjMTQyMDM1Ii8+PC9zdmc+",
+        "mediaType": "image",
+        "mediaFit": "contain"
+      }
+    }
+  ],
+  "resourceTracks": [],
+  "qualityControl": {
+    "status": "pending",
+    "checks": [
+      {
+        "type": "asset-availability",
+        "status": "passed",
+        "affectedExpressionIds": [],
+        "message": "两处媒体使用JSON内嵌SVG测试图，不依赖外部素材。"
+      },
+      {
+        "type": "face-occlusion",
+        "status": "pending",
+        "affectedExpressionIds": [],
+        "message": "本文件为九组件逐个测试，无口播人物；不是语义编排成片。"
+      }
+    ]
+  }
+}

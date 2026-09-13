@@ -260,7 +260,7 @@ export const ChapterBar: React.FC<Props> = ({
 
 export const ChapterBarEffectDef: EffectDef = {
   id: "ChapterBar",
-  name: "ChapterBar",
+  name: "常驻章节导航条",
   description: "常驻章节导航 · 顶部全程在场的本期地图",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

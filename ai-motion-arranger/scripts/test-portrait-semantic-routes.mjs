@@ -22,9 +22,7 @@ const registry = await loadRuntimeRegistry();
 const definitions = new Map(registry.map((definition) => [definition.id, definition]));
 const expectedComponentIds = [
   "PortraitChapterRail",
-  "PortraitInfoCallout",
   "PortraitMetricDecision",
-  "PortraitDecisionTagStack",
   "PortraitStepStageTitle",
   "PortraitStepNumberList",
   "PortraitStaggeredToolList",
@@ -40,7 +38,6 @@ const expectedComponentIds = [
   "PortraitBrowserRepairLoop",
   "PortraitAgentBrowserMedia",
   "PortraitSkillStepGrid",
-  "PortraitGapHeadline",
   "PortraitAiOutputGapComparison",
   "PortraitRiskWarning",
   "LegacyEliminationPanel",
@@ -57,17 +54,17 @@ const allowedAnchors = new Set([
   "right-center",
 ]);
 
-if (PORTRAIT_SEMANTIC_ROUTES.length !== 23) {
-  throw new Error("竖屏语义路由必须覆盖 23 类明确语义。");
+if (PORTRAIT_SEMANTIC_ROUTES.length !== 22) {
+  throw new Error("竖屏语义路由必须覆盖 22 类明确语义。");
 }
-if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 23) {
+if (new Set(PORTRAIT_SEMANTIC_ROUTES.map((route) => route.id)).size !== 22) {
   throw new Error("竖屏语义路由 id 重复。");
 }
 if (
   JSON.stringify([...PORTRAIT_ROUTE_COMPONENT_IDS].sort()) !==
-  JSON.stringify([...expectedComponentIds].sort())
+    JSON.stringify([...expectedComponentIds].sort())
 ) {
-  throw new Error("竖屏语义路由没有完整覆盖 27 个参考组件。");
+  throw new Error("竖屏语义路由没有完整覆盖 26 个参考组件。");
 }
 
 for (const route of PORTRAIT_SEMANTIC_ROUTES) {
@@ -156,7 +153,6 @@ const representativeCues = new Map([
   ["browser-repair-loop", "让agent自己打开浏览器并循环检查。"],
   ["browser-self-check-media", "你现在看到的这一整页就是逐屏自查结果。"],
   ["skill-step-grid", "就是这4个skill，今天我一个一个讲清楚。"],
-  ["gap-headline", "其实现在真正拉开差距的，早就不是模型，是工作流。"],
   ["ai-output-gap-comparison", "有人做出来一眼就是 AI 糊的，有人能直接上线。"],
   ["metric-decision", "1K 的速度更快，成本也更低。"],
   ["process-steps", "首先导入字幕，然后生成编排，最后插入时间线。"],
@@ -179,15 +175,8 @@ for (const route of PORTRAIT_SEMANTIC_ROUTES) {
 const metricRoute = PORTRAIT_SEMANTIC_ROUTES.find(
   (route) => route.id === "metric-decision",
 );
-if (
-  metricRoute?.components[0]?.componentId !== "PortraitMetricDecision" ||
-  !metricRoute.components.some(
-    (component) =>
-      component.componentId === "PortraitDecisionTagStack" &&
-      component.role === "supporting",
-  )
-) {
-  throw new Error("数字决策路由必须支持主数据卡与辅助标签组组合。");
+if (metricRoute?.components[0]?.componentId !== "PortraitMetricDecision") {
+  throw new Error("数字决策路由必须保留主数据卡。");
 }
 
 const riskRoute = PORTRAIT_SEMANTIC_ROUTES.find(

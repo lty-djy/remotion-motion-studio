@@ -111,7 +111,7 @@ export const PortraitWorkflowPrerequisite: React.FC<Props> = ({
 
   return (
     <Interactive.Div
-      name="先装工作流横向流程卡"
+      name="前置准备流程"
       data-effect="PortraitWorkflowPrerequisite"
       style={{
         position: "relative",
@@ -454,7 +454,7 @@ export const PortraitWorkflowPrerequisite: React.FC<Props> = ({
 
 export const PortraitWorkflowPrerequisiteEffectDef: EffectDef = {
   id: "PortraitWorkflowPrerequisite",
-  name: "先装工作流",
+  name: "前置准备流程",
   description:
     "复刻参考视频 20.966–26.483 秒：先建立工作流前置结论，再按顺序点亮可增减、自动编号的流程步骤。",
   category: "portrait-narrative",

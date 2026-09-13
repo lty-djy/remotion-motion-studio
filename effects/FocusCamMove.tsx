@@ -301,7 +301,7 @@ export const FocusCamMove: React.FC<Props> = ({
 
 export const FocusCamMoveEffectDef: EffectDef = {
   id: "FocusCamMove",
-  name: "FocusCamMove",
+  name: "人物聚焦运镜",
   description: "人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道",
   category: "portrait-narrative",
   catalogGroup: "空间与聚焦",

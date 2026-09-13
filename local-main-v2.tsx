@@ -1863,9 +1863,7 @@ const createInstance = (
 // 这类组件有固定设计宽度，需要保留水平/垂直可拖动能力。
 const PORTRAIT_DEFAULT_POSITION_IDS = new Set([
   "PortraitChapterRail",
-  "PortraitInfoCallout",
   "PortraitMetricDecision",
-  "PortraitDecisionTagStack",
   "PortraitStepStageTitle",
   "PortraitStepNumberList",
   "PortraitRiskWarning",
@@ -13640,8 +13638,6 @@ const App = () => {
           key === "iterationCount") ||
         (inspectorDefinition?.id === "PortraitCodeDecisionChecklist" &&
           key === "questionCount") ||
-        (inspectorDefinition?.id === "PortraitDecisionTagStack" &&
-          key === "tagCount") ||
         (inspectorDefinition?.id === "TerminalPanel" && key === "stepCount"))
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
@@ -14052,7 +14048,7 @@ const App = () => {
     }
     if (
       schema.type === "number" &&
-      ["PortraitDecisionTagStack", "PortraitStepNumberList"].includes(selectedDefinition?.id ?? "") &&
+      selectedDefinition?.id === "PortraitStepNumberList" &&
       key === "iconSize"
     ) {
       const min = typeof schema.min === "number" ? schema.min : 1;
@@ -14103,16 +14099,12 @@ const App = () => {
           key === "enterDurationSeconds") ||
         (selectedDefinition?.id === "PortraitCodeDecisionChecklist" &&
           ["questionEnterIntervalSeconds", "firstHighlightSeconds", "questionIntervalSeconds", "animationSeconds"].includes(key)) ||
-        (selectedDefinition?.id === "PortraitDecisionTagStack" &&
-          ["tagEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitStepNumberList" &&
           ["stepEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitBrowserRepairLoop" &&
           ["nodeEnterIntervalSeconds", "firstNodeHighlightSeconds", "nextNodeHighlightIntervalSeconds", "loopIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitSkillStepGrid" &&
           ["headerEnterSeconds", "cardEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
-        (selectedDefinition?.id === "PortraitGapHeadline" &&
-          ["badgeEnterSeconds", "titleEnterSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitAiOutputGapComparison" &&
           ["labelEnterSeconds", "firstRowEnterSeconds", "nextRowEnterIntervalSeconds", "animationSeconds"].includes(key)) ||
         (selectedDefinition?.id === "PortraitAgentBrowserMedia" &&
@@ -14156,20 +14148,6 @@ const App = () => {
               const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
               const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
               updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, riskIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
-              setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
-              return;
-            }
-            if (
-              selectedDefinition?.id === "PortraitDecisionTagStack" &&
-              key === "tagEnterIntervalSeconds" &&
-              selectedInstance
-            ) {
-              const count = clamp(Math.round(Number(selectedInstance.props.tagCount ?? 3)), 1, 8);
-              const animationSeconds = Math.max(0.4, Number(selectedInstance.props.animationSeconds ?? 0.9));
-              const requiredSeconds = Math.max(0.8, Math.max(0, count - 1) * nextValue + animationSeconds * 0.68 + 0.2);
-              const nextAnimationSeconds = Math.max(animationSeconds, requiredSeconds);
-              const nextDuration = Math.max(selectedInstance.durationInFrames, Math.ceil(nextAnimationSeconds * fps));
-              updateInstance(selectedInstance.id, (instance) => ({ ...instance, durationInFrames: nextDuration, props: { ...instance.props, tagEnterIntervalSeconds: nextValue, animationSeconds: Number(nextAnimationSeconds.toFixed(2)) } }));
               setManualTimelineEndFrame((current) => Math.max(current, selectedInstance.startFrame + nextDuration));
               return;
             }
@@ -18013,19 +17991,6 @@ const App = () => {
                             8,
                           );
                           if (match && Number(match[1]) > activeQuestionCount) {
-                            return null;
-                          }
-                        }
-                        if (
-                          inspectorDefinition.id === "PortraitDecisionTagStack"
-                        ) {
-                          const match = key.match(/^(?:tag|symbol)(\d+)$/);
-                          const activeTagCount = clamp(
-                            Math.round(Number(inspectorInstance.props.tagCount ?? 3)),
-                            1,
-                            8,
-                          );
-                          if (match && Number(match[1]) > activeTagCount) {
                             return null;
                           }
                         }

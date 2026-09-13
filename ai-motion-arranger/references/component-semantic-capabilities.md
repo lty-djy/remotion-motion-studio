@@ -3,7 +3,7 @@
 > 由 `npm.cmd run sync:registry` 从真实效果注册表生成，请勿手改。
 > 普通分组继续用于人工浏览；主要和次要语义用于 AI 候选排序，不代表审核状态，也不限制组件只能用于单一语义。
 
-当前覆盖 **54** 个注册组件。
+当前覆盖 **51** 个注册组件。
 
 ## 核心语义
 
@@ -33,168 +33,15 @@
   - 方向：any；密度：heavy；建议时长：3–12 秒
   - 检索词：代码、终端、命令、步骤、开发、工具
 
-## 竖屏口播信息层
+## 常用组件
 
-- **ChapterBar**（`ChapterBar`）
+- **常驻章节导航条**（`ChapterBar`）
   - 主要：章节转场
   - 次要：流程说明、重点强调
   - 内容：short-text、process
   - 方向：any；密度：light；建议时长：5–600 秒
   - 检索词：章节、章节导航、目录、本期地图、进度、全程在场
-- **章节条**（`PortraitChapterRail`）
-  - 主要：章节转场
-  - 次要：重点强调、流程说明
-  - 内容：short-text、process
-  - 方向：portrait；密度：light；建议时长：1.2–5 秒
-  - 检索词：章节、下一步、接下来、阶段、开场
-- **编号章节标题**（`PortraitIndexedChapterTitle`）
-  - 主要：章节转场
-  - 次要：重点强调、流程说明
-  - 内容：short-text、process
-  - 方向：portrait；密度：light；建议时长：2–8 秒
-  - 检索词：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
-- **图标信息卡**（`PortraitInfoCallout`）
-  - 主要：概念解释
-  - 次要：重点强调、案例与素材、流程说明、章节转场、风险提醒、行动引导
-  - 内容：short-text、long-text
-  - 方向：portrait；密度：medium；建议时长：1.5–7 秒
-  - 检索词：说明、方法、工具、例如、提示、补充
-- **数据决策卡**（`PortraitMetricDecision`）
-  - 主要：数字展示
-  - 次要：对比差异、重点强调
-  - 内容：metric、short-text
-  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：数字、比例、金额、增长、降低、结果
-- **优缺点标签组**（`PortraitDecisionTagStack`）
-  - 主要：对比差异
-  - 次要：列举要点、重点强调、数字展示
-  - 内容：comparison、list、short-text
-  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：标签、优缺点、选择、判断、并列
-- **步骤阶段标题**（`PortraitStepStageTitle`）
-  - 主要：概念解释
-  - 次要：重点强调、流程说明、章节转场
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：1.5–6 秒
-  - 检索词：阶段标题、阶段引导、小结、结论标题、步骤标题
-- **编号步骤清单**（`PortraitStepNumberList`）
-  - 主要：流程说明
-  - 次要：列举要点、概念解释
-  - 内容：process、list、short-text
-  - 方向：portrait；密度：heavy；建议时长：2.5–9 秒
-  - 检索词：步骤、流程、首先、然后、最后
-- **多工具错峰列表**（`PortraitStaggeredToolList`）
-  - 主要：列举要点
-  - 次要：概念解释、重点强调、流程说明
-  - 内容：list、short-text
-  - 方向：portrait；密度：heavy；建议时长：3–9 秒
-  - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
-- **工具徽标列表**（`PortraitToolBadgeList`）
-  - 主要：重点强调
-  - 次要：列举要点
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：3–9 秒
-  - 检索词：徽标、标签、热度、C位、星级、工具排名
-- **工具列表标题**（`PortraitToolListTitle`）
-  - 主要：重点强调
-  - 次要：概念解释、章节转场
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：1.5–5 秒
-  - 检索词：很多人问我、怎么用、新手、引导词、列表标题
-- **错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
-  - 主要：风险提醒
-  - 次要：概念解释、重点强调
-  - 内容：short-text、list
-  - 方向：portrait；密度：heavy；建议时长：3–9 秒
-  - 检索词：直接提问、官网、页面普通、问题不在模型、缺少准备
-- **先装工作流**（`PortraitWorkflowPrerequisite`）
-  - 主要：流程说明
-  - 次要：概念解释、列举要点、重点强调
-  - 内容：process、list、short-text
-  - 方向：portrait；密度：heavy；建议时长：4–8 秒
-  - 检索词：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
-- **Skill 来源合成**（`PortraitSkillSourceFusion`）
-  - 主要：案例与素材
-  - 次要：概念解释、列举要点、重点强调
-  - 内容：list、short-text
-  - 方向：portrait；密度：medium；建议时长：4–12 秒
-  - 检索词：taste、impeccable、自己的经验、三样拼成一个、经验来源
-- **网页设计规则清单**（`PortraitDesignRuleChecklist`）
-  - 主要：概念解释
-  - 次要：列举要点、流程说明、重点强调
-  - 内容：list、short-text
-  - 方向：portrait；密度：medium；建议时长：4–12 秒
-  - 检索词：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
-- **编号标题条**（`PortraitSkillIdentityHeaderBar`）
-  - 主要：概念解释
-  - 次要：重点强调、列举要点、流程说明、章节转场
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：2–24 秒
-  - 检索词：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
-- **热度徽标**（`PortraitHeatBadge`）
-  - 主要：重点强调
-  - 次要：数字展示、概念解释
-  - 内容：short-text、metric
-  - 方向：portrait；密度：light；建议时长：2–24 秒
-  - 检索词：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
-- **药丸文字**（`PortraitPillText`）
-  - 主要：概念解释
-  - 次要：重点强调、流程说明
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：2–24 秒
-  - 检索词：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
-- **代码决策检查清单**（`PortraitCodeDecisionChecklist`）
-  - 主要：流程说明
-  - 次要：列举要点、概念解释、风险提醒
-  - 内容：list、process、short-text
-  - 方向：portrait；密度：medium；建议时长：4–12 秒
-  - 检索词：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
-- **浏览器自动修复闭环**（`PortraitBrowserRepairLoop`）
-  - 主要：流程说明
-  - 次要：列举要点、概念解释、案例与素材
-  - 内容：process、list、short-text
-  - 方向：portrait；密度：heavy；建议时长：6–16 秒
-  - 检索词：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
-- **Skill 四步卡片**（`PortraitSkillStepGrid`）
-  - 主要：流程说明
-  - 次要：列举要点、概念解释、章节转场
-  - 内容：list、process、short-text
-  - 方向：portrait；密度：medium；建议时长：2–8 秒
-  - 检索词：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
-- **差距不在模型标题**（`PortraitGapHeadline`）
-  - 主要：重点强调
-  - 次要：对比差异、概念解释、章节转场
-  - 内容：short-text、comparison
-  - 方向：portrait；密度：light；建议时长：2–8 秒
-  - 检索词：真正拉开差距、不是模型、差距不在模型、最后说一句、工作流
-- **AI 输出差距对比**（`PortraitAiOutputGapComparison`）
-  - 主要：对比差异
-  - 次要：重点强调、概念解释、案例与素材
-  - 内容：comparison、short-text
-  - 方向：portrait；密度：light；建议时长：2–8 秒
-  - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
-- **下集预告标题**（`PortraitNextEpisodeTitle`）
-  - 主要：行动引导
-  - 次要：章节转场、重点强调
-  - 内容：short-text
-  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：下期、下一期、下次、预告、下集
-- **图标文字**（`PortraitFollowCta`）
-  - 主要：行动引导
-  - 次要：重点强调
-  - 内容：short-text
-  - 方向：portrait；密度：light；建议时长：1.5–6 秒
-  - 检索词：关注、点赞、收藏、评论、点个关注
-- **快速上手证明条**（`QuickSetupProof`）
-  - 主要：案例与素材
-  - 次要：重点强调、对比差异、列举要点
-  - 内容：list、short-text
-  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
-  - 检索词：证明、快速、门槛、无需、几分钟
-
-## 常用
-
-- **FocusCamMove**（`FocusCamMove`）
+- **人物聚焦运镜**（`FocusCamMove`）
   - 主要：流程说明
   - 次要：重点强调、章节转场
   - 内容：process
@@ -236,7 +83,7 @@
   - 内容：process、media、short-text
   - 方向：portrait；密度：heavy；建议时长：10–24 秒
   - 检索词：具体怎么用、想要什么讲清楚、第一句、摄影工作室、想换方向、数据后台深色、产品落地页、只管说要什么
-- **Agent 浏览器逐屏自查**（`PortraitAgentBrowserMedia`）
+- **浏览器媒体展示卡**（`PortraitAgentBrowserMedia`）
   - 主要：案例与素材
   - 次要：流程说明、概念解释、重点强调
   - 内容：media、short-text
@@ -272,6 +119,141 @@
   - 内容：media
   - 方向：landscape；密度：medium；建议时长：3–10 秒
   - 检索词：往期、回顾、上一期、海报、封面、两期、合集、b-roll
+
+## 竖屏口播信息层
+
+- **章节条**（`PortraitChapterRail`）
+  - 主要：章节转场
+  - 次要：重点强调、流程说明
+  - 内容：short-text、process
+  - 方向：portrait；密度：light；建议时长：1.2–5 秒
+  - 检索词：章节、下一步、接下来、阶段、开场
+- **编号章节标题**（`PortraitIndexedChapterTitle`）
+  - 主要：章节转场
+  - 次要：重点强调、流程说明
+  - 内容：short-text、process
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
+- **数据决策卡**（`PortraitMetricDecision`）
+  - 主要：数字展示
+  - 次要：对比差异、重点强调
+  - 内容：metric、short-text
+  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
+  - 检索词：数字、比例、金额、增长、降低、结果
+- **步骤阶段标题**（`PortraitStepStageTitle`）
+  - 主要：概念解释
+  - 次要：重点强调、流程说明、章节转场
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–6 秒
+  - 检索词：阶段标题、阶段引导、小结、结论标题、步骤标题
+- **编号步骤清单**（`PortraitStepNumberList`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释
+  - 内容：process、list、short-text
+  - 方向：portrait；密度：heavy；建议时长：2.5–9 秒
+  - 检索词：步骤、流程、首先、然后、最后
+- **多工具错峰列表**（`PortraitStaggeredToolList`）
+  - 主要：列举要点
+  - 次要：概念解释、重点强调、流程说明
+  - 内容：list、short-text
+  - 方向：portrait；密度：heavy；建议时长：3–9 秒
+  - 检索词：多个工具、多个技能、几个方法、清单、逐项讲解、skill
+- **工具徽标列表**（`PortraitToolBadgeList`）
+  - 主要：重点强调
+  - 次要：列举要点
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：3–9 秒
+  - 检索词：徽标、标签、热度、C位、星级、工具排名
+- **工具列表标题**（`PortraitToolListTitle`）
+  - 主要：重点强调
+  - 次要：概念解释、章节转场
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–5 秒
+  - 检索词：很多人问我、怎么用、新手、引导词、列表标题
+- **错误提问诊断**（`PortraitPromptMistakeDiagnosis`）
+  - 主要：风险提醒
+  - 次要：概念解释、重点强调
+  - 内容：short-text、list
+  - 方向：portrait；密度：heavy；建议时长：3–9 秒
+  - 检索词：直接提问、官网、页面普通、问题不在模型、缺少准备
+- **前置准备流程**（`PortraitWorkflowPrerequisite`）
+  - 主要：流程说明
+  - 次要：概念解释、列举要点、重点强调
+  - 内容：process、list、short-text
+  - 方向：portrait；密度：heavy；建议时长：4–8 秒
+  - 检索词：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
+- **多来源汇总卡**（`PortraitSkillSourceFusion`）
+  - 主要：案例与素材
+  - 次要：概念解释、列举要点、重点强调
+  - 内容：list、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：taste、impeccable、自己的经验、三样拼成一个、经验来源
+- **网页设计规则清单**（`PortraitDesignRuleChecklist`）
+  - 主要：概念解释
+  - 次要：列举要点、流程说明、重点强调
+  - 内容：list、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
+- **编号标题条**（`PortraitSkillIdentityHeaderBar`）
+  - 主要：概念解释
+  - 次要：重点强调、列举要点、流程说明、章节转场
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
+- **热度徽标**（`PortraitHeatBadge`）
+  - 主要：重点强调
+  - 次要：数字展示、概念解释
+  - 内容：short-text、metric
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
+- **胶囊状态条**（`PortraitPillText`）
+  - 主要：概念解释
+  - 次要：重点强调、流程说明
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：2–24 秒
+  - 检索词：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
+- **代码决策检查清单**（`PortraitCodeDecisionChecklist`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、风险提醒
+  - 内容：list、process、short-text
+  - 方向：portrait；密度：medium；建议时长：4–12 秒
+  - 检索词：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
+- **浏览器自动修复闭环**（`PortraitBrowserRepairLoop`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、案例与素材
+  - 内容：process、list、short-text
+  - 方向：portrait；密度：heavy；建议时长：6–16 秒
+  - 检索词：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
+- **多步骤卡片组**（`PortraitSkillStepGrid`）
+  - 主要：流程说明
+  - 次要：列举要点、概念解释、章节转场
+  - 内容：list、process、short-text
+  - 方向：portrait；密度：medium；建议时长：2–8 秒
+  - 检索词：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
+- **AI 输出差距对比**（`PortraitAiOutputGapComparison`）
+  - 主要：对比差异
+  - 次要：重点强调、概念解释、案例与素材
+  - 内容：comparison、short-text
+  - 方向：portrait；密度：light；建议时长：2–8 秒
+  - 检索词：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
+- **下集预告标题**（`PortraitNextEpisodeTitle`）
+  - 主要：行动引导
+  - 次要：章节转场、重点强调
+  - 内容：short-text
+  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
+  - 检索词：下期、下一期、下次、预告、下集
+- **图标文字**（`PortraitFollowCta`）
+  - 主要：行动引导
+  - 次要：重点强调
+  - 内容：short-text
+  - 方向：portrait；密度：light；建议时长：1.5–6 秒
+  - 检索词：关注、点赞、收藏、评论、点个关注
+- **快速上手证明条**（`QuickSetupProof`）
+  - 主要：案例与素材
+  - 次要：重点强调、对比差异、列举要点
+  - 内容：list、short-text
+  - 方向：portrait；密度：medium；建议时长：1.5–6 秒
+  - 检索词：证明、快速、门槛、无需、几分钟
 
 ## 风险提醒
 
@@ -323,7 +305,7 @@
 
 ## 图表与比较
 
-- **对比进度条·持续扶持**（`ComparisonProgressBars`）
+- **双项进度对比**（`ComparisonProgressBars`）
   - 主要：对比差异
   - 次要：数字展示、流程说明、重点强调
   - 内容：comparison、metric、process、short-text

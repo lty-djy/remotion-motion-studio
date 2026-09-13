@@ -90,36 +90,24 @@
       "sourceIntentId": "intent-risk-roots"
     },
     {
-      "componentId": "PortraitDecisionTagStack",
+      "componentId": "PortraitRiskWarning",
       "startFrame": 594,
       "durationInFrames": 234,
       "laneId": "semantic",
       "props": {
         "enabled": true,
-        "tagCount": 3,
-        "tag1": "收藏≠学会",
-        "tag2": "打卡≠产出",
-        "tag3": "清单≠执行",
-        "tagEnterIntervalSeconds": 2.4,
+        "riskCount": 3,
+        "eyebrow": "常见误区",
+        "title": "做了不等于做到",
+        "emphasis": "行动结果要复盘",
+        "risk1": "收藏≠学会",
+        "risk2": "打卡≠产出",
+        "risk3": "清单≠执行",
+        "riskIntervalSeconds": 2.4,
         "animationSeconds": 0.9
       },
       "sourceExpressionId": "intent-fake-signals",
       "sourceIntentId": "intent-fake-signals"
-    },
-    {
-      "componentId": "PortraitGapHeadline",
-      "startFrame": 828,
-      "durationInFrames": 162,
-      "laneId": "semantic",
-      "props": {
-        "enabled": true,
-        "showBadge": true,
-        "badgeText": "记住这句话",
-        "titlePrefix": "缺的是",
-        "titleEmphasis": "系统"
-      },
-      "sourceExpressionId": "intent-gap-line",
-      "sourceIntentId": "intent-gap-line"
     },
     {
       "componentId": "PortraitChapterRail",
@@ -157,7 +145,7 @@
       "sourceIntentId": "intent-build-steps"
     },
     {
-      "componentId": "PortraitInfoCallout",
+      "componentId": "PortraitStepStageTitle",
       "startFrame": 1404,
       "durationInFrames": 156,
       "laneId": "semantic",
@@ -165,9 +153,7 @@
         "enabled": true,
         "eyebrow": "避坑提示",
         "title": "先原样跑一周",
-        "detail": "再谈优化",
-        "note": "改流程之前先攒记录",
-        "iconText": "!"
+        "subtitle": "再谈优化，改流程之前先攒记录"
       },
       "sourceExpressionId": "intent-callout-week",
       "sourceIntentId": "intent-callout-week"
@@ -337,9 +323,9 @@
             ],
             "componentCandidates": [
               {
-                "componentId": "PortraitDecisionTagStack",
+                "componentId": "PortraitRiskWarning",
                 "rank": 1,
-                "reason": "三组否定式标签逐条入场",
+                "reason": "三组误区逐条提醒",
                 "props": {}
               }
             ]
@@ -363,14 +349,7 @@
                 "label": "差距"
               }
             ],
-            "componentCandidates": [
-              {
-                "componentId": "PortraitGapHeadline",
-                "rank": 1,
-                "reason": "前缀+强调词的巨字金句",
-                "props": {}
-              }
-            ]
+            "componentCandidates": []
           }
         ]
       },
@@ -424,9 +403,9 @@
             ],
             "componentCandidates": [
               {
-                "componentId": "PortraitInfoCallout",
+                "componentId": "PortraitStepStageTitle",
                 "rank": 1,
-                "reason": "轻量提示卡",
+                "reason": "轻量阶段标题",
                 "props": {}
               }
             ]

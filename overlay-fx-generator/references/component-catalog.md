@@ -1,6 +1,6 @@
 # 组件目录（自动生成）
 
-> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（54 个组件）生成。
+> 由 `npm.cmd run sync:arranger-catalog` 从真实运行时 registry（51 个组件）生成。
 > 不要手改本文件；组件有增删改后重新运行同步命令。
 
 编排大脑（`../SKILL.md`）**只能使用本目录登记的 componentId**，
@@ -13,37 +13,34 @@
 | componentId | 名称 | 分组 | 主要语义 | 方向 | 角色 |
 | --- | --- | --- | --- | --- | --- |
 | `GlobalExpedition` | 环球征途地图 | 其他 | 案例与素材 | any |  |
-| `ChapterBar` | ChapterBar | 竖屏口播信息层 | 章节转场 | any | 常驻 |
-| `FocusCamMove` | FocusCamMove | 常用 | 流程说明 | any |  |
+| `ChapterBar` | 常驻章节导航条 | 常用组件 | 章节转场 | any | 常驻 |
+| `FocusCamMove` | 人物聚焦运镜 | 常用组件 | 流程说明 | any |  |
 | `SrtSemanticCaptions` | SRT字幕语义动画 | 系统字幕 | caption-track | portrait | 常驻 |
 | `SrtCueText` | 主字幕·关键词条 | 系统字幕 | caption-track | any | 常驻 |
 | `TerminalPanel` | 终端教学面板 | 其他 | 流程说明 | any |  |
 | `Terminal3D` | 3D 终端打字机 | 媒体展示组件 | 流程说明 | any |  |
 | `PortraitChapterRail` | 章节条 | 竖屏口播信息层 | 章节转场 | portrait |  |
 | `PortraitIndexedChapterTitle` | 编号章节标题 | 竖屏口播信息层 | 章节转场 | portrait |  |
-| `PortraitInfoCallout` | 图标信息卡 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitMetricDecision` | 数据决策卡 | 竖屏口播信息层 | 数字展示 | portrait |  |
-| `PortraitDecisionTagStack` | 优缺点标签组 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitStepStageTitle` | 步骤阶段标题 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitStepNumberList` | 编号步骤清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitStaggeredToolList` | 多工具错峰列表 | 竖屏口播信息层 | 列举要点 | portrait |  |
 | `PortraitToolBadgeList` | 工具徽标列表 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitToolListTitle` | 工具列表标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
 | `PortraitPromptMistakeDiagnosis` | 错误提问诊断 | 竖屏口播信息层 | 风险提醒 | portrait |  |
-| `PortraitWorkflowPrerequisite` | 先装工作流 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitSkillSourceFusion` | Skill 来源合成 | 竖屏口播信息层 | 案例与素材 | portrait |  |
+| `PortraitWorkflowPrerequisite` | 前置准备流程 | 竖屏口播信息层 | 流程说明 | portrait |  |
+| `PortraitSkillSourceFusion` | 多来源汇总卡 | 竖屏口播信息层 | 案例与素材 | portrait |  |
 | `PortraitDesignRuleChecklist` | 网页设计规则清单 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitSkillResultComparison` | Skill 效果前后对比 | 媒体展示组件 | 对比差异 | portrait |  |
 | `PortraitPromptIterationShowcase` | 一句话连续改版 | 媒体展示组件 | 流程说明 | portrait |  |
 | `PortraitSkillIdentityHeaderBar` | 编号标题条 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitHeatBadge` | 热度徽标 | 竖屏口播信息层 | 重点强调 | portrait |  |
-| `PortraitPillText` | 药丸文字 | 竖屏口播信息层 | 概念解释 | portrait |  |
+| `PortraitPillText` | 胶囊状态条 | 竖屏口播信息层 | 概念解释 | portrait |  |
 | `PortraitCodeDecisionChecklist` | 代码决策检查清单 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitBrowserRepairLoop` | 浏览器自动修复闭环 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitAgentBrowserMedia` | Agent 浏览器逐屏自查 | 媒体展示组件 | 案例与素材 | portrait |  |
+| `PortraitAgentBrowserMedia` | 浏览器媒体展示卡 | 媒体展示组件 | 案例与素材 | portrait |  |
 | `PortraitMediaPosterReveal` | 右滑媒体海报 | 媒体展示组件 | 案例与素材 | portrait |  |
-| `PortraitSkillStepGrid` | Skill 四步卡片 | 竖屏口播信息层 | 流程说明 | portrait |  |
-| `PortraitGapHeadline` | 差距不在模型标题 | 竖屏口播信息层 | 重点强调 | portrait |  |
+| `PortraitSkillStepGrid` | 多步骤卡片组 | 竖屏口播信息层 | 流程说明 | portrait |  |
 | `PortraitAiOutputGapComparison` | AI 输出差距对比 | 竖屏口播信息层 | 对比差异 | portrait |  |
 | `PortraitRiskWarning` | 风险提醒卡 | 风险提醒 | 风险提醒 | portrait |  |
 | `PortraitNextEpisodeTitle` | 下集预告标题 | 竖屏口播信息层 | 行动引导 | portrait |  |
@@ -57,7 +54,7 @@
 | `GigHourlyTitle` | 金色时薪标题 | 数字 | 数字展示 | landscape |  |
 | `BrollEpisodePosterDuo` | 往期海报回顾 | 媒体展示组件 | 案例与素材 | landscape |  |
 | `BrollPlayMilestoneBadge` | 播放量里程碑卡 | 数字 | 数字展示 | any |  |
-| `ComparisonProgressBars` | 对比进度条·持续扶持 | 图表与比较 | 对比差异 | portrait |  |
+| `ComparisonProgressBars` | 双项进度对比 | 图表与比较 | 对比差异 | portrait |  |
 | `MilestoneFollowerProgress` | 里程碑增长·粉丝进度 | 数字 | 数字展示 | portrait |  |
 | `CaseStudySidebar` | 案例商业数据侧栏 | 品牌与标识 | 案例与素材 | portrait |  |
 | `BrandLogo` | 品牌 Logo | 品牌与标识 | 案例与素材 | portrait |  |
@@ -139,9 +136,9 @@
 - `accentColor` — 强调色（color）
 - `animationSeconds` — 动画时长(秒)（0.2–8）
 
-## 竖屏口播信息层
+## 常用组件
 
-### `ChapterBar` · ChapterBar
+### `ChapterBar` · 常驻章节导航条
 
 - 用途：常驻章节导航 · 顶部全程在场的本期地图
 - 主要语义：章节转场；次要：流程说明、重点强调
@@ -149,7 +146,7 @@
 - 画布方向：any；密度：light；建议驻留：5–600 秒
 - 默认落位：x=0，y=0，scale=1（占位 1920×48，placement=top）
 - 默认时长：1020 帧（约 34 秒）
-- 分组：竖屏口播信息层；**常驻层**（不计密度/多样性）
+- 分组：常用组件；**常驻层**（不计密度/多样性）
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -164,799 +161,7 @@
 - `progAccent` — 进度色（color）
 - `textColor` — 文字颜色(默认跟随底色)（color）
 
-### `PortraitChapterRail` · 章节条
-
-- 用途：左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。
-- 主要语义：章节转场；次要：重点强调、流程说明
-- 何时使用（检索词）：章节、下一步、接下来、阶段、开场
-- 画布方向：portrait；密度：light；建议驻留：1.2–5 秒
-- 默认落位：x=68，y=86，scale=1（占位 520×150，placement=top）
-- 默认时长：180 帧（约 6 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示章节条
-- `cardWidth` — 卡片宽度(px)（120–1920）
-- `index` — 章节编号
-- `title` — 章节标题
-- `subtitle` — 章节说明
-- `accentColor` — 强调色（color）
-- `textColor` — 文字颜色（color）
-- `indexFontSize` — 编号字号(px)（8–96）
-- `titleFontSize` — 标题字号(px)（10–120）
-- `subtitleFontSize` — 说明字号(px)（10–96）
-- `animationSeconds` — 入场时长(秒)（0.3–2）
-
-### `PortraitIndexedChapterTitle` · 编号章节标题
-
-- 用途：参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。
-- 主要语义：章节转场；次要：重点强调、流程说明
-- 何时使用（检索词）：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
-- 画布方向：portrait；密度：light；建议驻留：2–8 秒
-- 默认落位：x=76，y=300，scale=1（占位 760×300，placement=top）
-- 默认时长：180 帧（约 6 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示编号章节标题
-- `chapterNumber` — 章节编号
-- `eyebrow` — 英文眉题
-- `title` — 主标题
-- `subtitle` — 副标题
-- `accentColor` — 编号与眉题颜色（color）
-- `titleColor` — 主标题颜色（color）
-- `subtitleColor` — 副标题颜色（color）
-- `numberFontSize` — 编号字号(px)（48–240）
-- `eyebrowFontSize` — 眉题字号(px)（10–64）
-- `titleFontSize` — 主标题字号(px)（24–120）
-- `subtitleFontSize` — 副标题字号(px)（14–72）
-- `titleOffsetX` — 标题区水平位置(px)（-160–300）
-- `revealDelaySeconds` — 入场等待(秒)（0–4）
-- `animationSeconds` — 分段入场时长(秒)（0.6–6）
-
-### `PortraitInfoCallout` · 图标信息卡
-
-- 用途：参考竖屏口播视频右上信息层：引导词和标题先滑入，图标玻璃卡随后弹出。
-- 主要语义：概念解释；次要：重点强调、案例与素材、流程说明、章节转场、风险提醒、行动引导
-- 何时使用（检索词）：说明、方法、工具、例如、提示、补充
-- 画布方向：portrait；密度：medium；建议驻留：1.5–7 秒
-- 默认落位：x=585，y=334，scale=1（占位 430×230，placement=right）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示信息卡
-- `eyebrow` — 引导词
-- `title` — 主标题
-- `detail` — 核心内容
-- `note` — 补充说明
-- `iconText` — 图标文字
-- `accentColor` — 强调色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitMetricDecision` · 数据决策卡
-
-- 用途：参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。
-- 主要语义：数字展示；次要：对比差异、重点强调
-- 何时使用（检索词）：数字、比例、金额、增长、降低、结果
-- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=75，y=245，scale=1（占位 410×390，placement=left）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示决策卡
-- `lead` — 结论引导词
-- `conclusion` — 决策结论
-- `metricLabel` — 指标名称
-- `value` — 核心数字
-- `unit` — 数字单位
-- `verdict` — 数字结论
-- `accentColor` — 强调色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitDecisionTagStack` · 优缺点标签组
-
-- 用途：可按需增减的优缺点标签组，玻璃卡严格同宽对齐并按设定间隔依次滑入。
-- 主要语义：对比差异；次要：列举要点、重点强调、数字展示
-- 何时使用（检索词）：标签、优缺点、选择、判断、并列
-- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=675，y=371，scale=1（占位 330×628，placement=right）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示标签组
-- `tagCount` — 标签数量（1–8）
-- `tag1` — 标签一
-- `tag2` — 标签二
-- `tag3` — 标签三
-- `tag4` — 标签四
-- `tag5` — 标签五
-- `tag6` — 标签六
-- `tag7` — 标签七
-- `tag8` — 标签八
-- `symbol1` — 图标一
-- `symbol2` — 图标二
-- `symbol3` — 图标三
-- `symbol4` — 图标四
-- `symbol5` — 图标五
-- `symbol6` — 图标六
-- `symbol7` — 图标七
-- `symbol8` — 图标八
-- `accentColor` — 强调色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `iconSize` — 图标大小(px)（18–64）
-- `tagFontSize` — 标签字号(px)（10–72）
-- `tagEnterIntervalSeconds` — 下一标签入场间隔(秒)（0–8）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitStepStageTitle` · 步骤阶段标题
-
-- 用途：阶段引导词 + 阶段标题 + 阶段说明的组合标题块，用于步骤清单或流程段落开头的结论提示；编号步骤清单已拆分为独立的 PortraitStepNumberList 组件。
-- 主要语义：概念解释；次要：重点强调、流程说明、章节转场
-- 何时使用（检索词）：阶段标题、阶段引导、小结、结论标题、步骤标题
-- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
-- 默认落位：x=545，y=252，scale=1（占位 470×118，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示步骤阶段标题
-- `eyebrow` — 阶段引导词
-- `title` — 阶段标题
-- `subtitle` — 阶段说明
-- `accentColor` — 引导词颜色（color）
-- `textColor` — 文字颜色（color）
-- `eyebrowFontSize` — 引导词字号(px)（10–64）
-- `titleFontSize` — 标题字号(px)（16–96）
-- `subtitleFontSize` — 说明字号(px)（10–64）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitStepNumberList` · 编号步骤清单
-
-- 用途：编号圆圈 + 竖向连接线的步骤清单，步骤卡依次滑入；阶段标题已拆分为独立的 PortraitStepStageTitle 组件。
-- 主要语义：流程说明；次要：列举要点、概念解释
-- 何时使用（检索词）：步骤、流程、首先、然后、最后
-- 画布方向：portrait；密度：heavy；建议驻留：2.5–9 秒
-- 默认落位：x=500，y=400，scale=1（占位 520×260，placement=right）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示编号步骤清单
-- `stepCount` — 步骤数量（1–8）
-- `step1` — 步骤一
-- `step2` — 步骤二
-- `step3` — 步骤三
-- `step4` — 步骤四
-- `step5` — 步骤五
-- `step6` — 步骤六
-- `step7` — 步骤七
-- `step8` — 步骤八
-- `accentColor` — 主强调色（color）
-- `successColor` — 完成强调色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `cardWidth` — 卡片宽度(px)（300–520）
-- `cardsOffsetX` — 卡片水平位置(px)（-240–240）
-- `textOffsetX` — 步骤文字水平位置(px)（-120–120）
-- `stepFontSize` — 步骤字号(px)（10–72）
-- `stepEnterIntervalSeconds` — 下一步骤入场间隔(秒)（0–8）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitStaggeredToolList` · 多工具错峰列表
-
-- 用途：工具以彩色竖线与说明依次错峰滑入，步骤数量 1–8 可调；右侧徽标已拆分为独立的 PortraitToolBadgeList 组件，标题为独立的 PortraitToolListTitle 组件。
-- 主要语义：列举要点；次要：概念解释、重点强调、流程说明
-- 何时使用（检索词）：多个工具、多个技能、几个方法、清单、逐项讲解、skill
-- 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
-- 默认落位：x=90，y=470，scale=1（占位 900×780，placement=top）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示工具列表
-- `stepCount` — 步骤数量（1–8）
-- `item1` — 工具一
-- `item2` — 工具二
-- `item3` — 工具三
-- `item4` — 工具四
-- `item5` — 工具五
-- `item6` — 工具六
-- `item7` — 工具七
-- `item8` — 工具八
-- `detail1` — 工具一说明
-- `detail2` — 工具二说明
-- `detail3` — 工具三说明
-- `detail4` — 工具四说明
-- `detail5` — 工具五说明
-- `detail6` — 工具六说明
-- `detail7` — 工具七说明
-- `detail8` — 工具八说明
-- `itemFontSize` — 工具字号(px)（14–64）
-- `detailFontSize` — 工具说明字号(px)（10–40）
-- `color1` — 工具一颜色（color）
-- `color2` — 工具二颜色（color）
-- `color3` — 工具三颜色（color）
-- `color4` — 工具四颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 四项入场总时长(秒)（1.8–5）
-
-### `PortraitToolBadgeList` · 工具徽标列表
-
-- 用途：与多工具错峰列表逐行对齐的胶囊徽标（如 C 位、热度），数量随步骤数量 1–8 可调，按相同节奏错峰滑入；可独立拖动、编辑与删除。
-- 主要语义：重点强调；次要：列举要点
-- 何时使用（检索词）：徽标、标签、热度、C位、星级、工具排名
-- 画布方向：portrait；密度：light；建议驻留：3–9 秒
-- 默认落位：x=772，y=488，scale=1（占位 180×713，placement=top）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示徽标列表
-- `stepCount` — 步骤数量（1–8）
-- `badge1` — 徽标一
-- `badge2` — 徽标二
-- `badge3` — 徽标三
-- `badge4` — 徽标四
-- `badge5` — 徽标五
-- `badge6` — 徽标六
-- `badge7` — 徽标七
-- `badge8` — 徽标八
-- `badgeFontSize` — 徽标字号(px)（10–36）
-- `badgeGap` — 徽标上下间隙(px)（-60–80）
-- `color1` — 徽标一颜色（color）
-- `color2` — 徽标二颜色（color）
-- `color3` — 徽标三颜色（color）
-- `color4` — 徽标四颜色（color）
-- `badgesAlign` — 徽标对齐
-- `animationSeconds` — 入场总时长(秒)（1.8–5）
-
-### `PortraitToolListTitle` · 工具列表标题
-
-- 用途：顶部引导词 + 三行大标题（含强调词）+ 生长下划线，用于工具列表或列举段落的开篇；错峰工具列表已拆分为独立的 PortraitStaggeredToolList 组件。
-- 主要语义：重点强调；次要：概念解释、章节转场
-- 何时使用（检索词）：很多人问我、怎么用、新手、引导词、列表标题
-- 画布方向：portrait；密度：light；建议驻留：1.5–5 秒
-- 默认落位：x=90，y=250，scale=1（占位 650×280，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示工具列表标题
-- `eyebrow` — 顶部引导词
-- `titlePrefix` — 标题第一行
-- `titleMain` — 标题第二行
-- `titleEmphasis` — 标题强调词
-- `titleSuffix` — 标题强调后缀
-- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
-- `titlePrefixFontSize` — 标题第一行字号(px)（24–96）
-- `titleMainFontSize` — 标题第二行字号(px)（24–96）
-- `titleEmphasisFontSize` — 标题强调词字号(px)（24–96）
-- `titleSuffixFontSize` — 标题强调后缀字号(px)（24–96）
-- `highlightColor` — 标题强调色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.8–5）
-
-### `PortraitPromptMistakeDiagnosis` · 错误提问诊断
-
-- 用途：复刻参考视频 12.566–20.933 秒：逐字输入错误提问，错峰展示三项问题，最后落到缺少准备步骤的诊断结论。
-- 主要语义：风险提醒；次要：概念解释、重点强调
-- 何时使用（检索词）：直接提问、官网、页面普通、问题不在模型、缺少准备
-- 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
-- 默认落位：x=90，y=250，scale=1（占位 900×650，placement=top）
-- 默认时长：255 帧（约 8.5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示错误提问诊断
-- `eyebrow` — 顶部引导词
-- `titlePrefix` — 标题前半句
-- `titleEmphasis` — 标题强调词
-- `prompt` — 输入框文案
-- `issue1` — 问题一
-- `issue2` — 问题二
-- `issue3` — 问题三
-- `conclusionPrefix` — 结论前半句
-- `conclusionEmphasis` — 结论强调词
-- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
-- `titleFontSize` — 标题字号(px)（24–96）
-- `promptFontSize` — 输入框字号(px)（12–64）
-- `issueFontSize` — 问题标签字号(px)（10–42）
-- `conclusionFontSize` — 结论字号(px)（12–64）
-- `accentColor` — 强调色（color）
-- `warningColor` — 问题标签颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 完整入场时长(秒)（4.5–10）
-
-### `PortraitWorkflowPrerequisite` · 先装工作流
-
-- 用途：复刻参考视频 20.966–26.483 秒：先建立工作流前置结论，再按顺序点亮可增减、自动编号的流程步骤。
-- 主要语义：流程说明；次要：概念解释、列举要点、重点强调
-- 何时使用（检索词）：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
-- 画布方向：portrait；密度：heavy；建议驻留：4–8 秒
-- 默认落位：x=90，y=250，scale=1（占位 900×650，placement=top）
-- 默认时长：165 帧（约 5.5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示工作流
-- `kicker` — 顶部章节标签
-- `titleEmphasis` — 标题强调词
-- `titleSuffix` — 标题后半句
-- `subtitleLine1` — 说明第一行
-- `subtitleLine2` — 说明第二行
-- `workflowLabel` — 流程英文标签
-- `stepCount` — 步骤数量（1–8）
-- `step1` — 步骤一
-- `step2` — 步骤二
-- `step3` — 步骤三
-- `step4` — 步骤四
-- `step5` — 步骤五
-- `step6` — 步骤六
-- `step7` — 步骤七
-- `step8` — 步骤八
-- `footerEmphasis` — 底部强调词
-- `footerText` — 底部说明
-- `kickerFontSize` — 顶部章节标签字号(px)（10–52）
-- `titleFontSize` — 标题字号(px)（24–96）
-- `subtitleFontSize` — 说明字号(px)（10–52）
-- `workflowLabelFontSize` — 流程英文标签字号(px)（8–36）
-- `stepNumberFontSize` — 步骤编号字号(px)（8–36）
-- `stepFontSize` — 步骤文字字号(px)（14–64）
-- `footerFontSize` — 底部提示字号(px)（10–42）
-- `accentColor` — 标题强调色（color）
-- `stepColor1` — 步骤一颜色（color）
-- `stepColor2` — 步骤二颜色（color）
-- `stepColor3` — 步骤三颜色（color）
-- `stepColor4` — 步骤四颜色（color）
-- `stepColor5` — 步骤五颜色（color）
-- `stepColor6` — 步骤六颜色（color）
-- `stepColor7` — 步骤七颜色（color）
-- `stepColor8` — 步骤八颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 完整入场时长(秒)（3.5–8）
-
-### `PortraitSkillSourceFusion` · Skill 来源合成
-
-- 用途：复刻参考视频 30.883–39.566 秒：在 Skill 身份标题下按需增减并依次展示经验来源。
-- 主要语义：案例与素材；次要：概念解释、列举要点、重点强调
-- 何时使用（检索词）：taste、impeccable、自己的经验、三样拼成一个、经验来源
-- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
-- 默认落位：x=90，y=120，scale=1（占位 900×946，placement=top）
-- 默认时长：261 帧（约 8.7 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 Skill 来源合成
-- `sequenceText` — Skill 编号
-- `title` — Skill 主标题
-- `subtitle` — Skill 副标题
-- `badge` — Skill 徽标
-- `sourceCount` — 来源数量（1–8）
-- `source1` — 来源一
-- `source1Detail` — 来源一说明
-- `source2` — 来源二
-- `source2Detail` — 来源二说明
-- `source3` — 来源三
-- `source3Detail` — 来源三说明
-- `source4` — 来源四
-- `source4Detail` — 来源四说明
-- `source5` — 来源五
-- `source5Detail` — 来源五说明
-- `source6` — 来源六
-- `source6Detail` — 来源六说明
-- `source7` — 来源七
-- `source7Detail` — 来源七说明
-- `source8` — 来源八
-- `source8Detail` — 来源八说明
-- `sequenceFontSize` — Skill 编号字号(px)（10–96）
-- `titleFontSize` — Skill 主标题字号(px)（16–96）
-- `subtitleFontSize` — Skill 副标题字号(px)（10–96）
-- `badgeFontSize` — Skill 徽标字号(px)（8–96）
-- `sourceFontSize` — 来源名称字号(px)（10–96）
-- `sourceDetailFontSize` — 来源说明字号(px)（8–96）
-- `sourceDetailOffsetX` — 来源说明水平位置(px)（-160–300）
-- `accentColor` — 身份卡强调色（color）
-- `source1Color` — 来源一颜色（color）
-- `source2Color` — 来源二颜色（color）
-- `source3Color` — 来源三颜色（color）
-- `source4Color` — 来源四颜色（color）
-- `source5Color` — 来源五颜色（color）
-- `source6Color` — 来源六颜色（color）
-- `source7Color` — 来源七颜色（color）
-- `source8Color` — 来源八颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 完整动画时长(秒)（4–20）
-
-### `PortraitDesignRuleChecklist` · 网页设计规则清单
-
-- 用途：复刻参考视频 39.566–47.683 秒：依次点亮排版、留白、配色和层级等网页设计规则。
-- 主要语义：概念解释；次要：列举要点、流程说明、重点强调
-- 何时使用（检索词）：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
-- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
-- 默认落位：x=90，y=120，scale=1（占位 900×660，placement=top）
-- 默认时长：244 帧（约 8.1 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示网页设计规则
-- `ruleCount` — 规则数量（1–8）
-- `rule1` — 规则一
-- `rule2` — 规则二
-- `rule3` — 规则三
-- `rule4` — 规则四
-- `rule5` — 规则五
-- `rule6` — 规则六
-- `rule7` — 规则七
-- `rule8` — 规则八
-- `ruleIntervalSeconds` — 下一条规则入场间隔(秒)
-- `ruleFontSize` — 规则字号(px)（10–96）
-- `ruleOffsetX` — 规则水平位置(px)（-40–420）
-- `accentColor` — 卡片强调色（color）
-- `bulletColor` — 规则圆点颜色（color）
-- `panelColor` — 底板颜色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 完整动画时长(秒)（4–20）
-
-### `PortraitSkillIdentityHeaderBar` · 编号标题条
-
-- 用途：编号圆圈 + 主标题 + 副标题的横向标题条，用于介绍一个带序号的技能、章节或条目；热度徽标已拆分为独立的 PortraitHeatBadge 组件。
-- 主要语义：概念解释；次要：重点强调、列举要点、流程说明、章节转场
-- 何时使用（检索词）：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
-- 画布方向：portrait；密度：light；建议驻留：2–24 秒
-- 默认落位：x=90，y=90，scale=1（占位 620×150，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示编号标题条
-- `sequenceText` — 编号
-- `title` — 主标题
-- `subtitle` — 副标题
-- `sequenceFontSize` — 编号字号(px)（8–120）
-- `titleFontSize` — 主标题字号(px)（12–120）
-- `subtitleFontSize` — 副标题字号(px)（10–96）
-- `accentColor` — 标题条强调色（color）
-- `panelColor` — 标题条底色（color）
-- `textColor` — 标题条文字颜色（color）
-- `enterDurationSeconds` — 标题条入场时长(秒)
-
-### `PortraitHeatBadge` · 热度徽标
-
-- 用途：胶囊形热度/数据徽标：展示 star 数、点赞数、人气或评分等热度信息，常与编号标题条搭配出现在标题右侧。
-- 主要语义：重点强调；次要：数字展示、概念解释
-- 何时使用（检索词）：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
-- 画布方向：portrait；密度：light；建议驻留：2–24 秒
-- 默认落位：x=790，y=135，scale=1（占位 200×60，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示热度徽标
-- `badgeText` — 徽标文字
-- `fontSize` — 徽标字号(px)（8–96）
-- `accentColor` — 徽标强调色（color）
-- `enterDurationSeconds` — 徽标入场时长(秒)
-
-### `PortraitPillText` · 药丸文字
-
-- 用途：带发光圆点和实心底色的胶囊状态条：用于展示持续更新、新规则迭代、小提示等补充说明文字，底色参考终端教学面板的稳定深色卡片底。
-- 主要语义：概念解释；次要：重点强调、流程说明
-- 何时使用（检索词）：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
-- 画布方向：portrait；密度：light；建议驻留：2–24 秒
-- 默认落位：x=90，y=620，scale=1（占位 300×44，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示药丸文字
-- `text` — 药丸文字内容
-- `fontSize` — 文字字号(px)（8–48）
-- `accentColor` — 药丸强调色（color）
-- `panelColor` — 药丸底色（color）
-- `textColor` — 药丸文字颜色（color）
-- `enterDurationSeconds` — 药丸入场时长(秒)
-
-### `PortraitCodeDecisionChecklist` · 代码决策检查清单
-
-- 用途：只复刻参考视频 102.333–109.050 秒的六项代码决策问题，逐行点亮，不包含身份条或行数对比。
-- 主要语义：流程说明；次要：列举要点、概念解释、风险提醒
-- 何时使用（检索词）：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
-- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
-- 默认落位：x=70，y=300，scale=1（占位 620×590，placement=left）
-- 默认时长：202 帧（约 6.7 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示代码决策检查清单
-- `backgroundOpacity` — 底板透明度（0–1）
-- `questionCount` — 问题数量（1–8）
-- `question1` — 问题一
-- `question2` — 问题二
-- `question3` — 问题三
-- `question4` — 问题四
-- `question5` — 问题五
-- `question6` — 问题六
-- `question7` — 问题七
-- `question8` — 问题八
-- `numberFontSize` — 编号字号(px)（8–96）
-- `questionFontSize` — 问题字号(px)（10–120）
-- `questionEnterIntervalSeconds` — 下一个问题入场间隔(秒)
-- `firstHighlightSeconds` — 第一项点亮时间(秒)
-- `questionIntervalSeconds` — 下一项点亮间隔(秒)
-- `accentColor` — 编号强调色（color）
-- `activeTextColor` — 当前问题颜色（color）
-- `inactiveTextColor` — 未选问题颜色（color）
-- `panelColor` — 底板颜色（color）
-- `animationSeconds` — 完整动画时长(秒)（2–60）
-
-### `PortraitBrowserRepairLoop` · 浏览器自动修复闭环
-
-- 用途：复刻参考视频 123.050–132.850 秒的六步浏览器自动测试与修复闭环，节点按口播顺序循环点亮。
-- 主要语义：流程说明；次要：列举要点、概念解释、案例与素材
-- 何时使用（检索词）：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
-- 画布方向：portrait；密度：heavy；建议驻留：6–16 秒
-- 默认落位：x=215，y=360，scale=1（占位 650×650，placement=top）
-- 默认时长：294 帧（约 9.8 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示浏览器自动修复闭环
-- `stepCount` — 节点数量（2–8）
-- `step1` — 节点一
-- `step2` — 节点二
-- `step3` — 节点三
-- `step4` — 节点四
-- `step5` — 节点五
-- `step6` — 节点六
-- `step7` — 节点七
-- `step8` — 节点八
-- `centerTitle` — 中心主标题
-- `centerSubtitle` — 中心副标题
-- `numberFontSize` — 编号字号(px)（8–96）
-- `stepFontSize` — 节点文字字号(px)（10–120）
-- `centerTitleFontSize` — 中心主标题字号(px)（10–120）
-- `centerSubtitleFontSize` — 中心副标题字号(px)（8–96）
-- `nodeEnterIntervalSeconds` — 下一个节点入场间隔(秒)
-- `firstNodeHighlightSeconds` — 第一节点点亮时间(秒)
-- `nextNodeHighlightIntervalSeconds` — 下一节点点亮间隔(秒)
-- `loopIntervalSeconds` — 每轮循环间隔(秒)
-- `loopPlayback` — 循环点亮节点
-- `accentColor` — 节点强调色（color）
-- `textColor` — 高亮文字颜色（color）
-- `inactiveColor` — 未点亮文字颜色（color）
-- `ringColor` — 环线颜色（color）
-- `animationSeconds` — 完整动画时长(秒)（2–120）
-
-### `PortraitSkillStepGrid` · Skill 四步卡片
-
-- 用途：按参考图展示 STEP 1 → 4 与四张 Skill 卡片，支持按需增减步骤。
-- 主要语义：流程说明；次要：列举要点、概念解释、章节转场
-- 何时使用（检索词）：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
-- 画布方向：portrait；密度：medium；建议驻留：2–8 秒
-- 默认落位：x=90，y=420，scale=1（占位 900×360，placement=top）
-- 默认时长：96 帧（约 3.2 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 Skill 四步卡片
-- `stepCount` — 卡片数量（1–8）
-- `headerText` — 顶部步骤标题
-- `step1Title` — 卡片一标题
-- `step1Subtitle` — 卡片一副标题
-- `step2Title` — 卡片二标题
-- `step2Subtitle` — 卡片二副标题
-- `step3Title` — 卡片三标题
-- `step3Subtitle` — 卡片三副标题
-- `step4Title` — 卡片四标题
-- `step4Subtitle` — 卡片四副标题
-- `step5Title` — 卡片五标题
-- `step5Subtitle` — 卡片五副标题
-- `step6Title` — 卡片六标题
-- `step6Subtitle` — 卡片六副标题
-- `step7Title` — 卡片七标题
-- `step7Subtitle` — 卡片七副标题
-- `step8Title` — 卡片八标题
-- `step8Subtitle` — 卡片八副标题
-- `headerFontSize` — 步骤标题字号(px)（10–96）
-- `numberFontSize` — 编号字号(px)（8–72）
-- `titleFontSize` — 卡片标题字号(px)（10–96）
-- `subtitleFontSize` — 卡片副标题字号(px)（8–72）
-- `headerEnterSeconds` — 步骤标题入场时间(秒)
-- `cardEnterIntervalSeconds` — 下一个卡片入场间隔(秒)
-- `animationSeconds` — 完整动画时长(秒)（1–120）
-- `headerColor` — 步骤标题颜色（color）
-- `textColor` — 卡片标题颜色（color）
-- `subtitleColor` — 副标题颜色（color）
-
-### `PortraitGapHeadline` · 差距不在模型标题
-
-- 用途：三段拆分中的第 1 个组件：最后说一句徽标与“差距不在模型”大标题。
-- 主要语义：重点强调；次要：对比差异、概念解释、章节转场
-- 何时使用（检索词）：真正拉开差距、不是模型、差距不在模型、最后说一句、工作流
-- 画布方向：portrait；密度：light；建议驻留：2–8 秒
-- 默认落位：x=80，y=300，scale=1（占位 700×260，placement=top）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示差距标题
-- `showBadge` — 显示最后说一句徽标
-- `badgeText` — 徽标文字
-- `titlePrefix` — 主标题前半句
-- `titleEmphasis` — 主标题强调词
-- `badgeFontSize` — 徽标字号(px)（8–96）
-- `titlePrefixFontSize` — 主标题前半句字号(px)（16–160）
-- `titleEmphasisFontSize` — 主标题强调词字号(px)（16–160）
-- `badgeColor` — 徽标颜色（color）
-- `titleColor` — 主标题颜色（color）
-- `emphasisColor` — 强调词颜色（color）
-- `panelColor` — 底板颜色（color）
-- `badgeEnterSeconds` — 徽标入场时间(秒)
-- `titleEnterSeconds` — 主标题入场时间(秒)
-- `animationSeconds` — 完整动画时长(秒)（1–120）
-
-### `PortraitAiOutputGapComparison` · AI 输出差距对比
-
-- 用途：三段拆分中的第 3 个组件：AI 糊感与可直接上线的正反结果对比。
-- 主要语义：对比差异；次要：重点强调、概念解释、案例与素材
-- 何时使用（检索词）：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
-- 画布方向：portrait；密度：light；建议驻留：2–8 秒
-- 默认落位：x=90，y=850，scale=1（占位 640×300，placement=left）
-- 默认时长：120 帧（约 4 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示 AI 输出差距对比
-- `showGapLabel` — 显示 THE GAP 标签
-- `gapLabel` — 顶部标签
-- `badText` — 反面结果文字
-- `goodText` — 正面结果文字
-- `badSymbol` — 反面符号
-- `goodSymbol` — 正面符号
-- `labelFontSize` — 顶部标签字号(px)（8–96）
-- `itemFontSize` — 结果文字字号(px)（12–120）
-- `symbolFontSize` — 符号字号(px)（12–96）
-- `labelColor` — 顶部标签颜色（color）
-- `textColor` — 结果文字颜色（color）
-- `badColor` — 反面颜色（color）
-- `goodColor` — 正面颜色（color）
-- `panelColor` — 底板颜色（color）
-- `labelEnterSeconds` — 顶部标签入场时间(秒)（0.1–120）
-- `firstRowEnterSeconds` — 第一条入场时间(秒)（0.1–120）
-- `nextRowEnterIntervalSeconds` — 下一条入场间隔(秒)（0–120）
-- `animationSeconds` — 完整动画时长(秒)（1–120）
-
-### `PortraitNextEpisodeTitle` · 下集预告标题
-
-- 用途：竖屏口播结尾的下集预告标题：发光竖线搭配预告引导语、醒目关键词与下集主题，可与「图标文字」自由组合。
-- 主要语义：行动引导；次要：章节转场、重点强调
-- 何时使用（检索词）：下期、下一期、下次、预告、下集
-- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=89，y=261，scale=1.52（占位 390×170，placement=right）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示预告标题
-- `eyebrow` — 预告引导语
-- `title` — 核心关键词
-- `subtitle` — 下集主题
-- `eyebrowFontSize` — 引导语字号(px)（10–96）
-- `titleFontSize` — 关键词字号(px)（12–140）
-- `subtitleFontSize` — 主题字号(px)（10–120）
-- `accentColor` — 主题色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `PortraitFollowCta` · 图标文字
-
-- 用途：竖屏口播结尾的图标文字：强调色发光图标搭配行动文案，可与「下集预告标题」自由组合，也可单独用于点赞、收藏等引导。
-- 主要语义：行动引导；次要：重点强调
-- 何时使用（检索词）：关注、点赞、收藏、评论、点个关注
-- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
-- 默认落位：x=6，y=492，scale=1.69（占位 280×64，placement=right）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示关注按钮
-- `cta` — 行动按钮
-- `icon` — 按钮图标
-- `backgroundOpacity` — 背景不透明度（0–1）
-- `secondaryColor` — 图标强调色（color）
-- `panelColor` — 按钮底色（color）
-- `textColor` — 文字颜色（color）
-- `animationSeconds` — 入场时长(秒)（0.4–2）
-
-### `QuickSetupProof` · 快速上手证明条
-
-- 用途：橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。
-- 主要语义：案例与素材；次要：重点强调、对比差异、列举要点
-- 何时使用（检索词）：证明、快速、门槛、无需、几分钟
-- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
-- 默认落位：x=0，y=118，scale=1（占位 700×245，placement=top）
-- 默认时长：150 帧（约 5 秒）
-- 分组：竖屏口播信息层
-
-- 可编排 props：
-- `enterAnimation` — 入场动画
-- `exitAnimation` — 出场动画
-- `enabled` — 显示证明条
-- `title` — 结论标题
-- `kicker` — 英文副标
-- `tag1` — 条件标签一
-- `tag2` — 条件标签二
-- `checkmark` — 勾选符号
-- `accentColor` — 徽标强调色（color）
-- `warningColor` — 条件警示色（color）
-- `strikeColor` — 删除线颜色（color）
-- `panelColor` — 标签底色（color）
-- `textColor` — 标题颜色（color）
-- `animationSeconds` — 主入场时长(秒)（0.45–1.8）
-
-## 常用
-
-### `FocusCamMove` · FocusCamMove
+### `FocusCamMove` · 人物聚焦运镜
 
 - 用途：人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道
 - 主要语义：流程说明；次要：重点强调、章节转场
@@ -964,7 +169,7 @@
 - 画布方向：any；密度：light；建议驻留：5–600 秒
 - 默认落位：x=0，y=0，scale=1（占位 1920×1080，placement=full）
 - 默认时长：300 帧（约 10 秒）
-- 分组：常用
+- 分组：常用组件
 
 - 可编排 props：
 - `enterAnimation` — 入场动画
@@ -1190,7 +395,7 @@
 - `mediaPositionY` — 素材垂直位置(%)（0–100）
 - `animationSeconds` — 完整动画时长(秒)（6–60）
 
-### `PortraitAgentBrowserMedia` · Agent 浏览器逐屏自查
+### `PortraitAgentBrowserMedia` · 浏览器媒体展示卡
 
 - 用途：顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。
 - 主要语义：案例与素材；次要：流程说明、概念解释、重点强调
@@ -1342,6 +547,707 @@
 - `posterWidth` — 海报宽度(px)（220–560）
 - `tiltDeg` — 3D 倾斜角度(度)（0–30）
 - `floatAmplitude` — 悬浮幅度(px)（0–30）
+
+## 竖屏口播信息层
+
+### `PortraitChapterRail` · 章节条
+
+- 用途：左上章节标签：强调竖线先立起，章节编号随后滑入，主标题以遮罩上升揭示，说明文字最后轻浮上来。
+- 主要语义：章节转场；次要：重点强调、流程说明
+- 何时使用（检索词）：章节、下一步、接下来、阶段、开场
+- 画布方向：portrait；密度：light；建议驻留：1.2–5 秒
+- 默认落位：x=68，y=86，scale=1（占位 520×150，placement=top）
+- 默认时长：180 帧（约 6 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示章节条
+- `cardWidth` — 卡片宽度(px)（120–1920）
+- `index` — 章节编号
+- `title` — 章节标题
+- `subtitle` — 章节说明
+- `accentColor` — 强调色（color）
+- `textColor` — 文字颜色（color）
+- `indexFontSize` — 编号字号(px)（8–96）
+- `titleFontSize` — 标题字号(px)（10–120）
+- `subtitleFontSize` — 说明字号(px)（10–96）
+- `animationSeconds` — 入场时长(秒)（0.3–2）
+
+### `PortraitIndexedChapterTitle` · 编号章节标题
+
+- 用途：参考视频复刻的编号章节标题：大号橙色序号、英文眉题、中文主标题与副标题按三拍由虚到实入场。
+- 主要语义：章节转场；次要：重点强调、流程说明
+- 何时使用（检索词）：章节编号、第一个、第二个、痛点、章节、阶段、开场、下一部分
+- 画布方向：portrait；密度：light；建议驻留：2–8 秒
+- 默认落位：x=76，y=300，scale=1（占位 760×300，placement=top）
+- 默认时长：180 帧（约 6 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示编号章节标题
+- `chapterNumber` — 章节编号
+- `eyebrow` — 英文眉题
+- `title` — 主标题
+- `subtitle` — 副标题
+- `accentColor` — 编号与眉题颜色（color）
+- `titleColor` — 主标题颜色（color）
+- `subtitleColor` — 副标题颜色（color）
+- `numberFontSize` — 编号字号(px)（48–240）
+- `eyebrowFontSize` — 眉题字号(px)（10–64）
+- `titleFontSize` — 主标题字号(px)（24–120）
+- `subtitleFontSize` — 副标题字号(px)（14–72）
+- `titleOffsetX` — 标题区水平位置(px)（-160–300）
+- `revealDelaySeconds` — 入场等待(秒)（0–4）
+- `animationSeconds` — 分段入场时长(秒)（0.6–6）
+
+### `PortraitMetricDecision` · 数据决策卡
+
+- 用途：参考竖屏口播视频的 1K / 2K 决策段：突出核心数字、单位与推荐结论。
+- 主要语义：数字展示；次要：对比差异、重点强调
+- 何时使用（检索词）：数字、比例、金额、增长、降低、结果
+- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
+- 默认落位：x=75，y=245，scale=1（占位 410×390，placement=left）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示决策卡
+- `lead` — 结论引导词
+- `conclusion` — 决策结论
+- `metricLabel` — 指标名称
+- `value` — 核心数字
+- `unit` — 数字单位
+- `verdict` — 数字结论
+- `accentColor` — 强调色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitStepStageTitle` · 步骤阶段标题
+
+- 用途：阶段引导词 + 阶段标题 + 阶段说明的组合标题块，用于步骤清单或流程段落开头的结论提示；编号步骤清单已拆分为独立的 PortraitStepNumberList 组件。
+- 主要语义：概念解释；次要：重点强调、流程说明、章节转场
+- 何时使用（检索词）：阶段标题、阶段引导、小结、结论标题、步骤标题
+- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
+- 默认落位：x=545，y=252，scale=1（占位 470×118，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示步骤阶段标题
+- `eyebrow` — 阶段引导词
+- `title` — 阶段标题
+- `subtitle` — 阶段说明
+- `accentColor` — 引导词颜色（color）
+- `textColor` — 文字颜色（color）
+- `eyebrowFontSize` — 引导词字号(px)（10–64）
+- `titleFontSize` — 标题字号(px)（16–96）
+- `subtitleFontSize` — 说明字号(px)（10–64）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitStepNumberList` · 编号步骤清单
+
+- 用途：编号圆圈 + 竖向连接线的步骤清单，步骤卡依次滑入；阶段标题已拆分为独立的 PortraitStepStageTitle 组件。
+- 主要语义：流程说明；次要：列举要点、概念解释
+- 何时使用（检索词）：步骤、流程、首先、然后、最后
+- 画布方向：portrait；密度：heavy；建议驻留：2.5–9 秒
+- 默认落位：x=500，y=400，scale=1（占位 520×260，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示编号步骤清单
+- `stepCount` — 步骤数量（1–8）
+- `step1` — 步骤一
+- `step2` — 步骤二
+- `step3` — 步骤三
+- `step4` — 步骤四
+- `step5` — 步骤五
+- `step6` — 步骤六
+- `step7` — 步骤七
+- `step8` — 步骤八
+- `accentColor` — 主强调色（color）
+- `successColor` — 完成强调色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `cardWidth` — 卡片宽度(px)（300–520）
+- `cardsOffsetX` — 卡片水平位置(px)（-240–240）
+- `textOffsetX` — 步骤文字水平位置(px)（-120–120）
+- `stepFontSize` — 步骤字号(px)（10–72）
+- `stepEnterIntervalSeconds` — 下一步骤入场间隔(秒)（0–8）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitStaggeredToolList` · 多工具错峰列表
+
+- 用途：工具以彩色竖线与说明依次错峰滑入，步骤数量 1–8 可调；右侧徽标已拆分为独立的 PortraitToolBadgeList 组件，标题为独立的 PortraitToolListTitle 组件。
+- 主要语义：列举要点；次要：概念解释、重点强调、流程说明
+- 何时使用（检索词）：多个工具、多个技能、几个方法、清单、逐项讲解、skill
+- 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
+- 默认落位：x=90，y=470，scale=1（占位 900×780，placement=top）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示工具列表
+- `stepCount` — 步骤数量（1–8）
+- `item1` — 工具一
+- `item2` — 工具二
+- `item3` — 工具三
+- `item4` — 工具四
+- `item5` — 工具五
+- `item6` — 工具六
+- `item7` — 工具七
+- `item8` — 工具八
+- `detail1` — 工具一说明
+- `detail2` — 工具二说明
+- `detail3` — 工具三说明
+- `detail4` — 工具四说明
+- `detail5` — 工具五说明
+- `detail6` — 工具六说明
+- `detail7` — 工具七说明
+- `detail8` — 工具八说明
+- `itemFontSize` — 工具字号(px)（14–64）
+- `detailFontSize` — 工具说明字号(px)（10–40）
+- `color1` — 工具一颜色（color）
+- `color2` — 工具二颜色（color）
+- `color3` — 工具三颜色（color）
+- `color4` — 工具四颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 四项入场总时长(秒)（1.8–5）
+
+### `PortraitToolBadgeList` · 工具徽标列表
+
+- 用途：与多工具错峰列表逐行对齐的胶囊徽标（如 C 位、热度），数量随步骤数量 1–8 可调，按相同节奏错峰滑入；可独立拖动、编辑与删除。
+- 主要语义：重点强调；次要：列举要点
+- 何时使用（检索词）：徽标、标签、热度、C位、星级、工具排名
+- 画布方向：portrait；密度：light；建议驻留：3–9 秒
+- 默认落位：x=772，y=488，scale=1（占位 180×713，placement=top）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示徽标列表
+- `stepCount` — 步骤数量（1–8）
+- `badge1` — 徽标一
+- `badge2` — 徽标二
+- `badge3` — 徽标三
+- `badge4` — 徽标四
+- `badge5` — 徽标五
+- `badge6` — 徽标六
+- `badge7` — 徽标七
+- `badge8` — 徽标八
+- `badgeFontSize` — 徽标字号(px)（10–36）
+- `badgeGap` — 徽标上下间隙(px)（-60–80）
+- `color1` — 徽标一颜色（color）
+- `color2` — 徽标二颜色（color）
+- `color3` — 徽标三颜色（color）
+- `color4` — 徽标四颜色（color）
+- `badgesAlign` — 徽标对齐
+- `animationSeconds` — 入场总时长(秒)（1.8–5）
+
+### `PortraitToolListTitle` · 工具列表标题
+
+- 用途：顶部引导词 + 三行大标题（含强调词）+ 生长下划线，用于工具列表或列举段落的开篇；错峰工具列表已拆分为独立的 PortraitStaggeredToolList 组件。
+- 主要语义：重点强调；次要：概念解释、章节转场
+- 何时使用（检索词）：很多人问我、怎么用、新手、引导词、列表标题
+- 画布方向：portrait；密度：light；建议驻留：1.5–5 秒
+- 默认落位：x=90，y=250，scale=1（占位 650×280，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示工具列表标题
+- `eyebrow` — 顶部引导词
+- `titlePrefix` — 标题第一行
+- `titleMain` — 标题第二行
+- `titleEmphasis` — 标题强调词
+- `titleSuffix` — 标题强调后缀
+- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
+- `titlePrefixFontSize` — 标题第一行字号(px)（24–96）
+- `titleMainFontSize` — 标题第二行字号(px)（24–96）
+- `titleEmphasisFontSize` — 标题强调词字号(px)（24–96）
+- `titleSuffixFontSize` — 标题强调后缀字号(px)（24–96）
+- `highlightColor` — 标题强调色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.8–5）
+
+### `PortraitPromptMistakeDiagnosis` · 错误提问诊断
+
+- 用途：复刻参考视频 12.566–20.933 秒：逐字输入错误提问，错峰展示三项问题，最后落到缺少准备步骤的诊断结论。
+- 主要语义：风险提醒；次要：概念解释、重点强调
+- 何时使用（检索词）：直接提问、官网、页面普通、问题不在模型、缺少准备
+- 画布方向：portrait；密度：heavy；建议驻留：3–9 秒
+- 默认落位：x=90，y=250，scale=1（占位 900×650，placement=top）
+- 默认时长：255 帧（约 8.5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示错误提问诊断
+- `eyebrow` — 顶部引导词
+- `titlePrefix` — 标题前半句
+- `titleEmphasis` — 标题强调词
+- `prompt` — 输入框文案
+- `issue1` — 问题一
+- `issue2` — 问题二
+- `issue3` — 问题三
+- `conclusionPrefix` — 结论前半句
+- `conclusionEmphasis` — 结论强调词
+- `eyebrowFontSize` — 顶部引导词字号(px)（10–72）
+- `titleFontSize` — 标题字号(px)（24–96）
+- `promptFontSize` — 输入框字号(px)（12–64）
+- `issueFontSize` — 问题标签字号(px)（10–42）
+- `conclusionFontSize` — 结论字号(px)（12–64）
+- `accentColor` — 强调色（color）
+- `warningColor` — 问题标签颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 完整入场时长(秒)（4.5–10）
+
+### `PortraitWorkflowPrerequisite` · 前置准备流程
+
+- 用途：复刻参考视频 20.966–26.483 秒：先建立工作流前置结论，再按顺序点亮可增减、自动编号的流程步骤。
+- 主要语义：流程说明；次要：概念解释、列举要点、重点强调
+- 何时使用（检索词）：动手之前、先装工作流、工作流装好、审美动效工程自测、顺序
+- 画布方向：portrait；密度：heavy；建议驻留：4–8 秒
+- 默认落位：x=90，y=250，scale=1（占位 900×650，placement=top）
+- 默认时长：165 帧（约 5.5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示工作流
+- `kicker` — 顶部章节标签
+- `titleEmphasis` — 标题强调词
+- `titleSuffix` — 标题后半句
+- `subtitleLine1` — 说明第一行
+- `subtitleLine2` — 说明第二行
+- `workflowLabel` — 流程英文标签
+- `stepCount` — 步骤数量（1–8）
+- `step1` — 步骤一
+- `step2` — 步骤二
+- `step3` — 步骤三
+- `step4` — 步骤四
+- `step5` — 步骤五
+- `step6` — 步骤六
+- `step7` — 步骤七
+- `step8` — 步骤八
+- `footerEmphasis` — 底部强调词
+- `footerText` — 底部说明
+- `kickerFontSize` — 顶部章节标签字号(px)（10–52）
+- `titleFontSize` — 标题字号(px)（24–96）
+- `subtitleFontSize` — 说明字号(px)（10–52）
+- `workflowLabelFontSize` — 流程英文标签字号(px)（8–36）
+- `stepNumberFontSize` — 步骤编号字号(px)（8–36）
+- `stepFontSize` — 步骤文字字号(px)（14–64）
+- `footerFontSize` — 底部提示字号(px)（10–42）
+- `accentColor` — 标题强调色（color）
+- `stepColor1` — 步骤一颜色（color）
+- `stepColor2` — 步骤二颜色（color）
+- `stepColor3` — 步骤三颜色（color）
+- `stepColor4` — 步骤四颜色（color）
+- `stepColor5` — 步骤五颜色（color）
+- `stepColor6` — 步骤六颜色（color）
+- `stepColor7` — 步骤七颜色（color）
+- `stepColor8` — 步骤八颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 完整入场时长(秒)（3.5–8）
+
+### `PortraitSkillSourceFusion` · 多来源汇总卡
+
+- 用途：复刻参考视频 30.883–39.566 秒：在 Skill 身份标题下按需增减并依次展示经验来源。
+- 主要语义：案例与素材；次要：概念解释、列举要点、重点强调
+- 何时使用（检索词）：taste、impeccable、自己的经验、三样拼成一个、经验来源
+- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
+- 默认落位：x=90，y=120，scale=1（占位 900×946，placement=top）
+- 默认时长：261 帧（约 8.7 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示 多来源汇总卡
+- `sequenceText` — Skill 编号
+- `title` — Skill 主标题
+- `subtitle` — Skill 副标题
+- `badge` — Skill 徽标
+- `sourceCount` — 来源数量（1–8）
+- `source1` — 来源一
+- `source1Detail` — 来源一说明
+- `source2` — 来源二
+- `source2Detail` — 来源二说明
+- `source3` — 来源三
+- `source3Detail` — 来源三说明
+- `source4` — 来源四
+- `source4Detail` — 来源四说明
+- `source5` — 来源五
+- `source5Detail` — 来源五说明
+- `source6` — 来源六
+- `source6Detail` — 来源六说明
+- `source7` — 来源七
+- `source7Detail` — 来源七说明
+- `source8` — 来源八
+- `source8Detail` — 来源八说明
+- `sequenceFontSize` — Skill 编号字号(px)（10–96）
+- `titleFontSize` — Skill 主标题字号(px)（16–96）
+- `subtitleFontSize` — Skill 副标题字号(px)（10–96）
+- `badgeFontSize` — Skill 徽标字号(px)（8–96）
+- `sourceFontSize` — 来源名称字号(px)（10–96）
+- `sourceDetailFontSize` — 来源说明字号(px)（8–96）
+- `sourceDetailOffsetX` — 来源说明水平位置(px)（-160–300）
+- `accentColor` — 身份卡强调色（color）
+- `source1Color` — 来源一颜色（color）
+- `source2Color` — 来源二颜色（color）
+- `source3Color` — 来源三颜色（color）
+- `source4Color` — 来源四颜色（color）
+- `source5Color` — 来源五颜色（color）
+- `source6Color` — 来源六颜色（color）
+- `source7Color` — 来源七颜色（color）
+- `source8Color` — 来源八颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 完整动画时长(秒)（4–20）
+
+### `PortraitDesignRuleChecklist` · 网页设计规则清单
+
+- 用途：复刻参考视频 39.566–47.683 秒：依次点亮排版、留白、配色和层级等网页设计规则。
+- 主要语义：概念解释；次要：列举要点、流程说明、重点强调
+- 何时使用（检索词）：设计审美、怎么排版、怎么留白、怎么配色、怎么做层级、定好的规矩
+- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
+- 默认落位：x=90，y=120，scale=1（占位 900×660，placement=top）
+- 默认时长：244 帧（约 8.1 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示网页设计规则
+- `ruleCount` — 规则数量（1–8）
+- `rule1` — 规则一
+- `rule2` — 规则二
+- `rule3` — 规则三
+- `rule4` — 规则四
+- `rule5` — 规则五
+- `rule6` — 规则六
+- `rule7` — 规则七
+- `rule8` — 规则八
+- `ruleIntervalSeconds` — 下一条规则入场间隔(秒)
+- `ruleFontSize` — 规则字号(px)（10–96）
+- `ruleOffsetX` — 规则水平位置(px)（-40–420）
+- `ruleVerticalGap` — 规则上下间隙(px)（-40–120）
+- `accentColor` — 卡片强调色（color）
+- `bulletColor` — 规则圆点颜色（color）
+- `panelColor` — 底板颜色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 完整动画时长(秒)（4–20）
+
+### `PortraitSkillIdentityHeaderBar` · 编号标题条
+
+- 用途：编号圆圈 + 主标题 + 副标题的横向标题条，用于介绍一个带序号的技能、章节或条目；热度徽标已拆分为独立的 PortraitHeatBadge 组件。
+- 主要语义：概念解释；次要：重点强调、列举要点、流程说明、章节转场
+- 何时使用（检索词）：编号、第几章、章节标题、标题条、skill、技能、GSAP、动效引擎、高级动画
+- 画布方向：portrait；密度：light；建议驻留：2–24 秒
+- 默认落位：x=90，y=90，scale=1（占位 620×150，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示编号标题条
+- `sequenceText` — 编号
+- `title` — 主标题
+- `subtitle` — 副标题
+- `sequenceFontSize` — 编号字号(px)（8–120）
+- `titleFontSize` — 主标题字号(px)（12–120）
+- `subtitleFontSize` — 副标题字号(px)（10–96）
+- `accentColor` — 标题条强调色（color）
+- `panelColor` — 标题条底色（color）
+- `textColor` — 标题条文字颜色（color）
+- `enterDurationSeconds` — 标题条入场时长(秒)
+
+### `PortraitHeatBadge` · 热度徽标
+
+- 用途：胶囊形热度/数据徽标：展示 star 数、点赞数、人气或评分等热度信息，常与编号标题条搭配出现在标题右侧。
+- 主要语义：重点强调；次要：数字展示、概念解释
+- 何时使用（检索词）：热度、点赞、star、Star、人气、评分、26K、多少K、播放量、收藏
+- 画布方向：portrait；密度：light；建议驻留：2–24 秒
+- 默认落位：x=790，y=135，scale=1（占位 200×60，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示热度徽标
+- `badgeText` — 徽标文字
+- `fontSize` — 徽标字号(px)（8–96）
+- `accentColor` — 徽标强调色（color）
+- `enterDurationSeconds` — 徽标入场时长(秒)
+
+### `PortraitPillText` · 胶囊状态条
+
+- 用途：带发光圆点和实心底色的胶囊状态条：用于展示持续更新、新规则迭代、小提示等补充说明文字，底色参考终端教学面板的稳定深色卡片底。
+- 主要语义：概念解释；次要：重点强调、流程说明
+- 何时使用（检索词）：持续更新、更新、迭代、新规则、状态、补充说明、小提示、备注、药丸
+- 画布方向：portrait；密度：light；建议驻留：2–24 秒
+- 默认落位：x=90，y=620，scale=1（占位 300×44，placement=top）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示胶囊状态条
+- `text` — 胶囊状态条内容
+- `fontSize` — 文字字号(px)（8–48）
+- `accentColor` — 药丸强调色（color）
+- `panelColor` — 药丸底色（color）
+- `textColor` — 胶囊状态条颜色（color）
+- `enterDurationSeconds` — 药丸入场时长(秒)
+
+### `PortraitCodeDecisionChecklist` · 代码决策检查清单
+
+- 用途：只复刻参考视频 102.333–109.050 秒的六项代码决策问题，逐行点亮，不包含身份条或行数对比。
+- 主要语义：流程说明；次要：列举要点、概念解释、风险提醒
+- 何时使用（检索词）：让AI先想、功能真的需要吗、现有代码、标准库、原生平台、已装依赖、一行能搞定、实在不行才自己写
+- 画布方向：portrait；密度：medium；建议驻留：4–12 秒
+- 默认落位：x=70，y=300，scale=1（占位 620×590，placement=left）
+- 默认时长：202 帧（约 6.7 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示代码决策检查清单
+- `backgroundOpacity` — 底板透明度（0–1）
+- `questionCount` — 问题数量（1–8）
+- `question1` — 问题一
+- `question2` — 问题二
+- `question3` — 问题三
+- `question4` — 问题四
+- `question5` — 问题五
+- `question6` — 问题六
+- `question7` — 问题七
+- `question8` — 问题八
+- `numberFontSize` — 编号字号(px)（8–96）
+- `questionFontSize` — 问题字号(px)（10–120）
+- `questionEnterIntervalSeconds` — 下一个问题入场间隔(秒)
+- `firstHighlightSeconds` — 第一项点亮时间(秒)
+- `questionIntervalSeconds` — 下一项点亮间隔(秒)
+- `accentColor` — 编号强调色（color）
+- `activeTextColor` — 当前问题颜色（color）
+- `inactiveTextColor` — 未选问题颜色（color）
+- `panelColor` — 底板颜色（color）
+- `animationSeconds` — 完整动画时长(秒)（2–60）
+
+### `PortraitBrowserRepairLoop` · 浏览器自动修复闭环
+
+- 用途：复刻参考视频 123.050–132.850 秒的六步浏览器自动测试与修复闭环，节点按口播顺序循环点亮。
+- 主要语义：流程说明；次要：列举要点、概念解释、案例与素材
+- 何时使用（检索词）：自动测试、自动修bug、打开浏览器、自己运行、自己点击、截图检查、发现问题自己改、再验证、一直循环、直到没问题
+- 画布方向：portrait；密度：heavy；建议驻留：6–16 秒
+- 默认落位：x=215，y=360，scale=1（占位 650×650，placement=top）
+- 默认时长：294 帧（约 9.8 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示浏览器自动修复闭环
+- `stepCount` — 节点数量（2–8）
+- `step1` — 节点一
+- `step2` — 节点二
+- `step3` — 节点三
+- `step4` — 节点四
+- `step5` — 节点五
+- `step6` — 节点六
+- `step7` — 节点七
+- `step8` — 节点八
+- `centerTitle` — 中心主标题
+- `centerSubtitle` — 中心副标题
+- `numberFontSize` — 编号字号(px)（8–96）
+- `stepFontSize` — 节点文字字号(px)（10–120）
+- `centerTitleFontSize` — 中心主标题字号(px)（10–120）
+- `centerSubtitleFontSize` — 中心副标题字号(px)（8–96）
+- `nodeEnterIntervalSeconds` — 下一个节点入场间隔(秒)
+- `firstNodeHighlightSeconds` — 第一节点点亮时间(秒)
+- `nextNodeHighlightIntervalSeconds` — 下一节点点亮间隔(秒)
+- `loopIntervalSeconds` — 每轮循环间隔(秒)
+- `loopPlayback` — 循环点亮节点
+- `accentColor` — 节点强调色（color）
+- `textColor` — 高亮文字颜色（color）
+- `inactiveColor` — 未点亮文字颜色（color）
+- `ringColor` — 环线颜色（color）
+- `animationSeconds` — 完整动画时长(秒)（2–120）
+
+### `PortraitSkillStepGrid` · 多步骤卡片组
+
+- 用途：按参考图展示 STEP 1 → 4 与四张 Skill 卡片，支持按需增减步骤。
+- 主要语义：流程说明；次要：列举要点、概念解释、章节转场
+- 何时使用（检索词）：4个skill、四个skill、一个一个讲清楚、定审美、跟动效、保克制、自测自修
+- 画布方向：portrait；密度：medium；建议驻留：2–8 秒
+- 默认落位：x=90，y=420，scale=1（占位 900×360，placement=top）
+- 默认时长：96 帧（约 3.2 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示 多步骤卡片组
+- `stepCount` — 卡片数量（1–8）
+- `headerText` — 顶部步骤标题
+- `step1Title` — 卡片一标题
+- `step1Subtitle` — 卡片一副标题
+- `step2Title` — 卡片二标题
+- `step2Subtitle` — 卡片二副标题
+- `step3Title` — 卡片三标题
+- `step3Subtitle` — 卡片三副标题
+- `step4Title` — 卡片四标题
+- `step4Subtitle` — 卡片四副标题
+- `step5Title` — 卡片五标题
+- `step5Subtitle` — 卡片五副标题
+- `step6Title` — 卡片六标题
+- `step6Subtitle` — 卡片六副标题
+- `step7Title` — 卡片七标题
+- `step7Subtitle` — 卡片七副标题
+- `step8Title` — 卡片八标题
+- `step8Subtitle` — 卡片八副标题
+- `headerFontSize` — 步骤标题字号(px)（10–96）
+- `numberFontSize` — 编号字号(px)（8–72）
+- `titleFontSize` — 卡片标题字号(px)（10–96）
+- `subtitleFontSize` — 卡片副标题字号(px)（8–72）
+- `headerEnterSeconds` — 步骤标题入场时间(秒)
+- `cardEnterIntervalSeconds` — 下一个卡片入场间隔(秒)
+- `animationSeconds` — 完整动画时长(秒)（1–120）
+- `headerColor` — 步骤标题颜色（color）
+- `textColor` — 卡片标题颜色（color）
+- `subtitleColor` — 副标题颜色（color）
+
+### `PortraitAiOutputGapComparison` · AI 输出差距对比
+
+- 用途：三段拆分中的第 3 个组件：AI 糊感与可直接上线的正反结果对比。
+- 主要语义：对比差异；次要：重点强调、概念解释、案例与素材
+- 何时使用（检索词）：一眼就是AI糊的、一眼就是 AI 糊的、能直接上线、AI糊、THE GAP
+- 画布方向：portrait；密度：light；建议驻留：2–8 秒
+- 默认落位：x=90，y=850，scale=1（占位 640×300，placement=left）
+- 默认时长：120 帧（约 4 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示 AI 输出差距对比
+- `showGapLabel` — 显示 THE GAP 标签
+- `gapLabel` — 顶部标签
+- `badText` — 反面结果文字
+- `goodText` — 正面结果文字
+- `badSymbol` — 反面符号
+- `goodSymbol` — 正面符号
+- `labelFontSize` — 顶部标签字号(px)（8–96）
+- `itemFontSize` — 结果文字字号(px)（12–120）
+- `symbolFontSize` — 符号字号(px)（12–96）
+- `labelColor` — 顶部标签颜色（color）
+- `textColor` — 结果文字颜色（color）
+- `badColor` — 反面颜色（color）
+- `goodColor` — 正面颜色（color）
+- `panelColor` — 底板颜色（color）
+- `labelEnterSeconds` — 顶部标签入场时间(秒)（0.1–120）
+- `firstRowEnterSeconds` — 第一条入场时间(秒)（0.1–120）
+- `nextRowEnterIntervalSeconds` — 下一条入场间隔(秒)（0–120）
+- `animationSeconds` — 完整动画时长(秒)（1–120）
+
+### `PortraitNextEpisodeTitle` · 下集预告标题
+
+- 用途：竖屏口播结尾的下集预告标题：发光竖线搭配预告引导语、醒目关键词与下集主题，可与「图标文字」自由组合。
+- 主要语义：行动引导；次要：章节转场、重点强调
+- 何时使用（检索词）：下期、下一期、下次、预告、下集
+- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
+- 默认落位：x=89，y=261，scale=1.52（占位 390×170，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示预告标题
+- `eyebrow` — 预告引导语
+- `title` — 核心关键词
+- `subtitle` — 下集主题
+- `eyebrowFontSize` — 引导语字号(px)（10–96）
+- `titleFontSize` — 关键词字号(px)（12–140）
+- `subtitleFontSize` — 主题字号(px)（10–120）
+- `accentColor` — 主题色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `PortraitFollowCta` · 图标文字
+
+- 用途：竖屏口播结尾的图标文字：强调色发光图标搭配行动文案，可与「下集预告标题」自由组合，也可单独用于点赞、收藏等引导。
+- 主要语义：行动引导；次要：重点强调
+- 何时使用（检索词）：关注、点赞、收藏、评论、点个关注
+- 画布方向：portrait；密度：light；建议驻留：1.5–6 秒
+- 默认落位：x=6，y=492，scale=1.69（占位 280×64，placement=right）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示关注按钮
+- `cta` — 行动按钮
+- `icon` — 按钮图标
+- `backgroundOpacity` — 背景不透明度（0–1）
+- `secondaryColor` — 图标强调色（color）
+- `panelColor` — 按钮底色（color）
+- `textColor` — 文字颜色（color）
+- `animationSeconds` — 入场时长(秒)（0.4–2）
+
+### `QuickSetupProof` · 快速上手证明条
+
+- 用途：橙色勾选徽标和粗白结论先落位，两枚限制条件标签错峰弹入后分别由细红线划过。
+- 主要语义：案例与素材；次要：重点强调、对比差异、列举要点
+- 何时使用（检索词）：证明、快速、门槛、无需、几分钟
+- 画布方向：portrait；密度：medium；建议驻留：1.5–6 秒
+- 默认落位：x=0，y=118，scale=1（占位 700×245，placement=top）
+- 默认时长：150 帧（约 5 秒）
+- 分组：竖屏口播信息层
+
+- 可编排 props：
+- `enterAnimation` — 入场动画
+- `exitAnimation` — 出场动画
+- `enabled` — 显示证明条
+- `title` — 结论标题
+- `kicker` — 英文副标
+- `tag1` — 条件标签一
+- `tag2` — 条件标签二
+- `checkmark` — 勾选符号
+- `accentColor` — 徽标强调色（color）
+- `warningColor` — 条件警示色（color）
+- `strikeColor` — 删除线颜色（color）
+- `panelColor` — 标签底色（color）
+- `textColor` — 标题颜色（color）
+- `animationSeconds` — 主入场时长(秒)（0.45–1.8）
 
 ## 风险提醒
 
@@ -1538,7 +1444,7 @@
 
 ## 图表与比较
 
-### `ComparisonProgressBars` · 对比进度条·持续扶持
+### `ComparisonProgressBars` · 双项进度对比
 
 - 用途：上下两张状态卡对比旧方案与持续方案，用灰色低进度和青色满进度表达差异。
 - 主要语义：对比差异；次要：数字展示、流程说明、重点强调
@@ -1570,7 +1476,7 @@
 
 ### `CaseStudySidebar` · 案例商业数据侧栏
 
-- 用途：商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。
+- 用途：展示商业价值倍数、双金色数据进度条与人工审核说明；需要品牌或团队背书时可另配独立的 Logo徽章名片组件。
 - 主要语义：案例与素材；次要：数字展示、重点强调、对比差异、概念解释
 - 何时使用（检索词）：账号、案例、商业价值、变现、报价、收入、倍数、专业团队、AI 工具
 - 画布方向：portrait；密度：medium；建议驻留：3–12 秒
@@ -1722,6 +1628,6 @@
 
 ## 编排建议（人工维护，随目录一起读）
 
-- 同类语义优先在**不同分组**间轮换选卡，避免整支视频只用一组组件。
+- 先按内容结构、素材条件及 SKILL §6.1 的选择边界选卡；普通分组仅用于浏览，不作为语义条件。在同样适合的候选中考虑视觉多样性。
 - 竖屏口播优先选 `方向：portrait` 的组件；横屏或 `any` 组件在竖屏使用时注意默认落位是否越界。
-- 一个语义段落通常 1 张主卡 + 0–2 张辅助卡；数字/对比/流程类内容优先用分组「数字与指标」「风险提醒」等专用卡，而不是纯文字卡。
+- 一个语义段落通常 1 张主卡 + 0–2 张辅助卡；各卡承载不同信息。数字、对比、流程按实际内容和字段能力选择，不为了凑卡补造数字、目标或证据。

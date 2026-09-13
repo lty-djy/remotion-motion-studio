@@ -180,25 +180,11 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["章节编号", "第一个", "第二个", "痛点", "章节", "阶段", "开场", "下一部分"],
     { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 8 } },
   ),
-  PortraitInfoCallout: capability(
-    "explanation",
-    ["emphasis", "evidence", "process", "transition", "warning", "call-to-action"],
-    ["short-text", "long-text"],
-    ["说明", "方法", "工具", "例如", "提示", "补充"],
-    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 7 } },
-  ),
   PortraitMetricDecision: capability(
     "metric",
     ["comparison", "emphasis"],
     ["metric", "short-text"],
     ["数字", "比例", "金额", "增长", "降低", "结果"],
-    { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
-  ),
-  PortraitDecisionTagStack: capability(
-    "comparison",
-    ["list", "emphasis", "metric"],
-    ["comparison", "list", "short-text"],
-    ["标签", "优缺点", "选择", "判断", "并列"],
     { orientation: "portrait", density: "medium", durationSeconds: { min: 1.5, max: 6 } },
   ),
   PortraitStepStageTitle: capability(
@@ -333,13 +319,6 @@ export const EFFECT_SEMANTIC_CAPABILITIES: Readonly<
     ["list", "process", "short-text"],
     ["4个skill", "四个skill", "一个一个讲清楚", "定审美", "跟动效", "保克制", "自测自修"],
     { orientation: "portrait", density: "medium", durationSeconds: { min: 2, max: 8 } },
-  ),
-  PortraitGapHeadline: capability(
-    "emphasis",
-    ["comparison", "explanation", "transition"],
-    ["short-text", "comparison"],
-    ["真正拉开差距", "不是模型", "差距不在模型", "最后说一句", "工作流"],
-    { orientation: "portrait", density: "light", durationSeconds: { min: 2, max: 8 } },
   ),
   PortraitAiOutputGapComparison: capability(
     "comparison",

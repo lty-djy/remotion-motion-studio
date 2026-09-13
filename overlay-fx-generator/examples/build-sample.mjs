@@ -107,20 +107,16 @@ const doc = {
       riskIntervalSeconds: 3.3,
       animationSeconds: 0.95,
     }, "intent-risk-roots"),
-    item("PortraitDecisionTagStack", 19.8, 27.6, {
-      tagCount: 3,
-      tag1: "收藏≠学会",
-      tag2: "打卡≠产出",
-      tag3: "清单≠执行",
-      tagEnterIntervalSeconds: 2.4,
+    item("PortraitRiskWarning", 19.8, 27.6, {
+      eyebrow: "常见误区",
+      title: "做了不等于做到",
+      emphasis: "行动结果要复盘",
+      risk1: "收藏≠学会",
+      risk2: "打卡≠产出",
+      risk3: "清单≠执行",
+      riskIntervalSeconds: 2.4,
       animationSeconds: 0.9,
     }, "intent-fake-signals"),
-    item("PortraitGapHeadline", 27.6, 33.0, {
-      showBadge: true,
-      badgeText: "记住这句话",
-      titlePrefix: "缺的是",
-      titleEmphasis: "系统",
-    }, "intent-gap-line"),
     item("PortraitChapterRail", 33.0, 36.8, {
       index: "02",
       title: "四步搭建",
@@ -141,12 +137,10 @@ const doc = {
       stepEnterIntervalSeconds: 1.5,
       animationSeconds: 1,
     }, "intent-build-steps"),
-    item("PortraitInfoCallout", 46.8, 52.0, {
+    item("PortraitStepStageTitle", 46.8, 52.0, {
       eyebrow: "避坑提示",
       title: "先原样跑一周",
-      detail: "再谈优化",
-      note: "改流程之前先攒记录",
-      iconText: "!",
+      subtitle: "再谈优化，改流程之前先攒记录",
     }, "intent-callout-week"),
     item("PortraitNextEpisodeTitle", 52.0, 58.0, {
       eyebrow: "下期",
@@ -234,7 +228,7 @@ const doc = {
             type: "comparison",
             signals: [{ type: "keyword", label: "收藏" }],
             componentCandidates: [
-              { componentId: "PortraitDecisionTagStack", rank: 1, reason: "三组否定式标签逐条入场", props: {} },
+              { componentId: "PortraitRiskWarning", rank: 1, reason: "三组误区逐条提醒", props: {} },
             ],
           },
         ],
@@ -249,9 +243,6 @@ const doc = {
             label: "重点强调",
             type: "emphasis",
             signals: [{ type: "keyword", label: "差距" }],
-            componentCandidates: [
-              { componentId: "PortraitGapHeadline", rank: 1, reason: "前缀+强调词的巨字金句", props: {} },
-            ],
           },
         ],
       },
@@ -282,7 +273,7 @@ const doc = {
             type: "explanation",
             signals: [{ type: "keyword", label: "跑一周" }],
             componentCandidates: [
-              { componentId: "PortraitInfoCallout", rank: 1, reason: "轻量提示卡", props: {} },
+              { componentId: "PortraitStepStageTitle", rank: 1, reason: "轻量阶段标题", props: {} },
             ],
           },
         ],

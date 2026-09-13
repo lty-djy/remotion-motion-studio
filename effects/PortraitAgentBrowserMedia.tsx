@@ -63,7 +63,7 @@ export const PortraitAgentBrowserMedia: React.FC<Props> = ({
   const videoMode = isVideo(mediaUrl, mediaType);
 
   return (
-    <Interactive.Div name="Agent 浏览器逐屏自查" data-effect="PortraitAgentBrowserMedia" style={{ position: "relative", width: 850, height: 800, color: titleColor, fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif', opacity: interpolate(frame, [0, fps * Math.max(0.2, animationSeconds * 0.18)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.16, 1, 0.3, 1) }) }}>
+    <Interactive.Div name="浏览器媒体展示卡" data-effect="PortraitAgentBrowserMedia" style={{ position: "relative", width: 850, height: 800, color: titleColor, fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif', opacity: interpolate(frame, [0, fps * Math.max(0.2, animationSeconds * 0.18)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.16, 1, 0.3, 1) }) }}>
       <Interactive.Div name="逐屏自查标题" style={{ position: "absolute", left: 90, top: 0, width: 670, minHeight: 82, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", padding: "13px 30px", border: `1px solid color-mix(in srgb, ${frameColor} 86%, transparent)`, borderRadius: 999, backgroundColor: "rgba(7,9,17,0.78)", boxShadow: "0 12px 34px rgba(0,0,0,0.28)", opacity: interpolate(frame, [0, fps * Math.max(0.1, titleEnterSeconds)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.16, 1, 0.3, 1) }), translate: interpolate(frame, [0, fps * Math.max(0.1, titleEnterSeconds)], ["0px -22px", "0px 0px"], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.16, 1, 0.3, 1) }) }}>
         <span style={{ color: titleColor, fontSize: titlePrefixFontSize, fontWeight: 850, whiteSpace: "nowrap" }}>{titlePrefix}</span>
         <span style={{ color: highlightColor, fontSize: titleHighlightFontSize, fontWeight: 900, whiteSpace: "nowrap", textShadow: `0 0 18px color-mix(in srgb, ${highlightColor} 35%, transparent)` }}>{titleHighlight}</span>
@@ -93,7 +93,7 @@ export const PortraitAgentBrowserMedia: React.FC<Props> = ({
 
 export const PortraitAgentBrowserMediaEffectDef: EffectDef = {
   id: "PortraitAgentBrowserMedia",
-  name: "Agent 浏览器逐屏自查",
+  name: "浏览器媒体展示卡",
   description: "顶部标题胶囊加可上传图片或视频的浏览器画面；不包含蓝色扫线、交通灯按钮或其他绿色按钮。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",

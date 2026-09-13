@@ -8,7 +8,7 @@
     },
     {
       "id": "group:空间与聚焦",
-      "name": "常用",
+      "name": "常用组件",
       "color": "#8dc318"
     },
     {
@@ -50,12 +50,10 @@
   "assignments": {
     "GlobalExpedition": "custom-1789041797431",
     "FocusCamMove": "group:空间与聚焦",
-    "ChapterBar": "group:竖屏口播信息层",
+    "ChapterBar": "group:空间与聚焦",
     "PortraitChapterRail": "group:竖屏口播信息层",
     "PortraitIndexedChapterTitle": "group:竖屏口播信息层",
-    "PortraitInfoCallout": "group:竖屏口播信息层",
     "PortraitMetricDecision": "group:竖屏口播信息层",
-    "PortraitDecisionTagStack": "group:竖屏口播信息层",
     "PortraitStaggeredToolList": "group:竖屏口播信息层",
     "PortraitToolBadgeList": "group:竖屏口播信息层",
     "PortraitPromptMistakeDiagnosis": "group:竖屏口播信息层",
@@ -70,7 +68,6 @@
     "PortraitAgentBrowserMedia": "group:媒体展示组件",
     "PortraitMediaPosterReveal": "group:媒体展示组件",
     "PortraitSkillStepGrid": "group:竖屏口播信息层",
-    "PortraitGapHeadline": "group:竖屏口播信息层",
     "PortraitAiOutputGapComparison": "group:竖屏口播信息层",
     "PortraitRiskWarning": "group:风险提醒",
     "PortraitNextEpisodeTitle": "group:竖屏口播信息层",

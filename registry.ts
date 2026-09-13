@@ -23,9 +23,7 @@ import { UNIFIED_ANIMATION_DEFAULTS, UNIFIED_ANIMATION_SCHEMA } from "./effects/
 
 import { PortraitChapterRailEffectDef } from "./effects/PortraitChapterRail";
 import { PortraitIndexedChapterTitleEffectDef } from "./effects/PortraitIndexedChapterTitle";
-import { PortraitInfoCalloutEffectDef } from "./effects/PortraitInfoCallout";
 import { PortraitMetricDecisionEffectDef } from "./effects/PortraitMetricDecision";
-import { PortraitDecisionTagStackEffectDef } from "./effects/PortraitDecisionTagStack";
 import { PortraitStepStageTitleEffectDef } from "./effects/PortraitStepStageTitle";
 import { PortraitStepNumberListEffectDef } from "./effects/PortraitStepNumberList";
 import { PortraitStaggeredToolListEffectDef } from "./effects/PortraitStaggeredToolList";
@@ -45,7 +43,6 @@ import { PortraitBrowserRepairLoopEffectDef } from "./effects/PortraitBrowserRep
 import { PortraitAgentBrowserMediaEffectDef } from "./effects/PortraitAgentBrowserMedia";
 import { PortraitMediaPosterRevealEffectDef } from "./effects/PortraitMediaPosterReveal";
 import { PortraitSkillStepGridEffectDef } from "./effects/PortraitSkillStepGrid";
-import { PortraitGapHeadlineEffectDef } from "./effects/PortraitGapHeadline";
 import { PortraitAiOutputGapComparisonEffectDef } from "./effects/PortraitAiOutputGapComparison";
 import { PortraitRiskWarningEffectDef } from "./effects/PortraitRiskWarning";
 import { PortraitNextEpisodeTitleEffectDef } from "./effects/PortraitNextEpisodeTitle";
@@ -120,11 +117,7 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitChapterRailEffectDef,
   PortraitIndexedChapterTitleEffectDef,
 
-  PortraitInfoCalloutEffectDef,
-
   PortraitMetricDecisionEffectDef,
-
-  PortraitDecisionTagStackEffectDef,
 
   PortraitStepStageTitleEffectDef,
 
@@ -157,7 +150,6 @@ const EFFECT_DEFINITIONS: EffectDef[] = [
   PortraitAgentBrowserMediaEffectDef,
   PortraitMediaPosterRevealEffectDef,
   PortraitSkillStepGridEffectDef,
-  PortraitGapHeadlineEffectDef,
   PortraitAiOutputGapComparisonEffectDef,
 
   PortraitRiskWarningEffectDef,

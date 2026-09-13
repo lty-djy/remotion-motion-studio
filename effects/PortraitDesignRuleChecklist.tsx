@@ -23,6 +23,7 @@ type Props = {
   ruleIntervalSeconds?: number;
   ruleFontSize?: number;
   ruleOffsetX?: number;
+  ruleVerticalGap?: number;
   accentColor?: string;
   bulletColor?: string;
   panelColor?: string;
@@ -45,6 +46,7 @@ export const PortraitDesignRuleChecklist: React.FC<Props> = ({
   ruleIntervalSeconds = 1.8,
   ruleFontSize = 20,
   ruleOffsetX = 0,
+  ruleVerticalGap = 22,
   accentColor = "#17D9E8",
   bulletColor = "#17D9E8",
   panelColor = "#071017",
@@ -58,11 +60,15 @@ export const PortraitDesignRuleChecklist: React.FC<Props> = ({
   const totalFrames = Math.max(150, Math.round(animationSeconds * fps));
   const bgFactor = Math.min(1, Math.max(0, backgroundOpacity));
   const normalizedRuleCount = Math.min(8, Math.max(1, Math.round(ruleCount)));
+  const normalizedRuleVerticalGap = Math.min(120, Math.max(-40, ruleVerticalGap));
   const rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8].slice(
     0,
     normalizedRuleCount,
   );
-  const panelHeight = Math.max(360, 68 + normalizedRuleCount * 74);
+  const panelHeight = Math.max(
+    360,
+    68 + normalizedRuleCount * 52 + Math.max(0, normalizedRuleCount - 1) * normalizedRuleVerticalGap,
+  );
   const firstRuleFrame = totalFrames * 0.14;
   const ruleStaggerFrames = Math.max(0, ruleIntervalSeconds * fps);
 
@@ -114,7 +120,7 @@ export const PortraitDesignRuleChecklist: React.FC<Props> = ({
             name={`设计规则 ${index + 1}`}
             style={{
               position: "absolute",
-              top: 48 + index * 74,
+              top: 48 + index * (52 + normalizedRuleVerticalGap),
               left: 58 + ruleOffsetX,
               display: "flex",
               alignItems: "center",
@@ -185,6 +191,7 @@ export const PortraitDesignRuleChecklistEffectDef: EffectDef = {
     ruleIntervalSeconds: 1.8,
     ruleFontSize: 20,
     ruleOffsetX: 0,
+    ruleVerticalGap: 22,
     accentColor: "#17D9E8",
     bulletColor: "#17D9E8",
     panelColor: "#071017",
@@ -205,6 +212,7 @@ export const PortraitDesignRuleChecklistEffectDef: EffectDef = {
     ruleIntervalSeconds: { type: "number", label: "下一条规则入场间隔(秒)", default: 1.8, min: 0, step: 0.1 },
     ruleFontSize: { type: "number", label: "规则字号(px)", default: 20, min: 10, max: 96, step: 1 },
     ruleOffsetX: { type: "number", label: "规则水平位置(px)", default: 0, min: -40, max: 420, step: 1 },
+    ruleVerticalGap: { type: "number", label: "规则上下间隙(px)", default: 22, min: -40, max: 120, step: 1 },
     accentColor: { type: "color", label: "卡片强调色", default: "#17D9E8" },
     bulletColor: { type: "color", label: "规则圆点颜色", default: "#17D9E8" },
     panelColor: { type: "color", label: "底板颜色", default: "#071017" },

@@ -167,18 +167,18 @@ const learnedPreferenceResult = buildSemanticSrtArrangement({
       index: 1,
       startMs: 0,
       endMs: 3600,
-      text: "接下来进入新的章节，先说明这个方法。",
+      text: "比如先说明这个方法。",
     },
   ],
   durationInFrames: 120,
   componentPreferenceScores: {
-    PortraitInfoCallout: 10,
+    PortraitStepStageTitle: 10,
     PortraitChapterRail: -8,
   },
 });
 if (
   learnedPreferenceResult.motionTimeline[0]?.componentId !==
-  "PortraitInfoCallout"
+    "PortraitStepStageTitle"
 ) {
   throw new Error("已确认的组件偏好没有影响下一次竖屏编排推荐");
 }
@@ -193,7 +193,6 @@ const portraitComponentIds = new Set(
 );
 for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
   (id) => ![
-    "PortraitDecisionTagStack",
     "PortraitStaggeredToolList",
     "PortraitToolBadgeList",
     "PortraitToolListTitle",
@@ -207,7 +206,6 @@ for (const componentId of PORTRAIT_ROUTE_COMPONENT_IDS.filter(
     "PortraitBrowserRepairLoop",
     "PortraitAgentBrowserMedia",
     "PortraitSkillStepGrid",
-    "PortraitGapHeadline",
     "PortraitAiOutputGapComparison",
     "LegacyEliminationPanel",
     "ComparisonProgressBars",
@@ -644,36 +642,6 @@ const expectedSkillStepGridFrames = Math.round(((12250 - 9450) / 1000) * 30);
 if (Math.abs(skillStepGridMotion.durationInFrames - expectedSkillStepGridFrames) > 1) {
   throw new Error("四步 Skill 卡片没有覆盖 9.450–12.250 秒完整 SRT 语义段。");
 }
-const gapHeadlineResult = buildSemanticSrtArrangement({
-  ...portraitInput,
-  durationInFrames: 5400,
-  availableComponentIds: ["PortraitGapHeadline"],
-  componentCapabilities: runtimeRegistry
-    .filter((card) => card.id === "PortraitGapHeadline")
-    .map((card) => ({ componentId: card.id, semantic: card.semantic })),
-  entries: [
-    { index: 118, startMs: 165000, endMs: 166883, text: "其实现在真正拉开差距的" },
-    { index: 119, startMs: 166883, endMs: 167966, text: "早就不是模型" },
-    { index: 120, startMs: 167966, endMs: 168966, text: "是工作流" },
-  ],
-});
-const gapHeadlineMotion = gapHeadlineResult.motionTimeline.find(
-  (item) => item.componentId === "PortraitGapHeadline",
-);
-if (!gapHeadlineMotion) {
-  throw new Error("差距不在模型语义没有生成结论标题组件。");
-}
-if (
-  gapHeadlineMotion.props.badgeText !== "最后说一句" ||
-  gapHeadlineMotion.props.titlePrefix !== "差距不在" ||
-  gapHeadlineMotion.props.titleEmphasis !== "模型"
-) {
-  throw new Error("差距结论标题没有绑定徽标或拆分标题文字。");
-}
-const expectedGapHeadlineFrames = Math.round(((168966 - 165000) / 1000) * 30);
-if (Math.abs(gapHeadlineMotion.durationInFrames - expectedGapHeadlineFrames) > 1) {
-  throw new Error("差距结论标题没有覆盖 165.000–168.966 秒完整 SRT 语义段。");
-}
 const aiOutputGapComparisonResult = buildSemanticSrtArrangement({
   ...portraitInput,
   durationInFrames: 5400,
@@ -801,7 +769,7 @@ if (
   );
 }
 const metricItems = portraitFirst.motionTimeline.filter((item) =>
-  ["PortraitMetricDecision", "PortraitDecisionTagStack"].includes(item.componentId),
+  item.componentId === "PortraitMetricDecision",
 );
 if (
   metricItems.length !== 1 ||
@@ -817,13 +785,13 @@ const singleMetricCombo = buildSemanticSrtArrangement({
   ],
 });
 const singleMetricItems = singleMetricCombo.motionTimeline.filter((item) =>
-  ["PortraitMetricDecision", "PortraitDecisionTagStack"].includes(item.componentId),
+  item.componentId === "PortraitMetricDecision",
 );
 if (
-  singleMetricItems.length !== 2 ||
+  singleMetricItems.length !== 1 ||
   new Set(singleMetricItems.map((item) => item.sourceIntentId)).size !== 1
 ) {
-  throw new Error("单一数字意图没有保留数据卡与标签组组合能力");
+  throw new Error("单一数字意图没有保留数据决策卡");
 }
 if (
   portraitFirst.motionTimeline.some((item) =>

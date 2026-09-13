@@ -27,7 +27,7 @@
       "sourceIntentId": "intent-hook-recommendation"
     },
     {
-      "componentId": "PortraitInfoCallout",
+      "componentId": "PortraitStepStageTitle",
       "startFrame": 69,
       "durationInFrames": 135,
       "laneId": "recommendation",
@@ -37,9 +37,7 @@
         "enabled": true,
         "eyebrow": "双人餐推荐",
         "title": "内容真的很丰富",
-        "detail": "前菜、刺身、井饭都有",
-        "note": "选择非常多",
-        "iconText": "✦",
+        "subtitle": "前菜、刺身、井饭都有；选择非常多",
         "animationSeconds": 0.8
       },
       "sourceExpressionId": "expr-meal-overview",
@@ -75,7 +73,7 @@
       "sourceIntentId": "intent-menu-choice"
     },
     {
-      "componentId": "PortraitInfoCallout",
+      "componentId": "PortraitStepStageTitle",
       "startFrame": 401,
       "durationInFrames": 220,
       "laneId": "atmosphere",
@@ -85,16 +83,14 @@
         "enabled": true,
         "eyebrow": "店内氛围",
         "title": "日式氛围 + 萌宠主题",
-        "detail": "店长是一只可爱的小狗",
-        "note": "拍照打卡特别出片",
-        "iconText": "♡",
+        "subtitle": "店长是一只可爱的小狗，拍照打卡特别出片",
         "animationSeconds": 0.8
       },
       "sourceExpressionId": "expr-pet-atmosphere",
       "sourceIntentId": "intent-atmosphere-pet"
     },
     {
-      "componentId": "PortraitInfoCallout",
+      "componentId": "PortraitStepStageTitle",
       "startFrame": 620,
       "durationInFrames": 120,
       "laneId": "campaign",
@@ -104,9 +100,7 @@
         "enabled": true,
         "eyebrow": "4 周年活动",
         "title": "打卡积分充值",
-        "detail": "都有机会参与扭蛋",
-        "note": "会员还有专属福利",
-        "iconText": "✦",
+        "subtitle": "都有机会参与扭蛋，会员还有专属福利",
         "animationSeconds": 0.8
       },
       "sourceExpressionId": "expr-anniversary-campaign",

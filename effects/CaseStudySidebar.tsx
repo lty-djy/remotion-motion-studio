@@ -97,7 +97,7 @@ export const CaseStudySidebar: React.FC<Props> = ({
 export const CaseStudySidebarEffectDef: EffectDef = {
   id: "CaseStudySidebar",
   name: "案例商业数据侧栏",
-  description: "商业价值倍数、双金色数据进度条、人工审核说明与Logo徽章名片。",
+  description: "展示商业价值倍数、双金色数据进度条与人工审核说明；需要品牌或团队背书时可另配独立的 Logo徽章名片组件。",
   category: "portrait-narrative",
   catalogGroup: "品牌与标识",
   glyph: "×4",

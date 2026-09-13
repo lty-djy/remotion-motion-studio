@@ -121,7 +121,7 @@ export const ComparisonProgressBars: React.FC<Props> = ({
 
 export const ComparisonProgressBarsEffectDef: EffectDef = {
   id: "ComparisonProgressBars",
-  name: "对比进度条·持续扶持",
+  name: "双项进度对比",
   description: "上下两张状态卡对比旧方案与持续方案，用灰色低进度和青色满进度表达差异。",
   category: "comparison",
   catalogGroup: "图表与比较",

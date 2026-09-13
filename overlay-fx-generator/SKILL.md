@@ -13,7 +13,7 @@ when_to_use: 用户丢一段 SRT + 视频上下文（可选），要求"AI 编�
 里登记的真实效果库组件。你看不到、也不应该关心 JSX、CSS、React、Remotion。
 
 本 Skill 的方法论（先分段再配卡、密度与多样性硬指标、图形优先、卡点节奏）沿用
-Overlay Studio 的 overlay-fx-generator，**卡片库换成了本工作台的 40 个真实组件**，
+Overlay Studio 的 overlay-fx-generator，**卡片库使用本工作台的真实组件，以当前组件目录为准**，
 输出格式换成了工作台时间线 JSON。成功标准：**新会话只丢 SRT、零额外说明，直出可导入、
 lint 通过、组件多样的编排 JSON。**
 
@@ -21,7 +21,7 @@ lint 通过、组件多样的编排 JSON。**
 
 | 文件 | 作用 |
 | --- | --- |
-| `references/component-catalog.md` | 组件库全集（40 个）：id、可编排 props 白名单、默认落位、建议驻留、触发词。**componentId 和 props 只能用这里登记的** |
+| `references/component-catalog.md` | 组件库全集（以当前目录为准）：id、可编排 props 白名单、默认落位、建议驻留、触发词。**componentId 和 props 只能用这里登记的** |
 | `references/timeline-json.md` | 输出格式规范（字段级）+ 完整样例 |
 | `我的偏好.default.md` + `我的偏好.md` | 取值表。凡写成 **【偏好·分区·条目】** 的地方，取值一律查这两份（用户表覆盖默认表），**不要自己编数字**；两份都没写的按 default 表办 |
 | `经验规则.md` | 用户沉淀的定性偏好（存在才读） |
@@ -82,20 +82,20 @@ lint 通过、组件多样的编排 JSON。**
 - **落位避人（硬约束）**：人物在画面中央。**位置省略 = 组件目录默认落位**（设计时已避让中央）；需要叠卡错开时只做整卡平移，禁止发明一堆新坐标；底部约 20% 是字幕安全区，字幕轨以外的东西不许压进来。竖屏组件别用到横屏画布（反之亦然），lint 会查。
 - **时长**：内容卡一律跟着讲述时长走，不套固定值；各组件有建议驻留区间（目录里），短于下限 lint 会提醒。
 - **节奏**：开头 0–5s 必须有一张钩子卡；每个"总结/反转/金句/数字"时刻都配卡。
-- **让在场的卡活着（卡内逐条）**：节奏感来自"卡内容在动"，不是狂加新卡。超过 8s 的卡一律选能逐条推进的：`PortraitRiskWarning` 逐条亮风险、`PortraitStepNumberList` 逐项打勾、`PortraitDecisionTagStack` 逐条入场、`PortraitStaggeredToolList` 错峰列表。别让一张卡一次全亮然后干等。
+- **让在场的卡活着（卡内逐条）**：节奏感来自"卡内容在动"，不是狂加新卡。超过 8s 的卡一律选能逐条推进的：`PortraitRiskWarning` 逐条亮风险、`PortraitStepNumberList` 逐项打勾、`PortraitStaggeredToolList` 错峰列表。别让一张卡一次全亮然后干等。
 - **一个论点养一条线索，别撒一把卡**：一个论点占住整段，信息按讲述节奏依次进场——`ChapterBar` 推进到本段 → 主卡立论 → 逐条卡展开证据。厚度感来自累积，不来自卡数。
 
 ## 6. 图形优先（重要：防 PPT 化）
 
 动效是**视觉伴奏**，不是把字幕再打一遍。按这个优先级选组件：
 
-1. **证据优先（最高）**：观点要用数字和真素材背书，不要用文字复述——数字结论 → `PortraitMetricDecision`；增长/里程碑 → `MilestoneFollowerProgress`；档位/容量 → `SegmentedMeter`；两项对比走势 → `ComparisonProgressBars`；要演示的界面让用户「导入素材」，用 `MaterialCard` / `MediaSpotlightCard` / `ui 标注类` 卡呈现。
-2. **数字可视化**：一出现数字就用数字卡——大数字 + 一行小注，不写整句。
-3. **图标/图形结构**：并列列举 → `PortraitStaggeredToolList` / `PortraitSkillStepGrid`；流程/步骤 → `PortraitStepNumberList` / `PortraitWorkflowPrerequisite`；二选一 → `PortraitAiOutputGapComparison` / `PortraitSkillResultComparison` / `PortraitDecisionTagStack`；文件/代码/和 AI 的拉扯对话 → `TerminalPanel` / `PortraitBrowserRepairLoop` / `PortraitPromptIterationShowcase`。
+1. **证据优先（最高）**：观点要用数字和真素材背书，不要用文字复述——数字结论 → `PortraitMetricDecision`；有明确目标的完成度 → `MilestoneFollowerProgress`；档位/容量 → `SegmentedMeter`；有依据的双项进度比例 → `ComparisonProgressBars`；要演示的界面让用户「导入素材」，用 `MaterialCard` 或 `PortraitAgentBrowserMedia` 呈现。
+2. **数字可视化**：先判断数字角色，只有承担量化事实或结论的数字才考虑数字卡——大数字 + 一行小注，不写整句。标准编号、型号、版本号、电话号码、年份日期、章节序号及普通条目数不因包含数字就触发指标卡，应留在名称、时间或说明字段中；若句子明确比较年限、时长或数量，再按实际量化含义选卡。具体边界见 §6.2。
+3. **图标/图形结构**：并列列举 → `PortraitStaggeredToolList` / `PortraitSkillStepGrid`；流程/步骤 → `PortraitStepNumberList` / `PortraitWorkflowPrerequisite`；二选一 → `PortraitAiOutputGapComparison` / `PortraitSkillResultComparison`；文件/代码/和 AI 的拉扯对话 → `TerminalPanel` / `PortraitBrowserRepairLoop` / `PortraitPromptIterationShowcase`。
 
    **品牌与团队背书**：字幕出现品牌标识、官方 Logo、团队介绍、专业团队、团队实力、品牌背书、归因说明、AI 工具放大或“名片/徽章”语义时，优先使用 `TeamAttributionCard`（显示名：Logo徽章名片）。这是独立内容卡，不要把它误选成 `BrandLogo`：`BrandLogo` 用于平台/账号 Logo，`TeamAttributionCard` 用于团队/品牌背书与归因结论。默认只填 `attribution` 与 `attributionSubtitle`，图标来源由工作台默认值或用户资源设置。
-4. **实物图/截图/录屏**：引用他人的话 → `PortraitInfoCallout` 圈注；讲界面某个区域 → `PortraitInfoCallout` 圈注；地图/路线类叙事 → `GlobalExpedition`。聊天记录、群消息这类长文字，让用户截图铺底，绝不要打成文字卡。
-5. **纯文字卡是最后的选择**：只给钩子/反转/金句时刻（`PortraitGapHeadline` / `PortraitInfoCallout` 轻提示），占比见【偏好·文字量】。
+4. **实物图/截图/录屏**：引用他人的话或讲解界面某个区域时，用 `MaterialCard` 展示对应截图或录屏；需要浏览器外框时用 `PortraitAgentBrowserMedia`。需要圈注时使用已标注的素材。地图/路线类叙事 → `GlobalExpedition`。聊天记录、群消息这类长文字，让用户截图铺底，绝不要打成文字卡。
+5. **纯文字卡是最后的选择**：只给钩子/反转/金句时刻，优先使用与内容结构匹配的标题或风险组件，占比见【偏好·文字量】。
 
 文字量红线：
 
@@ -106,6 +106,41 @@ lint 通过、组件多样的编排 JSON。**
   - 例：三个痛点分别在 9.8s / 13.4s / 16.6s 开口讲 → 间隔取 3.3–3.6s。
   - 条目间隔明显不均匀时，优先把卡拆成时间不同的多张小卡，或选不分条的卡型。
 - 完整样例（SRT → 编排 JSON）见 `examples/sample-srt.srt` + `examples/sample-arrangement.timeline.json`，lint 全绿，可直接对照模仿。
+
+### 6.1 相似组件的选择边界
+
+先看本段要表达的关系、已有内容和素材，再看关键词。下表用于消除相似组件歧义，优先于上面的宽泛推荐和目录检索词；用户点单仍按 §9 执行。组件名称里的 Skill、AI、粉丝等是既有场景，不是用途限制，但不能超出目录所列字段和真实能力。
+
+| 组件 | 何时选 / 需要的内容 | 何时不选 / 如何区分 |
+| --- | --- | --- |
+| `PortraitSkillResultComparison` | 有可对应的前后素材，用擦除和切换呈现效果变化；明确素材顺序、标题和切换时间 | 只有两句结论时用文字对比；缺素材时列入待补清单，不以演示素材冒充实际证据 |
+| `PortraitAiOutputGapComparison` | 已明确正反结果，各提炼一句短文字 | 不承载图片对照；中性的两个方案不要强行写成好坏 |
+| `ComparisonProgressBars` | 两项可比较状态及有依据的进度比例，明确比例的分母或目标口径 | 不代表时间序列走势或任意双数值图表；不能将数量直接填入 0–1 的进度字段，不从“更好”推导百分比，详见 §6.2 |
+| `PortraitStepNumberList` | 有先后依赖的操作步骤，需编号和连接线引导 | 并列工具或理由没有执行顺序时不用流程暗示因果 |
+| `PortraitStaggeredToolList` | 多个并列对象，各有名称和简短说明，逐项讲解 | 不自动加排名或先后依赖；不限工具，也可承载方法和方案 |
+| `PortraitSkillStepGrid` | 步骤适合分别放入独立卡片，每项有标题和副标题，数量按实际内容填写 | 不为“四步”名称凑条目；长篇说明不塞入卡片 |
+| `PortraitWorkflowPrerequisite` | 讲清执行前的准备与后续流程，有前置结论和有序步骤 | 普通并列清单不用；不要求内容必须是安装工作流 |
+| `ChapterBar` | 全片需要持续导航，已有完整章节名和真实起点 | 单次段落开场不使用全片导航替代标题 |
+| `PortraitChapterRail` | 单个段落开场，需要竖线、章节编号和标题构成的轻量标识 | 不承担全片进度，也不与其他章节标题重复表达同一信息 |
+| `PortraitIndexedChapterTitle` | 段落开场需要突出大号序号及主副标题 | 序号不是内容重点时不为视觉效果强加编号 |
+| `PortraitStepStageTitle` | 流程内部的阶段引导或小结，需要标题与说明 | 不承载步骤列表；可与编号步骤清单分工，避免重复标题 |
+| `PortraitSkillIdentityHeaderBar` | 介绍一个带编号的条目，需要横向主副标题条 | 不代表完整流程或全片导航；不限技能介绍 |
+| `PortraitMetricDecision` | 一个明确核心数值、单位及与之相关的结论 | 标准编号、电话、版本、日期、序号及普通条目数不单独触发数据卡；先按 §6.2 判断数字角色 |
+| `MilestoneFollowerProgress` | 当前成绩相对明确目标的完成度，数值和目标有来源，比例可计算 | 只有累计成绩而无目标时用单项数字或里程碑徽章；不臆造目标 |
+| `BrollPlayMilestoneBadge` | 一个成绩或里程碑数字，需要徽章强调，并有简短上下文 | 仅说“回顾往期”而无成绩数据时不选；不承担目标进度 |
+| `BrandLogo` | 介绍或标识一个品牌、平台、账号，有匹配的 Logo 资源 | 单独出现品牌名不等于背书；不自动添加团队结论 |
+| `TeamAttributionCard` | 原文明确团队说明、品牌背书或归因结论，配匹配的 Logo 资源 | 仅出现“官方 Logo”“AI 工具”不自动选；不得自行声称官方认可或团队实力 |
+| `TerminalPanel` | 命令行配合多步解释，需要教学主面板 | 仅展示一条命令及反馈时优先终端打字机；泛泛提到工具不触发终端 |
+| `Terminal3D` | 展示具体命令、参数、注释或执行反馈，重点是输入过程 | 不把普通口播改写成虚构命令或伪造成功日志；多步教学优先终端教学面板 |
+
+同一句话存在多个意图时分别判断。例如“介绍品牌，并说明它让处理时间从 10 分钟降到 2 分钟”，可以同时提出品牌标识与数据/对比候选；各卡承担不同信息，按同屏布局约束选择性应用。`componentCandidates` 的推荐理由说明匹配的内容结构、素材是否齐备，以及与相似备选的区别，不只写“命中关键词”。
+
+### 6.2 数字角色与数量对比
+
+- **标识与量化分开**：`GB28480` 是标准编号、`S925` 是材质标记、`12315` 是电话号码，保持完整字符串，放入提示或步骤内容；不能截出其中数字做滚动指标。`2025年` 是时间背景，`第一个` 是序号，`4个工具` 通常是列表数量，均不单独触发数字卡。`耗时24小时`、`观看量20多万` 则可表达量化事实；是否突出仍取决于本段论点，不是见数字必加卡。
+- **原始数量不是完成比例**：例如“同一效果，代码从200行降到30行”，优先用 `PortraitMetricDecision` 展示“30行”，以简短说明保留“原200行”。不把 200、30 填入进度字段，也不默认换算成 100% 与 15% 塑造成目标完成度。
+- **计算必须说明口径**：只有语义确需比例且分子、分母、单位和比较口径明确时才计算。上述例子的“减少85%”是 `(200-30)/200` 的推导值，须在推荐理由或备注标明计算依据，不能冒充字幕原话或新的来源证据。两项单位或口径不一致时不计算比例；不能仅为填满组件字段而计算。
+- **目标进度需要真实目标**：`MilestoneFollowerProgress` 需要当前值和明确目标；没有目标时选单项数字表达。`ComparisonProgressBars` 仅用于语义成立的双项进度比例，两个原始数量的大小关系本身不足以选它。保留“多”“约”“超过”等精度限定，不将约数变成精确统计。
 
 ## 7. 常驻层
 
@@ -130,7 +165,6 @@ lint 通过、组件多样的编排 JSON。**
 
 用户可以**指定某段话用某个组件**，支持三种写法（可混用）：
 
-- **按原话**：「"收藏了不等于学习了"这句用 PortraitDecisionTagStack」→ 在 SRT 里全文检索（允许近似匹配），用它所在字幕条的真实起止时间。
 - **按时间**：「2:10-2:25 用 PortraitStepNumberList」→ 直接换算成秒。
 - **按内容描述**：「讲三个痛点那段用 PortraitRiskWarning」→ 先在 SRT 里定位语义段，再套卡。
 
@@ -177,7 +211,7 @@ lint 通过、组件多样的编排 JSON。**
 
 ## 13. 素材清单（交付时必附）
 
-凡编排里用了需要素材的卡（`MaterialCard` / `MediaSpotlightCard` / `PortraitMediaPosterReveal` / `GlobalExpedition` 等媒体类），交付 JSON 时**必须附一份素材清单**：每张卡一行，写「卡 id · 时间 · 需要用户补什么录屏/截图（具体到"B站后台涨粉曲线"这种程度）」。没有素材清单的编排，这些卡会空着上片。
+凡编排里用了需要素材的卡（`MaterialCard` / `PortraitAgentBrowserMedia` / `PortraitMediaPosterReveal` / `GlobalExpedition` 等媒体类），交付 JSON 时**必须附一份素材清单**：每张卡一行，写「卡 id · 时间 · 需要用户补什么录屏/截图（具体到"B站后台涨粉曲线"这种程度）」。没有素材清单的编排，这些卡会空着上片。
 
 ## 14. 交付方式
 

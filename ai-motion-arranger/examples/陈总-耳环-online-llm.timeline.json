@@ -76,7 +76,7 @@
       "sourceIntentId": "intent-metric-chrome"
     },
     {
-      "componentId": "PortraitInfoCallout",
+      "componentId": "PortraitStepStageTitle",
       "startFrame": 432,
       "durationInFrames": 221,
       "laneId": "consequence",
@@ -86,9 +86,7 @@
         "enabled": true,
         "eyebrow": "身体反应",
         "title": "戴完耳朵又红又肿",
-        "detail": "不适反应别硬扛",
-        "note": "及时停止佩戴并就医",
-        "iconText": "!",
+        "subtitle": "不适反应别硬扛，及时停止佩戴并就医",
         "animationSeconds": 0.8
       },
       "sourceExpressionId": "expr-health-callout",

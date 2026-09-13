@@ -1119,7 +1119,6 @@ const portraitStyleForRoute = (routeId) => {
     "code-decision-checklist": "#9A73FF",
     "browser-repair-loop": "#4E85FF",
     "browser-self-check-media": "#638CFF",
-    "gap-headline": "#1FD9E8",
     "ai-output-gap-comparison": "#1FD9E8",
     "process-steps": "#168CFF",
     "risk-boundary": "#FF493D",
@@ -1392,8 +1391,6 @@ const portraitContext = ({ route, text, timing, fps, documentContext }) => {
         ? Math.max(3, Math.min(12, Number(segmentSeconds.toFixed(2))))
       : route.id === "skill-step-grid"
         ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
-      : route.id === "gap-headline"
-        ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
       : route.id === "ai-output-gap-comparison"
         ? Math.max(2, Math.min(8, Number(segmentSeconds.toFixed(2))))
       : Math.max(
@@ -1518,55 +1515,45 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   "skill-step-grid": [
     { componentId: "PortraitSkillStepGrid", reason: "用 STEP 1 到 4 的横向卡片清晰列出四个 Skill 分工" },
   ],
-  "gap-headline": [
-    { componentId: "PortraitGapHeadline", reason: "用徽标与超大标题强调差距不在模型这一核心结论" },
-  ],
   "ai-output-gap-comparison": [
     { componentId: "PortraitAiOutputGapComparison", reason: "用红色叉号与青色勾号对比 AI 糊感和可直接上线的结果" },
   ],
   "chapter-transition": [
     { componentId: "PortraitChapterRail", reason: "突出章节标题和阶段切换" },
-    { componentId: "PortraitInfoCallout", reason: "用轻量说明卡承接新章节" },
   ],
   "info-callout": [
-    { componentId: "PortraitInfoCallout", reason: "适合工具、方法和补充解释" },
+    { componentId: "PortraitStepStageTitle", reason: "用阶段标题承载工具、方法和补充解释" },
     { componentId: "PortraitChapterRail", reason: "适合把说明提升为小节标题" },
   ],
   "evidence-source": [
-    { componentId: "PortraitInfoCallout", reason: "适合呈现检测来源、机构结论和事实证据" },
+    { componentId: "PortraitStepStageTitle", reason: "用阶段标题承载检测来源、机构结论和事实证据" },
   ],
   "enumerated-tool-list": [
     { componentId: "PortraitStaggeredToolList", reason: "按口播节奏错峰列出多个工具、技能或方法" },
     { componentId: "PortraitToolBadgeList", reason: "在每行右侧同步展示 C 位、热度等徽标" },
     { componentId: "PortraitToolListTitle", reason: "用引导词和大标题为列表建立语境" },
     { componentId: "PortraitStepNumberList", reason: "当条目强调先后顺序时可改用编号步骤清单" },
-    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
   ],
   "direct-prompt-mistake": [
     { componentId: "PortraitPromptMistakeDiagnosis", reason: "逐字展示错误提问，并错峰标出视觉与代码问题" },
     { componentId: "PortraitRiskWarning", reason: "当内容只需保留风险结论时可改用提醒卡" },
-    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为说明卡" },
   ],
   "workflow-prerequisite": [
     { componentId: "PortraitWorkflowPrerequisite", reason: "横向点亮审美、动效、工程、自测四步前置流程" },
     { componentId: "PortraitStepNumberList", reason: "当流程更适合纵向阅读时可改用编号步骤清单" },
-    { componentId: "PortraitInfoCallout", reason: "当内容较短时可压缩为工作流说明卡" },
   ],
   "skill-source-fusion": [
     { componentId: "PortraitSkillSourceFusion", reason: "依次展示 Taste、Impeccable 与个人经验，并收束为一个 Skill" },
     { componentId: "PortraitStaggeredToolList", reason: "当来源数量继续增加时可改用错峰列表" },
-    { componentId: "PortraitInfoCallout", reason: "当只需保留合成结论时可压缩为说明卡" },
   ],
   "design-rule-checklist": [
     { componentId: "PortraitDesignRuleChecklist", reason: "按口播顺序逐项点亮排版、留白、配色和层级规则" },
     { componentId: "PortraitStepNumberList", reason: "当规则需要强调执行先后时可改用编号步骤清单" },
-    { componentId: "PortraitInfoCallout", reason: "当只需保留规则结论时可压缩为说明卡" },
   ],
   "skill-result-comparison": [
     { componentId: "PortraitSkillResultComparison", reason: "用发光擦除线依次对比默认效果、Skill 优化效果和另一行业案例" },
     { componentId: "ComparisonProgressBars", reason: "用上下两张状态卡和进度线对比旧方案与持续方案" },
     { componentId: "MediaSpotlightCard", reason: "当只需展示单个案例画面时可改用媒体聚焦卡" },
-    { componentId: "PortraitDecisionTagStack", reason: "当没有案例素材时可压缩为文字对比标签" },
   ],
   "comparison-progress-bars": [
     { componentId: "ComparisonProgressBars", reason: "用上下两张状态卡和进度线呈现旧方案与持续方案的差异" },
@@ -1581,29 +1568,24 @@ const PORTRAIT_CANDIDATE_PROFILES = Object.freeze({
   ],
   "metric-decision": [
     { componentId: "PortraitMetricDecision", reason: "突出核心数字和推荐结论" },
-    { componentId: "PortraitDecisionTagStack", reason: "并列展示多个判断标签" },
-    { componentId: "PortraitInfoCallout", reason: "弱化数据感，改用结论说明卡" },
+    { componentId: "PortraitStepStageTitle", reason: "没有明确数字时用阶段标题承载量化结论" },
   ],
   "process-steps": [
     { componentId: "PortraitStepNumberList", reason: "用编号圆圈和连接线逐步呈现操作流程" },
     { componentId: "PortraitStepStageTitle", reason: "用阶段标题概括流程结论" },
-    { componentId: "PortraitInfoCallout", reason: "将流程压缩为简短说明" },
     { componentId: "PortraitChapterRail", reason: "作为流程章节的开场提示" },
   ],
   "action-advice": [
-    { componentId: "PortraitInfoCallout", reason: "适合呈现单条购买建议和处理方法" },
     { componentId: "PortraitStepNumberList", reason: "当建议包含多个步骤时可改用编号步骤清单" },
   ],
   "risk-boundary": [
     { componentId: "PortraitRiskWarning", reason: "适合一般风险和使用边界" },
     { componentId: "LegacyEliminationPanel", reason: "适合过时、淘汰和被取代语义" },
-    { componentId: "PortraitInfoCallout", reason: "用较克制的说明方式提示限制" },
   ],
   "next-episode-cta": [
     { componentId: "PortraitNextEpisodeTitle", reason: "突出下集主题和下期内容预告" },
     { componentId: "PortraitFollowCta", reason: "突出关注、点赞等行动引导" },
     { componentId: "PortraitChapterRail", reason: "用章节式结尾预告下一部分" },
-    { componentId: "PortraitInfoCallout", reason: "以轻量卡片收束口播" },
   ],
 });
 
@@ -1615,7 +1597,6 @@ const portraitCandidateAllowed = (componentId, context) => {
     return context.evidence.listItemCount >= 2;
   }
   if (componentId === "PortraitMetricDecision") return context.evidence.metricFound;
-  if (componentId === "PortraitDecisionTagStack") return context.evidence.labelCount >= 2;
   if (componentId === "PortraitStepNumberList") return context.evidence.stepCount >= 2;
   if (componentId === "LegacyEliminationPanel") {
     return context.evidence.eliminationWarning;
@@ -1641,16 +1622,6 @@ const portraitCandidateProps = (componentId, route, context) => {
       ...shared,
       title: context.segment.topic,
       subtitle: context.segment.detail,
-    };
-  }
-  if (componentId === "PortraitInfoCallout") {
-    return {
-      ...shared,
-      eyebrow: context.segment.label,
-      title: context.segment.topic,
-      detail: context.segment.detail,
-      note: context.segment.note || context.intent.conclusion,
-      iconText: context.resource.iconText,
     };
   }
   if (componentId === "PortraitStepStageTitle") {
@@ -1732,20 +1703,10 @@ const PORTRAIT_FALLBACK_LAYOUTS = Object.freeze({
     fallbackAnchors: ["left-top", "right-top"],
     preferredScale: 1,
   },
-  PortraitInfoCallout: {
-    anchor: "right-top",
-    fallbackAnchors: ["left-top", "right-center", "left-center"],
-    preferredScale: 0.72,
-  },
   PortraitMetricDecision: {
     anchor: "left-top",
     fallbackAnchors: ["right-top", "left-center"],
     preferredScale: 0.64,
-  },
-  PortraitDecisionTagStack: {
-    anchor: "right-center",
-    fallbackAnchors: ["right-top", "left-center"],
-    preferredScale: 0.82,
   },
   PortraitStepStageTitle: {
     anchor: "right-top",
@@ -2077,17 +2038,13 @@ const buildPortraitSemanticSrtArrangement = ({
         Number.isFinite(Number(resolvedDocumentContext.skillStepGrid?.endMs))
         ? Math.round((Number(resolvedDocumentContext.skillStepGrid.endMs) / 1000) * fps)
         : endFrame;
-      const gapHeadlineEndFrame = route.id === "gap-headline" &&
-        Number.isFinite(Number(resolvedDocumentContext.gapHeadline?.endMs))
-        ? Math.round((Number(resolvedDocumentContext.gapHeadline.endMs) / 1000) * fps)
-        : endFrame;
       const aiOutputGapComparisonEndFrame = route.id === "ai-output-gap-comparison" &&
         Number.isFinite(Number(resolvedDocumentContext.aiOutputGapComparison?.endMs))
         ? Math.round((Number(resolvedDocumentContext.aiOutputGapComparison.endMs) / 1000) * fps)
         : endFrame;
       const timing = spanForPortraitIntent(
         startFrame,
-        Math.max(endFrame, workflowEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, gapHeadlineEndFrame, aiOutputGapComparisonEndFrame),
+        Math.max(endFrame, workflowEndFrame, skillSourceFusionEndFrame, designRulesEndFrame, skillResultEndFrame, promptIterationEndFrame, codeDecisionEndFrame, browserRepairEndFrame, browserSelfCheckEndFrame, skillStepEndFrame, aiOutputGapComparisonEndFrame),
         routeIndex,
         selectedRoutes.length,
       );

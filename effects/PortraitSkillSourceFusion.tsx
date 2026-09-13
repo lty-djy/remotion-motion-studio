@@ -126,7 +126,7 @@ export const PortraitSkillSourceFusion: React.FC<Props> = ({
 
   return (
     <Interactive.Div
-      name="Skill 来源合成"
+      name="多来源汇总卡"
       data-effect="PortraitSkillSourceFusion"
       style={{
         position: "relative",
@@ -247,7 +247,7 @@ export const PortraitSkillSourceFusion: React.FC<Props> = ({
 
 export const PortraitSkillSourceFusionEffectDef: EffectDef = {
   id: "PortraitSkillSourceFusion",
-  name: "Skill 来源合成",
+  name: "多来源汇总卡",
   description: "复刻参考视频 30.883–39.566 秒：在 Skill 身份标题下按需增减并依次展示经验来源。",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
@@ -301,7 +301,7 @@ export const PortraitSkillSourceFusionEffectDef: EffectDef = {
     animationSeconds: 8.7,
   },
   propsSchema: {
-    enabled: { type: "boolean", label: "显示 Skill 来源合成", default: true },
+    enabled: { type: "boolean", label: "显示 多来源汇总卡", default: true },
     sequenceText: { type: "text", label: "Skill 编号" },
     title: { type: "text", label: "Skill 主标题" },
     subtitle: { type: "text", label: "Skill 副标题" },

@@ -11,19 +11,22 @@
       "componentScores": {
         "PortraitRiskWarning": 12,
         "PortraitMetricDecision": 12,
-        "PortraitDecisionTagStack": 12,
-        "PortraitInfoCallout": 12,
         "PortraitChapterRail": 12,
         "PortraitStepNumberList": 12,
         "PortraitNextEpisodeTitle": 12,
         "PortraitFollowCta": 12,
         "ChapterBar": 12,
-        "PortraitGapHeadline": 12,
         "BrandLogo": 12,
         "QuickSetupProof": 12,
         "TeamAttributionCard": 2,
         "PortraitStaggeredToolList": 2,
-        "PortraitPillText": 2
+        "PortraitPillText": 4,
+        "FocusCamMove": 2,
+        "PortraitSkillStepGrid": 2,
+        "PortraitWorkflowPrerequisite": 2,
+        "PortraitSkillSourceFusion": 2,
+        "ComparisonProgressBars": 2,
+        "PortraitAgentBrowserMedia": 2
       },
       "semanticTags": {
         "emphasis": {
