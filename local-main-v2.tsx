@@ -1,4 +1,10 @@
 import { buildComponentReplacement, subtitleTextForInstance, isReplacementContentField } from "./component-replacement";
+import { duplicateComponentSounds, isComponentSoundMuted, normalizeSoundBinding, syncComponentSounds } from "./component-sound-binding";
+import { ComponentSoundPanel, type SoundPanelChange } from "./component-sound-panel";
+import { SfxDeleteDialog, type SfxReference } from './sfx-delete-dialog';
+import { soundReferences, rewriteSoundReferences } from './sfx-references.mjs';
+import { selectComponentSound } from "./component-sound-selection";
+import { useComponentSoundTracks } from "./use-component-sound-tracks";
 import {GigCardsEditor} from "./effects/GigCardsEditor";
 import { assignArrangementLanes } from "./arrangement-lanes";
 import {readGigCards} from "./effects/gig-card-model";
@@ -867,6 +873,7 @@ const markPendingArrangementQualityChecksStale = (
   arrangement: PendingArrangement,
 ): PendingArrangement => ({
   ...arrangement,
+  resourceTracks: syncComponentSounds(arrangement.resourceTracks, arrangement.motionInstances),
   qualityControlStatus: "pending",
   qualityControlChecks: arrangement.qualityControlChecks.map((check) => ({
     ...check,
@@ -1584,6 +1591,9 @@ const restoreResourceTrack = (
     },
     volume: clamp(finiteNumber(track.volume, 1), 0, 1),
     voiceDucking: clamp(finiteNumber(track.voiceDucking, 0), 0, 1),
+    muted: track.muted === true,
+    ...(normalizeSoundBinding(track.soundBinding, kind)
+      ? { soundBinding: normalizeSoundBinding(track.soundBinding, kind) } : {}),
     ...(typeof track.sourceExpressionId === "string" && track.sourceExpressionId
       ? { sourceExpressionId: track.sourceExpressionId }
       : {}),
@@ -1861,6 +1871,8 @@ const createInstance = (
       ? Number(overrides.trackOrder)
       : instanceSequence,
     componentId: definition.id,
+    ...(overrides.soundMode === 'none' || overrides.soundMode === 'auto' || overrides.soundMode === 'manual'
+      ? { soundMode: overrides.soundMode } : {}),
     visible: overrides.visible !== false,
     muted: overrides.muted === true,
     sourceStartFrame: Math.max(
@@ -2296,7 +2308,7 @@ const StudioPreviewComposition = ({
         if (layer.kind === "resource") {
           const track = layer.track;
           const isAudio = track.kind === "sfx";
-          const trackMuted = track.muted === true;
+          const trackMuted = isComponentSoundMuted(track, instances);
           const effectiveVolume = soundEnabled && !trackMuted
             ? track.volume * (1 - track.voiceDucking)
             : 0;
@@ -3613,7 +3625,7 @@ const App = () => {
   const [definitions, setDefinitions] = useState<MotionComponentDefinition[]>(
     [],
   );
-  const [instances, setInstances] = useState<MotionInstance[]>([]);
+  const { instances, setInstances, resourceTracks, setResourceTracks } = useComponentSoundTracks();
   const [pendingArrangement, setPendingArrangement] =
     useState<PendingArrangement | null>(null);
   const [arrangementPreviewMinimized, setArrangementPreviewMinimized] =
@@ -3740,8 +3752,13 @@ const App = () => {
   const [videoPreviewEnabled, setVideoPreviewEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(6);
   const [videoTracks, setVideoTracks] = useState<VideoTrack[]>([]);
-  const [resourceTracks, setResourceTracks] = useState<ResourceTrack[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [sfxDeleteDialog, setSfxDeleteDialog] = useState<{sound:SoundResource; revision:string; references:SfxReference[]; loading:boolean; error:string} | null>(null);
+  const [sfxDeleteBusy, setSfxDeleteBusy] = useState(false);
+  const [sfxUndoLabel, setSfxUndoLabel] = useState('');
+  const soundDeletionUndoRef = useRef<{afterSignature:string; run:()=>Promise<void>} | null>(null);
+  const liveSoundContextRef = useRef({instances,resourceTracks,videoTracks,soundEnabled,pendingArrangement});
+  liveSoundContextRef.current = {instances,resourceTracks,videoTracks,soundEnabled,pendingArrangement};
   const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
   const [selectedResourceTrackId, setSelectedResourceTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
@@ -5651,6 +5668,8 @@ const App = () => {
             {
               durationInFrames: savedInstance.durationInFrames,
               visible: savedInstance.visible !== false,
+              muted: savedInstance.muted === true,
+              soundMode: savedInstance.soundMode,
               sourceStartFrame: Number(savedInstance.sourceStartFrame) || 0,
               laneId: savedInstance.laneId,
               trackOrder: savedInstance.trackOrder,
@@ -6557,6 +6576,10 @@ const App = () => {
   }, []);
 
   const undoEdit = useCallback(() => {
+    if (soundDeletionUndoRef.current?.afterSignature === JSON.stringify(liveSoundContextRef.current)) {
+      void soundDeletionUndoRef.current.run();
+      return;
+    }
     commitPendingHistory();
     const history = historyRef.current;
     const previous = history.past.pop();
@@ -6923,6 +6946,41 @@ const App = () => {
     },
     [pendingPreviewInspectorInstance, updateInstance],
   );
+
+  const changeInspectorSound = (change: SoundPanelChange) => {
+    if (!inspectorInstance) return;
+    const ownerId = inspectorInstance.id;
+    const updateSounds = (tracks: ResourceTrack[], owner: MotionInstance) => {
+      if (change.mode === 'none') return tracks.filter(track => track.soundBinding?.instanceId !== ownerId);
+      if (change.choice) return selectComponentSound(owner, tracks, change.choice, fps, createResourceTrackId);
+      const first = tracks.find(track => track.kind === 'sfx' && track.soundBinding?.instanceId === ownerId);
+      return tracks.map(track => track.id !== first?.id ? track : {
+        ...track,
+        ...(change.volume !== undefined ? { volume: clamp(change.volume, 0, 1) } : {}),
+        ...(change.offsetFrames !== undefined && track.soundBinding
+          ? { soundBinding: { ...track.soundBinding, offsetFrames: change.offsetFrames } } : {}),
+      });
+    };
+    if (pendingPreviewInspectorInstance) {
+      setPendingArrangement(current => {
+        if (!current) return current;
+        const owner = current.motionInstances.find(instance => instance.id === ownerId);
+        if (!owner) return current;
+        const resourceTracks = updateSounds(current.resourceTracks, owner);
+        const removedIds = new Set(current.resourceTracks.filter(track => !resourceTracks.some(next => next.id === track.id)).map(track => `resource:${track.id}`));
+        const selectedKeys = current.selectedKeys.filter(key => !removedIds.has(key));
+        for (const track of resourceTracks) {
+          if (track.soundBinding?.instanceId === ownerId && !selectedKeys.includes(`resource:${track.id}`)) selectedKeys.push(`resource:${track.id}`);
+        }
+        return markPendingArrangementQualityChecksStale({ ...current, resourceTracks, selectedKeys,
+          motionInstances: current.motionInstances.map(instance => instance.id === ownerId && change.mode ? {...instance,soundMode:change.mode} : instance),
+        });
+      });
+    } else {
+      if (change.mode) updateInstance(ownerId, instance => ({ ...instance, soundMode: change.mode }));
+      setResourceTracks(current => updateSounds(current, inspectorInstance));
+    }
+  };
 
   const addInstance = (componentId: string) => {
     const definition = definitionMap.get(componentId);
@@ -9674,7 +9732,8 @@ const App = () => {
       ...(selectedCaptionInstance ? [selectedCaptionInstance] : []),
     ];
     const selectedResourceTracks = pendingArrangement.resourceTracks.filter(
-      (track) => selectedKeys.has(`resource:${track.id}`),
+      (track) => selectedKeys.has(`resource:${track.id}`) &&
+        (!track.soundBinding || selectedTimelineInstances.some(instance => instance.id === track.soundBinding?.instanceId)),
     );
     if (selectedTimelineInstances.length + selectedResourceTracks.length === 0) {
       setNotice({ tone: "info", text: "请至少选择一个编排项。" });
@@ -10071,19 +10130,24 @@ const App = () => {
       text: `正在单独导出「${definition.name}」透明 MOV（仅该组件、无背景视频）…`,
     });
     try {
+      const exportSounds = syncComponentSounds(
+        resourceTracks.filter(track => track.kind === 'sfx' && track.soundBinding?.instanceId === instance.id),
+        [{ ...instance, startFrame: 0 }],
+      );
       const response = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoSrc: "",
           videoTracks: [],
-          resourceTracks: [],
+          resourceTracks: exportSounds,
           sourceIncludesVideo: false,
-          soundEnabled: false,
+          soundEnabled,
           instances: [{ ...instance, startFrame: 0 }],
           timelineDurationInFrames: Math.max(
             3,
             instance.durationInFrames,
+            ...exportSounds.map(track => track.startFrame + track.durationInFrames),
           ),
           canvasWidth,
           canvasHeight,
@@ -12248,39 +12312,78 @@ const App = () => {
   };
 
   const deleteManualSfxResource = async (sound: SoundResource) => {
-    if (sound.source !== "manual") return;
-    if (
-      resourceTracks.some(
-        (track) => track.kind === "sfx" && track.resourceId === sound.id,
-      )
-    ) {
-      setNotice({ tone: "error", text: "请先从时间线移除这个音效，再删除资源。" });
-      return;
-    }
-    if (!window.confirm(`确定从音效库删除“${sound.label}”吗？`)) return;
-    stopSfxLibraryPreview();
+    setContextMenu(null);
+    setSfxDeleteDialog({sound,revision:'',references:[],loading:true,error:''});
     try {
-      const response = await fetch("/api/delete-manual-sfx", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ soundId: sound.id }),
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) {
-        throw new Error(payload?.error ?? "音效删除失败");
-      }
-      setArrangementResourceLibrary((current) => ({
-        ...current,
-        sfx: current.sfx.filter((item) => item.id !== sound.id),
-      }));
-      setNotice({ tone: "ok", text: `已删除音效“${sound.label}”。` });
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        text: error instanceof Error ? error.message : "音效删除失败",
-      });
+      const response = await fetch(`/api/sfx-delete-impact?soundId=${encodeURIComponent(sound.id)}`, {cache:'no-store'});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || '无法检查音效引用');
+      setSfxDeleteDialog(current => current?.sound.id === sound.id ? {...current,revision:result.revision,references:result.references,loading:false} : current);
+    } catch(error) {
+      setSfxDeleteDialog(current => current?.sound.id === sound.id ? {...current,loading:false,error:error instanceof Error?error.message:'引用检查失败'} : current);
     }
   };
+
+  const confirmSfxDeletion = async (action:'remove'|'replace', replacementId:string) => {
+    if (!sfxDeleteDialog || sfxDeleteBusy) return;
+    const {sound,revision} = sfxDeleteDialog;
+    setSfxDeleteBusy(true);
+    stopSfxLibraryPreview();
+    commitPendingHistory();
+    const before = JSON.parse(JSON.stringify(liveSoundContextRef.current));
+    const beforeHistory = JSON.parse(JSON.stringify(historyRef.current));
+    try {
+      const response = await fetch('/api/delete-sfx', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({soundId:sound.id,revision,action,replacementId,fps})});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || '删除音效失败');
+      const after = rewriteSoundReferences(before,sound.id,result.replacement,fps);
+      setInstances(after.instances);
+      setResourceTracks(after.resourceTracks);
+      setPendingArrangement(after.pendingArrangement);
+      // Keep ordinary undo useful, but never restore a reference to a deleted asset.
+      window.clearTimeout(historyTimerRef.current);
+      pendingHistoryRef.current = null;
+      historyRef.current = rewriteSoundReferences(beforeHistory,sound.id,result.replacement,fps);
+      applyingHistoryRef.current = true;
+      setArrangementResourceLibrary(current => ({...current,sfx:result.library.map((item: SoundResource & {media?:{durationSeconds?:number}})=>({...item,durationSeconds:item.durationSeconds??item.media?.durationSeconds}))}));
+      setSelectedResourceTrackId(current => after.resourceTracks.some((item:ResourceTrack)=>item.id===current) ? current : '');
+      setSfxDeleteDialog(null);
+      setSfxUndoLabel(sound.label);
+      const undoRecord = {
+        afterSignature:JSON.stringify(after),
+        run:async () => {
+          if (JSON.stringify(liveSoundContextRef.current) !== undoRecord.afterSignature) {
+            setNotice({tone:'error',text:'删除后还有新的编辑，请先撤销这些编辑，再撤销音效删除。'});
+            return;
+          }
+          setSfxDeleteBusy(true);
+          try {
+            const response = await fetch('/api/undo-sfx-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:result.token})});
+            const restored = await response.json();
+            if (!response.ok || !restored.ok) throw new Error(restored.error || '撤销删除失败');
+            window.clearTimeout(historyTimerRef.current);
+            pendingHistoryRef.current=null;
+            historyRef.current=beforeHistory;
+            applyingHistoryRef.current=true;
+            setInstances(before.instances);
+            setResourceTracks(before.resourceTracks);
+            setPendingArrangement(before.pendingArrangement);
+            setArrangementResourceLibrary(current=>({...current,sfx:restored.library.map((item: SoundResource & {media?:{durationSeconds?:number}})=>({...item,durationSeconds:item.durationSeconds??item.media?.durationSeconds}))}));
+            soundDeletionUndoRef.current=null;
+            setSfxUndoLabel('');
+            setNotice({tone:'ok',text:`已恢复音效“${sound.label}”及其原有引用。`});
+          } catch(error) {
+            setNotice({tone:'error',text:error instanceof Error?error.message:'撤销删除失败'});
+          } finally { setSfxDeleteBusy(false); }
+        },
+      };
+      soundDeletionUndoRef.current=undoRecord;
+      setNotice({tone:'ok',text:`已删除“${sound.label}”并${action==='replace'?'替换':'移除'}引用，可在音效库撤销本次删除。`});
+    } catch(error) {
+      setSfxDeleteDialog(current=>current?{...current,error:error instanceof Error?error.message:'删除失败'}:current);
+    } finally { setSfxDeleteBusy(false); }
+  };
+
 
   const openIconFileLocation = async (iconId: string) => {
     setContextMenu(null);
@@ -13058,12 +13161,13 @@ const App = () => {
 
   const duplicateInstances = (instanceIds: string[]) => {
     const idSet = new Set(instanceIds);
+    const soundOwnerCopies = new Map<string, MotionInstance>();
     const frameOffset = Math.max(1, Math.round(fps * 0.15));
     const duplicates = instances
       .filter((instance) => idSet.has(instance.id))
       .map((instance, index) => {
         const id = createInstanceId(instance.componentId);
-        return {
+        const copy: MotionInstance = {
         ...instance,
         id,
         laneId: id,
@@ -13088,9 +13192,13 @@ const App = () => {
         },
         props: { ...instance.props },
         };
+        soundOwnerCopies.set(instance.id, copy);
+        return copy;
       });
     if (duplicates.length === 0) return;
     setInstances((current) => [...current, ...duplicates]);
+    const copiedSounds = duplicateComponentSounds(resourceTracks, soundOwnerCopies, createResourceTrackId);
+    if (copiedSounds.length) setResourceTracks(current => [...current, ...copiedSounds]);
     const duplicateIds = duplicates.map((instance) => instance.id);
     setSelectedInstanceIds(duplicateIds);
     setSelectedInstanceId(duplicateIds.at(-1) ?? "");
@@ -13389,6 +13497,10 @@ const App = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (sfxDeleteDialog || sfxDeleteBusy) {
+        if (event.key === 'Escape' && !sfxDeleteBusy) setSfxDeleteDialog(null);
+        return;
+      }
       if (shortcutPanelOpen) {
         if (recordingShortcut) {
           if (event.key === "Escape") {
@@ -13548,6 +13660,8 @@ const App = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    sfxDeleteDialog,
+    sfxDeleteBusy,
     currentFrame,
     durationInFrames,
     instances,
@@ -15952,6 +16066,7 @@ const App = () => {
                 </div>
                 <b>{arrangementResourceLibrary.sfx.length}</b>
               </header>
+              {sfxUndoLabel && <button className="sfx-delete-undo" disabled={sfxDeleteBusy} onClick={()=>void soundDeletionUndoRef.current?.run()}>撤销删除「{sfxUndoLabel}」</button>}
 
               <button
                 type="button"
@@ -16064,7 +16179,7 @@ const App = () => {
                                   </span>
                                 </div>
                                 <div className="sfx-card-actions">
-                                  {sound.source === "manual" ? (
+                                  {sound ? (
                                     <>
                                       <button
                                         type="button"
@@ -17913,6 +18028,15 @@ const App = () => {
                     <span>{inspectorDefinition.name} · {inspectorDefinition.description}</span>
                   </button>
                 </section>
+                <ComponentSoundPanel
+                  key={`${pendingPreviewInspectorInstance ? 'pending' : 'timeline'}:${inspectorInstance.id}`}
+                  owner={inspectorInstance}
+                  tracks={pendingPreviewInspectorInstance && pendingArrangement ? pendingArrangement.resourceTracks : resourceTracks}
+                  library={arrangementResourceLibrary.sfx}
+                  fps={fps}
+                  soundEnabled={soundEnabled}
+                  onChange={changeInspectorSound}
+                />
                 <section className={`reference-inspector-section${inspectorSectionsExpanded.properties ? "" : " collapsed"}`}>
                   <div className="reference-section-title" role="button" tabIndex={0} aria-expanded={inspectorSectionsExpanded.properties} onClick={() => toggleInspectorSection("properties")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleInspectorSection("properties"); } }}>
                     <strong>组件参数</strong><small>PROPERTIES</small>
@@ -18596,6 +18720,17 @@ const App = () => {
         </div>
       ) : null}
 
+      {sfxDeleteDialog && <SfxDeleteDialog
+        sound={sfxDeleteDialog.sound} library={arrangementResourceLibrary.sfx}
+        references={[
+          ...soundReferences({instances,resourceTracks},sfxDeleteDialog.sound.id,'当前时间线').map((reference:SfxReference)=>({...reference,name:definitionMap.get(reference.componentId??'')?.name??reference.name})),
+          ...soundReferences(pendingArrangement,sfxDeleteDialog.sound.id,'编排预览').map((reference:SfxReference)=>({...reference,name:definitionMap.get(reference.componentId??'')?.name??reference.name})),
+          ...sfxDeleteDialog.references.map(reference=>({...reference,name:definitionMap.get(reference.componentId??'')?.name??reference.name})),
+        ]}
+        loading={sfxDeleteDialog.loading} busy={sfxDeleteBusy} error={sfxDeleteDialog.error}
+        onCancel={()=>setSfxDeleteDialog(null)} onRefresh={()=>void deleteManualSfxResource(sfxDeleteDialog.sound)}
+        onConfirm={(action,id)=>void confirmSfxDeletion(action,id)}
+      />}
       {sfxGroupRenameTarget ? (
         <div
           className="shortcut-dialog-backdrop icon-group-rename-backdrop"
@@ -21270,7 +21405,7 @@ const App = () => {
                   !customSfxGroups.some((group) => group.name === currentSection) ? (
                     <small className="context-menu-hint">当前已在默认分组</small>
                   ) : null}
-                  {sound?.source === "manual" ? (
+                  {sound ? (
                     <>
                       <button
                         className="code-action"

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { isComponentSoundMuted } from "./component-sound-binding";
 import { resolveGigCardExportProps } from "./effects/gig-card-export";
 import {
   AbsoluteFill,
@@ -251,7 +252,7 @@ const MultiComponentRender = ({
       if (layer.kind === "resource") {
         const track = layer.track;
         const isAudio = track.kind === "sfx";
-        const trackMuted = track.muted === true;
+        const trackMuted = isComponentSoundMuted(track, instances);
         const effectiveVolume = soundEnabled && !trackMuted
           ? track.volume * (1 - track.voiceDucking)
           : 0;

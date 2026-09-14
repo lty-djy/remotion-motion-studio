@@ -1,0 +1,16 @@
+.component-sound-panel { display:flex; flex-direction:column; gap:10px; }
+.component-sound-modes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.component-sound-panel button { padding:6px 8px; border:1px solid #60677555; border-radius:6px; color:inherit; background:transparent; cursor:pointer; }
+.component-sound-modes button { padding:7px 2px; font-size:12px; }
+.component-sound-modes button[aria-pressed="true"] { background:#3977db30; border-color:#528cef; color:#7aabff; }
+.component-sound-panel button:disabled { opacity:.45; cursor:default; }
+.component-sound-panel input:not([type="range"]), .component-sound-panel select { box-sizing:border-box; width:100%; min-width:0; padding:7px; border:1px solid #60677566; border-radius:5px; background:var(--panel-bg, #20232b); color:inherit; }
+.component-sound-panel label { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; font-size:12px; }
+.component-sound-panel input[type="range"] { width:100%; }
+.component-sound-hint { font-size:11px; line-height:1.6; opacity:.75; }
+.component-sound-hint button { margin-top:6px; display:block; }
+.component-sound-selected { display:flex; gap:8px; align-items:center; }
+.component-sound-selected span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+.component-sound-selected button { flex-shrink:0; }
+.component-sound-panel p { margin:0; font-size:12px; line-height:1.5; }
+.component-sound-panel audio { display:none; }

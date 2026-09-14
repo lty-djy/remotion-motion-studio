@@ -65,6 +65,7 @@ export type MotionComponentDefinition = {
 };
 
 export type MotionInstance = {
+  soundMode?: "none" | "auto" | "manual";
   id: string;
   laneId: string;
   trackOrder: number;
@@ -118,7 +119,14 @@ export type VideoTrack = {
 
 export type ResourceTrackKind = "icon" | "material" | "sfx";
 
+/** 音效片段归属于一个组件实例；偏移以组件在时间线上的入场帧为基准。 */
+export type ComponentSoundBinding = {
+  instanceId: string;
+  offsetFrames: number;
+};
+
 export type ResourceTrack = {
+  soundBinding?: ComponentSoundBinding;
   id: string;
   laneId: string;
   trackOrder: number;

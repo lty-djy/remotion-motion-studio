@@ -1,4 +1,6 @@
 import react from "@vitejs/plugin-react";
+import { inspectSfxDeletion, commitSfxDeletion, undoSfxDeletion, assertAvailableSfx } from './sfx-deletion.mjs';
+import { normalizeSoundBinding } from "./component-sound-binding";
 import { planEffectDeletion, commitEffectDeletion, effectDeletionImpact, withEffectMutation } from "./effect-deletion.mjs";
 import { readLibrary, saveLibrary } from './effect-library-store.mjs';
 import { bundle } from "@remotion/bundler";
@@ -556,6 +558,9 @@ const normalizeProjectSnapshot = (
                 ),
               },
               volume: Math.max(0, Math.min(1, numberOr(record.volume, 1))),
+              muted: record.muted === true,
+              ...(normalizeSoundBinding(record.soundBinding, kind)
+                ? { soundBinding: normalizeSoundBinding(record.soundBinding, kind) } : {}),
               voiceDucking: Math.max(
                 0,
                 Math.min(1, numberOr(record.voiceDucking, 0)),
@@ -1326,7 +1331,7 @@ const findSfxFile = async (soundId: string) => {
     (item) => item.library === "sfx" && item.id === soundId,
   );
   const relativeFile = typeof resource?.file === "string" ? resource.file : "";
-  if (!/^sfx\/[A-Za-z0-9._-]+\.(?:wav|mp3|ogg|m4a)$/i.test(relativeFile)) {
+  if (!/^sfx\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9._-]+\.(?:wav|mp3|ogg|m4a)$/i.test(relativeFile)) {
     throw new Error("找不到音效文件");
   }
   const target = resolve(resourceRoot, relativeFile);
@@ -1335,29 +1340,6 @@ const findSfxFile = async (soundId: string) => {
     throw new Error("音效文件不存在");
   }
   return { manifest, resource, target };
-};
-
-const deleteManualSfx = async (soundId: string) => {
-  const originalManifest = await readFile(resourceManifestPath, "utf8");
-  const originalIndex = await readFile(resourceIndexPath, "utf8");
-  const { manifest, resource, target } = await findSfxFile(soundId);
-  if (resource?.source !== "manual") throw new Error("只能删除手动导入的音效");
-  const originalAsset = await readFile(target);
-  manifest.resources = manifest.resources.filter((item) => item !== resource);
-  try {
-    await writeFile(resourceManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    await unlink(target);
-    const { createResourceIndex } = await import(
-      "./ai-motion-arranger/scripts/build-resource-index.mjs"
-    );
-    const index = await createResourceIndex();
-    await writeFile(resourceIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
-  } catch (error) {
-    await writeFile(resourceManifestPath, originalManifest);
-    if (!existsSync(target)) await writeFile(target, originalAsset);
-    await writeFile(resourceIndexPath, originalIndex);
-    throw error;
-  }
 };
 
 const validateComponent = (code: string) => {
@@ -1758,7 +1740,14 @@ const localApi = (): Plugin => {
       try { return await operation(); }
       finally { suppressEffectSourceHmrUntil = Date.now() + 2_000; }
     };
+    let apiMutationQueue: Promise<void> = Promise.resolve();
     server.middlewares.use(async (req, res, next) => {
+      let releaseMutation: (() => void) | undefined;
+      if ((req.url ?? '').startsWith('/api/')) {
+        const previous = apiMutationQueue;
+        apiMutationQueue = new Promise<void>(resolve => { releaseMutation = resolve; });
+        await previous;
+      }
       try {
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
         if (url.pathname === "/api/health") {
@@ -1851,6 +1840,7 @@ const localApi = (): Plugin => {
             (await getBody(req, 4 * 1024 * 1024)).toString("utf8"),
           ) as Partial<ProjectSnapshot>;
           const workspaceDraft = normalizeProjectSnapshot(body);
+          await assertAvailableSfx(rootDir, workspaceDraft);
           await saveState({ workspaceDraft });
           sendJson(res, 200, {
             ok: true,
@@ -1881,6 +1871,7 @@ const localApi = (): Plugin => {
             },
             existing?.name ?? "未命名项目",
           );
+          await assertAvailableSfx(rootDir, snapshot);
           const createdAt = existing?.createdAt ?? snapshot.updatedAt;
           const persistedSnapshot = {
             ...snapshot,
@@ -2661,13 +2652,20 @@ const localApi = (): Plugin => {
           return;
         }
 
-        if (url.pathname === "/api/delete-manual-sfx" && req.method === "POST") {
+        if (url.pathname === '/api/sfx-delete-impact' && req.method === 'GET') {
+          sendJson(res, 200, {ok:true, ...await inspectSfxDeletion(rootDir, url.searchParams.get('soundId'))});
+          return;
+        }
+        if (url.pathname === '/api/undo-sfx-delete' && req.method === 'POST') {
+          const body = JSON.parse((await getBody(req, 64 * 1024)).toString('utf8'));
+          sendJson(res, 200, {ok:true, ...await undoSfxDeletion(rootDir, body.token)});
+          return;
+        }
+        if (["/api/delete-sfx", "/api/delete-manual-sfx"].includes(url.pathname) && req.method === "POST") {
           const body = JSON.parse(
             (await getBody(req, 64 * 1024)).toString("utf8"),
-          ) as { soundId?: string };
-          const soundId = typeof body.soundId === "string" ? body.soundId : "";
-          await deleteManualSfx(soundId);
-          sendJson(res, 200, { ok: true, soundId });
+          );
+          sendJson(res, 200, { ok: true, ...await commitSfxDeletion(rootDir, body) });
           return;
         }
 
@@ -3311,6 +3309,8 @@ const localApi = (): Plugin => {
         const message =
           error instanceof Error ? error.message : "本地服务发生未知错误";
         sendJson(res, 400, { ok: false, error: message });
+      } finally {
+        releaseMutation?.();
       }
     });
   },
