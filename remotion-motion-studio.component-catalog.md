@@ -31,7 +31,7 @@
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `PhoneRecordingFrameNeutral`：手机与竖屏录屏 — 中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`mediaType`、`mediaFit`、`enterEndSeconds`、`exitStartSeconds`、`exitEndSeconds`）
 - `BrollGigCardFloat`：悬浮兼职卡片群 — 按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`cardsJson`、`enterStaggerSeconds`、`floatAmplitude`、`wiggleAmplitude`、`wiggleAmplitudeY`、`badgeText`、`ctaText`）
-- `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：两张竖版海报带 3D 倾斜先后升入并悬浮，适合回顾往期内容。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`poster1Url`、`poster2Url`、`posterWidth`、`tiltDeg`、`floatAmplitude`）
+- `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：两张竖版海报带 3D 倾斜先后升入并悬浮，适合回顾往期内容。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`poster1Url`、`poster2Url`、`posterWidth`、`firstEnterSeconds`、`enterStaggerSeconds`、`posterTop`、`posterGap`、`tiltDeg`、`floatAmplitude`）
 
 ## 竖屏口播信息层
 
@@ -66,7 +66,7 @@
 
 ## 数字
 
-- `GigHourlyTitle`：金色时薪标题 — 独立的金色时薪大字、中英文标签与说明，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`eyebrowEn`、`eyebrowZh`、`pricePrefix`、`priceFrom`、`priceTo`、`priceText`、`priceUnit`、`priceNote`、`accentColor`、`eyebrowEnFontSize`、`eyebrowZhFontSize`、`priceFontSize`、`priceUnitFontSize`、`priceNoteFontSize`）
+- `GigHourlyTitle`：金色时薪标题 — 独立的金色时薪大字、中英文标签与说明，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`eyebrowEn`、`eyebrowZh`、`pricePrefix`、`priceFrom`、`priceTo`、`priceText`、`priceUnit`、`unitPlacement`、`priceNote`、`accentColor`、`eyebrowEnFontSize`、`eyebrowZhFontSize`、`priceFontSize`、`priceUnitFontSize`、`priceNoteFontSize`）
 - `BrollPlayMilestoneBadge`：播放量里程碑卡 — 横屏/竖屏口播 b-roll：以金色边框徽章突出两期内容、播放量或阶段成绩，适合展示数据成果与里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`badgeTop`、`badgeWidth`、`rotationDegrees`、`badgeEnterSeconds`、`badgeKicker`、`badgePrefix`、`badgeNumber`、`accentColor`、`floatAmplitude`）
 - `MilestoneFollowerProgress`：里程碑增长·粉丝进度 — 用超大核心数值、当前值与年度目标和横向进度条表达增长里程碑。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`eyebrow`、`title`、`value`、`unit`、`currentLabel`、`goalLabel`、`progress`、`accentColor`、`goalColor`、`textColor`、`animationSeconds`）
 - `SegmentedMeter`：分段能量条 — 分段式容量、性能和能量指示 · 工作台内置模板（AI 可编排；props：`enterAnimation`、`exitAnimation`、`title`、`subtitle`、`value`、`item1`、`item2`、`item3`、`animationSeconds`、`accentColor`、`secondaryColor`）

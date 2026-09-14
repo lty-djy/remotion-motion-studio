@@ -24,6 +24,7 @@ export const GigHourlyTitle: React.FC<any> = ({
   priceText,     // 兼容 fallback：直接文本（如 "¥300-3,000"）
   priceUnit="/ 小时",
   priceNote="HOURLY · 时薪不等",
+  unitPlacement="inline",
   accentColor="#F5C15C",
   // 字号精细调节（所有 *FontSize 属性在属性面板自动走 FontSizeStepper）
   eyebrowEnFontSize=26,
@@ -110,9 +111,9 @@ export const GigHourlyTitle: React.FC<any> = ({
                 priceText
               )}
             </span>
-            <span style={{ fontSize: priceUnitFontSize, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}>
+            {unitPlacement !== "below" && <span style={{ fontSize: priceUnitFontSize, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}>
               {priceUnit}
-            </span>
+            </span>}
           </div>
           <div
             style={{
@@ -126,7 +127,7 @@ export const GigHourlyTitle: React.FC<any> = ({
               color: "rgba(255,255,255,0.66)",
             }}
           >
-            <span aria-hidden="true" style={{ width: 34, height: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.4)" }} />
+            {unitPlacement === "below" ? <span style={{fontSize:priceUnitFontSize,letterSpacing:2,color:"rgba(255,255,255,0.85)"}}>{priceUnit}</span> : <span aria-hidden="true" style={{ width: 34, height: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.4)" }} />}
             {priceNote}
           </div>
         </div>
@@ -143,6 +144,7 @@ export const GigHourlyTitleEffectDef: EffectDef = {
     priceTo: 3000,
     priceUnit: "/ 小时",
     priceNote: "HOURLY · 时薪不等",
+    unitPlacement: "inline",
     accentColor: "#F5C15C",
     eyebrowEnFontSize: 26,
     eyebrowZhFontSize: 22,
@@ -157,6 +159,7 @@ export const GigHourlyTitleEffectDef: EffectDef = {
     priceTo: { type: "number", label: "结束时薪（数字滚动）", default: 3000, step: 1 },
     priceText: { type: "text", label: "手动时薪文本（不填则用上方数字滚动）" },
     priceUnit: { type: "text", label: "大字右侧单位" },
+    unitPlacement: { type: "select", label: "单位位置", default: "inline", options: [{label:"数字右侧",value:"inline"},{label:"数字下方",value:"below"}] },
     priceNote: { type: "text", label: "大字下方说明" },
     accentColor: { type: "color", label: "金色强调色", default: "#F5C15C" },
     eyebrowEnFontSize: { type: "number", label: "英文标签字号(px)", default: 26, min: 10, max: 64, step: 1 },

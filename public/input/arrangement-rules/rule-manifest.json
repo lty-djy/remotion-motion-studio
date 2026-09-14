@@ -26,7 +26,11 @@
         "PortraitWorkflowPrerequisite": 2,
         "PortraitSkillSourceFusion": 2,
         "ComparisonProgressBars": 2,
-        "PortraitAgentBrowserMedia": 2
+        "PortraitAgentBrowserMedia": 2,
+        "GigHourlyTitle": 12,
+        "BrollGigCardFloat": 12,
+        "BrollEpisodePosterDuo": 12,
+        "BrollPlayMilestoneBadge": 12
       },
       "semanticTags": {
         "emphasis": {

@@ -544,7 +544,11 @@
 - `enabled` — 显示往期海报回顾
 - `poster1Url` — 左海报图片
 - `poster2Url` — 右海报图片
-- `posterWidth` — 海报宽度(px)（220–560）
+- `posterWidth` — 海报宽度(px)（220–680）
+- `firstEnterSeconds` — 首张入场延迟(秒)（0–3）
+- `enterStaggerSeconds` — 两张入场间隔(秒)（0–3）
+- `posterTop` — 海报顶部位置(px，空为自动)（0–600）
+- `posterGap` — 海报间距(px，空为自动)（0–400）
 - `tiltDeg` — 3D 倾斜角度(度)（0–30）
 - `floatAmplitude` — 悬浮幅度(px)（0–30）
 
@@ -1362,6 +1366,7 @@
 - `priceTo` — 结束时薪（数字滚动）
 - `priceText` — 手动时薪文本（不填则用上方数字滚动）
 - `priceUnit` — 大字右侧单位
+- `unitPlacement` — 单位位置
 - `priceNote` — 大字下方说明
 - `accentColor` — 金色强调色（color）
 - `eyebrowEnFontSize` — 英文标签字号(px)（10–64）

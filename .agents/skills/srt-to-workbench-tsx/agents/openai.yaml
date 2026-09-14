@@ -1,0 +1,6 @@
+interface:
+  display_name: "SRT 生成工作台 TSX"
+  short_description: "从字幕与参考风格生成可编辑的工作台 TSX，验证预览并积累用户反馈"
+  default_prompt: "使用 $srt-to-workbench-tsx 根据这份 SRT 生成可导入工作台的 TSX，沿用已确认偏好并完成预览验证。"
+policy:
+  allow_implicit_invocation: true

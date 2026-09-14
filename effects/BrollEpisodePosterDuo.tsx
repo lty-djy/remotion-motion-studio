@@ -17,6 +17,10 @@ type Props = {
   posterWidth?: number;
   tiltDeg?: number;
   floatAmplitude?: number;
+  firstEnterSeconds?: number;
+  enterStaggerSeconds?: number;
+  posterTop?: number;
+  posterGap?: number;
 };
 
 const Poster: React.FC<{
@@ -93,6 +97,10 @@ export const BrollEpisodePosterDuo: React.FC<Props> = ({
   posterWidth = 420,
   tiltDeg = 12,
   floatAmplitude = 8,
+  firstEnterSeconds = 0.15,
+  enterStaggerSeconds = 0.15,
+  posterTop: customPosterTop,
+  posterGap,
 }) => {
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
@@ -100,10 +108,10 @@ export const BrollEpisodePosterDuo: React.FC<Props> = ({
 
   const stageScale = Math.max(width / 1920, height / 1080);
   const posterHeight = Math.round(posterWidth * (4 / 3));
-  const pairGap = Math.round(posterWidth * 0.16);
+  const pairGap = Math.round(posterGap ?? posterWidth * 0.16);
   const pairWidth = posterWidth * 2 + pairGap;
   const leftPosterLeft = Math.round((1920 - pairWidth) / 2);
-  const posterTop = Math.max(96, Math.round((830 - posterHeight) / 2));
+  const posterTop = customPosterTop ?? Math.max(96, Math.round((830 - posterHeight) / 2));
   return (
     <AbsoluteFill data-effect="BrollEpisodePosterDuo" style={{ overflow: "hidden", pointerEvents: "none" }}>
       <div
@@ -126,7 +134,7 @@ export const BrollEpisodePosterDuo: React.FC<Props> = ({
           tilt={tiltDeg}
           rotate={-1.5}
           phase={0}
-          delay={Math.round(fps * 0.15)}
+          delay={Math.round(fps * Math.max(0, firstEnterSeconds))}
           floatAmplitude={floatAmplitude}
         />
         <Poster
@@ -137,7 +145,7 @@ export const BrollEpisodePosterDuo: React.FC<Props> = ({
           tilt={-tiltDeg}
           rotate={1.5}
           phase={1.9}
-          delay={Math.round(fps * 0.3)}
+          delay={Math.round(fps * (Math.max(0, firstEnterSeconds) + Math.max(0, enterStaggerSeconds)))}
           floatAmplitude={floatAmplitude}
         />
       </div>
@@ -165,12 +173,18 @@ export const BrollEpisodePosterDuoEffectDef: EffectDef = {
     posterWidth: 420,
     tiltDeg: 12,
     floatAmplitude: 8,
+    firstEnterSeconds: 0.15,
+    enterStaggerSeconds: 0.15,
   },
   propsSchema: {
     enabled: { type: "boolean", label: "显示往期海报回顾", default: true },
     poster1Url: { type: "text", label: "左海报图片" },
     poster2Url: { type: "text", label: "右海报图片" },
-    posterWidth: { type: "number", label: "海报宽度(px)", default: 420, min: 220, max: 560, step: 10 },
+    posterWidth: { type: "number", label: "海报宽度(px)", default: 420, min: 220, max: 680, step: 10 },
+    firstEnterSeconds: { type: "number", label: "首张入场延迟(秒)", default: 0.15, min: 0, max: 3, step: 0.05 },
+    enterStaggerSeconds: { type: "number", label: "两张入场间隔(秒)", default: 0.15, min: 0, max: 3, step: 0.05 },
+    posterTop: { type: "number", label: "海报顶部位置(px，空为自动)", min: 0, max: 600, step: 1 },
+    posterGap: { type: "number", label: "海报间距(px，空为自动)", min: 0, max: 400, step: 1 },
     tiltDeg: { type: "number", label: "3D 倾斜角度(度)", default: 12, min: 0, max: 30, step: 1 },
     floatAmplitude: { type: "number", label: "悬浮幅度(px)", default: 8, min: 0, max: 30, step: 1 },
   },

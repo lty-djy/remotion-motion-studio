@@ -168,26 +168,36 @@ const MultiComponentRender = ({
       )
     : undefined;
   const activeVideoSrc = topmostVideoTrack?.url || videoSrc;
+  // 同一条时间轴轨道可以复用给多个不重叠片段；片段自身的 trackOrder
+  // 可能不同，但画面层级必须跟随轨道（lane）的实际顺序。
+  const laneOrderById = new Map<string, number>();
+  [...visibleVideoTracks, ...instances, ...resourceTracks].forEach((item) => {
+    const previous = laneOrderById.get(item.laneId);
+    laneOrderById.set(
+      item.laneId,
+      previous === undefined ? item.trackOrder : Math.min(previous, item.trackOrder),
+    );
+  });
   const orderedLayers = [
     ...visibleVideoTracks.map((track) => ({
       kind: "video" as const,
-      order: track.trackOrder,
+      order: laneOrderById.get(track.laneId) ?? track.trackOrder,
       id: track.id,
       track,
     })),
     ...instances
-      .filter((instance) => instance.visible !== false)
-      .map((instance) => ({
-        kind: "motion" as const,
-        order: instance.trackOrder,
+    .filter((instance) => instance.visible !== false)
+    .map((instance) => ({
+      kind: "motion" as const,
+      order: laneOrderById.get(instance.laneId) ?? instance.trackOrder,
         id: instance.id,
         instance,
       })),
     ...resourceTracks
-      .filter((track) => track.visible !== false)
-      .map((track) => ({
-        kind: "resource" as const,
-        order: track.trackOrder,
+    .filter((track) => track.visible !== false)
+    .map((track) => ({
+      kind: "resource" as const,
+      order: laneOrderById.get(track.laneId) ?? track.trackOrder,
         id: track.id,
         track,
       })),
@@ -214,12 +224,16 @@ const MultiComponentRender = ({
       instances={instances}
       hasBackground={Boolean(activeVideoSrc)}
     />
-    {orderedLayers.map((layer) => {
+    {orderedLayers.map((layer, layerIndex) => {
+      // orderedLayers 按 trackOrder 从大到小排列；时间轴越靠上的轨道
+      // trackOrder 越小，因此越晚渲染、画面层级越高。
+      const renderLayerZIndex = 100 + layerIndex * 1000;
       if (layer.kind === "video") {
         const track = layer.track;
         return (
         <Sequence
           key={track.id}
+          style={{ zIndex: renderLayerZIndex }}
           from={Math.max(0, Math.round(track.startFrame))}
           durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
         >
@@ -245,6 +259,7 @@ const MultiComponentRender = ({
           return (
             <Sequence
               key={track.id}
+              style={{ zIndex: renderLayerZIndex }}
               from={Math.max(0, Math.round(track.startFrame))}
               durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
             >
@@ -266,11 +281,12 @@ const MultiComponentRender = ({
           transform: `scale(${track.position.scale})`,
           transformOrigin: "0 0",
           objectFit: "contain",
-          zIndex: 20 + track.position.zIndex,
+          zIndex: renderLayerZIndex + track.position.zIndex,
         };
         return (
           <Sequence
             key={track.id}
+            style={{ zIndex: renderLayerZIndex }}
             from={Math.max(0, Math.round(track.startFrame))}
             durationInFrames={Math.max(3, Math.round(track.durationInFrames))}
           >
@@ -301,9 +317,10 @@ const MultiComponentRender = ({
       const cardBackgroundOn =
         supportsCardBackground(instance.componentId) &&
         instance.cardBackgroundEnabled !== false;
-      return (
-        <Sequence
+        return (
+          <Sequence
           key={instance.id}
+          style={{ zIndex: renderLayerZIndex }}
           from={Math.max(0, Math.round(instance.startFrame))}
           trimBefore={Math.max(0, Math.round(instance.sourceStartFrame))}
           durationInFrames={Math.max(3, instance.durationInFrames)}
@@ -327,7 +344,7 @@ const MultiComponentRender = ({
             style={{
               transform: `translate(${renderPosition.x}px, ${renderPosition.y}px) scale(${renderPosition.scale})`,
               transformOrigin: "0 0",
-              zIndex: 20,
+              zIndex: renderLayerZIndex,
               ...getCardBackgroundControlVariables({
                 enabled: cardBackgroundOn,
                 opacity: instance.backgroundOpacity,
