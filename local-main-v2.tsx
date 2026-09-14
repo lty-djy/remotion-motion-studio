@@ -909,7 +909,8 @@ type ShortcutAction =
   | "delete"
   | "regionIn"
   | "regionOut"
-  | "regionClear";
+  | "regionClear"
+  | "fitTimeline";
 
 type ShortcutMap = Record<ShortcutAction, string>;
 
@@ -1013,6 +1014,7 @@ const DEFAULT_SHORTCUTS: ShortcutMap = {
   regionIn: "4",
   regionOut: "5",
   regionClear: "Alt+X",
+  fitTimeline: "Shift+Z",
 };
 
 const SHORTCUT_DEFINITIONS: Array<{
@@ -1036,6 +1038,7 @@ const SHORTCUT_DEFINITIONS: Array<{
   { action: "regionIn", label: "区域入点", description: "在播放头位置设置导出区域的入点（键 4）" },
   { action: "regionOut", label: "区域出点", description: "在播放头位置设置导出区域的出点（键 5）" },
   { action: "regionClear", label: "清除区域出入点", description: "取消已设置的区域入点和出点标记" },
+  { action: "fitTimeline", label: "轨道适配", description: "让时间线完整适配到当前窗口（Shift + Z）" },
 ];
 
 const loadShortcuts = (): ShortcutMap => {
@@ -13535,6 +13538,11 @@ const App = () => {
           setNotice({ tone: "ok", text: "已清除区域出入点标记。" });
         }
       }
+      if (action === "fitTimeline") {
+        autoZoomAppliedRef.current = true;
+        setTimelineZoom(1);
+        setTimelineScroll(0);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -16717,46 +16725,6 @@ const App = () => {
                   <Plus weight="bold" />
                 </button>
               </div>
-              <div className="timeline-height-controls" aria-label="时间轴横向缩放">
-                <button
-                  type="button"
-                  aria-label="缩小时间比例"
-                  title="缩小时间比例"
-                  onClick={() => {
-                    autoZoomAppliedRef.current = true;
-                    setTimelineZoom((zoom) =>
-                      clamp(Number((zoom / 1.25).toFixed(3)), 1, 16),
-                    );
-                  }}
-                >
-                  <Minus weight="bold" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="时间比例适应窗口"
-                  title="时间比例适应窗口"
-                  onClick={() => {
-                    autoZoomAppliedRef.current = true;
-                    setTimelineZoom(1);
-                    setTimelineScroll(0);
-                  }}
-                >
-                  <ArrowsInLineVertical weight="bold" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="放大时间比例"
-                  title="放大时间比例"
-                  onClick={() => {
-                    autoZoomAppliedRef.current = true;
-                    setTimelineZoom((zoom) =>
-                      clamp(Number((zoom * 1.25).toFixed(3)), 1, 16),
-                    );
-                  }}
-                >
-                  <Plus weight="bold" />
-                </button>
-              </div>
               <button
                 type="button"
                 className={`timeline-snap-toggle ${
@@ -16839,6 +16807,37 @@ const App = () => {
                 <Stack weight="bold" />
                 <span>合并轨道</span>
               </button>
+              <div className="timeline-global-controls" aria-label="时间线视图控制">
+                <button
+                  type="button"
+                  className="timeline-fit-button"
+                  aria-label="适配时间线到窗口"
+                  title="适配时间线到窗口"
+                  onClick={() => {
+                    autoZoomAppliedRef.current = true;
+                    setTimelineZoom(1);
+                    setTimelineScroll(0);
+                  }}
+                >
+                  <ArrowsInLineHorizontal weight="bold" />
+                  <span>适配</span>
+                </button>
+                <label className="timeline-zoom-slider">
+                  <span>缩放</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="16"
+                    step="0.05"
+                    value={timelineZoom}
+                    aria-label={`时间线缩放 ${Math.round(timelineZoom * 100)}%`}
+                    onChange={(event) => {
+                      autoZoomAppliedRef.current = true;
+                      setTimelineZoom(Number(event.target.value));
+                    }}
+                  />
+                </label>
+              </div>
             </div>
             {activeArrangementBatch ? (
               <div
