@@ -10996,6 +10996,20 @@ const App = () => {
     moved: boolean;
   } | null>(null);
 
+  const previousTimelineDurationRef = useRef(durationInFrames);
+  useLayoutEffect(() => {
+    const previousDuration = previousTimelineDurationRef.current;
+    previousTimelineDurationRef.current = durationInFrames;
+    if (
+      durationInFrames === previousDuration ||
+      !(timelineDragState.current || videoTimelineDragState.current || resourceTimelineDragState.current)
+    ) return;
+    // 拖动扩展时间轴时同步扩展像素宽度，保持每帧比例和片段显示长度。
+    // 不套用手动缩放上限，否则长距离拖动仍会再次压缩片段。
+    autoZoomAppliedRef.current = true;
+    setTimelineZoom((zoom) => zoom * durationInFrames / previousDuration);
+  }, [durationInFrames]);
+
   const beginTimelineDrag = (
     event: React.PointerEvent,
     instance: MotionInstance,
