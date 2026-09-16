@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, readdir, unlink, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, unlink, realpath, stat } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { soundReferences, rewriteSoundReferences } from './sfx-references.mjs';
@@ -54,6 +54,36 @@ async function inspect(root, id) {
 export async function inspectSfxDeletion(root, id) {
   const inspected = await inspect(root, id);
   return { revision: inspected.revision, references: inspected.references, sound: inspected.resource, missingFile: !inspected.asset };
+}
+
+/** Return the current index together with live on-disk SFX availability. */
+export async function inspectSfxLibrary(root) {
+  const index = JSON.parse(await readFile(safe(root, indexFile), 'utf8'));
+  const sounds = Array.isArray(index.libraries?.sfx) ? index.libraries.sfx : [];
+  const unavailable = [];
+  const checkedSounds = await Promise.all(sounds.map(async sound => {
+    let available = false;
+    let unavailableReason = '';
+    try {
+      const info = await stat(await assetPath(root, sound.file)).catch(error => {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      });
+      available = Boolean(info?.isFile() && info.size > 0);
+      if (!available) unavailableReason = info ? '音效文件为空' : '音效文件不存在';
+    } catch (error) {
+      unavailableReason = error instanceof Error ? error.message : '音效文件不可用';
+    }
+    if (!available) unavailable.push({ id:sound.id, label:sound.label ?? sound.id, reason:unavailableReason });
+    return { ...sound, available, ...(unavailableReason ? { unavailableReason } : {}) };
+  }));
+  return { index:{ ...index, libraries:{ ...index.libraries, sfx:checkedSounds } }, unavailable };
+}
+
+export function omitUnavailableSfxTracks(tracks, availableIds) {
+  const ids = availableIds instanceof Set ? availableIds : new Set(availableIds);
+  return (Array.isArray(tracks) ? tracks : []).filter(track =>
+    !track || typeof track !== 'object' || track.kind !== 'sfx' || ids.has(track.resourceId));
 }
 
 async function applyChanges(root, changes, before) {

@@ -13,4 +13,16 @@
 .component-sound-selected span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
 .component-sound-selected button { flex-shrink:0; }
 .component-sound-panel p { margin:0; font-size:12px; line-height:1.5; }
+.component-sound-panel .component-sound-unavailable { padding:7px 8px; border:1px solid #d68a4366; border-radius:6px; color:#f0b36f; background:#d68a4314; }
+.component-sound-panel .component-sound-unavailable button { margin-top:6px; display:block; }
 .component-sound-panel audio { display:none; }
+
+.component-sound-density { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.component-sound-density button { padding:6px 4px; font-size:11px; }
+.component-sound-density button[aria-pressed="true"] { background:#2e9b7430; border-color:#43b98b; color:#79d9b3; }
+.component-sound-explanation { padding:9px; border:1px solid #60677544; border-radius:7px; background:#12182040; }
+.component-sound-explanation dl { display:flex; flex-direction:column; gap:7px; margin:0; }
+.component-sound-explanation dl div { display:grid; grid-template-columns:58px minmax(0,1fr); gap:7px; font-size:11px; line-height:1.5; }
+.component-sound-explanation dt { opacity:.58; }
+.component-sound-explanation dd { margin:0; }
+.component-sound-explanation > button { width:100%; margin-top:8px; }

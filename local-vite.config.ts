@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { inspectSfxDeletion, commitSfxDeletion, undoSfxDeletion, assertAvailableSfx } from './sfx-deletion.mjs';
+import { inspectSfxDeletion, commitSfxDeletion, undoSfxDeletion, assertAvailableSfx, inspectSfxLibrary, omitUnavailableSfxTracks } from './sfx-deletion.mjs';
 import { normalizeSoundBinding } from "./component-sound-binding";
 import { planEffectDeletion, commitEffectDeletion, effectDeletionImpact, withEffectMutation } from "./effect-deletion.mjs";
 import { readLibrary, saveLibrary } from './effect-library-store.mjs';
@@ -1755,6 +1755,11 @@ const localApi = (): Plugin => {
           return;
         }
 
+        if (url.pathname === "/api/resource-library" && req.method === "GET") {
+          sendJson(res, 200, { ok: true, ...await inspectSfxLibrary(rootDir) });
+          return;
+        }
+
         if (url.pathname === "/api/arrangement-rules" && req.method === "GET") {
           const manifest = normalizeArrangementRuleManifest(
             JSON.parse(await readFile(arrangementRulesManifestPath, "utf8")),
@@ -2869,6 +2874,29 @@ const localApi = (): Plugin => {
           const inputProps = JSON.parse(
             (await getBody(req, 1024 * 1024)).toString("utf8"),
           ) as Record<string, unknown>;
+          const liveSfxLibrary = await inspectSfxLibrary(rootDir);
+          const availableSfxIds = new Set(
+            (liveSfxLibrary.index.libraries?.sfx ?? [])
+              .filter((sound: { available?: boolean }) => sound.available !== false)
+              .map((sound: { id: string }) => sound.id),
+          );
+          const requestedResourceTracks = Array.isArray(inputProps.resourceTracks)
+            ? inputProps.resourceTracks
+            : [];
+          const playableResourceTracks = omitUnavailableSfxTracks(
+            requestedResourceTracks,
+            availableSfxIds,
+          );
+          const skippedSfx = requestedResourceTracks.filter(
+            (track) =>
+              track &&
+              typeof track === "object" &&
+              (track as Record<string, unknown>).kind === "sfx" &&
+              !availableSfxIds.has(String((track as Record<string, unknown>).resourceId ?? "")),
+          ).map((track) => {
+            const record = track as Record<string, unknown>;
+            return { id:String(record.resourceId ?? ""), name:String(record.name ?? record.resourceId ?? "失效音效") };
+          });
           const resolveLocalAssetUrl = (value: unknown) => {
             if (typeof value !== "string" || !value.trim()) return value;
             if (value.startsWith("/")) {
@@ -2893,8 +2921,8 @@ const localApi = (): Plugin => {
                   };
                 })
               : [],
-            resourceTracks: Array.isArray(inputProps.resourceTracks)
-              ? inputProps.resourceTracks.map((track) => {
+            resourceTracks: playableResourceTracks.length
+              ? playableResourceTracks.map((track) => {
                   if (!track || typeof track !== "object") return track;
                   const record = track as Record<string, unknown>;
                   return {
@@ -2967,6 +2995,7 @@ const localApi = (): Plugin => {
           sendJson(res, 202, {
             ok: true,
             jobId,
+            skippedSfx,
           });
 
           void (async () => {

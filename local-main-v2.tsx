@@ -733,6 +733,8 @@ type ArrangementResourceEntry = {
   accent: string;
   durationSeconds?: number;
   source?: string;
+  available?: boolean;
+  unavailableReason?: string;
 };
 
 type SoundResource = ArrangementResourceEntry & {
@@ -1650,6 +1652,46 @@ const clamp = (value: number, min: number, max: number) =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+const normalizeArrangementResourceLibrary = (
+  index: unknown,
+): ArrangementResourceLibrary => {
+  const libraries = isRecord(index) && isRecord(index.libraries) ? index.libraries : {};
+  const normalizeLibrary = (
+    entries: unknown,
+    fallbackCategory: string,
+  ): ArrangementResourceEntry[] =>
+    (Array.isArray(entries) ? entries : []).flatMap((rawEntry) => {
+      if (!isRecord(rawEntry)) return [];
+      const id = String(rawEntry.id ?? "");
+      const url = String(rawEntry.url ?? "");
+      if (!id || !url.startsWith("/input/")) return [];
+      const media = isRecord(rawEntry.media) ? rawEntry.media : {};
+      return [{
+        id,
+        label: String(rawEntry.label ?? id),
+        url,
+        mimeType: String(rawEntry.mimeType ?? "application/octet-stream"),
+        tags: Array.isArray(rawEntry.tags)
+          ? rawEntry.tags.filter((tag): tag is string => typeof tag === "string")
+          : [],
+        usage: String(rawEntry.usage ?? ""),
+        category: String(rawEntry.category ?? fallbackCategory),
+        accent: String(rawEntry.accent ?? "#68e8ff"),
+        ...(typeof rawEntry.source === "string" ? { source:rawEntry.source } : {}),
+        ...(Number.isFinite(Number(media.durationSeconds))
+          ? { durationSeconds:Number(media.durationSeconds) } : {}),
+        ...(typeof rawEntry.available === "boolean" ? { available:rawEntry.available } : {}),
+        ...(typeof rawEntry.unavailableReason === "string"
+          ? { unavailableReason:rawEntry.unavailableReason } : {}),
+      }];
+    });
+  return {
+    icon:normalizeLibrary(libraries.icons, "图标"),
+    material:normalizeLibrary(libraries.materials, "素材"),
+    sfx:normalizeLibrary(libraries.sfx, "音效"),
+  };
+};
+
 const finiteNumber = (value: unknown, fallback: number) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
@@ -1873,6 +1915,8 @@ const createInstance = (
     componentId: definition.id,
     ...(overrides.soundMode === 'none' || overrides.soundMode === 'auto' || overrides.soundMode === 'manual'
       ? { soundMode: overrides.soundMode } : {}),
+    ...(overrides.soundDensity === 'subtle' || overrides.soundDensity === 'balanced' || overrides.soundDensity === 'emphatic'
+      ? { soundDensity: overrides.soundDensity } : {}),
     visible: overrides.visible !== false,
     muted: overrides.muted === true,
     sourceStartFrame: Math.max(
@@ -2654,7 +2698,6 @@ const BUILT_IN_SFX_IDS = [
   "tick-2",
   "whoosh-soft",
 ];
-const BUILT_IN_SFX_ID_SET = new Set<string>(BUILT_IN_SFX_IDS);
 const AI_ARRANGEABLE_COMPONENT_ID_SET = new Set<string>(AI_ARRANGEABLE_COMPONENT_IDS);
 
 const buildDefaultSemanticTags = (
@@ -2692,12 +2735,19 @@ const filterIdListByWhitelist = (
   return out;
 };
 
+const filterStableResourceIds = (input: unknown, max: number): string[] => {
+  if (!Array.isArray(input)) return [];
+  return Array.from(new Set(input.filter(
+    (id): id is string => typeof id === "string" && /^[A-Za-z0-9._-]+$/.test(id.trim()),
+  ).map((id) => id.trim()))).slice(0, max);
+};
+
 const normalizeSemanticTagConfig = (input: unknown): SemanticTagConfig => {
   const record = (input ?? {}) as Record<string, unknown>;
   return {
     enabled: record.enabled !== false,
     iconIds: filterIdListByWhitelist(record.iconIds, BUILT_IN_ICON_ID_SET, 16),
-    sfxIds: filterIdListByWhitelist(record.sfxIds, BUILT_IN_SFX_ID_SET, 8),
+    sfxIds: filterStableResourceIds(record.sfxIds, 8),
     componentIds: filterIdListByWhitelist(
       record.componentIds,
       AI_ARRANGEABLE_COMPONENT_ID_SET,
@@ -4686,80 +4736,29 @@ const App = () => {
     setPreviewingSfxId("");
   }, [activeWorkspace]);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/input/resource-index.json", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("无法读取图标资源索引");
-        return response.json();
-      })
-      .then((index) => {
-        if (cancelled) return;
-        const icons = Array.isArray(index?.libraries?.icons)
-          ? index.libraries.icons
-          : [];
-        setIconResources(
-          icons.filter(
-            (icon: unknown): icon is IconResource =>
-              Boolean(icon) &&
-              typeof icon === "object" &&
-              typeof (icon as IconResource).id === "string" &&
-              typeof (icon as IconResource).url === "string",
-          ),
-        );
-        const normalizeLibrary = (
-          entries: unknown,
-          fallbackCategory: string,
-        ): ArrangementResourceEntry[] =>
-          (Array.isArray(entries) ? entries : []).flatMap((rawEntry) => {
-            if (!isRecord(rawEntry)) return [];
-            const id = String(rawEntry.id ?? "");
-            const url = String(rawEntry.url ?? "");
-            if (!id || !url.startsWith("/input/")) return [];
-            const media = isRecord(rawEntry.media) ? rawEntry.media : {};
-            return [
-              {
-                id,
-                label: String(rawEntry.label ?? id),
-                url,
-                mimeType: String(
-                  rawEntry.mimeType ?? "application/octet-stream",
-                ),
-                tags: Array.isArray(rawEntry.tags)
-                  ? rawEntry.tags.filter(
-                      (tag): tag is string => typeof tag === "string",
-                    )
-                  : [],
-                usage: String(rawEntry.usage ?? ""),
-                category: String(rawEntry.category ?? fallbackCategory),
-                accent: String(rawEntry.accent ?? "#68e8ff"),
-                ...(typeof rawEntry.source === "string"
-                  ? { source: rawEntry.source }
-                  : {}),
-                ...(Number.isFinite(Number(media.durationSeconds))
-                  ? { durationSeconds: Number(media.durationSeconds) }
-                  : {}),
-              },
-            ];
-          });
-        setArrangementResourceLibrary({
-          icon: normalizeLibrary(index?.libraries?.icons, "图标"),
-          material: normalizeLibrary(index?.libraries?.materials, "素材"),
-          sfx: normalizeLibrary(index?.libraries?.sfx, "音效"),
-        });
-        setIconLibraryError("");
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setIconLibraryError(
-            error instanceof Error ? error.message : "图标库加载失败",
-          );
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+  const refreshResourceLibrary = useCallback(async () => {
+    const response = await fetch("/api/resource-library", { cache:"no-store" });
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.error ?? "资源库加载失败");
+    }
+    const library = normalizeArrangementResourceLibrary(payload.index);
+    setArrangementResourceLibrary(library);
+    setIconResources(library.icon);
+    setIconLibraryError("");
+    return library;
   }, []);
+
+  useEffect(() => {
+    void refreshResourceLibrary().catch((error) => {
+      setIconLibraryError(error instanceof Error ? error.message : "资源库加载失败");
+    });
+    const refreshOnFocus = () => {
+      void refreshResourceLibrary().catch(() => undefined);
+    };
+    window.addEventListener("focus", refreshOnFocus);
+    return () => window.removeEventListener("focus", refreshOnFocus);
+  }, [refreshResourceLibrary]);
 
   useEffect(() => {
     fetch("/api/icon-groups", { cache: "no-store" })
@@ -5210,7 +5209,12 @@ const App = () => {
       regionOutFrame,
       instances,
       videoTracks,
-      resourceTracks,
+      resourceTracks: resourceTracks.filter(
+        (track) => track.kind !== "sfx" ||
+          !arrangementResourceLibrary.sfx.some(
+            (sound) => sound.id === track.resourceId && sound.available === false,
+          ),
+      ),
       excludeIds,
   });
   const customDefinitions = useMemo(
@@ -5670,6 +5674,7 @@ const App = () => {
               visible: savedInstance.visible !== false,
               muted: savedInstance.muted === true,
               soundMode: savedInstance.soundMode,
+              soundDensity: savedInstance.soundDensity,
               sourceStartFrame: Number(savedInstance.sourceStartFrame) || 0,
               laneId: savedInstance.laneId,
               trackOrder: savedInstance.trackOrder,
@@ -6280,7 +6285,12 @@ const App = () => {
       includeVideo: videoPreviewEnabled,
       sourceIncludesVideo,
       videoTracks,
-      resourceTracks,
+      resourceTracks: resourceTracks.filter(
+        (track) => track.kind !== "sfx" ||
+          !arrangementResourceLibrary.sfx.some(
+            (sound) => sound.id === track.resourceId && sound.available === false,
+          ),
+      ),
       definitions,
       instances,
       canvasOrientation,
@@ -6306,6 +6316,7 @@ const App = () => {
       videoUrl,
       videoTracks,
       resourceTracks,
+      arrangementResourceLibrary.sfx,
       globalCardScale,
       backgroundDimEnabled,
       backgroundDimStrength,
@@ -6337,13 +6348,18 @@ const App = () => {
       ...previewInputProps,
       instances: previewInstances,
       resourceTracks: pendingArrangement.resourceTracks.filter((track) =>
-        selectedKeys.has(`resource:${track.id}`),
+        selectedKeys.has(`resource:${track.id}`) &&
+        (track.kind !== "sfx" ||
+          !arrangementResourceLibrary.sfx.some(
+            (sound) => sound.id === track.resourceId && sound.available === false,
+          )),
       ),
       safetyGuideVisible,
       personSafetyGuideVisible,
     };
   }, [
     pendingArrangement,
+    arrangementResourceLibrary.sfx,
     personSafetyGuideVisible,
     previewInputProps,
     safetyGuideVisible,
@@ -6952,7 +6968,17 @@ const App = () => {
     const ownerId = inspectorInstance.id;
     const updateSounds = (tracks: ResourceTrack[], owner: MotionInstance) => {
       if (change.mode === 'none') return tracks.filter(track => track.soundBinding?.instanceId !== ownerId);
-      if (change.choice) return selectComponentSound(owner, tracks, change.choice, fps, createResourceTrackId);
+      if (change.choice) return selectComponentSound(
+        owner,
+        tracks,
+        change.choice,
+        fps,
+        createResourceTrackId,
+        {
+          offsetFrames: change.offsetFrames,
+          volume: change.density === 'subtle' ? .42 : change.density === 'emphatic' ? .62 : .52,
+        },
+      );
       const first = tracks.find(track => track.kind === 'sfx' && track.soundBinding?.instanceId === ownerId);
       return tracks.map(track => track.id !== first?.id ? track : {
         ...track,
@@ -6973,11 +6999,19 @@ const App = () => {
           if (track.soundBinding?.instanceId === ownerId && !selectedKeys.includes(`resource:${track.id}`)) selectedKeys.push(`resource:${track.id}`);
         }
         return markPendingArrangementQualityChecksStale({ ...current, resourceTracks, selectedKeys,
-          motionInstances: current.motionInstances.map(instance => instance.id === ownerId && change.mode ? {...instance,soundMode:change.mode} : instance),
+          motionInstances: current.motionInstances.map(instance => instance.id === ownerId ? {
+            ...instance,
+            ...(change.mode ? { soundMode: change.mode } : {}),
+            ...(change.density ? { soundDensity: change.density } : {}),
+          } : instance),
         });
       });
     } else {
-      if (change.mode) updateInstance(ownerId, instance => ({ ...instance, soundMode: change.mode }));
+      if (change.mode || change.density) updateInstance(ownerId, instance => ({
+        ...instance,
+        ...(change.mode ? { soundMode: change.mode } : {}),
+        ...(change.density ? { soundDensity: change.density } : {}),
+      }));
       setResourceTracks(current => updateSounds(current, inspectorInstance));
     }
   };
@@ -7436,11 +7470,12 @@ const App = () => {
       if (arrangeableComponentIds.length === 0) {
         throw new Error("当前效果库没有已开放给 AI 编排的真实组件。");
       }
-      const resourceResponse = await fetch("/input/resource-index.json", {
+      const resourceResponse = await fetch("/api/resource-library", {
         cache: "no-store",
       });
-      if (!resourceResponse.ok) throw new Error("无法读取固定资源索引。");
-      const resourceIndex = await resourceResponse.json();
+      const resourcePayload = await resourceResponse.json();
+      if (!resourceResponse.ok || !resourcePayload?.ok) throw new Error("无法读取当前资源库。");
+      const resourceIndex = resourcePayload.index;
       const canvas =
         canvasOrientation === "portrait"
           ? { width: 1080, height: 1920, orientation: "portrait" }
@@ -8724,16 +8759,19 @@ const App = () => {
     });
     let indexedResources = new Set<string>();
     if (hasResourceItems) {
-      const indexResponse = await fetch("/input/resource-index.json", {
+      const indexResponse = await fetch("/api/resource-library", {
         cache: "no-store",
       });
-      if (!indexResponse.ok) throw new Error("无法读取固定资源索引。");
-      const resourceIndex = await indexResponse.json();
+      const indexPayload = await indexResponse.json();
+      if (!indexResponse.ok || !indexPayload?.ok) throw new Error("无法读取当前资源库。");
+      const resourceIndex = indexPayload.index;
       indexedResources = new Set(
         Object.entries(resourceIndex.libraries ?? {}).flatMap(
           ([library, entries]) =>
             Array.isArray(entries)
-              ? entries.map(
+              ? entries.filter((entry) =>
+                  library !== "sfx" || !isRecord(entry) || entry.available !== false,
+                ).map(
                   (entry) =>
                     `${library}:${String(isRecord(entry) ? entry.id ?? "" : "")}`,
                 )
@@ -10085,6 +10123,9 @@ const App = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "渲染失败");
+      if (Array.isArray(data.skippedSfx) && data.skippedSfx.length) {
+        setNotice({tone:"info",text:`已跳过 ${data.skippedSfx.length} 个失效音效，画面继续导出。`});
+      }
       const jobId = String(data.jobId ?? "");
       if (!jobId) throw new Error("本地服务没有返回渲染任务编号");
       await pollRenderJob(jobId);
@@ -10158,6 +10199,9 @@ const App = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "渲染失败");
+      if (Array.isArray(data.skippedSfx) && data.skippedSfx.length) {
+        setNotice({tone:"info",text:`已跳过 ${data.skippedSfx.length} 个失效音效，组件继续导出。`});
+      }
       const jobId = String(data.jobId ?? "");
       if (!jobId) throw new Error("本地服务没有返回渲染任务编号");
       await pollRenderJob(jobId);
@@ -12345,7 +12389,7 @@ const App = () => {
       pendingHistoryRef.current = null;
       historyRef.current = rewriteSoundReferences(beforeHistory,sound.id,result.replacement,fps);
       applyingHistoryRef.current = true;
-      setArrangementResourceLibrary(current => ({...current,sfx:result.library.map((item: SoundResource & {media?:{durationSeconds?:number}})=>({...item,durationSeconds:item.durationSeconds??item.media?.durationSeconds}))}));
+      await refreshResourceLibrary();
       setSelectedResourceTrackId(current => after.resourceTracks.some((item:ResourceTrack)=>item.id===current) ? current : '');
       setSfxDeleteDialog(null);
       setSfxUndoLabel(sound.label);
@@ -12368,7 +12412,7 @@ const App = () => {
             setInstances(before.instances);
             setResourceTracks(before.resourceTracks);
             setPendingArrangement(before.pendingArrangement);
-            setArrangementResourceLibrary(current=>({...current,sfx:restored.library.map((item: SoundResource & {media?:{durationSeconds?:number}})=>({...item,durationSeconds:item.durationSeconds??item.media?.durationSeconds}))}));
+            await refreshResourceLibrary();
             soundDeletionUndoRef.current=null;
             setSfxUndoLabel('');
             setNotice({tone:'ok',text:`已恢复音效“${sound.label}”及其原有引用。`});
@@ -15329,7 +15373,9 @@ const App = () => {
                             field === "iconIds"
                               ? BUILT_IN_ICON_ID_SET
                               : field === "sfxIds"
-                                ? BUILT_IN_SFX_ID_SET
+                                ? new Set(arrangementResourceLibrary.sfx.filter(
+                                    (sound) => sound.available !== false,
+                                  ).map((sound) => sound.id))
                                 : AI_ARRANGEABLE_COMPONENT_ID_SET;
                           if (!whitelist.has(id)) return;
                           const next = checked
@@ -15451,7 +15497,10 @@ const App = () => {
                                   </div>
                                 ) : semanticTagPopover.field === "sfxIds" ? (
                                   <ul className="semantic-tag-popover-list">
-                                    {BUILT_IN_SFX_IDS.map((sfxId) => {
+                                    {arrangementResourceLibrary.sfx.filter(
+                                      (sound) => sound.available !== false,
+                                    ).map((sound) => {
+                                      const sfxId = sound.id;
                                       const checked =
                                         config.sfxIds.includes(sfxId);
                                       return (
@@ -15469,8 +15518,8 @@ const App = () => {
                                               }
                                             />
                                             <span>
-                                              <strong>{sfxId}</strong>
-                                              <code>sfx/{sfxId}.wav</code>
+                                              <strong>{sound.label}</strong>
+                                              <code>{sound.url}</code>
                                             </span>
                                           </label>
                                         </li>
@@ -16152,7 +16201,7 @@ const App = () => {
                             const isPreviewing = previewingSfxId === sound.id;
                             return (
                               <article
-                                className={isPreviewing ? "sfx-library-card previewing" : "sfx-library-card"}
+                                className={`${isPreviewing ? "sfx-library-card previewing" : "sfx-library-card"}${sound.available === false ? " unavailable" : ""}`}
                                 key={sound.id}
                                 onContextMenu={(event) =>
                                   showSfxLibraryMenu(event, {
@@ -16165,6 +16214,7 @@ const App = () => {
                                   type="button"
                                   className="sfx-preview-button"
                                   onClick={() => toggleSfxLibraryPreview(sound)}
+                                  disabled={sound.available === false}
                                   aria-label={isPreviewing ? `停止试听 ${sound.label}` : `试听 ${sound.label}`}
                                   title={isPreviewing ? "停止试听" : "试听音效"}
                                 >
@@ -16176,6 +16226,7 @@ const App = () => {
                                   <span>
                                     {formatSoundDuration(sound.durationSeconds)}
                                     {sound.source === "manual" ? " · 手动导入" : " · 内置"}
+                                    {sound.available === false ? " · 文件失效" : ""}
                                   </span>
                                 </div>
                                 <div className="sfx-card-actions">
@@ -16204,7 +16255,8 @@ const App = () => {
                                     type="button"
                                     className="primary"
                                     onClick={() => addSfxResource(sound)}
-                                    title="添加到当前播放位置"
+                                    disabled={sound.available === false}
+                                    title={sound.available === false ? sound.unavailableReason : "添加到当前播放位置"}
                                   >
                                     <Plus /> 添加
                                   </button>
@@ -18036,6 +18088,7 @@ const App = () => {
                   fps={fps}
                   soundEnabled={soundEnabled}
                   onChange={changeInspectorSound}
+                  onRefreshLibrary={async () => (await refreshResourceLibrary()).sfx}
                 />
                 <section className={`reference-inspector-section${inspectorSectionsExpanded.properties ? "" : " collapsed"}`}>
                   <div className="reference-section-title" role="button" tabIndex={0} aria-expanded={inspectorSectionsExpanded.properties} onClick={() => toggleInspectorSection("properties")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleInspectorSection("properties"); } }}>
@@ -21484,15 +21537,6 @@ studioRoot.render(
     <App />
   </React.StrictMode>,
 );
-
-
-
-
-
-
-
-
-
 
 
 

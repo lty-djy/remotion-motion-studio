@@ -66,6 +66,7 @@ export type MotionComponentDefinition = {
 
 export type MotionInstance = {
   soundMode?: "none" | "auto" | "manual";
+  soundDensity?: "subtle" | "balanced" | "emphatic";
   id: string;
   laneId: string;
   trackOrder: number;

@@ -3708,6 +3708,9 @@ main.is-resizing-sidebar * {
   font-size: 12px;
   letter-spacing: 0.28em;
 }
+.sfx-library-card.unavailable { border-color:#d68a4355; opacity:.72; }
+.sfx-library-card.unavailable .sfx-card-copy span { color:#f0b36f; }
+.sfx-library-card button:disabled { cursor:not-allowed; opacity:.45; }
 
 .reference-inspector-semantic-table {
   padding-bottom: 18px;

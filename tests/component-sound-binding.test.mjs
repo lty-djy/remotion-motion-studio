@@ -12,6 +12,7 @@ async function compile(source) {
 }
 const api = await compile(`export * from './component-sound-binding'; export { updateComponentSoundTracks } from './use-component-sound-tracks';`);
 const selection = await compile(`export * from './component-sound-selection';`);
+const profiles = await compile(`export * from './component-sound-profiles'; export { BUILT_IN_DEFINITIONS } from './local-builtins';`);
 const owner = { id: 'card-a', startFrame: 90, durationInFrames: 120, visible: true };
 const sound = { id: 'sfx-a', laneId: 'sound-lane', trackOrder: 2, kind: 'sfx', resourceId: 'click', url: '/input/sfx/click.wav', startFrame: 90, durationInFrames: 30, sourceStartFrame: 2, sourceDurationInFrames: 40, volume: .4, voiceDucking: 0, muted: true, visible: true, position: { x: 0, y: 0, width: 1, height: 1, scale: 1, zIndex: 0 } };
 const bound = api.bindComponentSound(sound, owner, -6);
@@ -85,12 +86,13 @@ const end = serverSource.indexOf('\n};', start) + 3;
 assert.ok(start > 0 && end > start);
 const persistence = await compile(`import { normalizeSoundBinding } from './component-sound-binding'; ${serverSource.slice(start, end)}; export { normalizeProjectSnapshot };`);
 test('real save normalizer and JSON round-trip retain stable owner/resource IDs, offset and mute', () => {
-  const saved = persistence.normalizeProjectSnapshot({ name: 'test', ...initial(), instances: [{...owner,soundMode:'auto'}] });
+  const saved = persistence.normalizeProjectSnapshot({ name: 'test', ...initial(), instances: [{...owner,soundMode:'auto',soundDensity:'emphatic'}] });
   const reopened = JSON.parse(JSON.stringify(saved));
   assert.deepEqual(reopened.resourceTracks[0].soundBinding, bound.soundBinding);
   assert.equal(reopened.resourceTracks[0].resourceId, 'click');
   assert.equal(reopened.resourceTracks[0].muted, true);
   assert.equal(reopened.instances[0].soundMode, 'auto');
+  assert.equal(reopened.instances[0].soundDensity, 'emphatic');
   assert.equal(move(reopened, 210).resourceTracks[0].startFrame, 204);
 });
 
@@ -113,4 +115,42 @@ test('recommendation uses current library metadata and never rewrites existing t
   assert.deepEqual(selection.recommendComponentSounds(terminal,[pop]), []);
   assert.deepEqual(selection.recommendComponentSounds({...terminal,componentId:'SrtSemanticCaptions'},[pop,typing]), []);
   assert.equal(initial().resourceTracks[0].resourceId, 'click');
+});
+
+test('recommendation ignores unavailable sounds until the user refreshes or replaces them', () => {
+  const missing = {id:'missing-typing',label:'打字',url:'/input/sfx/missing.wav',tags:['typing'],category:'custom',usage:'',available:false};
+  const available = {...missing,id:'available-typing',url:'/input/sfx/available.wav',available:true};
+  const terminal = {...owner,componentId:'Terminal3D'};
+  assert.deepEqual(selection.recommendComponentSounds(terminal,[missing]), []);
+  assert.equal(selection.recommendComponentSounds(terminal,[missing,available])[0].id, 'available-typing');
+});
+
+test('every built-in component has an explicit sound profile and unknown components do not guess', () => {
+  const ids = profiles.BUILT_IN_DEFINITIONS.map(item => item.id).sort();
+  assert.deepEqual(Object.keys(profiles.COMPONENT_SOUND_PROFILES).sort(), ids);
+  const custom = {...owner,componentId:'ImportedCustomEffect'};
+  const pop = {id:'pop',label:'Pop',url:'/input/sfx/pop.wav',mimeType:'audio/wav',tags:['ui','pop'],category:'custom',usage:''};
+  assert.equal(profiles.getComponentSoundProfile(custom.componentId).autoEnabled, false);
+  assert.deepEqual(selection.recommendComponentSounds(custom,[pop]), []);
+});
+
+test('recommendations expose component reason and trigger point instead of guessing from component names', () => {
+  const typingSoft = {id:'typewriter-hit-soft',label:'Soft type',url:'/input/sfx/soft.wav',mimeType:'audio/wav',tags:['text','typewriter-hit-soft'],category:'custom',usage:'',durationSeconds:.4};
+  const typingHard = {...typingSoft,id:'typewriter-hit-hard',label:'Hard type',tags:['text','typewriter-hit-hard'],durationSeconds:.8};
+  const terminal = {...owner,componentId:'Terminal3D'};
+  const subtle = selection.recommendComponentSoundDetails(terminal,[typingHard,typingSoft],'subtle');
+  const emphatic = selection.recommendComponentSoundDetails(terminal,[typingSoft,typingHard],'emphatic');
+  assert.equal(subtle[0].choice.id,'typewriter-hit-soft');
+  assert.equal(emphatic[0].choice.id,'typewriter-hit-hard');
+  assert.match(subtle[0].reason,/终端|输入/);
+  assert.equal(subtle[0].triggerLabel,'首行内容开始输入');
+  assert.equal(subtle[0].offsetSeconds,.08);
+});
+
+test('caption profiles deliberately disable automatic sound while keeping manual selection possible', () => {
+  const sound = {id:'caption-pop',label:'Pop',url:'/input/sfx/pop.wav',mimeType:'audio/wav',tags:['ui','pop'],category:'custom',usage:''};
+  for (const componentId of ['SrtSemanticCaptions','SrtCueText']) {
+    assert.equal(profiles.getComponentSoundProfile(componentId).autoEnabled,false);
+    assert.deepEqual(selection.recommendComponentSounds({...owner,componentId},[sound]),[]);
+  }
 });

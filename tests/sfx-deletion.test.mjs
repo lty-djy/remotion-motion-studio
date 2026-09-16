@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { inspectSfxDeletion, commitSfxDeletion, undoSfxDeletion, assertAvailableSfx } from '../sfx-deletion.mjs';
+import { inspectSfxDeletion, commitSfxDeletion, undoSfxDeletion, assertAvailableSfx, inspectSfxLibrary, omitUnavailableSfxTracks } from '../sfx-deletion.mjs';
 import { rewriteSoundReferences } from '../sfx-references.mjs';
 
 const owner = {id:'owner',componentId:'BrandLogo',soundMode:'manual',startFrame:30};
@@ -89,4 +89,17 @@ test('a stale browser cannot save deleted sound references, but restored assets 
   await assert.rejects(assertAvailableSfx(root,snapshot),/已删除/);
   await assertAvailableSfx(root,rewriteSoundReferences(snapshot,'old'));
   await undoSfxDeletion(root,result.token); await assertAvailableSfx(root,snapshot);
+});
+
+test('live library marks missing or empty audio and playback filtering keeps visuals and valid sounds',async t=>{
+  const root=await fixture(t);
+  let status=await inspectSfxLibrary(root);
+  assert.equal(status.unavailable.length,0);
+  await writeFile(join(root,'public/input/sfx/old.wav'),'');
+  status=await inspectSfxLibrary(root);
+  assert.deepEqual(status.unavailable.map(item=>item.id),['old']);
+  assert.equal(status.index.libraries.sfx.find(item=>item.id==='old').available,false);
+  const availableIds=new Set(status.index.libraries.sfx.filter(item=>item.available).map(item=>item.id));
+  const tracks=[track,{...track,id:'valid',resourceId:'new'},{id:'icon',kind:'icon',resourceId:'visual'}];
+  assert.deepEqual(omitUnavailableSfxTracks(tracks,availableIds).map(item=>item.id),['valid','icon']);
 });
