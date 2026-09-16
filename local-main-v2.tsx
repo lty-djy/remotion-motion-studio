@@ -3,7 +3,7 @@ import { duplicateComponentSounds, isComponentSoundMuted, normalizeSoundBinding,
 import { ComponentSoundPanel, type SoundPanelChange } from "./component-sound-panel";
 import { SfxDeleteDialog, type SfxReference } from './sfx-delete-dialog';
 import { soundReferences, rewriteSoundReferences } from './sfx-references.mjs';
-import { selectComponentSound } from "./component-sound-selection";
+import { selectComponentSound, selectComponentSoundCues } from "./component-sound-selection";
 import { useComponentSoundTracks } from "./use-component-sound-tracks";
 import {GigCardsEditor} from "./effects/GigCardsEditor";
 import { assignArrangementLanes } from "./arrangement-lanes";
@@ -6968,23 +6968,78 @@ const App = () => {
     const ownerId = inspectorInstance.id;
     const updateSounds = (tracks: ResourceTrack[], owner: MotionInstance) => {
       if (change.mode === 'none') return tracks.filter(track => track.soundBinding?.instanceId !== ownerId);
-      if (change.choice) return selectComponentSound(
-        owner,
-        tracks,
-        change.choice,
-        fps,
-        createResourceTrackId,
-        {
-          offsetFrames: change.offsetFrames,
-          volume: change.density === 'subtle' ? .42 : change.density === 'emphatic' ? .62 : .52,
-        },
+      if (change.choice) {
+        const volume =
+          change.density === undefined
+            ? undefined
+            : change.density === 'subtle'
+              ? .42
+              : change.density === 'emphatic'
+                ? .62
+                : .52;
+        return change.cues?.length
+          ? selectComponentSoundCues(
+              owner,
+              tracks,
+              change.choice,
+              fps,
+              createResourceTrackId,
+              change.cues,
+              {
+                nudgeFrames: change.cueNudgeFrames,
+                volume,
+              },
+            )
+          : selectComponentSound(
+              owner,
+              tracks,
+              change.choice,
+              fps,
+              createResourceTrackId,
+              {
+                offsetFrames: change.offsetFrames,
+                volume,
+              },
+            );
+      }
+      const cueById = new Map(
+        (change.cues ?? []).map(cue => [cue.id, cue]),
       );
-      const first = tracks.find(track => track.kind === 'sfx' && track.soundBinding?.instanceId === ownerId);
-      return tracks.map(track => track.id !== first?.id ? track : {
-        ...track,
-        ...(change.volume !== undefined ? { volume: clamp(change.volume, 0, 1) } : {}),
-        ...(change.offsetFrames !== undefined && track.soundBinding
-          ? { soundBinding: { ...track.soundBinding, offsetFrames: change.offsetFrames } } : {}),
+      return tracks.map(track => {
+        if (track.kind !== 'sfx' || track.soundBinding?.instanceId !== ownerId) {
+          return track;
+        }
+        let soundBinding = track.soundBinding;
+        if (
+          change.cueNudgeFrames !== undefined &&
+          soundBinding.cueId
+        ) {
+          const cue = cueById.get(soundBinding.cueId);
+          soundBinding = {
+            ...soundBinding,
+            nudgeFrames: change.cueNudgeFrames,
+            ...(cue
+              ? {
+                  cueIndex: cue.index,
+                  cueLabel: cue.label,
+                  offsetFrames:
+                    cue.offsetFrames + change.cueNudgeFrames,
+                }
+              : {}),
+          };
+        } else if (change.offsetFrames !== undefined) {
+          soundBinding = {
+            ...soundBinding,
+            offsetFrames: change.offsetFrames,
+          };
+        }
+        return {
+          ...track,
+          soundBinding,
+          ...(change.volume !== undefined
+            ? { volume: clamp(change.volume, 0, 1) }
+            : {}),
+        };
       });
     };
     if (pendingPreviewInspectorInstance) {

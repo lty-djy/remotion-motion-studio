@@ -26,3 +26,10 @@
 .component-sound-explanation dt { opacity:.58; }
 .component-sound-explanation dd { margin:0; }
 .component-sound-explanation > button { width:100%; margin-top:8px; }
+.component-sound-cues { padding:9px; border:1px solid #60677544; border-radius:7px; background:#12182040; }
+.component-sound-cues-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px; }
+.component-sound-cues-head span { color:#79d9b3; }
+.component-sound-cues ol { display:flex; flex-direction:column; gap:5px; margin:8px 0 0; padding:0; list-style:none; }
+.component-sound-cues li { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; font-size:11px; }
+.component-sound-cues li > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.84; }
+.component-sound-cues li small { flex-shrink:0; color:#7aabff; font-family:Consolas,monospace; }

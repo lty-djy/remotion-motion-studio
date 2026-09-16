@@ -12,6 +12,7 @@ async function compile(source) {
 }
 const api = await compile(`export * from './component-sound-binding'; export { updateComponentSoundTracks } from './use-component-sound-tracks';`);
 const selection = await compile(`export * from './component-sound-selection';`);
+const cues = await compile(`export * from './component-sound-cues';`);
 const profiles = await compile(`export * from './component-sound-profiles'; export { BUILT_IN_DEFINITIONS } from './local-builtins';`);
 const owner = { id: 'card-a', startFrame: 90, durationInFrames: 120, visible: true };
 const sound = { id: 'sfx-a', laneId: 'sound-lane', trackOrder: 2, kind: 'sfx', resourceId: 'click', url: '/input/sfx/click.wav', startFrame: 90, durationInFrames: 30, sourceStartFrame: 2, sourceDurationInFrames: 40, volume: .4, voiceDucking: 0, muted: true, visible: true, position: { x: 0, y: 0, width: 1, height: 1, scale: 1, zIndex: 0 } };
@@ -106,6 +107,119 @@ test('manual replacement preserves binding, offset and volume and never duplicat
   assert.equal(tracks[0].volume, bound.volume);
   assert.deepEqual(tracks[0].soundBinding, bound.soundBinding);
   assert.equal(tracks[1].id, 'independent');
+});
+test('multi-step components create one bound sound per visual cue and keep them synchronized', () => {
+  const cueOwner = {
+    ...owner,
+    componentId: 'PortraitToolBadgeList',
+    props: {
+      stepCount: 3,
+      animationSeconds: 2.8,
+      badge1: 'C 位',
+      badge2: '26K',
+      badge3: '80K',
+    },
+  };
+  const choice = {id:'pop',label:'Pop',url:'/input/sfx/pop.wav',mimeType:'audio/wav',tags:['ui','pop'],category:'custom',usage:'',durationSeconds:.3};
+  let nextId = 0;
+  const visualCues = cues.getComponentSoundCues(cueOwner, 30);
+  const tracks = selection.selectComponentSoundCues(
+    cueOwner,
+    initial().resourceTracks,
+    choice,
+    30,
+    () => `cue-${++nextId}`,
+    visualCues,
+    { nudgeFrames: 2, volume: .42 },
+  );
+  const boundTracks = tracks.filter(track => track.soundBinding?.instanceId === cueOwner.id);
+  assert.equal(boundTracks.length, 3);
+  assert.deepEqual(boundTracks.map(track => track.soundBinding.cueId), ['step-1', 'step-2', 'step-3']);
+  assert.deepEqual(boundTracks.map(track => track.startFrame), [104, 124, 144]);
+  assert.ok(boundTracks.every(track => track.volume === .42));
+
+  const expandedOwner = {
+    ...cueOwner,
+    props: { ...cueOwner.props, stepCount: 5, animationSeconds: 4 },
+  };
+  const expanded = api.updateComponentSoundTracks(
+    { instances: [cueOwner], resourceTracks: tracks },
+    { type: 'instances', update: [expandedOwner] },
+  );
+  const expandedSounds = expanded.resourceTracks
+    .filter(track => track.soundBinding?.instanceId === cueOwner.id)
+    .sort((left, right) => left.soundBinding.cueIndex - right.soundBinding.cueIndex);
+  assert.equal(expandedSounds.length, 5);
+  assert.deepEqual(expandedSounds.map(track => track.soundBinding.cueId), ['step-1', 'step-2', 'step-3', 'step-4', 'step-5']);
+  assert.deepEqual(expandedSounds.map(track => track.startFrame), [109, 138, 167, 196, 225]);
+
+  const reducedOwner = {
+    ...expandedOwner,
+    props: { ...expandedOwner.props, stepCount: 2 },
+  };
+  const reduced = api.updateComponentSoundTracks(
+    expanded,
+    { type: 'instances', update: [reducedOwner] },
+  );
+  assert.equal(
+    reduced.resourceTracks.filter(track => track.soundBinding?.instanceId === cueOwner.id).length,
+    2,
+  );
+  assert.ok(reduced.resourceTracks.some(track => track.id === 'independent'));
+});
+test('cue metadata survives JSON normalization and duplication', () => {
+  const cueOwner = {
+    ...owner,
+    componentId: 'PortraitStepNumberList',
+    props: { stepCount: 2, stepEnterIntervalSeconds: .2, step1: '准备', step2: '完成' },
+  };
+  const [firstCue] = cues.getComponentSoundCues(cueOwner, 30);
+  const cueTrack = api.bindComponentSound(sound, cueOwner, firstCue.offsetFrames - 1, {
+    id: firstCue.id,
+    index: firstCue.index,
+    label: firstCue.label,
+    fps: 30,
+    nudgeFrames: -1,
+  });
+  const saved = persistence.normalizeProjectSnapshot({
+    name: 'cue-test',
+    instances: [cueOwner],
+    resourceTracks: [cueTrack],
+  });
+  assert.deepEqual(saved.resourceTracks[0].soundBinding, cueTrack.soundBinding);
+  const copy = { ...cueOwner, id: 'cue-copy', startFrame: 120 };
+  const [copied] = api.duplicateComponentSounds(
+    [cueTrack],
+    new Map([[cueOwner.id, copy]]),
+    () => 'copied-cue',
+  );
+  assert.equal(copied.soundBinding.cueId, firstCue.id);
+  assert.equal(copied.soundBinding.nudgeFrames, -1);
+  assert.equal(copied.startFrame, 119);
+});
+test('all staged built-ins with explicit item timing expose one cue per configured item', () => {
+  const cases = [
+    ['PortraitToolBadgeList', { stepCount: 3, animationSeconds: 2.8 }],
+    ['PortraitStaggeredToolList', { stepCount: 4, animationSeconds: 2.8 }],
+    ['PortraitStepNumberList', { stepCount: 5, stepEnterIntervalSeconds: .2 }],
+    ['TerminalPanel', { stepCount: 3, itemIntervalSeconds: .55 }],
+    ['PortraitWorkflowPrerequisite', { stepCount: 4, animationSeconds: 3.5 }],
+    ['PortraitDesignRuleChecklist', { ruleCount: 4, animationSeconds: 8.1, ruleIntervalSeconds: 1.8 }],
+    ['PortraitSkillStepGrid', { stepCount: 4, headerEnterSeconds: .45, cardEnterIntervalSeconds: .16 }],
+    ['PortraitBrowserRepairLoop', { stepCount: 6, firstNodeHighlightSeconds: .5, nextNodeHighlightIntervalSeconds: 1.2 }],
+    ['PortraitRiskWarning', { riskCount: 3, animationSeconds: .95, riskIntervalSeconds: .45 }],
+    ['PortraitCodeDecisionChecklist', { questionCount: 6, firstHighlightSeconds: .6, questionIntervalSeconds: .9 }],
+    ['PortraitSkillSourceFusion', { sourceCount: 3, animationSeconds: 8.7 }],
+    ['PortraitSkillResultComparison', { materialCount: 3, firstSwitchSeconds: 3.1, materialIntervalSeconds: 3.5 }],
+    ['PortraitPromptIterationShowcase', { iterationCount: 3, firstResultSeconds: 3.1, iterationIntervalSeconds: 5.2 }],
+  ];
+  for (const [componentId, props] of cases) {
+    const count = Number(props.stepCount ?? props.ruleCount ?? props.riskCount ?? props.questionCount ?? props.sourceCount ?? props.materialCount ?? props.iterationCount);
+    const plan = cues.getComponentSoundCues({ ...owner, componentId, props }, 30);
+    assert.equal(plan.length, count, componentId);
+    assert.ok(plan.every((cue, index) => cue.index === index), componentId);
+    assert.ok(plan.every((cue, index) => index === 0 || cue.offsetFrames >= plan[index - 1].offsetFrames), componentId);
+  }
 });
 test('recommendation uses current library metadata and never rewrites existing tracks', () => {
   const pop = {id:'custom-pop',label:'弹出',url:'/input/sfx/p.wav',tags:['pop'],category:'custom',usage:''};

@@ -124,6 +124,14 @@ export type ResourceTrackKind = "icon" | "material" | "sfx";
 export type ComponentSoundBinding = {
   instanceId: string;
   offsetFrames: number;
+  /** 多步骤组件中的稳定事件 ID；省略时表示传统的单音效绑定。 */
+  cueId?: string;
+  cueIndex?: number;
+  cueLabel?: string;
+  /** 创建 cue 时的项目帧率，用于组件参数变化后重新计算事件帧。 */
+  cueFps?: number;
+  /** 用户对整组步骤音效施加的统一微调。 */
+  nudgeFrames?: number;
 };
 
 export type ResourceTrack = {

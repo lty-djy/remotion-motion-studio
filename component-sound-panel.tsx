@@ -10,6 +10,10 @@ import {
   getComponentSoundProfile,
   type ComponentSoundDensity,
 } from "./component-sound-profiles";
+import {
+  getComponentSoundCues,
+  type ComponentSoundCue,
+} from "./component-sound-cues";
 import "./component-sound-panel.css";
 
 export type SoundPanelChange = {
@@ -18,6 +22,8 @@ export type SoundPanelChange = {
   choice?: SoundChoice;
   volume?: number;
   offsetFrames?: number;
+  cues?: ComponentSoundCue[];
+  cueNudgeFrames?: number;
 };
 
 export function ComponentSoundPanel({
@@ -41,12 +47,26 @@ export function ComponentSoundPanel({
   const [playing, setPlaying] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(true);
   const audio = useRef<HTMLAudioElement>(null);
-  const track = tracks.find(
-    (item) =>
-      item.kind === "sfx" &&
-      item.soundBinding?.instanceId === owner.id,
+  const soundTracks = tracks
+    .filter(
+      (item) =>
+        item.kind === "sfx" &&
+        item.soundBinding?.instanceId === owner.id,
+    )
+    .sort(
+      (left, right) =>
+        (left.soundBinding?.cueIndex ?? 0) -
+        (right.soundBinding?.cueIndex ?? 0),
+    );
+  const track = soundTracks[0];
+  const soundCues = useMemo(
+    () => getComponentSoundCues(owner, fps),
+    [owner.componentId, owner.props, fps],
   );
+  const cueNudgeFrames = track?.soundBinding?.nudgeFrames ?? 0;
+  const usesStepCues = soundCues.length > 0;
   const mode = owner.soundMode ?? (track ? "manual" : "none");
   const profile = getComponentSoundProfile(owner.componentId);
   const density = owner.soundDensity ?? profile.defaultDensity;
@@ -103,7 +123,18 @@ export function ComponentSoundPanel({
             mode: "auto",
             density: nextDensity,
             choice: recommended.choice,
-            offsetFrames: Math.round(recommended.offsetSeconds * fps),
+            ...(usesStepCues
+              ? {
+                  cues: soundCues,
+                  cueNudgeFrames: Math.round(
+                    recommended.offsetSeconds * fps,
+                  ),
+                }
+              : {
+                  offsetFrames: Math.round(
+                    recommended.offsetSeconds * fps,
+                  ),
+                }),
           }
         : { mode: "auto", density: nextDensity },
     );
@@ -161,23 +192,43 @@ export function ComponentSoundPanel({
   };
 
   const triggerOffset =
-    selectedRecommendation?.offsetSeconds ?? profile.trigger.offsetSeconds;
-  const triggerText = `${
-    selectedRecommendation?.triggerLabel ?? profile.trigger.label
-  } · ${
+    usesStepCues && track
+      ? cueNudgeFrames / fps
+      : selectedRecommendation?.offsetSeconds ?? profile.trigger.offsetSeconds;
+  const triggerOffsetText =
     triggerOffset === 0
-      ? "与入场同步"
+      ? "0 秒"
       : triggerOffset < 0
-        ? `提前 ${Math.abs(triggerOffset).toFixed(2)} 秒`
-        : `入场后 ${triggerOffset.toFixed(2)} 秒`
-  }`;
+        ? "-" + Math.abs(triggerOffset).toFixed(2) + " 秒"
+        : "+" + triggerOffset.toFixed(2) + " 秒";
+  const triggerText = usesStepCues
+    ? soundCues.length + " 个步骤逐项触发 · 整体微调 " + triggerOffsetText
+    : (selectedRecommendation?.triggerLabel ?? profile.trigger.label) +
+      " · " +
+      (triggerOffset === 0
+        ? "与入场同步"
+        : triggerOffset < 0
+          ? "提前 " + Math.abs(triggerOffset).toFixed(2) + " 秒"
+          : "入场后 " + triggerOffset.toFixed(2) + " 秒");
 
   return (
     <section
-      className="reference-inspector-section component-sound-panel"
+      className={"reference-inspector-section component-sound-panel" + (expanded ? "" : " collapsed")}
       aria-label="组件音效"
     >
-      <div className="reference-section-title">
+      <div
+        className="reference-section-title"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setExpanded((current) => !current);
+          }
+        }}
+      >
         <strong>组件音效</strong>
         <small>SOUND</small>
       </div>
@@ -281,7 +332,18 @@ export function ComponentSoundPanel({
                   const choice = library.find(
                     (item) => item.id === event.target.value,
                   );
-                  if (choice) onChange({ mode: "manual", choice });
+                  if (choice) {
+                    onChange({
+                      mode: "manual",
+                      choice,
+                      ...(usesStepCues
+                        ? {
+                            cues: soundCues,
+                            cueNudgeFrames,
+                          }
+                        : {}),
+                    });
+                  }
                 }}
               >
                 <option value="" disabled>
@@ -316,6 +378,7 @@ export function ComponentSoundPanel({
               <div className="component-sound-selected">
                 <span title={selected?.label ?? track.name}>
                   {selected?.label ?? track.name}
+                  {usesStepCues ? " × " + soundCues.length : ""}
                 </span>
                 <button
                   type="button"
@@ -349,6 +412,30 @@ export function ComponentSoundPanel({
                   {playing ? "停止试听" : "试听音效"}
                 </button>
               </div>
+              {usesStepCues && (
+                <div className="component-sound-cues">
+                  <div className="component-sound-cues-head">
+                    <strong>逐步骤同步</strong>
+                    <span>
+                      {soundTracks.length}/{soundCues.length} 个音效片段
+                    </span>
+                  </div>
+                  <ol>
+                    {soundCues.map((cue) => (
+                      <li key={cue.id}>
+                        <span>{cue.label}</span>
+                        <small>
+                          {(
+                            (cue.offsetFrames + cueNudgeFrames) /
+                            fps
+                          ).toFixed(2)}
+                          秒
+                        </small>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
               {selectedUnavailable && (
                 <p
                   className="component-sound-unavailable"
@@ -388,14 +475,22 @@ export function ComponentSoundPanel({
                 />
               </label>
               <label>
-                相对入场时间（秒）
+                {usesStepCues
+                  ? "全部步骤时间微调（秒）"
+                  : "相对入场时间（秒）"}
                 <input
-                  aria-label="组件音效时间偏移"
+                  aria-label={
+                    usesStepCues
+                      ? "全部步骤音效时间微调"
+                      : "组件音效时间偏移"
+                  }
                   type="number"
                   step={1 / fps}
                   value={Number(
                     (
-                      (track.soundBinding?.offsetFrames ?? 0) /
+                      (usesStepCues
+                        ? cueNudgeFrames
+                        : track.soundBinding?.offsetFrames ?? 0) /
                       fps
                     ).toFixed(3),
                   )}
@@ -404,20 +499,28 @@ export function ComponentSoundPanel({
                       event.target.value !== "" &&
                       Number.isFinite(event.target.valueAsNumber)
                     ) {
-                      onChange({
-                        offsetFrames: Math.round(
-                          event.target.valueAsNumber * fps,
-                        ),
-                      });
+                      const nextFrames = Math.round(
+                        event.target.valueAsNumber * fps,
+                      );
+                      onChange(
+                        usesStepCues
+                          ? {
+                              cues: soundCues,
+                              cueNudgeFrames: nextFrames,
+                            }
+                          : { offsetFrames: nextFrames },
+                      );
                     }
                   }}
                 />
               </label>
               <small className="component-sound-hint">
-                负数提前，正数延后；音效跟随当前组件。
+                {usesStepCues
+                  ? "每个音效跟随对应步骤；负数整体提前，正数整体延后。"
+                  : "负数提前，正数延后；音效跟随当前组件。"}
               </small>
-              {track.muted && (
-                <p role="status">该音效轨道已静音。</p>
+              {soundTracks.some((item) => item.muted) && (
+                <p role="status">一个或多个音效轨道已静音。</p>
               )}
             </>
           )}

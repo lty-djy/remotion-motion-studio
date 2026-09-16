@@ -1,5 +1,6 @@
 import type { MotionInstance, ResourceTrack } from "./local-protocol";
 import { bindComponentSound } from "./component-sound-binding";
+import type { ComponentSoundCue } from "./component-sound-cues";
 import {
   getComponentSoundProfile,
   type ComponentSoundDensity,
@@ -226,4 +227,105 @@ export function selectComponentSound(
   return existing
     ? tracks.map((item) => (item.id === existing.id ? track : item))
     : [...tracks, track];
+}
+
+/** 为多步骤组件的每个视觉事件创建独立音效片段，并替换该组件过期的 cue。 */
+export function selectComponentSoundCues(
+  owner: MotionInstance,
+  tracks: ResourceTrack[],
+  choice: SoundChoice,
+  fps: number,
+  createId: () => string,
+  cues: ComponentSoundCue[],
+  defaults: { nudgeFrames?: number; volume?: number } = {},
+) {
+  if (!cues.length) {
+    return selectComponentSound(owner, tracks, choice, fps, createId, {
+      offsetFrames: defaults.nudgeFrames,
+      volume: defaults.volume,
+    });
+  }
+  const existingTracks = tracks.filter(
+    (track) =>
+      track.kind === "sfx" &&
+      track.soundBinding?.instanceId === owner.id,
+  );
+  const existingByCue = new Map(
+    existingTracks
+      .filter((track) => track.soundBinding?.cueId)
+      .map((track) => [track.soundBinding!.cueId!, track]),
+  );
+  const legacy = existingTracks.find((track) => !track.soundBinding?.cueId);
+  const sourceFrames = Math.max(
+    3,
+    Math.round((choice.durationSeconds ?? 1) * fps),
+  );
+  const nudgeFrames = defaults.nudgeFrames ?? 0;
+  const baseTrackOrder =
+    existingTracks[0]?.trackOrder ??
+    Math.min(
+      0,
+      ...tracks.map((item) => item.trackOrder),
+      owner.trackOrder,
+    ) -
+      1;
+  const cueTracks = cues.map((cue, index) => {
+    const existing =
+      existingByCue.get(cue.id) ?? (index === 0 ? legacy : undefined);
+    const id = existing?.id ?? createId();
+    return bindComponentSound(
+      {
+        id,
+        laneId: existing?.laneId ?? id,
+        trackOrder: existing?.trackOrder ?? baseTrackOrder - index,
+        kind: "sfx",
+        resourceId: choice.id,
+        name: choice.label,
+        url: choice.url,
+        mimeType: choice.mimeType || "audio/mpeg",
+        sourceStartFrame: 0,
+        sourceDurationInFrames: sourceFrames,
+        durationInFrames: sourceFrames,
+        startFrame: owner.startFrame,
+        visible: true,
+        muted: existing?.muted ?? false,
+        volume: defaults.volume ?? existing?.volume ?? 0.55,
+        voiceDucking: existing?.voiceDucking ?? 0,
+        position: existing?.position
+          ? { ...existing.position }
+          : {
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1,
+              scale: 1,
+              zIndex: 0,
+            },
+        sourceIntentId: owner.sourceIntentId,
+        sourceExpressionId: owner.sourceExpressionId,
+        arrangementBatchId: owner.arrangementBatchId,
+        arrangementBatchName: owner.arrangementBatchName,
+      },
+      owner,
+      cue.offsetFrames + nudgeFrames,
+      {
+        id: cue.id,
+        index: cue.index,
+        label: cue.label,
+        fps,
+        nudgeFrames,
+      },
+    );
+  });
+
+  let inserted = false;
+  const result = tracks.flatMap((track) => {
+    if (track.kind !== "sfx" || track.soundBinding?.instanceId !== owner.id) {
+      return [track];
+    }
+    if (inserted) return [];
+    inserted = true;
+    return cueTracks;
+  });
+  return inserted ? result : [...result, ...cueTracks];
 }
