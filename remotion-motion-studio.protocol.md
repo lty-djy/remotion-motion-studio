@@ -82,7 +82,7 @@ defaultPosition: {x: 110, y: 110, scale: 1},
 
 ## 3. 预设时间轴
 
-`MOTION_TIMELINE` 把清单定义实例化为多条独立轨道：
+`MOTION_TIMELINE` 把清单定义实例化到组件轨道上：
 
 ```tsx
 export const MOTION_TIMELINE = [
@@ -97,7 +97,7 @@ export const MOTION_TIMELINE = [
 ];
 ```
 
-- 每一项都会生成一条独立组件轨道。
+- 每一项都占用组件轨道上的时间区间：工作台按“够位置就并轨”分配，时间互不重叠的项共用一条轨道，时间真冲突时才新建轨道；追加导入（`导入到时间轴`）时优先并入已有组件轨的空闲区间。
 - 同一 `componentId` 可出现多次，每次拥有独立位置、时长和参数。
 - `startFrame` 不得小于 0；`durationInFrames` 不得小于 3。
 - 不提供预设时，工作台只放入清单中的第一个组件。

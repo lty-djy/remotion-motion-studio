@@ -478,6 +478,107 @@ export const normalizeTimelineLaneOrders = <
   };
 };
 
+// ===== 导入追加的合轨（够位置就复用轨道） =====
+
+/**
+ * 导入新片段时的「够位置就并轨」分配：按开始帧逐个处理待插入片段，优先并入
+ * 既有同类轨道的空闲区间，只有当所有同类轨道在该时间区间都被占用时才新建轨道；
+ * 本轮新建的轨道也会被后续片段复用，因此互不重叠的一串片段最终只占少量轨道。
+ * 空闲区间按“最贴合”（紧贴前一片段尾边）优先，同样贴合时取层级靠上的轨道，
+ * 让导入结果沿既有轨道串成一排，而不是散到多条空轨上。
+ * 与 assignArrangementLanes 的区别：既有片段参与判重且一律不移动，只决定新片段
+ * 落在哪条轨道；轨道序号沿用既有轨道的层级，新建轨道从 newLaneBaseOrder 起顺序取号。
+ * 只改 laneId / trackOrder，片段时间一律不动。
+ */
+export const packClipsIntoReusableLanes = <T extends TimelineClipBase>({
+  incoming,
+  existing,
+  isReusableLane,
+  createLaneId,
+  newLaneBaseOrder,
+}: {
+  incoming: T[];
+  /** 时间线上已有的片段（含不可复用轨道的片段，由 isReusableLane 过滤） */
+  existing: TimelineClipBase[];
+  /** 该轨道整体能否承接新片段（字幕语义动画轨、视频轨等返回 false） */
+  isReusableLane: (laneClips: TimelineClipBase[]) => boolean;
+  createLaneId: () => string;
+  /** 本轮第一个新建轨道的层级序号，之后依次 +1 */
+  newLaneBaseOrder: number;
+}): T[] => {
+  const clipsByLane = new Map<string, TimelineClipBase[]>();
+  for (const clip of existing) {
+    const list = clipsByLane.get(clip.laneId);
+    if (list) list.push(clip);
+    else clipsByLane.set(clip.laneId, [clip]);
+  }
+  type Lane = {
+    id: string;
+    order: number;
+    spans: Array<{ start: number; end: number }>;
+  };
+  const lanes: Lane[] = [];
+  for (const [laneId, laneClips] of clipsByLane) {
+    if (!isReusableLane(laneClips)) continue;
+    lanes.push({
+      id: laneId,
+      order: Math.min(...laneClips.map((clip) => clip.trackOrder)),
+      spans: laneClips.map((clip) => ({
+        start: clip.startFrame,
+        end: clip.startFrame + clip.durationInFrames,
+      })),
+    });
+  }
+  const sortLanes = () => lanes.sort((a, b) => a.order - b.order);
+  sortLanes();
+  const packed = new Array<T>(incoming.length);
+  let createdLaneCount = 0;
+  [...incoming.keys()]
+    .sort((a, b) => incoming[a].startFrame - incoming[b].startFrame || a - b)
+    .forEach((index) => {
+      const clip = incoming[index];
+      const startFrame = clip.startFrame;
+      const endFrame = startFrame + clip.durationInFrames;
+      let bestLane: Lane | null = null;
+      let bestGap = Number.POSITIVE_INFINITY;
+      for (const lane of lanes) {
+        const occupied = lane.spans.some(
+          (span) => span.start < endFrame && span.end > startFrame,
+        );
+        if (occupied) continue;
+        // 与该轨道里“最后一个已经结束的片段”之间的间隔，越小越贴合
+        let gap = Number.MAX_SAFE_INTEGER;
+        for (const span of lane.spans) {
+          if (span.end <= startFrame) gap = Math.min(gap, startFrame - span.end);
+        }
+        if (gap < bestGap || (gap === bestGap && bestLane && lane.order < bestLane.order)) {
+          bestLane = lane;
+          bestGap = gap;
+        }
+      }
+      if (bestLane) {
+        bestLane.spans.push({ start: startFrame, end: endFrame });
+        packed[index] = {
+          ...clip,
+          laneId: bestLane.id,
+          trackOrder: bestLane.order,
+        };
+        return;
+      }
+      const laneId = createLaneId();
+      const trackOrder = newLaneBaseOrder + createdLaneCount;
+      createdLaneCount += 1;
+      lanes.push({
+        id: laneId,
+        order: trackOrder,
+        spans: [{ start: startFrame, end: endFrame }],
+      });
+      sortLanes();
+      packed[index] = { ...clip, laneId, trackOrder };
+    });
+  return packed;
+};
+
 // ===== 同类轨道合并 =====
 
 /**

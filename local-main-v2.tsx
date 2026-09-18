@@ -94,6 +94,7 @@ import {
   consolidateTimelineLanesByKind,
   findTopLaneOfKind,
   normalizeTimelineLaneOrders,
+  packClipsIntoReusableLanes,
   closeTimelineLaneGaps,
   planMagneticPush,
   planSourceLaneGapClose,
@@ -3809,6 +3810,15 @@ const App = () => {
   const soundDeletionUndoRef = useRef<{afterSignature:string; run:()=>Promise<void>} | null>(null);
   const liveSoundContextRef = useRef({instances,resourceTracks,videoTracks,soundEnabled,pendingArrangement});
   liveSoundContextRef.current = {instances,resourceTracks,videoTracks,soundEnabled,pendingArrangement};
+  // 导入（applyModule 的 useCallback 只依赖 fps）时新建轨道要在既有轨道之上预留层级，
+  // 用渲染期同步的 ref 取最新序号，避免闭包读到旧状态导致轨道序号撞号。
+  const laneOrderBaseRef = useRef(0);
+  laneOrderBaseRef.current = Math.min(
+    0,
+    ...videoTracks.map((track) => track.trackOrder),
+    ...instances.map((instance) => instance.trackOrder),
+    ...resourceTracks.map((track) => track.trackOrder),
+  );
   const [selectedVideoTrackId, setSelectedVideoTrackId] = useState("");
   const [selectedResourceTrackId, setSelectedResourceTrackId] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
@@ -5630,7 +5640,6 @@ const App = () => {
         restoredFrame?: number;
         appendComponentId?: string;
         appendStartFrame?: number;
-        appendTrackOrder?: number;
         appendOrientation?: "landscape" | "portrait";
       },
     ) => {
@@ -5707,7 +5716,7 @@ const App = () => {
         },
       );
       const presets = getMotionTimeline(loaded);
-      const presetInstances = presets.flatMap((preset, presetIndex) => {
+      const presetInstances = presets.flatMap((preset) => {
         const definition = nextDefinitions.find(
           (candidate) => candidate.id === preset.componentId,
         );
@@ -5727,10 +5736,27 @@ const App = () => {
             backgroundDimEnabled: preset.backgroundDimEnabled,
             cardMask: preset.cardMask,
             props: preset.props,
-            trackOrder: presetIndex + 1,
           }),
         ];
       });
+      // 导入的片段先按「够位置就并轨」排轨道：时间上互不重叠的效果共用一条轨道，
+      // 只有时间真冲突时才新建轨道，避免 TSX 里每个组件各占一行。
+      // 已存在的效果轨道（非字幕轨）参与判重且不动；新建轨道序号从既有轨道之上起算。
+      const packImportedInstances = (
+        incomingInstances: MotionInstance[],
+        existingInstances: MotionInstance[],
+      ) =>
+        packClipsIntoReusableLanes({
+          incoming: incomingInstances,
+          existing: existingInstances,
+          isReusableLane: (laneClips) =>
+            laneClips.every(
+              (clip) => clip.sourceIntentId !== SRT_CAPTION_TRACK_ID,
+            ),
+          createLaneId: () => createSharedLaneId("motion"),
+          newLaneBaseOrder:
+            laneOrderBaseRef.current - incomingInstances.length,
+        });
       const appendComponentId = options.appendComponentId?.trim() ?? "";
       const appendingToTimeline = Boolean(appendComponentId);
       const appendedInstances = appendingToTimeline
@@ -5754,7 +5780,6 @@ const App = () => {
                           targetDefinition,
                           options.appendOrientation ?? "landscape",
                         ),
-                        trackOrder: options.appendTrackOrder,
                       },
                     ),
                   ]
@@ -5763,15 +5788,19 @@ const App = () => {
         : [];
       if (appendingToTimeline) {
         if (appendedInstances.length > 0) {
-          setInstances((current) =>
-            preventLaneOverlaps([...current, ...appendedInstances]),
-          );
+          // 追加到已有时间轴：能放进既有效果轨道的空闲区间就并入，放不下才新建轨道。
+          setInstances((current) => [
+            ...current,
+            ...packImportedInstances(appendedInstances, current),
+          ]);
           setSelectedInstanceId(appendedInstances[0].id);
           setSelectedInstanceIds([appendedInstances[0].id]);
         }
       } else {
         const nextInstances = preventLaneOverlaps(
-          hasRestoredInstances ? restoredInstances : presetInstances,
+          hasRestoredInstances
+            ? restoredInstances
+            : packImportedInstances(presetInstances, []),
         ).map((instance) =>
           instance.componentId === "QuickSetupProof" && instance.position.x < 0
             ? {
@@ -5824,7 +5853,6 @@ const App = () => {
         restoredFrame?: number;
         appendComponentId?: string;
         appendStartFrame?: number;
-        appendTrackOrder?: number;
         appendOrientation?: "landscape" | "portrait";
       },
     ) => {
@@ -8390,13 +8418,6 @@ const App = () => {
             totalFrames: durationInFrames,
             appendComponentId: String(data.activeComponentId ?? ""),
             appendStartFrame: currentFrame,
-            appendTrackOrder:
-              Math.min(
-                0,
-                ...videoTracks.map((track) => track.trackOrder),
-                ...instances.map((candidate) => candidate.trackOrder),
-                ...resourceTracks.map((track) => track.trackOrder),
-              ) - 1,
             appendOrientation: canvasOrientation,
           }
         : {
