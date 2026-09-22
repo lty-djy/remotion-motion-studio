@@ -19,10 +19,10 @@
         "BrandLogo": 12,
         "QuickSetupProof": 12,
         "TeamAttributionCard": 2,
-        "PortraitStaggeredToolList": 2,
+        "PortraitStaggeredToolList": 8,
         "PortraitPillText": 4,
         "FocusCamMove": 2,
-        "PortraitSkillStepGrid": 2,
+        "PortraitSkillStepGrid": 8,
         "PortraitWorkflowPrerequisite": 2,
         "PortraitSkillSourceFusion": 2,
         "ComparisonProgressBars": 2,
@@ -30,7 +30,8 @@
         "GigHourlyTitle": 12,
         "BrollGigCardFloat": 12,
         "BrollEpisodePosterDuo": 12,
-        "BrollPlayMilestoneBadge": 12
+        "BrollPlayMilestoneBadge": 12,
+        "PortraitStepStageTitle": 6
       },
       "semanticTags": {
         "emphasis": {

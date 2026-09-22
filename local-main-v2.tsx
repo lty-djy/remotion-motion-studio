@@ -1693,6 +1693,12 @@ const normalizeArrangementResourceLibrary = (
   };
 };
 
+const findArrangementResource = (
+  library: ArrangementResourceLibrary,
+  kind: ResourceTrack["kind"],
+  resourceId: string,
+) => library[kind].find((entry) => entry.id === resourceId && entry.available !== false);
+
 const finiteNumber = (value: unknown, fallback: number) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
@@ -2352,6 +2358,7 @@ const StudioPreviewComposition = ({
         }
         if (layer.kind === "resource") {
           const track = layer.track;
+          if (!track.url) return null;
           const isAudio = track.kind === "sfx";
           const trackMuted = isComponentSoundMuted(track, instances);
           const effectiveVolume = soundEnabled && !trackMuted
@@ -4769,6 +4776,26 @@ const App = () => {
     window.addEventListener("focus", refreshOnFocus);
     return () => window.removeEventListener("focus", refreshOnFocus);
   }, [refreshResourceLibrary]);
+
+  // 修复旧版导入器已插入、但未附带 URL 的资源轨道。
+  useEffect(() => {
+    if (!resourceTracks.some((track) => !track.url)) return;
+    setResourceTracks((current) => {
+      let changed = false;
+      const repaired = current.map((track) => {
+        if (track.url) return track;
+        const resource = findArrangementResource(
+          arrangementResourceLibrary,
+          track.kind,
+          track.resourceId,
+        );
+        if (!resource) return track;
+        changed = true;
+        return { ...track, url: resource.url, mimeType: resource.mimeType };
+      });
+      return changed ? repaired : current;
+    });
+  }, [arrangementResourceLibrary, resourceTracks]);
 
   useEffect(() => {
     fetch("/api/icon-groups", { cache: "no-store" })
@@ -8833,27 +8860,14 @@ const App = () => {
         semanticType: semanticMetadata?.semanticType || undefined,
       };
     });
-    let indexedResources = new Set<string>();
+    let indexedResources: ArrangementResourceLibrary | null = null;
     if (hasResourceItems) {
       const indexResponse = await fetch("/api/resource-library", {
         cache: "no-store",
       });
       const indexPayload = await indexResponse.json();
       if (!indexResponse.ok || !indexPayload?.ok) throw new Error("无法读取当前资源库。");
-      const resourceIndex = indexPayload.index;
-      indexedResources = new Set(
-        Object.entries(resourceIndex.libraries ?? {}).flatMap(
-          ([library, entries]) =>
-            Array.isArray(entries)
-              ? entries.filter((entry) =>
-                  library !== "sfx" || !isRecord(entry) || entry.available !== false,
-                ).map(
-                  (entry) =>
-                    `${library}:${String(isRecord(entry) ? entry.id ?? "" : "")}`,
-                )
-              : [],
-        ),
-      );
+      indexedResources = normalizeArrangementResourceLibrary(indexPayload.index);
     }
     const importedResourceTracks = ensureUniqueResourceTrackIds(
       resourceItems.map((rawTrack, index) => {
@@ -8867,18 +8881,28 @@ const App = () => {
             `资源轨道第 ${index + 1} 项类型 ${kind || "缺失"} 不受支持。`,
           );
         }
-        const library =
+        const libraryName =
           kind === "icon"
             ? "icons"
             : kind === "material"
               ? "materials"
               : kind;
-        if (!indexedResources.has(`${library}:${resourceId}`)) {
+        const resource = indexedResources && findArrangementResource(
+          indexedResources,
+          kind as ResourceTrack["kind"],
+          resourceId,
+        );
+        if (!resource) {
           throw new Error(
-            `资源轨道第 ${index + 1} 项引用的 ${library}:${resourceId} 不在当前索引中。`,
+            `资源轨道第 ${index + 1} 项引用的 ${libraryName}:${resourceId} 不在当前资源库中或不可用。`,
           );
         }
-        return restoreResourceTrack(rawTrack as Partial<ResourceTrack>, index);
+        // 编排 JSON 只需稳定的 resourceId；播放地址和媒体类型以资源库为准。
+        return restoreResourceTrack({
+          ...rawTrack,
+          url: resource.url,
+          mimeType: resource.mimeType,
+        } as Partial<ResourceTrack>, index);
       }),
       resourceTracks.map((track) => track.id),
     );

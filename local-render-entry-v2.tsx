@@ -251,6 +251,7 @@ const MultiComponentRender = ({
       }
       if (layer.kind === "resource") {
         const track = layer.track;
+        if (!track.url) return null;
         const isAudio = track.kind === "sfx";
         const trackMuted = isComponentSoundMuted(track, instances);
         const effectiveVolume = soundEnabled && !trackMuted
