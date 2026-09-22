@@ -362,6 +362,64 @@ type RenderJob = {
 const renderJobs = new Map<string, RenderJob>();
 let renderJobSequence = 0;
 
+// 导出用的无头浏览器与工作台页面不同源：资源地址必须落在工作台 API 源上。
+// 旧版本曾把资源保存为 Remotion 默认的 3000 / 3001 端口，导出浏览器访问不到，
+// 会直接报 `Error loading image with src: http://localhost:3000/...` 并让整次导出失败。
+const LOCAL_MEDIA_ORIGIN = "http://127.0.0.1:41735";
+const LOCAL_MEDIA_ORIGIN_RE =
+  /^https?:\/\/(?:localhost|127\.0\.0\.1):(?:3000|3001|41735)(?=\/|$)/i;
+
+const normalizeLocalMediaUrl = (raw: string): string => {
+  const value = raw.trim();
+  if (!value) return raw;
+  if (LOCAL_MEDIA_ORIGIN_RE.test(value)) {
+    return value.replace(LOCAL_MEDIA_ORIGIN_RE, LOCAL_MEDIA_ORIGIN);
+  }
+  // 组件内部统一使用 /api/... 相对路径；导出浏览器需要绝对地址。
+  if (value.startsWith("/api/")) return `${LOCAL_MEDIA_ORIGIN}${value}`;
+  return raw;
+};
+
+const looksLikeJsonContainer = (value: string) => {
+  const trimmed = value.trim();
+  return (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  );
+};
+
+// 递归迁移：普通字段直接替换，组件存成 JSON 字符串的字段（如 cardsJson）内部也要迁移。
+const normalizeLocalMediaUrlsDeep = (value: unknown, depth = 0): unknown => {
+  if (depth > 8) return value;
+  if (typeof value === "string") {
+    const direct = normalizeLocalMediaUrl(value);
+    if (direct !== value) return direct;
+    if (value.includes("/api/") && looksLikeJsonContainer(value)) {
+      try {
+        return JSON.stringify(
+          normalizeLocalMediaUrlsDeep(JSON.parse(value), depth + 1),
+        );
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeLocalMediaUrlsDeep(item, depth + 1));
+  }
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      result[key] = normalizeLocalMediaUrlsDeep(item, depth + 1);
+    }
+    return result;
+  }
+  return value;
+};
+
 
 
 const updateRenderJob = (
@@ -2899,16 +2957,11 @@ const localApi = (): Plugin => {
           });
           const resolveLocalAssetUrl = (value: unknown) => {
             if (typeof value !== "string" || !value.trim()) return value;
-            if (value.startsWith("/")) {
-              return `http://127.0.0.1:41735${value}`;
-            }
-            // 旧版本曾把本地资源保存为 Remotion 默认的 3001 地址；
-            // 导出浏览器无法访问该端口，统一迁移到工作台 API 服务。
-            return value
-              .replace(/^http:\/\/localhost:3001(?=\/)/i, "http://127.0.0.1:41735")
-              .replace(/^http:\/\/127\.0\.0\.1:3001(?=\/)/i, "http://127.0.0.1:41735");
+            // 旧版本曾把本地资源保存为 Remotion 默认的 3000 / 3001 地址；
+            // 导出浏览器无法访问这些端口，统一迁移到工作台 API 服务。
+            return normalizeLocalMediaUrl(value);
           };
-          const resolvedInputProps = {
+          const resolvedInputPropsRaw = {
             ...inputProps,
             videoSrc: resolveLocalAssetUrl(inputProps.videoSrc),
             videoTracks: Array.isArray(inputProps.videoTracks)
@@ -2951,6 +3004,11 @@ const localApi = (): Plugin => {
                 })
               : [],
           };
+          // 兜底深扫：任何组件 props（含 JSON 字符串字段）里的遗留本地地址都迁移到工作台 API 源，
+          // 避免导出浏览器报 Error loading image / video 而让整次导出失败。
+          const resolvedInputProps = normalizeLocalMediaUrlsDeep(
+            resolvedInputPropsRaw,
+          ) as typeof resolvedInputPropsRaw;
           renderJobSequence += 1;
           const jobId = `render-${Date.now()}-${renderJobSequence}`;
           // 区域出入点导出：校验后转换为 Remotion frameRange

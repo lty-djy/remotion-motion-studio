@@ -45,6 +45,32 @@
 - 工作台 `local-render-entry-v2.tsx` 的 propsSchema 字段期望 JSON-serializable
 - LegacyMetricEffect 通过 `componentType` prop 决定 14 个 metric 卡的不同视觉
 
+## 组件渲染的透明底色（像素级规则）
+
+- 外层渲染壳 `card-background-control.ts` 的 `.studio-card-render-shell` CSS 只把**组件根节点**的
+  background / box-shadow 置为透明；组件内部元素的底色与 `box-shadow` 会原样输出到成品。
+  → 素材/图片层禁止加矩形 `boxShadow`（在透明素材下会变成深色底座）。
+- `OffthreadVideo` 不带 `transparent` 时，渲染期抽帧丢 Alpha：带透明通道的视频会被渲染成整块不透明矩形
+  （实测盒内不透明像素 = 整个卡片盒）。素材型组件应统一 `transparent`。
+- **像素回归怎么做**：流程、断言三件套、最小可用代码（PNG Alpha 解码器 + 三级脚本骨架 + fixtures 生成）
+  与全部踩坑都收在技能 `.agents/skills/effect-still-alpha-qa/SKILL.md`。
+  落地目录 `artifacts/gig-alpha/` 已于 2026-09-22 按要求删除；需要时按技能里的骨架重建（无代码依赖，删留都不影响组件）。
+- **三级验证缺一不可**（组件级通过 ≠ 成片干净）：
+  - 组件级 —— 自建 entry 注册多 Composition + `renderStill`；
+  - 入口级 —— `bundle({entryPoint:"local-render-entry-v2.tsx"})` 渲 `ImportedMotion` 静帧，隔离「画面脏」与「封装脏」；
+  - 链路级 —— 真实 POST `/api/render` + 产物 `.mov` 抽帧断言（服务需在线）。
+  - 服务端渲染完就 `rmSync` 掉 `.frames-<jobId>`，只能从 `.mov` 用 ffmpeg `-pix_fmt rgba` 抽帧再断言；
+    别只信 `alphaextract` 的可视化图，必须看数值分档。
+- **阴影 vs 遮罩的判别**：都是「矩形底色」，但阴影的 alpha 随离盒距离**单调衰减**，
+  遮罩/底色面板是整片**平台值**（`strength 0.32` → alpha≈82）。这决定该改组件还是改遮罩。
+- **隐藏默认层**：`CardMaskLayer` 对 `cardMask` 缺省判为 `enabled: true`，会画全画布
+  `rgba(0,0,0,0.32)`。外部/历史/编排 payload 必须显式写 `cardMask: { enabled: false }`
+  （工作台内实例由 `createInstance` 带 `DEFAULT_CARD_MASK_NEW`，默认关闭）。
+- **导出浏览器的资源地址必须是工作台源**：`local-vite.config.ts` 的 `/api/render` 用
+  `normalizeLocalMediaUrlsDeep` 把 `localhost|127.0.0.1:(3000|3001|41735)` 和 `/api/...` 相对路径
+  统一改写到 `http://127.0.0.1:41735`，并递归处理 `cardsJson` 这类「JSON 存在字符串里」的字段。
+  历史导出失败报 `Error loading image with src: http://localhost:3000/...` 就是这条链路。
+
 ## 编排预览替换/新增的 SRT 文案回填（local-main-v2.tsx）
 
 - `fillArrangementTextPropsFromSrt`：主文案键 ← 整句 SRT；eyebrow/label/tag/caption ← semanticLabel；subtitle/detail/note ← 第 2 子句；序号条目（risk1/step1/item1…白名单 base）← 标点子句依次分发

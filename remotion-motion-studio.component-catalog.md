@@ -30,7 +30,7 @@
 - `PortraitMediaPosterReveal`：右滑媒体海报 — 参考右侧竖版海报效果：图片或视频从左侧快速滑入并归正，底部带强调竖线标题。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`mediaFit`、`mediaPositionX`、`mediaPositionY`、`title`、`accentColor`、`titleColor`、`placeholderColor`、`cornerRadius`、`titleFontSize`、`enterDelaySeconds`、`enterDurationSeconds`、`slideDistance`、`videoMuted`、`videoVolume`、`videoLoop`、`animationSeconds`）
 - `MaterialCard`：素材卡 — 纯图片或视频素材卡，支持自由调整裁剪位置。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`mediaUrl`、`mediaType`、`panelColor`、`cornerRadius`、`fit`、`mediaPositionX`、`mediaPositionY`、`animationSeconds`）
 - `PhoneRecordingFrameNeutral`：手机与竖屏录屏 — 中性手机外壳与竖屏录屏展示组件，适合手机界面、录屏证据与产品演示。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`mediaType`、`mediaFit`、`enterEndSeconds`、`exitStartSeconds`、`exitEndSeconds`）
-- `BrollGigCardFloat`：悬浮兼职卡片群 — 按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`cardsJson`、`enterStaggerSeconds`、`floatAmplitude`、`wiggleAmplitude`、`wiggleAmplitudeY`、`badgeText`、`ctaText`）
+- `BrollGigCardFloat`：悬浮兼职卡片群 — 按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜；纯素材模式保持纯透明底色（不画底色与阴影）。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`cardsJson`、`enterStaggerSeconds`、`floatAmplitude`、`wiggleAmplitude`、`wiggleAmplitudeY`、`badgeText`、`ctaText`）
 - `BrollEpisodePosterDuo`：往期海报回顾 — 横屏口播 b-roll：两张竖版海报带 3D 倾斜先后升入并悬浮，适合回顾往期内容。（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`enabled`、`poster1Url`、`poster2Url`、`posterWidth`、`firstEnterSeconds`、`enterStaggerSeconds`、`posterTop`、`posterGap`、`tiltDeg`、`floatAmplitude`）
 
 ## 竖屏口播信息层

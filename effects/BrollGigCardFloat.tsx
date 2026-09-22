@@ -6,6 +6,18 @@ const SANS = 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
 type CardConfig = GigCardConfig;
 const CARD_HEIGHT=268;
 const isVideoCard = (mediaType: GigCardMediaType) => mediaType === "video";
+// 纯素材模式必须保持纯透明：媒体自身不画底色，卡片根节点也不画底色与阴影。
+const MEDIA_STYLE = (radius:number, fit:"contain"|"cover"):React.CSSProperties => ({
+  display:"block",
+  width:"100%",
+  height:"100%",
+  objectFit:fit,
+  borderRadius:radius,
+  background:"transparent",
+  backgroundColor:"transparent",
+});
+// 卡片阴影只在招聘卡片模式使用；矩形阴影会污染纯素材模式的透明背景。
+const CARD_SHADOW = "0 26px 60px rgba(0,0,0,0.42), 0 6px 16px rgba(0,0,0,0.24)";
 const GigCard: React.FC<{
   card: CardConfig;
   index: number;
@@ -32,35 +44,34 @@ const GigCard: React.FC<{
         height: card.mode === "image" ? card.width/card.aspectRatio : CARD_HEIGHT,
         boxSizing: "border-box",
         padding: card.mode === "image" ? 0 : 16,
-        borderRadius: card.radius,
+        borderRadius: card.mode === "image" ? 0 : card.radius,
         backgroundColor: card.mode === "image" ? "transparent" : "#FFFFFF",
-        boxShadow: card.shadow ? "0 26px 60px rgba(0,0,0,0.42), 0 6px 16px rgba(0,0,0,0.24)" : "none",
+        boxShadow: card.mode === "card" && card.shadow ? CARD_SHADOW : "none",
         zIndex: card.zIndex,
         fontFamily: SANS,
         ...motion,
         transformOrigin: "center center",
       }}
     >
-      {card.mode === "image" ? (card.imageUrl ? (isVideoCard(card.mediaType) ? <OffthreadVideo src={card.imageUrl} muted={videoMuted} style={{display:"block",width:"100%",height:"100%",objectFit:"contain",borderRadius:card.radius}} /> : <Img src={card.imageUrl} style={{display:"block",width:"100%",height:"100%",objectFit:"contain",borderRadius:card.radius}} />) : <div style={{height:"100%",borderRadius:card.radius,background:"#26324b",color:"white",display:"grid",placeItems:"center"}}>{isVideoCard(card.mediaType) ? "添加视频" : "添加图片"}</div>) : <>
+      {card.mode === "image" ? (card.imageUrl ? (isVideoCard(card.mediaType) ? <OffthreadVideo src={card.imageUrl} muted={videoMuted} transparent style={MEDIA_STYLE(card.radius, "contain")} /> : <Img src={card.imageUrl} style={MEDIA_STYLE(card.radius, "contain")} />) : <div style={{height:"100%",borderRadius:card.radius,background:"transparent",border:"2px dashed rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.55)",display:"grid",placeItems:"center"}}>{isVideoCard(card.mediaType) ? "添加视频" : "添加图片"}</div>) : <>
       <div
         style={{
           position: "relative",
           height: 104,
           borderRadius: 10,
           overflow: "hidden",
-          background:
-            "linear-gradient(135deg, #2A2E4A 0%, #4A3E8C 55%, #7B5CFF 130%)",
+          // 有素材时不铺渐变底：透明素材显示卡片自身底色，而不是被合成到紫色渐变上。
+          background: card.imageUrl
+            ? "transparent"
+            : "linear-gradient(135deg, #2A2E4A 0%, #4A3E8C 55%, #7B5CFF 130%)",
         }}
       >
         {card.imageUrl ? (
-          <Img
-            src={card.imageUrl}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
+          isVideoCard(card.mediaType) ? (
+            <OffthreadVideo src={card.imageUrl} muted={videoMuted} transparent style={MEDIA_STYLE(0, "cover")} />
+          ) : (
+            <Img src={card.imageUrl} style={MEDIA_STYLE(0, "cover")} />
+          )
         ) : null}
         {badgeText ? (
           <span
@@ -153,7 +164,7 @@ export const BrollGigCardFloat: React.FC<Record<string, any>> = (props) => {
  </div></AbsoluteFill>;
 };
 export const BrollGigCardFloatEffectDef: EffectDef = {
- id:"BrollGigCardFloat",name:"悬浮兼职卡片群",description:"按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜，透明背景。",category:"media",catalogGroup:"媒体展示组件",glyph:"BROLL",placement:"full",component:BrollGigCardFloat,durationInFrames:150,bounds:{x:0,y:0,width:1920,height:1080},defaultPosition:{x:0,y:0,scale:1},
+ id:"BrollGigCardFloat",name:"悬浮兼职卡片群",description:"按需增删图片或招聘卡片；每张独立移动、缩放及三轴倾斜；纯素材模式保持纯透明底色（不画底色与阴影）。",category:"media",catalogGroup:"媒体展示组件",glyph:"BROLL",placement:"full",component:BrollGigCardFloat,durationInFrames:150,bounds:{x:0,y:0,width:1920,height:1080},defaultPosition:{x:0,y:0,scale:1},
  defaultProps:{enabled:true,cardsJson:JSON.stringify(readGigCards({})),enterStaggerSeconds:0.14,floatAmplitude:9,wiggleAmplitude:0.5,wiggleAmplitudeY:0,badgeText:"招募中",ctaText:"立即查看"},
  propsSchema:{
  enabled:{type:"boolean",label:"显示图片卡片",default:true},
