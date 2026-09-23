@@ -375,8 +375,11 @@ const normalizeLocalMediaUrl = (raw: string): string => {
   if (LOCAL_MEDIA_ORIGIN_RE.test(value)) {
     return value.replace(LOCAL_MEDIA_ORIGIN_RE, LOCAL_MEDIA_ORIGIN);
   }
-  // 组件内部统一使用 /api/... 相对路径；导出浏览器需要绝对地址。
-  if (value.startsWith("/api/")) return `${LOCAL_MEDIA_ORIGIN}${value}`;
+  // Remotion 的音视频合成阶段会在打包服务 (localhost:3000) 下载资源。
+  // 工作台资源只由 Vite 服务提供，因此 /input/ 也必须转成绝对地址。
+  if (value.startsWith("/api/") || value.startsWith("/input/")) {
+    return `${LOCAL_MEDIA_ORIGIN}${value}`;
+  }
   return raw;
 };
 
@@ -394,7 +397,10 @@ const normalizeLocalMediaUrlsDeep = (value: unknown, depth = 0): unknown => {
   if (typeof value === "string") {
     const direct = normalizeLocalMediaUrl(value);
     if (direct !== value) return direct;
-    if (value.includes("/api/") && looksLikeJsonContainer(value)) {
+    if (
+      (value.includes("/api/") || value.includes("/input/")) &&
+      looksLikeJsonContainer(value)
+    ) {
       try {
         return JSON.stringify(
           normalizeLocalMediaUrlsDeep(JSON.parse(value), depth + 1),
@@ -426,6 +432,8 @@ const updateRenderJob = (
   job: RenderJob,
   patch: Partial<Omit<RenderJob, "id" | "startedAt">>,
 ) => {
+  // renderFrames 的进度回调可能在 Promise 拒绝后才抵达；终态不可回退。
+  if (job.status === "completed" || job.status === "failed") return;
   Object.assign(job, patch, { updatedAt: new Date().toISOString() });
 };
 

@@ -18,11 +18,11 @@
         "ChapterBar": 12,
         "BrandLogo": 12,
         "QuickSetupProof": 12,
-        "TeamAttributionCard": 2,
-        "PortraitStaggeredToolList": 8,
+        "TeamAttributionCard": 6,
+        "PortraitStaggeredToolList": 12,
         "PortraitPillText": 4,
         "FocusCamMove": 2,
-        "PortraitSkillStepGrid": 8,
+        "PortraitSkillStepGrid": 12,
         "PortraitWorkflowPrerequisite": 2,
         "PortraitSkillSourceFusion": 2,
         "ComparisonProgressBars": 2,
@@ -31,7 +31,8 @@
         "BrollGigCardFloat": 12,
         "BrollEpisodePosterDuo": 12,
         "BrollPlayMilestoneBadge": 12,
-        "PortraitStepStageTitle": 6
+        "PortraitStepStageTitle": 8,
+        "PortraitAiOutputGapComparison": 4
       },
       "semanticTags": {
         "emphasis": {
