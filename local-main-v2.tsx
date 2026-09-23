@@ -4429,6 +4429,10 @@ const App = () => {
     "panel" | "border" | null
   >(null);
   const cardColorPickerSuppressClickRef = useRef(false);
+  const [activeDynamicColorPicker, setActiveDynamicColorPicker] = useState<
+    string | null
+  >(null);
+  const dynamicColorPickerSuppressClickRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shortcutPanelOpen, setShortcutPanelOpen] = useState(false);
   const [recordingShortcut, setRecordingShortcut] =
@@ -14334,6 +14338,27 @@ const App = () => {
               type="color"
               value={colorValue}
               disabled={Boolean(toggleKey) && !toggleOn}
+              aria-expanded={activeDynamicColorPicker === key}
+              onPointerDown={(event) => {
+                if (activeDynamicColorPicker !== key) return;
+                event.preventDefault();
+                dynamicColorPickerSuppressClickRef.current = true;
+                event.currentTarget.blur();
+                setActiveDynamicColorPicker(null);
+              }}
+              onClick={(event) => {
+                if (dynamicColorPickerSuppressClickRef.current) {
+                  dynamicColorPickerSuppressClickRef.current = false;
+                  event.preventDefault();
+                  return;
+                }
+                setActiveDynamicColorPicker(key);
+              }}
+              onBlur={() => {
+                if (activeDynamicColorPicker === key) {
+                  setActiveDynamicColorPicker(null);
+                }
+              }}
               onChange={(event) => updateSelectedProp(key, event.target.value)}
               style={
                 toggleKey && !toggleOn
