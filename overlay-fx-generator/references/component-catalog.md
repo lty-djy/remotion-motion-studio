@@ -154,6 +154,8 @@
 - `chapters` — 章节表(名称 起始秒,| 分隔)
 - `lastChapterSeconds` — 最后一章时长(秒)（1–120）
 - `progAlpha` — 进度色透明度（0.1–1）
+- `chapterFontSize` — 章节文字大小（12–36）
+- `progressThickness` — 进度条厚度 (0=自动)（0–88）
 - `panelColor` — 卡片底色（color）
 - `speed` — 动画速度(此卡)（0.25–3）
 - `showProgress` — 显示进度

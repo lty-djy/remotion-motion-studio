@@ -3,11 +3,16 @@ import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { EffectDef } from "../registry";
 
 type Props = {
+  enterAnimation?: string;
   chapters?: string;
   showProgress?: boolean;
   progMode?: "fill" | "line";
   /** 进度色:空 = 用默认蓝;兼容旧实例的预设名 */
   progAccent?: string;
+  /** 章节标签字号,按参考设计像素填写 */
+  chapterFontSize?: number;
+  /** 进度厚度;0 表示按模式使用原默认值 */
+  progressThickness?: number;
   /** 章节文字色:空 = 用默认白;选中后按 100%/70%/44% 派生三级层次 */
   textColor?: string;
   progAlpha?: number;
@@ -95,10 +100,13 @@ export const chapterBarAutoDurationSeconds = (
  * 用法:一张卡从 0 拉到视频结尾,章节表按你的稿子分段填(秒数相对本卡起点)。
  */
 export const ChapterBar: React.FC<Props> = ({
+  enterAnimation = "auto",
   chapters = "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
   showProgress = true,
   progMode = "fill",
   progAccent = "",
+  chapterFontSize = 21,
+  progressThickness = 0,
   textColor = "",
   progAlpha = 0.25,
   speed = 1,
@@ -114,12 +122,15 @@ export const ChapterBar: React.FC<Props> = ({
       : null;
 
   // 设计宽固定 1920(=bounds.width),落位层会按 画布宽/1920 整体缩放。
-  // 这里反推补偿系数:无论横竖屏,条高/字号都保持 48px/21px 的观感(与参考一致)。
+  // 这里反推补偿系数:无论横竖屏,默认条高/字号都保持 48px/21px 的观感(与参考一致)。
   const fitScale = canvasWidth / 1920;
-  const barHeight = Math.round(48 / fitScale);
-  const fontSize = 21 / fitScale;
+  const fontSize = chapterFontSize / fitScale;
   const inset = 14 / fitScale;
-  const progLineHeight = 4 / fitScale;
+  const autoProgressThickness = Number.isFinite(progressThickness) && progressThickness > 0
+    ? progressThickness
+    : progMode === "fill" ? 48 : 4;
+  const barHeight = Math.max(48, autoProgressThickness) / fitScale;
+  const progressThicknessPx = autoProgressThickness / fitScale;
   const edgeWidth = 3 / fitScale;
 
   const tokens = THEME_TOKENS;
@@ -138,11 +149,14 @@ export const ChapterBar: React.FC<Props> = ({
 
   // 进场:从画面上方滑入,速度倍率只作用于这段进场
   const enterFrames = Math.max(1, (0.7 * fps) / Math.max(speed, 0.1));
-  const slide = interpolate(frame, [0, enterFrames], ["-110%", "0%"], {
-    easing: Easing.bezier(0.22, 1, 0.36, 1),
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const slide =
+    enterAnimation === "none"
+      ? "0%"
+      : interpolate(frame, [0, enterFrames], ["-110%", "0%"], {
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
 
   const items = parseChapters(chapters);
   if (!items.length) return null;
@@ -184,8 +198,8 @@ export const ChapterBar: React.FC<Props> = ({
           style={{
             position: "absolute",
             left: 0,
-            top: 0,
-            bottom: 0,
+            top: (barHeight - progressThicknessPx) / 2,
+            height: progressThicknessPx,
             width: `${fill}%`,
             background: `color-mix(in srgb, ${progColor} ${Math.round(alpha * 100)}%, transparent)`,
           }}
@@ -195,8 +209,8 @@ export const ChapterBar: React.FC<Props> = ({
             style={{
               position: "absolute",
               right: 0,
-              top: 0,
-              bottom: 0,
+              top: (barHeight - progressThicknessPx) / 2,
+              height: progressThicknessPx,
               width: edgeWidth,
               background: progColor,
               opacity: 0.9,
@@ -245,7 +259,7 @@ export const ChapterBar: React.FC<Props> = ({
                   position: "absolute",
                   left: 0,
                   bottom: 0,
-                  height: progLineHeight,
+                  height: progressThicknessPx,
                   width: `${pct * 100}%`,
                   background: progColor,
                 }}
@@ -280,6 +294,8 @@ export const ChapterBarEffectDef: EffectDef = {
     progAccent: CHAPTER_BAR_DEFAULT_ACCENT,
     textColor: "",
     progAlpha: 0.25,
+    chapterFontSize: 21,
+    progressThickness: 0,
     speed: 1,
   },
   propsSchema: {
@@ -303,6 +319,22 @@ export const ChapterBarEffectDef: EffectDef = {
       min: 0.1,
       max: 1,
       step: 0.05,
+    },
+    chapterFontSize: {
+      type: "number",
+      label: "章节文字大小",
+      default: 21,
+      min: 12,
+      max: 36,
+      step: 1,
+    },
+    progressThickness: {
+      type: "number",
+      label: "进度条厚度 (0=自动)",
+      default: 0,
+      min: 0,
+      max: 88,
+      step: 1,
     },
     panelColor: {
       type: "color",

@@ -18,7 +18,7 @@
         "ChapterBar": 12,
         "BrandLogo": 12,
         "QuickSetupProof": 12,
-        "TeamAttributionCard": 6,
+        "TeamAttributionCard": 8,
         "PortraitStaggeredToolList": 12,
         "PortraitPillText": 4,
         "FocusCamMove": 2,
@@ -32,7 +32,7 @@
         "BrollEpisodePosterDuo": 12,
         "BrollPlayMilestoneBadge": 12,
         "PortraitStepStageTitle": 8,
-        "PortraitAiOutputGapComparison": 4
+        "PortraitAiOutputGapComparison": 6
       },
       "semanticTags": {
         "emphasis": {

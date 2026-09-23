@@ -13,7 +13,7 @@
 
 ## 常用组件
 
-- `ChapterBar`：常驻章节导航条 — 常驻章节导航 · 顶部全程在场的本期地图（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`chapters`、`lastChapterSeconds`、`progAlpha`、`panelColor`、`speed`、`showProgress`、`progMode`、`progAccent`、`textColor`）
+- `ChapterBar`：常驻章节导航条 — 常驻章节导航 · 顶部全程在场的本期地图（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`chapters`、`lastChapterSeconds`、`progAlpha`、`chapterFontSize`、`progressThickness`、`panelColor`、`speed`、`showProgress`、`progMode`、`progAccent`、`textColor`）
 - `FocusCamMove`：人物聚焦运镜 — 人物聚焦运镜 · 口播画面满屏缩进落位框,背景透明透出下方轨道（仅工作台可用；props：`enterAnimation`、`exitAnimation`、`mediaUrl`、`useMediaCopy`、`mediaType`、`mediaFit`、`side`、`accent`、`cornerRadius`、`showRing`、`camDX`、`camDY`、`camW`、`camH`）
 
 ## 系统字幕

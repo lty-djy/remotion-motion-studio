@@ -46,6 +46,10 @@ export const REGISTERED_CARDS = [
             "value": "auto"
           },
           {
+            "label": "无动画",
+            "value": "none"
+          },
+          {
             "label": "淡入",
             "value": "fade"
           },
