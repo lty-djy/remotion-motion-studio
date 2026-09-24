@@ -128,10 +128,15 @@ import {
 import { UnifiedMotionAnimation } from "./effects/UniversalMotionAnimation";
 import {
   camMoveGeom,
+  normalizeFocusCamKeyframes,
   resolveFocusCamStageTarget,
+  sampleFocusCamKeyframes,
+  upsertFocusCamKeyframe,
   useFocusCamStageStyle,
+  type FocusCamKeyframe,
   type FocusCamStageTarget,
 } from "./effects/FocusCamMove";
+import { FocusCamKeyframeEditor } from "./focus-cam-keyframe-editor";
 import { chapterBarAutoDurationSeconds } from "./effects/ChapterBar";
 import {
   BUILT_IN_ICON_CATEGORIES,
@@ -1356,6 +1361,7 @@ type ContextMenuState = {
   source:
     | "preview"
     | "timeline"
+    | "focusCamKeyframe"
     | "videoTimeline"
     | "resourceTimeline"
     | "library"
@@ -1369,6 +1375,7 @@ type ContextMenuState = {
     | "materialItem"
     | "sfxItem";
   instanceIds: string[];
+  keyframeFrame?: number;
   videoTrackId?: string;
   resourceTrackId?: string;
   componentId?: string;
@@ -1649,6 +1656,29 @@ const formatRenderRemaining = (milliseconds: number | null) => {
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
+
+const focusCamBoxAtFrame = (
+  instance: MotionInstance,
+  projectFrame: number,
+  ratio: "landscape" | "portrait",
+) => {
+  const fallback = camMoveGeom(
+    {
+      side: instance.props.side as string | undefined,
+      camDX: instance.props.camDX as number | undefined,
+      camDY: instance.props.camDY as number | undefined,
+      camW: instance.props.camW as number | undefined,
+      camH: instance.props.camH as number | undefined,
+      camR: instance.props.cornerRadius as number | undefined,
+    },
+    ratio,
+  );
+  return sampleFocusCamKeyframes(
+    normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames),
+    fallback,
+    projectFrame - instance.startFrame,
+  );
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -2197,7 +2227,7 @@ const StageCamMoveVideo: React.FC<{
   camTarget: FocusCamStageTarget | null;
   trackStartFrame: number;
 }> = ({ src, trimBefore, volume, muted, camTarget, trackStartFrame }) => {
-  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame);
+  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame, trimBefore);
   return (
     <Html5Video
       src={src}
@@ -2468,6 +2498,7 @@ const StudioPreviewComposition = ({
               <Comp
                 {...instance.props}
                 instanceDurationInFrames={instance.durationInFrames}
+                instanceSourceStartFrame={instance.sourceStartFrame}
                 videoSrc={activeVideoUrl}
                 hideVideo={sourceIncludesVideo}
                 muted={!soundEnabled || instance.muted === true}
@@ -10715,7 +10746,27 @@ const App = () => {
     window.addEventListener("blur", cleanup);
   };
 
+  const focusCamMarkerAtPoint = (clientX: number, clientY: number) => {
+    const marker = [...document.querySelectorAll<HTMLButtonElement>(".focus-cam-timeline-keyframe")]
+      .find((element) => {
+        const rect = element.getBoundingClientRect();
+        return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+      });
+    if (!marker) return null;
+    const instance = instances.find((candidate) => candidate.id === marker.dataset.focusCamInstanceId);
+    if (!instance) return null;
+    const frame = Number(marker.dataset.focusCamFrame);
+    const keyframe = normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames)
+      .find((candidate) => candidate.frame === frame);
+    return keyframe ? { marker, instance, keyframe } : null;
+  };
+
   const beginPlayheadDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const underlyingKeyframe = focusCamMarkerAtPoint(event.clientX, event.clientY);
+    if (underlyingKeyframe) {
+      beginFocusCamKeyframeDrag(event, underlyingKeyframe.instance, underlyingKeyframe.keyframe, underlyingKeyframe.marker);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     seekTimelineFromClientX(event.clientX);
@@ -11916,8 +11967,10 @@ const App = () => {
     pointerX: number;
     pointerY: number;
     positions: Record<string, { x: number; y: number }>;
-    /** 参数拖拽(FocusCamMove):位移写入 camDX/camDY,而非 instance.position */
-    propStart: { camDX: number; camDY: number } | null;
+    /** FocusCamMove 的画布手势始终在起始播放帧创建或改写画框关键帧。 */
+    keyframeStart: FocusCamKeyframe | null;
+    /** 首次在片段中途编辑时，保留片段起点原有的固定画框。 */
+    keyframeSeed: FocusCamKeyframe[];
     scale: number;
     playerWidth: number;
     playerHeight: number;
@@ -11928,8 +11981,6 @@ const App = () => {
       y: number;
       w: number;
       h: number;
-      camDX: number;
-      camDY: number;
     };
     radiusStart?: number;
   } | null>(null);
@@ -11977,19 +12028,34 @@ const App = () => {
           },
         ]),
     );
-    // FocusCamMove:拖拽改写落位框参数(描边/副本/舞台视频都读 camDX/camDY)
-    const propStart =
+    // FocusCamMove:画布上的位移、缩放、圆角调整都写入当前帧画框关键帧。
+    const existingKeyframes = instance.componentId === "FocusCamMove"
+      ? normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames)
+      : [];
+    const keyframeStart =
       instance.componentId === "FocusCamMove"
         ? {
-            camDX: Number(instance.props.camDX) || 0,
-            camDY: Number(instance.props.camDY) || 0,
+            ...focusCamBoxAtFrame(
+              instance,
+              currentFrame,
+              canvasOrientation === "portrait" ? "portrait" : "landscape",
+            ),
+            frame: clamp(
+              Math.round(currentFrame - instance.startFrame),
+              0,
+              Math.max(0, instance.durationInFrames - 1),
+            ),
           }
         : null;
+    const keyframeSeed = keyframeStart && existingKeyframes.length === 0 && keyframeStart.frame > 0
+      ? [{ ...keyframeStart, frame: 0 }]
+      : [];
     const resizeStart =
       mode === "resize" && instance.componentId === "FocusCamMove"
         ? (() => {
-            const box = camMoveGeom(
-              instance.props as Parameters<typeof camMoveGeom>[0],
+            const box = focusCamBoxAtFrame(
+              instance,
+              currentFrame,
               canvasOrientation === "portrait" ? "portrait" : "landscape",
             );
             return {
@@ -11997,21 +12063,18 @@ const App = () => {
               y: box.y,
               w: box.w,
               h: box.h,
-              camDX: Number(instance.props.camDX) || 0,
-              camDY: Number(instance.props.camDY) || 0,
             };
           })()
         : undefined;
     const radiusStart =
       mode === "radius" && instance.componentId === "FocusCamMove"
         ? (() => {
-            const box = camMoveGeom(
-              instance.props as Parameters<typeof camMoveGeom>[0],
+            const box = focusCamBoxAtFrame(
+              instance,
+              currentFrame,
               canvasOrientation === "portrait" ? "portrait" : "landscape",
             );
-            return Number(instance.props.cornerRadius) > 0
-              ? Number(instance.props.cornerRadius)
-              : box.r;
+            return box.r;
           })()
         : undefined;
     canvasDragState.current = {
@@ -12020,8 +12083,9 @@ const App = () => {
       memberIds,
       pointerX: event.clientX,
       pointerY: event.clientY,
-      positions: propStart ? {} : positions,
-      propStart,
+      positions,
+      keyframeStart,
+      keyframeSeed,
       scale: instance.position.scale,
       playerWidth: bounds.width,
       playerHeight: bounds.height,
@@ -12042,6 +12106,8 @@ const App = () => {
       if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
         state.moved = true;
       }
+      // 单击选择不生成关键帧；实际拖动后才记录新的画框状态。
+      if (state.keyframeStart && !state.moved) return;
       if (state.mode === "resize" && state.resizeStart && state.resizeHandle) {
         const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
         const designDeltaY = (deltaY / state.playerHeight) * canvasHeight;
@@ -12066,17 +12132,22 @@ const App = () => {
           nextH = clamp(start.h - designDeltaY, minHeight, maxHeight);
           nextY = start.y + start.h - nextH;
         }
-        const baseX = start.x - start.camDX;
-        const baseY = start.y - start.camDY;
         updateInstance(state.instanceId, (instance) => ({
           ...instance,
-          props: {
-            ...instance.props,
-            camDX: Math.round(nextX - baseX),
-            camDY: Math.round(nextY - baseY),
-            camW: Math.round(nextW),
-            camH: Math.round(nextH),
-          },
+          props: state.keyframeStart ? {
+                ...instance.props,
+                camKeyframes: upsertFocusCamKeyframe(
+                  [...state.keyframeSeed, ...normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames)],
+                  {
+                    ...state.keyframeStart,
+                    x: Math.round(nextX),
+                    y: Math.round(nextY),
+                    w: Math.round(nextW),
+                    h: Math.round(nextH),
+                  },
+                  instance.durationInFrames,
+                ),
+              } : instance.props,
         }));
         return;
       }
@@ -12084,25 +12155,37 @@ const App = () => {
         const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
         updateInstance(state.instanceId, (instance) => ({
           ...instance,
-          props: {
-            ...instance.props,
-            cornerRadius: Math.round(
-              clamp(state.radiusStart! + designDeltaX * 0.5, 0, 1000),
-            ),
-          },
+          props: state.keyframeStart ? {
+                ...instance.props,
+                camKeyframes: upsertFocusCamKeyframe(
+                  [...state.keyframeSeed, ...normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames)],
+                  {
+                    ...state.keyframeStart,
+                    r: Math.round(clamp(state.radiusStart! + designDeltaX * 0.5, 0, 1000)),
+                  },
+                  instance.durationInFrames,
+                ),
+              } : instance.props,
         }));
         return;
       }
       if (state.mode === "move") {
         const designDeltaX = (deltaX / state.playerWidth) * canvasWidth;
         const designDeltaY = (deltaY / state.playerHeight) * canvasHeight;
-        if (state.propStart) {
+        if (state.keyframeStart) {
           updateInstance(state.instanceId, (instance) => ({
             ...instance,
             props: {
               ...instance.props,
-              camDX: Math.round(state.propStart!.camDX + designDeltaX),
-              camDY: Math.round(state.propStart!.camDY + designDeltaY),
+              camKeyframes: upsertFocusCamKeyframe(
+                [...state.keyframeSeed, ...normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames)],
+                {
+                  ...state.keyframeStart!,
+                  x: Math.round(state.keyframeStart!.x + designDeltaX),
+                  y: Math.round(state.keyframeStart!.y + designDeltaY),
+                },
+                instance.durationInFrames,
+              ),
             },
           }));
           return;
@@ -13615,6 +13698,117 @@ const App = () => {
     // Remotion Player 的 seek 可能先异步回传旧帧，下一帧再校正一次，
     // 避免点击字幕后 activeSubtitleIndex 被旧的 frameupdate 覆盖。
     window.requestAnimationFrame(() => setCurrentFrame(nextFrame));
+  };
+
+  const focusCamKeyframeDragRef = useRef<{
+    pointerId: number;
+    instanceId: string;
+    originalFrame: number;
+    currentFrame: number;
+    startFrame: number;
+    durationInFrames: number;
+    timelineDurationInFrames: number;
+    pointerX: number;
+    clipWidth: number;
+    keyframes: FocusCamKeyframe[];
+  } | null>(null);
+
+  const beginFocusCamKeyframeDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    instance: MotionInstance,
+    keyframe: FocusCamKeyframe,
+    markerElement: HTMLElement = event.currentTarget,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const clipWidth = markerElement.closest<HTMLElement>(".clip")?.getBoundingClientRect().width ?? 0;
+    if (clipWidth <= 0) return;
+    selectOnlyInstance(instance.id);
+    seekEditorFrame(instance.startFrame + keyframe.frame);
+    focusCamKeyframeDragRef.current = {
+      pointerId: event.pointerId,
+      instanceId: instance.id,
+      originalFrame: keyframe.frame,
+      currentFrame: keyframe.frame,
+      startFrame: instance.startFrame,
+      durationInFrames: instance.durationInFrames,
+      timelineDurationInFrames: durationInFrames,
+      pointerX: event.clientX,
+      clipWidth,
+      keyframes: normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames),
+    };
+  };
+
+  useEffect(() => {
+    const moveKeyframe = (event: PointerEvent) => {
+      const drag = focusCamKeyframeDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      const deltaFrames = Math.round(
+        ((event.clientX - drag.pointerX) / drag.clipWidth) * drag.durationInFrames,
+      );
+      const nextFrame = clamp(
+        drag.originalFrame + deltaFrames,
+        0,
+        Math.max(0, drag.durationInFrames - 1),
+      );
+      if (
+        nextFrame === drag.currentFrame ||
+        drag.keyframes.some((keyframe) =>
+          keyframe.frame !== drag.originalFrame && keyframe.frame === nextFrame
+        )
+      ) return;
+      drag.currentFrame = nextFrame;
+      const movedKeyframe = drag.keyframes.find((keyframe) => keyframe.frame === drag.originalFrame);
+      if (!movedKeyframe) return;
+      const nextKeyframes = normalizeFocusCamKeyframes(
+        [...drag.keyframes.filter((keyframe) => keyframe.frame !== drag.originalFrame), { ...movedKeyframe, frame: nextFrame }],
+        drag.durationInFrames,
+      );
+      updateInstance(drag.instanceId, (instance) => ({
+        ...instance,
+        props: { ...instance.props, camKeyframes: nextKeyframes },
+      }));
+      const absoluteFrame = clamp(
+        drag.startFrame + nextFrame,
+        0,
+        Math.max(0, drag.timelineDurationInFrames - 1),
+      );
+      setCurrentFrame(absoluteFrame);
+      playerRef.current?.seekTo(absoluteFrame);
+    };
+    const finishKeyframe = (event: PointerEvent) => {
+      if (focusCamKeyframeDragRef.current?.pointerId === event.pointerId) {
+        focusCamKeyframeDragRef.current = null;
+      }
+    };
+    window.addEventListener("pointermove", moveKeyframe, { passive: false });
+    window.addEventListener("pointerup", finishKeyframe);
+    window.addEventListener("pointercancel", finishKeyframe);
+    return () => {
+      window.removeEventListener("pointermove", moveKeyframe);
+      window.removeEventListener("pointerup", finishKeyframe);
+      window.removeEventListener("pointercancel", finishKeyframe);
+    };
+  }, [updateInstance]);
+
+  const showFocusCamKeyframeMenu = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    instance: MotionInstance,
+    keyframe: FocusCamKeyframe,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    selectOnlyInstance(instance.id);
+    seekEditorFrame(instance.startFrame + keyframe.frame);
+    setContextMenu({
+      x: Math.min(event.clientX, window.innerWidth - 190),
+      y: Math.min(event.clientY, window.innerHeight - 92),
+      source: "focusCamKeyframe",
+      instanceIds: [instance.id],
+      keyframeFrame: keyframe.frame,
+    });
   };
 
   const focusArrangementIntent = (intentId: string) => {
@@ -16779,11 +16973,10 @@ const App = () => {
                     "full";
                   const camBox =
                     definition.id === "FocusCamMove"
-                      ? camMoveGeom(
-                          instance.props as Parameters<typeof camMoveGeom>[0],
-                          canvasOrientation === "portrait"
-                            ? "portrait"
-                            : "landscape",
+                      ? focusCamBoxAtFrame(
+                          instance,
+                          currentFrame,
+                          canvasOrientation === "portrait" ? "portrait" : "landscape",
                         )
                       : null;
                   return (
@@ -16835,7 +17028,7 @@ const App = () => {
                       onPointerDown={(event) => {
                         if (anchored) {
                           if (camBox) {
-                            // 运镜卡:拖拽写 camDX/camDY,落位框/舞台视频实时跟随
+                            // 运镜卡:画布拖动写入播放头画框关键帧，落位框/舞台视频实时跟随
                             beginCanvasTransform(event, "move", instance);
                             return;
                           }
@@ -16968,6 +17161,12 @@ const App = () => {
               aria-label={`拖动播放指针，当前 ${formatTime(currentFrame / fps)}`}
               title="按住拖动播放指针"
               onPointerDown={beginPlayheadDrag}
+              onContextMenu={(event) => {
+                const underlyingKeyframe = focusCamMarkerAtPoint(event.clientX, event.clientY);
+                if (underlyingKeyframe) {
+                  showFocusCamKeyframeMenu(event, underlyingKeyframe.instance, underlyingKeyframe.keyframe);
+                }
+              }}
             />
             {regionInFrame !== null || regionOutFrame !== null
               ? (() => {
@@ -17619,6 +17818,28 @@ const App = () => {
                                 aria-label={`调整 ${clipDefinition.name} 开始时间`}
                               />
                               <span>{clipDefinition.name}</span>
+                              {instance.componentId === "FocusCamMove"
+                                ? normalizeFocusCamKeyframes(instance.props.camKeyframes, instance.durationInFrames).map((keyframe) => (
+                                    <button
+                                      type="button"
+                                      key={`focus-cam-keyframe-${keyframe.frame}`}
+                                      className={`focus-cam-timeline-keyframe${selectedInstanceId === instance.id && currentFrame === instance.startFrame + keyframe.frame ? " active" : ""}`}
+                                      data-focus-cam-instance-id={instance.id}
+                                      data-focus-cam-frame={keyframe.frame}
+                                      style={{ left: `${(keyframe.frame / Math.max(1, instance.durationInFrames)) * 100}%` }}
+                                      aria-label={`人物聚焦运镜第 ${keyframe.frame} 帧画框关键帧`}
+                                      title={`画框关键帧 ${(keyframe.frame / fps).toFixed(2)}s；拖动调整时间，右键可单独删除`}
+                                      onPointerDown={(event) => beginFocusCamKeyframeDrag(event, instance, keyframe)}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (event.detail !== 0) return;
+                                        selectOnlyInstance(instance.id);
+                                        seekEditorFrame(instance.startFrame + keyframe.frame);
+                                      }}
+                                      onContextMenu={(event) => showFocusCamKeyframeMenu(event, instance, keyframe)}
+                                    />
+                                  ))
+                                : null}
                               <button
                                 className="clip-handle right"
                                 onPointerDown={(event) =>
@@ -18271,6 +18492,20 @@ const App = () => {
                     <span>{inspectorDefinition.name} · {inspectorDefinition.description}</span>
                   </button>
                 </section>
+                {inspectorDefinition.id === "FocusCamMove" ? (
+                  <FocusCamKeyframeEditor
+                    props={inspectorInstance.props}
+                    durationInFrames={inspectorInstance.durationInFrames}
+                    currentLocalFrame={currentFrame - inspectorInstance.startFrame}
+                    fps={fps}
+                    ratio={canvasOrientation === "portrait" ? "portrait" : "landscape"}
+                    onChange={(keyframes) => updateInspectorInstance(inspectorInstance.id, (instance) => ({
+                      ...instance,
+                      props: { ...instance.props, camKeyframes: keyframes },
+                    }))}
+                    onSeek={(localFrame) => seekEditorFrame(inspectorInstance.startFrame + localFrame)}
+                  />
+                ) : null}
                 <ComponentSoundPanel
                   key={`${pendingPreviewInspectorInstance ? 'pending' : 'timeline'}:${inspectorInstance.id}`}
                   owner={inspectorInstance}
@@ -18290,6 +18525,11 @@ const App = () => {
                     {Object.entries(inspectorDefinition.propsSchema).map(
                       ([key, schema]) => {
                         if (key === "panelColor" || key === "cardsJson") return null;
+                        if (
+                          inspectorDefinition.id === "FocusCamMove" &&
+                          normalizeFocusCamKeyframes(inspectorInstance.props.camKeyframes, inspectorInstance.durationInFrames).length > 0 &&
+                          ["side", "cornerRadius", "camDX", "camDY", "camW", "camH"].includes(key)
+                        ) return null;
                         if (
                           (inspectorDefinition.id === "BrandLogo" || inspectorDefinition.id === "TeamAttributionCard") &&
                           (key === "logoSource" || key === "builtinIcon")
@@ -21336,7 +21576,33 @@ const App = () => {
             className="component-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            {contextMenu.source === "videoTimeline" ? (
+            {contextMenu.source === "focusCamKeyframe" ? (
+              <>
+                <small>人物聚焦运镜 · 第 {contextMenu.keyframeFrame} 帧</small>
+                <button
+                  className="delete-action"
+                  onClick={() => {
+                    const instanceId = contextMenu.instanceIds[0];
+                    const frame = contextMenu.keyframeFrame;
+                    if (instanceId && frame !== undefined) {
+                      updateInstance(instanceId, (instance) => ({
+                        ...instance,
+                        props: {
+                          ...instance.props,
+                          camKeyframes: normalizeFocusCamKeyframes(
+                            instance.props.camKeyframes,
+                            instance.durationInFrames,
+                          ).filter((keyframe) => keyframe.frame !== frame),
+                        },
+                      }));
+                    }
+                    setContextMenu(null);
+                  }}
+                >
+                  删除此关键帧
+                </button>
+              </>
+            ) : contextMenu.source === "videoTimeline" ? (
               <>
                 <small>视频轨道片段</small>
                 <button

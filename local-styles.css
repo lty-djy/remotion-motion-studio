@@ -4592,6 +4592,86 @@ aside {
   touch-action: none;
 }
 
+.focus-cam-timeline-keyframe {
+  position: absolute;
+  z-index: 5;
+  top: 3px;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1px solid #10252e;
+  border-radius: 2px;
+  background: #64d8ef;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%) rotate(45deg);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.focus-cam-timeline-keyframe.active {
+  background: #ffe18d;
+  box-shadow: 0 0 0 2px #162e3b, 0 0 0 3px #ffe18d;
+}
+
+.focus-cam-keyframe-hint {
+  margin: 0;
+  color: var(--muted, #8ea0b5);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.focus-cam-keyframe-actions,
+.focus-cam-keyframe-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.focus-cam-keyframe-actions button,
+.focus-cam-keyframe-list button,
+.focus-cam-keyframe-delete {
+  min-height: 29px;
+  padding: 5px 9px;
+  border: 1px solid rgba(117, 148, 169, 0.5);
+  border-radius: 6px;
+  background: rgba(16, 35, 49, 0.85);
+  color: #d9edf8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.focus-cam-keyframe-list button.active {
+  border-color: #64d8ef;
+  color: #75e5fb;
+}
+
+.focus-cam-keyframe-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.focus-cam-keyframe-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.focus-cam-keyframe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #c9dce9;
+  font-size: 12px;
+}
+
+.focus-cam-keyframe-field input {
+  width: 100%;
+}
+
+.focus-cam-keyframe-delete {
+  color: #ffd0ce;
+}
+
 .canvas-marquee {
   position: absolute;
   z-index: 120;

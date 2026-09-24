@@ -123,7 +123,7 @@ const StageCamMoveVideo: React.FC<{
   camTarget: FocusCamStageTarget | null;
   trackStartFrame: number;
 }> = ({ src, trimBefore, volume, muted, camTarget, trackStartFrame }) => {
-  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame);
+  const camStyle = useFocusCamStageStyle(camTarget, trackStartFrame, trimBefore);
   return (
     <OffthreadVideo
       src={src}
@@ -390,6 +390,7 @@ const MultiComponentRender = ({
                 ? resolveGigCardExportProps(instance.props)
                 : instance.props)}
               instanceDurationInFrames={instance.durationInFrames}
+              instanceSourceStartFrame={instance.sourceStartFrame}
               videoSrc={transparent ? "" : activeVideoSrc}
               hideVideo={sourceIncludesVideo}
               muted={!soundEnabled || instance.muted === true}

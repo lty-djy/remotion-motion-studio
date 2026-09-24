@@ -39,8 +39,12 @@ type Props = {
   focusStartY?: number;
   focusEndX?: number;
   focusEndY?: number;
+  /** 相对本效果起点的画框关键帧；空数组沿用旧版静态落位框 */
+  camKeyframes?: FocusCamKeyframe[];
   /** 由时间线渲染壳注入，用于副本模式的焦点关键帧 */
   instanceDurationInFrames?: number;
+  /** Sequence 的 trimBefore；画框关键帧按当前片段可见起点计时 */
+  instanceSourceStartFrame?: number;
   /** 副本模式:卡片自备一份底层口播视频画在框内(预览收缩异常时的兼容开关;
    *  副本恒为静音,人声只走底层轨,避免双声) */
   useMediaCopy?: boolean;
@@ -136,11 +140,90 @@ const clampOpts = {
   extrapolateRight: "clamp",
 } as const;
 
+export type FocusCamKeyframe = {
+  frame: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  r: number;
+};
+
+type CamBox = ReturnType<typeof camMoveGeom>;
+
+/** 保存、导入和拖拽均经此处归一化，避免坏数据造成预览与导出分歧。 */
+export const normalizeFocusCamKeyframes = (
+  value: unknown,
+  durationInFrames: number,
+): FocusCamKeyframe[] => {
+  if (!Array.isArray(value)) return [];
+  const endFrame = Math.max(0, Math.round(durationInFrames) - 1);
+  const byFrame = new Map<number, FocusCamKeyframe>();
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const candidate = item as Record<string, unknown>;
+    const values = [candidate.frame, candidate.x, candidate.y, candidate.w, candidate.h, candidate.r].map(Number);
+    if (!values.every(Number.isFinite)) continue;
+    const [rawFrame, x, y, w, h, r] = values;
+    const frame = Math.min(endFrame, Math.max(0, Math.round(rawFrame)));
+    byFrame.set(frame, {
+      frame,
+      x: Math.round(x),
+      y: Math.round(y),
+      w: Math.max(1, Math.round(w)),
+      h: Math.max(1, Math.round(h)),
+      r: Math.min(1000, Math.max(0, Math.round(r))),
+    });
+  }
+  return [...byFrame.values()].sort((a, b) => a.frame - b.frame);
+};
+
+export const upsertFocusCamKeyframe = (
+  value: unknown,
+  keyframe: FocusCamKeyframe,
+  durationInFrames: number,
+): FocusCamKeyframe[] => normalizeFocusCamKeyframes(
+  [...normalizeFocusCamKeyframes(value, durationInFrames).filter((item) => item.frame !== keyframe.frame), keyframe],
+  durationInFrames,
+);
+
+/** 画框位置、宽高、圆角使用同一条缓动曲线，在任意帧可确定性求值。 */
+export const sampleFocusCamKeyframes = (
+  keyframes: FocusCamKeyframe[],
+  fallback: CamBox,
+  frame: number,
+): CamBox => {
+  if (keyframes.length === 0) return fallback;
+  if (frame <= keyframes[0].frame) {
+    const { x, y, w, h, r } = keyframes[0];
+    return { x, y, w, h, r };
+  }
+  const last = keyframes[keyframes.length - 1];
+  if (frame >= last.frame) {
+    const { x, y, w, h, r } = last;
+    return { x, y, w, h, r };
+  }
+  const rightIndex = keyframes.findIndex((keyframe) => keyframe.frame >= frame);
+  const left = keyframes[rightIndex - 1];
+  const right = keyframes[rightIndex];
+  const progress = Easing.inOut(Easing.ease)(
+    (frame - left.frame) / Math.max(1, right.frame - left.frame),
+  );
+  return {
+    x: lerp(left.x, right.x, progress),
+    y: lerp(left.y, right.y, progress),
+    w: lerp(left.w, right.w, progress),
+    h: lerp(left.h, right.h, progress),
+    r: lerp(left.r, right.r, progress),
+  };
+};
+
 /** 舞台真实视频的运镜时间窗:由最早一个未手填素材的 FocusCamMove 实例决定 */
 export type FocusCamStageTarget = {
   startFrame: number;
   durationInFrames: number;
   geom: ReturnType<typeof camMoveGeom>;
+  keyframes: FocusCamKeyframe[];
   mediaFit: "cover" | "contain";
   focus: Pick<Props, "focusStartX" | "focusStartY" | "focusEndX" | "focusEndY">;
 };
@@ -181,6 +264,7 @@ export const resolveFocusCamStageTarget = (
       focusEndX: props.focusEndX as number | undefined,
       focusEndY: props.focusEndY as number | undefined,
     },
+    keyframes: normalizeFocusCamKeyframes(props.camKeyframes, candidate.durationInFrames),
     geom: camMoveGeom(
       {
         side: props.side as string | undefined,
@@ -204,8 +288,9 @@ export const resolveFocusCamStageTarget = (
 export const useFocusCamStageStyle = (
   target: FocusCamStageTarget | null,
   trackStartFrame: number,
+  trackSourceStartFrame = 0,
 ): React.CSSProperties | null => {
-  const frame = useCurrentFrame();
+  const frame = useCurrentFrame() - trackSourceStartFrame;
   const { fps, width: stageW, height: stageH } = useVideoConfig();
   if (!target) return null;
   const camFrames = Math.max(1, Math.round((CAM_MS / 1000) * fps));
@@ -221,15 +306,16 @@ export const useFocusCamStageStyle = (
     ...clampOpts,
   });
   const progress = Math.min(into, 1 - outOf);
+  const box = sampleFocusCamKeyframes(target.keyframes, target.geom, frame - localStart);
   const holdStart = localStart + camFrames;
   const holdEnd = localEnd - camFrames;
   return {
     position: "absolute",
-    left: lerp(0, target.geom.x, progress),
-    top: lerp(0, target.geom.y, progress),
-    width: lerp(stageW, target.geom.w, progress),
-    height: lerp(stageH, target.geom.h, progress),
-    borderRadius: lerp(0, target.geom.r, progress),
+    left: lerp(0, box.x, progress),
+    top: lerp(0, box.y, progress),
+    width: lerp(stageW, box.w, progress),
+    height: lerp(stageH, box.h, progress),
+    borderRadius: lerp(0, box.r, progress),
     objectFit: target.mediaFit,
     objectPosition: focusObjectPosition(
       frame,
@@ -263,19 +349,26 @@ export const FocusCamMove: React.FC<Props> = ({
   focusStartY = 50,
   focusEndX = 50,
   focusEndY = 50,
+  camKeyframes = [],
   instanceDurationInFrames = 300,
+  instanceSourceStartFrame = 0,
   useMediaCopy = false,
   videoSrc = "",
 }) => {
-  const frame = useCurrentFrame();
+  const frame = Math.max(0, useCurrentFrame() - instanceSourceStartFrame);
   const { fps, width: stageW, height: stageH } = useVideoConfig();
   const msToFrames = (ms: number) => (ms * fps) / 1000;
 
   const accentColor = resolveAccent(accent);
   const ratio: Ratio = stageH > stageW ? "portrait" : "landscape";
-  const g = camMoveGeom(
+  const fallbackBox = camMoveGeom(
     { side, camDX, camDY, camW, camH, camR: cornerRadius },
     ratio,
+  );
+  const g = sampleFocusCamKeyframes(
+    normalizeFocusCamKeyframes(camKeyframes, instanceDurationInFrames),
+    fallbackBox,
+    frame,
   );
 
   // 满屏 → 落位框
@@ -387,6 +480,7 @@ export const FocusCamMoveEffectDef: EffectDef = {
     focusStartY: 50,
     focusEndX: 50,
     focusEndY: 50,
+    camKeyframes: [],
   },
   propsSchema: {
     mediaUrl: { type: "text", label: "口播素材地址(空 = 收缩舞台口播视频)" },
