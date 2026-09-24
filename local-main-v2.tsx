@@ -3672,6 +3672,7 @@ const App = () => {
   const activeComponentIdRef = useRef("");
   const workspaceReadyRef = useRef(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportTransparentChoice, setExportTransparentChoice] = useState<boolean | null>(null);
   const [exportDirDraft, setExportDirDraft] = useState(
     () => localStorage.getItem("export-folder-path") ?? "",
   );
@@ -4900,7 +4901,12 @@ const App = () => {
     videoTracks.length > 0
       ? videoTracks[0].visible !== false
       : Boolean(videoUrl && videoPreviewEnabled);
-  const exportTransparent = !mainVideoVisible && !solidBackgroundEnabled;
+  const hasVisibleFocusCamMove = instances.some(
+    (instance) => instance.componentId === "FocusCamMove" && instance.visible !== false,
+  );
+  const defaultExportTransparent =
+    !solidBackgroundEnabled && (!mainVideoVisible || hasVisibleFocusCamMove);
+  const exportTransparent = exportTransparentChoice ?? defaultExportTransparent;
   const playheadPercent =
     (currentFrame / Math.max(1, durationInFrames - 1)) * 100;
 
@@ -10058,19 +10064,20 @@ const App = () => {
     }
   };
 
-  const defaultExportFileName = () => {
+  const defaultExportFileName = (transparent = exportTransparent) => {
     const now = new Date();
     const pad = (value: number) => String(value).padStart(2, "0");
-    return `${exportTransparent ? "动效透明导出" : "实时预览导出"}-${now.getFullYear()}${pad(
+    return `${transparent ? "动效透明导出" : "实时预览导出"}-${now.getFullYear()}${pad(
       now.getMonth() + 1,
     )}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.mov`;
   };
 
   const openExportDialog = () => {
+    setExportTransparentChoice(null);
     setExportDirDraft(
       localStorage.getItem("export-folder-path") ?? "",
     );
-    setExportFileNameDraft(defaultExportFileName());
+    setExportFileNameDraft(defaultExportFileName(defaultExportTransparent));
     setExportDialogError("");
     setExportDialogOpen(true);
   };
@@ -10186,7 +10193,7 @@ const App = () => {
     setNotice({
       tone: "info",
       text: exportTransparent
-        ? "主视频已隐藏：仅导出未隐藏的动效轨道，生成带 Alpha 的 ProRes 4444 MOV。"
+        ? "正在导出带 Alpha 的 ProRes 4444 MOV；人物聚焦运镜会保留运镜所需的视频画面。"
         : "主视频已显示：正在导出与实时预览一致的视频与动效合成 MOV。",
     });
     try {
@@ -10272,19 +10279,78 @@ const App = () => {
     setRenderResult(null);
     setNotice({
       tone: "info",
-      text: `正在单独导出「${definition.name}」透明 MOV（仅该组件、无背景视频）…`,
+      text: `正在单独导出「${definition.name}」透明 MOV（人物聚焦运镜会包含其运镜画面）…`,
     });
     try {
       const exportSounds = syncComponentSounds(
         resourceTracks.filter(track => track.kind === 'sfx' && track.soundBinding?.instanceId === instance.id),
         [{ ...instance, startFrame: 0 }],
       );
+      // 人物聚焦运镜的舞台视频由时间轴视频轨提供。单独导出组件时，
+      // 也要带上与运镜时间窗重叠的顶层视频片段，否则透明 MOV 里只有描边。
+      const focusCamUsesStageVideo =
+        instance.componentId === "FocusCamMove" &&
+        !instance.props.mediaUrl &&
+        instance.props.useMediaCopy !== true;
+      const fallbackVideoTrack: VideoTrack | null =
+        !videoTracks.length && videoUrl
+          ? {
+              id: "single-export-stage-video",
+              laneId: "single-export-stage-video",
+              trackOrder: 0,
+              name: "舞台视频",
+              url: videoUrl,
+              sourceStartFrame: 0,
+              sourceDurationInFrames: durationInFrames,
+              startFrame: 0,
+              durationInFrames,
+              visible: true,
+              muted: true,
+          }
+        : null;
+      const instanceStart = Math.max(0, Math.round(instance.startFrame));
+      const instanceEnd = instanceStart + Math.max(3, Math.round(instance.durationInFrames));
+      const stageVideoTracks = focusCamUsesStageVideo
+        ? (videoTracks.length ? videoTracks : fallbackVideoTrack ? [fallbackVideoTrack] : [])
+            .filter((track) =>
+              track.url &&
+              track.startFrame < instanceEnd &&
+              track.startFrame + track.durationInFrames > instanceStart,
+            )
+            .sort((a, b) => a.trackOrder - b.trackOrder)
+            .slice(0, 1)
+          .flatMap((track) => {
+              const trackStart = Math.max(instanceStart, Math.round(track.startFrame));
+              const trackEnd = Math.min(
+                instanceEnd,
+                Math.round(track.startFrame + track.durationInFrames),
+              );
+              if (trackEnd <= trackStart) return [];
+              const segmentStart = trackStart - instanceStart;
+              const sourceStartFrame = Math.max(
+                0,
+                Math.round(track.sourceStartFrame + trackStart - track.startFrame),
+              );
+              return [{
+                ...track,
+                startFrame: segmentStart,
+                durationInFrames: trackEnd - trackStart,
+                sourceStartFrame,
+                sourceDurationInFrames: Math.max(
+                  trackEnd - trackStart,
+                  Math.round(track.sourceDurationInFrames - (sourceStartFrame - track.sourceStartFrame)),
+                ),
+                visible: true,
+                muted: true,
+              }];
+            })
+        : [];
       const response = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoSrc: "",
-          videoTracks: [],
+          videoTracks: stageVideoTracks,
           resourceTracks: exportSounds,
           sourceIncludesVideo: false,
           soundEnabled,
@@ -20891,6 +20957,23 @@ const App = () => {
                 placeholder={exportTransparent ? "动效透明导出.mov" : "实时预览导出.mov"}
                 spellCheck={false}
               />
+            </label>
+            <label className="export-dialog-field export-dialog-checkline">
+              <input
+                type="checkbox"
+                checked={exportTransparent}
+                onChange={(event) => {
+                  const transparent = event.target.checked;
+                  setExportTransparentChoice(transparent);
+                  setExportFileNameDraft((current) =>
+                    current.replace(
+                      transparent ? /^实时预览导出/ : /^动效透明导出/,
+                      transparent ? "动效透明导出" : "实时预览导出",
+                    ),
+                  );
+                }}
+              />
+              <span>背景透明 · ProRes 4444 MOV（含 Alpha）</span>
             </label>
             {regionInFrame !== null && regionOutFrame !== null ? (
               <label className="export-dialog-field export-dialog-checkline">

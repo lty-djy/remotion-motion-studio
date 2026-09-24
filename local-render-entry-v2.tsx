@@ -159,8 +159,41 @@ const MultiComponentRender = ({
   canvasWidth = 1920,
   canvasHeight = 1080,
 }: RenderProps) => {
+  const camStageTarget = resolveFocusCamStageTarget(
+    instances,
+    canvasHeight > canvasWidth ? "portrait" : "landscape",
+  );
+  const focusCamSourceTrack = camStageTarget
+    ? videoTracks
+        .filter((track) =>
+          Boolean(track.url) &&
+          track.startFrame < camStageTarget.startFrame + camStageTarget.durationInFrames &&
+          track.startFrame + track.durationInFrames > camStageTarget.startFrame,
+        )
+        .sort((a, b) => a.trackOrder - b.trackOrder)[0]
+    : undefined;
+  const focusCamTrackStart = focusCamSourceTrack && camStageTarget
+    ? Math.max(focusCamSourceTrack.startFrame, camStageTarget.startFrame)
+    : 0;
+  const focusCamTrackEnd = focusCamSourceTrack && camStageTarget
+    ? Math.min(
+        focusCamSourceTrack.startFrame + focusCamSourceTrack.durationInFrames,
+        camStageTarget.startFrame + camStageTarget.durationInFrames,
+      )
+    : 0;
+  const transparentFocusCamTrack = focusCamSourceTrack && focusCamTrackEnd > focusCamTrackStart
+    ? {
+        ...focusCamSourceTrack,
+        startFrame: focusCamTrackStart,
+        durationInFrames: focusCamTrackEnd - focusCamTrackStart,
+        sourceStartFrame: focusCamSourceTrack.sourceStartFrame +
+          focusCamTrackStart - focusCamSourceTrack.startFrame,
+      }
+    : null;
   const visibleVideoTracks = transparent
-    ? []
+    ? transparentFocusCamTrack
+      ? [transparentFocusCamTrack]
+      : []
     : videoTracks.filter((track) => track.visible !== false);
   // 多条视频轨时取最上层轨(trackOrder 最小),与"上轨盖下轨"的压盖惯例一致
   const topmostVideoTrack = visibleVideoTracks.length
@@ -204,11 +237,7 @@ const MultiComponentRender = ({
       })),
   ].sort((a, b) => b.order - a.order);
   // 运镜卡(FocusCamMove 未手填素材)时间窗:合成导出时舞台真实视频直接收缩;
-  // 透明导出无视频轨,卡片自动退回占位框,口播画面交给剪映叠放
-  const camStageTarget = resolveFocusCamStageTarget(
-    instances,
-    canvasHeight > canvasWidth ? "portrait" : "landscape",
-  );
+  // 透明导出仅在该效果依赖舞台视频时保留顶层视频，其余视频轨仍保持透明。
   const camStageTrackId = camStageTarget
     ? (orderedLayers.filter((layer) => layer.kind === "video").pop()?.id ?? null)
     : null;
@@ -379,15 +408,18 @@ const MultiComponentRender = ({
         </Sequence>
       );
     })}
-    {visibleVideoTracks.length === 0 && !transparent && videoSrc ? (
-      <Sequence from={0} durationInFrames={999999}>
+    {visibleVideoTracks.length === 0 && (!transparent || camStageTarget) && videoSrc ? (
+      <Sequence
+        from={transparent && camStageTarget ? camStageTarget.startFrame : 0}
+        durationInFrames={transparent && camStageTarget ? camStageTarget.durationInFrames : 999999}
+      >
         <StageCamMoveVideo
           src={videoSrc}
-          trimBefore={0}
+          trimBefore={transparent && camStageTarget ? camStageTarget.startFrame : 0}
           volume={soundEnabled ? 1 : 0}
           muted={!soundEnabled}
           camTarget={camStageTarget}
-          trackStartFrame={0}
+          trackStartFrame={transparent && camStageTarget ? camStageTarget.startFrame : 0}
         />
       </Sequence>
     ) : null}

@@ -3203,7 +3203,8 @@ const localApi = (): Plugin => {
                   codec: "prores",
                   proResProfile: "4444",
                   pixelFormat: "yuva444p10le",
-                  muted: true,
+                  audioCodec: "pcm-16",
+                  muted: inputProps.soundEnabled !== true,
                   logLevel: "error",
                   onProgress: (frame) => {
                     updateRenderJob(job, {
