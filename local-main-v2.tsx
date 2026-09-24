@@ -123,6 +123,7 @@ import {
   ANCHORED_EFFECT_IDS,
   EFFECT_REGISTRY,
   EFFECT_REGISTRY_BY_ID,
+  getAnchoredEffectHeight,
   getAnchoredEffectPosition,
 } from "./registry";
 import { UnifiedMotionAnimation } from "./effects/UniversalMotionAnimation";
@@ -2446,10 +2447,15 @@ const StudioPreviewComposition = ({
         const definition = previewDefinitionMap.get(instance.componentId);
         if (!definition) return null;
         const Comp = definition.component;
-        // 锚定效果（如 ChapterBar）：忽略存储位置与全局整体大小，始终贴顶全宽。
+        // 锚定效果（如 ChapterBar）：忽略存储位置与全局整体大小，始终贴边全宽。
         const anchored = ANCHORED_EFFECT_IDS.has(instance.componentId);
         const renderPosition = anchored
-          ? getAnchoredEffectPosition(definition, previewCanvas.width)
+          ? getAnchoredEffectPosition(
+              definition,
+              previewCanvas.width,
+              previewCanvas.height,
+              instance.props,
+            )
           : instance.position;
         const renderScale =
           renderPosition.scale * (anchored ? 1 : globalCardScale);
@@ -16962,10 +16968,18 @@ const App = () => {
                       instance.sourceIntentId === activeArrangementIntentId);
                   const anchored = ANCHORED_EFFECT_IDS.has(definition.id);
                   const overlayPosition = anchored
-                    ? getAnchoredEffectPosition(definition, canvasWidth)
+                    ? getAnchoredEffectPosition(
+                        definition,
+                        canvasWidth,
+                        canvasHeight,
+                        instance.props,
+                      )
                     : instance.position;
                   const overlayScale =
                     overlayPosition.scale * (anchored ? 1 : globalCardScale);
+                  const overlayHeight = anchored
+                    ? getAnchoredEffectHeight(definition, instance.props)
+                    : definition.bounds.height;
                   // 全屏卡（placement "full"）铺满画布，选择框直接 100%×100%；
                   // FocusCamMove 例外：手柄覆盖落位框（可拖拽移动）
                   const fullscreenOverlay =
@@ -17020,7 +17034,7 @@ const App = () => {
                           ? `${(camBox.h / canvasHeight) * 100}%`
                           : fullscreenOverlay
                             ? "100%"
-                            : `${(definition.bounds.height / canvasHeight) * 100}%`,
+                            : `${(overlayHeight / canvasHeight) * 100}%`,
                         containerType: definition.id === "BrollGigCardFloat" ? "size" : undefined,
                         transform: `scale(${overlayScale})`,
                         zIndex: isSelected ? 40 + stackIndex : 20 + stackIndex,
@@ -18178,7 +18192,7 @@ const App = () => {
                   >
                     {inspectorDefinition.id === "FocusCamMove"
                       ? "该效果固定铺满画布；预览中可拖动落位框移动，四角手柄可调整窗口大小，上沿圆点可调整圆角，右侧参数可精确修改。"
-                      : "该效果固定贴顶全宽（跟随画幅），不支持拖拽和独立大小/位置。"}
+                      : "该效果固定贴近画面边缘并铺满全宽；可在上方选择贴顶或贴底，不支持拖拽和独立大小/位置。"}
                   </span>
                 </div>
               </section>

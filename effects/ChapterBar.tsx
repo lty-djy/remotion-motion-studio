@@ -4,6 +4,7 @@ import type { EffectDef } from "../registry";
 
 type Props = {
   enterAnimation?: string;
+  barPosition?: "top" | "bottom";
   chapters?: string;
   showProgress?: boolean;
   progMode?: "fill" | "line";
@@ -22,6 +23,34 @@ type Props = {
 
 /** 强调色默认值(原"数据蓝") */
 export const CHAPTER_BAR_DEFAULT_ACCENT = "#5fa0fa";
+
+/** 兼容历史 JSON/编排数据中的数字字符串，并按进度形态恢复旧默认厚度。 */
+export const resolveChapterBarProgressThickness = (
+  value: unknown,
+  mode: unknown,
+): number => {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : mode === "line"
+      ? 4
+      : 48;
+};
+
+/** 章节条的实际设计高度；锚点、预览和进度条共用，避免厚度变化后错位。 */
+export const chapterBarDesignHeight = (
+  progressThickness: unknown,
+  progMode: unknown,
+): number =>
+  Math.max(
+    48,
+    resolveChapterBarProgressThickness(progressThickness, progMode),
+  );
 
 /** 旧实例存的预设名 → hex;其余值原样透传 */
 const LEGACY_ACCENT_NAMES: Record<string, string> = {
@@ -101,6 +130,7 @@ export const chapterBarAutoDurationSeconds = (
  */
 export const ChapterBar: React.FC<Props> = ({
   enterAnimation = "auto",
+  barPosition = "top",
   chapters = "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
   showProgress = true,
   progMode = "fill",
@@ -126,10 +156,12 @@ export const ChapterBar: React.FC<Props> = ({
   const fitScale = canvasWidth / 1920;
   const fontSize = chapterFontSize / fitScale;
   const inset = 14 / fitScale;
-  const autoProgressThickness = Number.isFinite(progressThickness) && progressThickness > 0
-    ? progressThickness
-    : progMode === "fill" ? 48 : 4;
-  const barHeight = Math.max(48, autoProgressThickness) / fitScale;
+  const autoProgressThickness = resolveChapterBarProgressThickness(
+    progressThickness,
+    progMode,
+  );
+  const barHeight =
+    chapterBarDesignHeight(progressThickness, progMode) / fitScale;
   const progressThicknessPx = autoProgressThickness / fitScale;
   const edgeWidth = 3 / fitScale;
 
@@ -149,10 +181,11 @@ export const ChapterBar: React.FC<Props> = ({
 
   // 进场:从画面上方滑入,速度倍率只作用于这段进场
   const enterFrames = Math.max(1, (0.7 * fps) / Math.max(speed, 0.1));
+  const enterOffset = barPosition === "bottom" ? "110%" : "-110%";
   const slide =
     enterAnimation === "none"
       ? "0%"
-      : interpolate(frame, [0, enterFrames], ["-110%", "0%"], {
+      : interpolate(frame, [0, enterFrames], [enterOffset, "0%"], {
           easing: Easing.bezier(0.22, 1, 0.36, 1),
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
@@ -186,7 +219,8 @@ export const ChapterBar: React.FC<Props> = ({
         boxSizing: "border-box",
         overflow: "hidden",
         background: `color-mix(in srgb, ${tokens.node} 88%, transparent)`,
-        borderBottom: `${1 / fitScale}px solid ${tokens.brd}`,
+        [barPosition === "bottom" ? "borderTop" : "borderBottom"]:
+          `${1 / fitScale}px solid ${tokens.brd}`,
         color: inkColor,
         fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
         transform: `translateY(${slide})`,
@@ -209,7 +243,7 @@ export const ChapterBar: React.FC<Props> = ({
             style={{
               position: "absolute",
               right: 0,
-              top: (barHeight - progressThicknessPx) / 2,
+              top: 0,
               height: progressThicknessPx,
               width: edgeWidth,
               background: progColor,
@@ -275,7 +309,7 @@ export const ChapterBar: React.FC<Props> = ({
 export const ChapterBarEffectDef: EffectDef = {
   id: "ChapterBar",
   name: "常驻章节导航条",
-  description: "常驻章节导航 · 顶部全程在场的本期地图",
+  description: "常驻章节导航 · 可贴顶部或底部全程显示的本期地图",
   category: "portrait-narrative",
   catalogGroup: "竖屏口播信息层",
   glyph: "CB",
@@ -286,6 +320,7 @@ export const ChapterBarEffectDef: EffectDef = {
   bounds: { x: 0, y: 0, width: 1920, height: 48 },
   defaultPosition: { x: 0, y: 0, scale: 1 },
   defaultProps: {
+    barPosition: "top",
     chapters: "开场 0 | 章节名 6 | 按起始秒填 14 | 结尾 24",
     lastChapterSeconds: 10,
     panelColor: "#12121a",
@@ -299,6 +334,15 @@ export const ChapterBarEffectDef: EffectDef = {
     speed: 1,
   },
   propsSchema: {
+    barPosition: {
+      type: "select",
+      label: "显示位置",
+      default: "top",
+      options: [
+        { label: "上方", value: "top" },
+        { label: "下方", value: "bottom" },
+      ],
+    },
     chapters: {
       type: "text",
       label: "章节表(名称 起始秒,| 分隔)",

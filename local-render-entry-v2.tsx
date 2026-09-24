@@ -339,10 +339,15 @@ const MultiComponentRender = ({
       if (!definition) return null;
       const Comp =
         definition.component as React.ComponentType<Record<string, unknown>>;
-      // 锚定效果（如 ChapterBar）：导出时与预览一致，忽略存储位置，始终贴顶全宽
+      // 锚定效果（如 ChapterBar）：导出时与预览一致，忽略存储位置，始终贴齐所选画面边缘
       const anchored = ANCHORED_EFFECT_IDS.has(instance.componentId);
       const renderPosition = anchored
-        ? getAnchoredEffectPosition(definition, canvasWidth)
+        ? getAnchoredEffectPosition(
+            definition,
+            canvasWidth,
+            canvasHeight,
+            instance.props,
+          )
         : instance.position;
       // 终端教学面板与团队归因卡片共用可选卡片底色控制。
       const cardBackgroundOn =

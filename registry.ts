@@ -9,7 +9,10 @@ export {
 } from "./effect-semantic-capabilities";
 
 import { GlobalExpeditionEffectDef } from "./effects/GlobalExpedition";
-import { ChapterBarEffectDef } from "./effects/ChapterBar";
+import {
+  ChapterBarEffectDef,
+  chapterBarDesignHeight,
+} from "./effects/ChapterBar";
 
 import { FocusCamMoveEffectDef } from "./effects/FocusCamMove";
 import { SrtSemanticCaptionsEffectDef } from "./effects/SrtSemanticCaptions";
@@ -83,26 +86,43 @@ export type RegisteredEffectDef = EffectDef & {
 };
 
 /** 固定锚定的效果：画布不可拖拽缩放，"独立大小与位置"面板不开放。
- *  ChapterBar 贴顶全宽（与画幅联动）。FocusCamMove 铺满画布做运镜，
+ *  ChapterBar 贴边全宽（与画幅联动）。FocusCamMove 铺满画布做运镜，
  *  位置由组件内 camDX/camDY 参数控制，拖动反而会让底色盘偏离画布。 */
 export const ANCHORED_EFFECT_IDS = new Set<string>(["ChapterBar", "FocusCamMove"]);
 
-/** 锚定效果的唯一落位：贴顶、全宽。所有渲染入口（预览/弹窗/导出）共用。
+/** 锚定效果的唯一落位：贴边、全宽。所有渲染入口（预览/弹窗/导出）共用。
  *  placement 为 "full" 的全屏卡例外：scale 恒为 1，直接铺满画布。 */
 export const getAnchoredEffectPosition = (
   definition: MotionComponentDefinition,
   canvasWidth: number,
+  canvasHeight = 0,
+  props: Record<string, unknown> = {},
 ): MotionPosition => {
   if (definition.placement === "full") {
     return { x: 0, y: 0, scale: 1 };
   }
+  const scale =
+    definition.bounds.width > 0 ? canvasWidth / definition.bounds.width : 1;
+  const designHeight = getAnchoredEffectHeight(definition, props);
+  const anchoredAtBottom =
+    definition.id === "ChapterBar" && props.barPosition === "bottom";
   return {
     x: 0,
-    y: 0,
-    scale:
-      definition.bounds.width > 0 ? canvasWidth / definition.bounds.width : 1,
+    y: anchoredAtBottom
+      ? Math.max(0, canvasHeight - designHeight * scale)
+      : 0,
+    scale,
   };
 };
+
+/** 锚定组件当前实际高度；ChapterBar 会随用户设置的进度厚度增高。 */
+export const getAnchoredEffectHeight = (
+  definition: MotionComponentDefinition,
+  props: Record<string, unknown> = {},
+): number =>
+  definition.id === "ChapterBar"
+    ? chapterBarDesignHeight(props.progressThickness, props.progMode)
+    : definition.bounds.height;
 
 const EFFECT_DEFINITIONS: EffectDef[] = [
 
