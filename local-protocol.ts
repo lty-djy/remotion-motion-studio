@@ -263,6 +263,10 @@ export const getMotionComponents = (
   });
 
   if (manifestDefinitions.length > 0) return manifestDefinitions;
+  // An explicit empty manifest means the imported package intentionally has
+  // no registered components. Do not reinterpret its default export as a
+  // legacy single-component package.
+  if (Array.isArray(module.MOTION_COMPONENTS)) return [];
 
   const fallbackRenderable =
     typeof module.default === "function"
