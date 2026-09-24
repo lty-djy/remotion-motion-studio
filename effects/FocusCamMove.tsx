@@ -34,6 +34,13 @@ type Props = {
   /** 口播框大小(px) */
   camW?: number;
   camH?: number;
+  /** 框内取景焦点；起点和终点可形成轻微跟随，50% 为居中 */
+  focusStartX?: number;
+  focusStartY?: number;
+  focusEndX?: number;
+  focusEndY?: number;
+  /** 由时间线渲染壳注入，用于副本模式的焦点关键帧 */
+  instanceDurationInFrames?: number;
   /** 副本模式:卡片自备一份底层口播视频画在框内(预览收缩异常时的兼容开关;
    *  副本恒为静音,人声只走底层轨,避免双声) */
   useMediaCopy?: boolean;
@@ -101,6 +108,28 @@ export const camMoveGeom = (
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const focusPercent = (value: unknown) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(100, Math.max(0, number)) : 50;
+};
+
+/** 两个焦点关键帧只移动框内画面，不改变画框本身。 */
+const focusObjectPosition = (
+  frame: number,
+  fromFrame: number,
+  toFrame: number,
+  focus: Pick<Props, "focusStartX" | "focusStartY" | "focusEndX" | "focusEndY">,
+) => {
+  const progress = interpolate(
+    frame,
+    [fromFrame, Math.max(fromFrame + 1, toFrame)],
+    [0, 1],
+    { easing: Easing.inOut(Easing.ease), ...clampOpts },
+  );
+  const x = lerp(focusPercent(focus.focusStartX), focusPercent(focus.focusEndX), progress);
+  const y = lerp(focusPercent(focus.focusStartY), focusPercent(focus.focusEndY), progress);
+  return `${x}% ${y}%`;
+};
 
 const clampOpts = {
   extrapolateLeft: "clamp",
@@ -112,6 +141,8 @@ export type FocusCamStageTarget = {
   startFrame: number;
   durationInFrames: number;
   geom: ReturnType<typeof camMoveGeom>;
+  mediaFit: "cover" | "contain";
+  focus: Pick<Props, "focusStartX" | "focusStartY" | "focusEndX" | "focusEndY">;
 };
 
 /**
@@ -143,6 +174,13 @@ export const resolveFocusCamStageTarget = (
   return {
     startFrame: Math.max(0, Math.round(candidate.startFrame)),
     durationInFrames: Math.max(3, Math.round(candidate.durationInFrames)),
+    mediaFit: props.mediaFit === "contain" ? "contain" : "cover",
+    focus: {
+      focusStartX: props.focusStartX as number | undefined,
+      focusStartY: props.focusStartY as number | undefined,
+      focusEndX: props.focusEndX as number | undefined,
+      focusEndY: props.focusEndY as number | undefined,
+    },
     geom: camMoveGeom(
       {
         side: props.side as string | undefined,
@@ -173,6 +211,7 @@ export const useFocusCamStageStyle = (
   const camFrames = Math.max(1, Math.round((CAM_MS / 1000) * fps));
   const localStart = Math.round(target.startFrame) - Math.round(trackStartFrame);
   const localEnd = localStart + target.durationInFrames;
+  if (frame < localStart || frame >= localEnd) return null;
   const into = interpolate(frame, [localStart, localStart + camFrames], [0, 1], {
     easing: CAM_EASE,
     ...clampOpts,
@@ -182,6 +221,8 @@ export const useFocusCamStageStyle = (
     ...clampOpts,
   });
   const progress = Math.min(into, 1 - outOf);
+  const holdStart = localStart + camFrames;
+  const holdEnd = localEnd - camFrames;
   return {
     position: "absolute",
     left: lerp(0, target.geom.x, progress),
@@ -189,8 +230,13 @@ export const useFocusCamStageStyle = (
     width: lerp(stageW, target.geom.w, progress),
     height: lerp(stageH, target.geom.h, progress),
     borderRadius: lerp(0, target.geom.r, progress),
-    // cover:小框阶段只裁剪不变形;素材与画幅同比例时,满屏阶段与 contain 无差别
-    objectFit: "cover",
+    objectFit: target.mediaFit,
+    objectPosition: focusObjectPosition(
+      frame,
+      holdEnd > holdStart ? holdStart : localStart,
+      holdEnd > holdStart ? holdEnd : localEnd,
+      target.focus,
+    ),
   };
 };
 
@@ -213,6 +259,11 @@ export const FocusCamMove: React.FC<Props> = ({
   camDY = 0,
   camW = 700,
   camH = 700,
+  focusStartX = 50,
+  focusStartY = 50,
+  focusEndX = 50,
+  focusEndY = 50,
+  instanceDurationInFrames = 300,
   useMediaCopy = false,
   videoSrc = "",
 }) => {
@@ -260,6 +311,12 @@ export const FocusCamMove: React.FC<Props> = ({
     width: "100%",
     height: "100%",
     objectFit: mediaFit,
+    objectPosition: focusObjectPosition(
+      frame,
+      Math.round(msToFrames(CAM_MS)),
+      Math.max(Math.round(msToFrames(CAM_MS)) + 1, instanceDurationInFrames - Math.round(msToFrames(CAM_MS))),
+      { focusStartX, focusStartY, focusEndX, focusEndY },
+    ),
   };
 
   return (
@@ -326,6 +383,10 @@ export const FocusCamMoveEffectDef: EffectDef = {
     camDY: 0,
     camW: 700,
     camH: 700,
+    focusStartX: 50,
+    focusStartY: 50,
+    focusEndX: 50,
+    focusEndY: 50,
   },
   propsSchema: {
     mediaUrl: { type: "text", label: "口播素材地址(空 = 收缩舞台口播视频)" },
@@ -381,5 +442,9 @@ export const FocusCamMoveEffectDef: EffectDef = {
     camDY: { type: "number", label: "口播框垂直移动", unit: "px", default: 0, min: -400, max: 600, step: 10 },
     camW: { type: "number", label: "口播框宽", unit: "px", default: 700, min: 300, max: 1200, step: 10 },
     camH: { type: "number", label: "口播框高", unit: "px", default: 700, min: 300, max: 1000, step: 10 },
+    focusStartX: { type: "number", label: "人物焦点起点 X", unit: "%", default: 50, min: 0, max: 100, step: 1 },
+    focusStartY: { type: "number", label: "人物焦点起点 Y", unit: "%", default: 50, min: 0, max: 100, step: 1 },
+    focusEndX: { type: "number", label: "人物焦点终点 X", unit: "%", default: 50, min: 0, max: 100, step: 1 },
+    focusEndY: { type: "number", label: "人物焦点终点 Y", unit: "%", default: 50, min: 0, max: 100, step: 1 },
   },
 };
