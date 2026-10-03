@@ -1,0 +1,6 @@
+interface:
+  display_name: "口播连续展开风格"
+  short_description: "沿用耳环样段的暗色卡片与连续展开衔接，生成可分层调整的工作台 TSX"
+  default_prompt: "使用 $aroll-broll-style，把我的视频和 SRT 做成可编辑的口播与图解衔接 TSX。"
+policy:
+  allow_implicit_invocation: true

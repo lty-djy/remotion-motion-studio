@@ -5,6 +5,7 @@
 ## SRT 与 TSX 技能自动入口
 
 - 当用户要求为本工作台“生成 .tsx / TSX 动效 / 按参考风格制作组件”，或提供 SRT 延续此类请求时，必须先读取并执行 [srt-to-workbench-tsx](.agents/skills/srt-to-workbench-tsx/SKILL.md)，以及其引用的偏好记录。此入口与模型名称无关；即使技能没有出现在自动技能列表，也应按相对路径读取。
+- 用户于 2026-10-03 指定未来 TSX 默认沿用耳环衔接样段；没有新的风格指令时，同时读取 [口播连续展开风格](.agents/skills/aroll-broll-style/SKILL.md) 及其真实参考帧。新题材重做图形和内容，最新用户参考优先。
 - 仅要求现有效果自动编排 JSON 时继续使用 `overlay-fx-generator/SKILL.md`；普通 React 页面修改不触发 TSX 视频制作流程。
 - 用户已授权此技能持续迭代：依据明确反馈维护技能内的 `references/preferences.md`，记录来源、范围及被替代规则；不把 AI 自评、用户沉默或一次局部修改当全局审美。
 - 此规则要求能读取项目文件的代理遵循，不代表任何外部聊天软件会自动获得本机技能。
